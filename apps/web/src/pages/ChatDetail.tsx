@@ -381,6 +381,34 @@ function TokenExplainSheet({ token, context, onClose, speak }: {
   );
 }
 
+/* ─── Correction Banner (subtle breathing-light strip) ─── */
+function CorrectionBanner({ hud, speak }: { hud: HudData; speak: (text: string, lang?: string) => void }) {
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => { setDismissed(false); }, [hud?.corrected_sentence]);
+
+  if (dismissed || !hud?.corrected_sentence || hud.detected_intent !== "target_correction") return null;
+
+  const mistakes = Array.isArray(hud.mistakes) ? hud.mistakes : [];
+
+  return (
+    <div className="correction-banner">
+      <div className="correction-glow" />
+      <div className="correction-content">
+        <div className="correction-label">
+          <span className="correction-dot" />
+          <span>{mistakes.length > 0 ? `${mistakes.length} 处修正` : "语法修正"}</span>
+        </div>
+        <div className="correction-sentence" onClick={() => speak(hud.corrected_sentence!, "en-US")}>
+          <span className="correction-text">{hud.corrected_sentence}</span>
+          <Volume2 size={14} className="correction-play" />
+        </div>
+      </div>
+      <button className="correction-dismiss" onClick={() => setDismissed(true)}><X size={12} /></button>
+    </div>
+  );
+}
+
 /* ─── Mode indicator above composer ─── */
 function ModeIndicator({ hud }: { hud: HudData }) {
   const intent = hud?.detected_intent;
@@ -475,6 +503,9 @@ export default function ChatDetail() {
 
       {/* Conversation feed */}
       <ConversationFeed messages={messages} turns={turns} activeTurnId={activeTurnId} sending={sending} streamPhase={streamPhase} speak={speak} onTurnClick={setActiveTurn} />
+
+      {/* Correction banner (subtle, above composer) */}
+      <CorrectionBanner hud={hud} speak={speak} />
 
       {/* Mode indicator + Composer */}
       <ModeIndicator hud={hud} />
