@@ -2,6 +2,28 @@
 
 > 这份文档只负责 **UI 视觉与静态交互**。后端/数据接线由 `SOCIAL_LOGIC_LITE_CODE_SPEC.md`（代码 Agent）负责。两份配合：**视觉 Agent 先做出页面与组件（mock 数据驱动）→ 代码 Agent 再接 API**。
 
+---
+
+## ⚠️ Git 工作规则（强制，每次修改必须遵守）
+
+> **所有 Agent 在修改任何代码文件前，必须先执行 Git 操作。没有例外。**
+
+1. **开始任务前**：先 `git status` 查看当前状态，确认工作区干净。
+2. **修改代码前**：先 `git add -A && git commit -m "checkpoint: 修改前快照"` 创建一个检查点，确保当前状态可回退。
+3. **每完成一个独立功能/修复后**：立即 `git add <具体文件> && git commit -m "feat/fix: 描述"` 提交，不要积攒多个改动。
+4. **出错需要回退时**：用 `git log --oneline -10` 查看历史，`git checkout <commit> -- <file>` 恢复单文件，或 `git reset --hard <commit>` 全量回退。
+5. **禁止**：在没有 commit 的情况下大幅重写文件——这会导致无法恢复。
+
+```bash
+# 标准工作流模板
+git status                                    # 1. 检查状态
+git add -A && git commit -m "checkpoint: before <任务描述>"  # 2. 快照
+# ... 修改代码 ...
+git add <修改的文件> && git commit -m "feat: <描述>"        # 3. 提交
+```
+
+---
+
 ## 0. 一句话目标
 
 在「AinerWise（学英语为主、游戏为辅）」里做一个**单人狼人杀/阵营推理**游戏。玩家与多个 AI 玩家回合制推理，**顶部固定 Learning HUD 教用户用英文质疑/反驳/投票**。整体要：沉浸、悬疑、高级，但学习系统安静常驻、不打断游戏。
