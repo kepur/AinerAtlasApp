@@ -49,6 +49,28 @@ function useTts() {
 }
 
 /* ─── Learning HUD (horizontal scroll cards) ─── */
+/* ─── Single pattern row with crush button ─── */
+function CrushPatternRow({ pattern, speak }: { pattern: ChatV2PatternItem; speak: (t: string, l?: string) => void }) {
+  const [added, setAdded] = useState(false);
+  const handleAdd = async () => {
+    if (added) return;
+    try { await addCrushCandidate(pattern.pattern, pattern.example); setAdded(true); } catch { /* ignore */ }
+  };
+  return (
+    <div className="crush-pattern-row">
+      <div className="crush-pattern-text">
+        <p className="crush-pattern-label">{pattern.pattern}</p>
+        {pattern.example && <p className="crush-pattern-example">{pattern.example}</p>}
+      </div>
+      <button className="tts-btn" onClick={() => speak(pattern.example || pattern.pattern, "en-US")}><Volume2 size={13} /></button>
+      <button className={`hud-crush-btn ${added ? "added" : ""}`} onClick={handleAdd}>
+        <Flame size={11} /> {added ? "已加入" : "加入"}
+      </button>
+    </div>
+  );
+}
+
+/* ─── Learning HUD (horizontal scroll cards) ─── */
 function LearningHUD({ hud, streamPhase, speak, onTokenClick }: {
   hud: HudData;
   streamPhase: "replying" | "analyzing" | null;
@@ -87,8 +109,6 @@ function LearningHUD({ hud, streamPhase, speak, onTokenClick }: {
   const vocab: string[] = Array.isArray(hud.vocabulary) ? hud.vocabulary : [];
   const patternsV2: ChatV2PatternItem[] = Array.isArray(hud.patterns_v2) ? hud.patterns_v2 : [];
   const agents: ChatV2AgentItem[] = Array.isArray(hud.agents) ? hud.agents : [];
-  const nextQ: ChatV2NextQuestion | undefined = hud.next_question;
-
   return (
     <div className="learning-hud">
       <div className="hud-scroll">
@@ -163,17 +183,13 @@ function LearningHUD({ hud, streamPhase, speak, onTokenClick }: {
           </div>
         )}
 
-        {/* Card 5: AI follow-up question */}
-        {nextQ && (
-          <div className="hud-card">
-            <div className="hud-card-title"><MessageSquare size={12} /> AI 追问</div>
-            <div className="hud-expression-rows">
-              <div className="hud-expression-row">
-                <p className="hud-expression-text" style={{ fontSize: 15 }}>{nextQ.target}</p>
-                <button className="tts-btn" onClick={() => speak(nextQ.target, "en-US")}><Volume2 size={14} /></button>
-              </div>
-            </div>
-            {nextQ.native && <p className="hud-native">{nextQ.native}</p>}
+        {/* Card 5: Sentence patterns + Crush */}
+        {patternsV2.length > 0 && (
+          <div className="hud-card hud-card-crush">
+            <div className="hud-card-title"><Flame size={12} /> 句型消消乐</div>
+            {patternsV2.map((p, i) => (
+              <CrushPatternRow key={i} pattern={p} speak={speak} />
+            ))}
           </div>
         )}
       </div>
