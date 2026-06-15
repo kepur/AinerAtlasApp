@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AinerWise - Onboarding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#f7f9fb",
+                        "ai-gradient-end": "#E0E7FF",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-container": "#fefcff",
+                        "primary-container": "#6063ee",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "outline": "#767586",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-primary-container": "#fffbff",
+                        "on-tertiary-container": "#000703",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-secondary-fixed-variant": "#004395",
+                        "error": "#ba1a1a",
+                        "background": "#f7f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-surface-variant": "#464554",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed": "#001a42",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c7c4d7",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#006c49",
+                        "tertiary-container": "#00885d",
+                        "on-primary-fixed": "#07006c",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary": "#ffffff",
+                        "secondary": "#0058be",
+                        "soft-mint": "#D1FAE5",
+                        "primary": "#4648d4",
+                        "on-tertiary-fixed": "#002113",
+                        "surface-tint": "#494bd6",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-variant": "#e0e3e5",
+                        "secondary-fixed": "#d8e2ff",
+                        "deep-purple": "#4F46E5",
+                        "tertiary-fixed": "#6ffbbe",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "on-error": "#ffffff",
+                        "surface-container": "#eceef0",
+                        "surface-bright": "#f7f9fb",
+                        "secondary-container": "#2170e4",
+                        "inverse-surface": "#2d3133",
+                        "on-background": "#191c1e",
+                        "surface-container-low": "#f2f4f6",
+                        "inverse-primary": "#c0c1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "touch-target-min": "44px",
+                        "margin-mobile": "20px",
+                        "stack-sm": "8px",
+                        "gutter-md": "16px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "body-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "headline-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Manrope', sans-serif;
+            background: linear-gradient(135deg, #f7f9fb 0%, #EEF2FF 100%);
+            overflow-x: hidden;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.04);
+        }
+
+        .chip-active {
+            background: #4F46E5 !important;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+
+        .lumina-gradient {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+        }
+
+        /* Custom scrollbar for mobile feel */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        .progress-bar-fill {
+            transition: width 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col min-h-screen text-on-surface selection:bg-primary/20">
+<!-- Top AppBar (Simplified for Onboarding) -->
+<header class="sticky top-0 w-full z-50 bg-glass-bg backdrop-blur-xl border-b border-white/10 px-margin-mobile flex flex-col pt-safe">
+<div class="h-touch-target-min flex items-center justify-between">
+<span class="font-headline-lg-mobile text-headline-lg-mobile bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">AinerWise</span>
+<button class="text-on-surface-variant hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+<!-- Progress Indicator -->
+<div class="py-stack-sm">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-en-sm text-label-en-sm text-primary uppercase tracking-wider">Step 1 of 5</span>
+<span class="font-label-en-sm text-label-en-sm text-outline">个人化偏好设置</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="progress-bar-fill h-full bg-primary rounded-full" style="width: 20%;"></div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow px-margin-mobile pt-stack-lg pb-40">
+<!-- Hero Header -->
+<div class="mb-stack-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">让 AI 更了解你</h1>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">这些信息会帮助 AI 给你更适合的表达建议和学习路径。</p>
+</div>
+<!-- Onboarding Questions -->
+<div class="space-y-stack-lg">
+<!-- Section 1: Native Language -->
+<section class="space-y-stack-sm">
+<h2 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">language</span>
+                    你的母语是？
+                </h2>
+<div class="flex flex-wrap gap-3">
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'native')">中文</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'native')">English</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'native')">日本語</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'native')">한국어</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'native')">Español</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'native')">Other</button>
+</div>
+</section>
+<!-- Section 2: Target Language -->
+<section class="space-y-stack-sm">
+<h2 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">track_changes</span>
+                    你想学习的目标语言？
+                </h2>
+<div class="flex flex-wrap gap-3">
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'target')">English</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'target')">日本語</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'target')">한국어</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'target')">Deutsch</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'target')">Français</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'target')">Serbian</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'target')">Polish</button>
+<button class="px-6 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min min-w-[80px]" onclick="toggleChip(this, 'target')">Other</button>
+</div>
+</section>
+<!-- Section 3: Level -->
+<section class="space-y-stack-sm">
+<h2 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">signal_cellular_alt</span>
+                    你的当前水平？
+                </h2>
+<div class="grid grid-cols-4 gap-3">
+<button class="py-3 rounded-xl glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'level')">A1</button>
+<button class="py-3 rounded-xl glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'level')">A2</button>
+<button class="py-3 rounded-xl glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'level')">B1</button>
+<button class="py-3 rounded-xl glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'level')">B2</button>
+<button class="py-3 rounded-xl glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'level')">C1</button>
+<button class="py-3 rounded-xl glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'level')">C2</button>
+<button class="col-span-2 py-3 rounded-xl glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'level')">不确定</button>
+</div>
+</section>
+<!-- Section 4: Focus -->
+<section class="space-y-stack-sm">
+<h2 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">trending_up</span>
+                    你最想提升什么？
+                </h2>
+<div class="flex flex-wrap gap-3">
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'focus')">日常聊天</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'focus')">口语流畅</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'focus')">写作表达</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'focus')">面试</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'focus')">商务沟通</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'focus')">跨国交友</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'focus')">创业表达</button>
+</div>
+</section>
+<!-- Section 5: Topics -->
+<section class="space-y-stack-sm">
+<h2 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">interests</span>
+                    你感兴趣的话题
+                </h2>
+<div class="flex flex-wrap gap-3">
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">人生规划</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">AI</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">创业</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">情感</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">移民</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">欧洲生活</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">职场</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">商业</button>
+<button class="px-5 py-3 rounded-full glass-card font-body-md text-body-md text-on-surface-variant active:scale-95 transition-all duration-200 h-touch-target-min" onclick="toggleChip(this, 'topics')">文化</button>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Action Bar (Fixed) -->
+<footer class="fixed bottom-0 left-0 w-full z-50 px-margin-mobile pb-safe bg-gradient-to-t from-surface via-surface/90 to-transparent pt-8">
+<div class="flex flex-col gap-4 mb-6">
+<button class="w-full h-14 bg-deep-purple text-white rounded-full font-headline-md text-headline-md shadow-lg shadow-deep-purple/20 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                下一步
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<div class="flex flex-col items-center gap-2">
+<button class="text-on-surface-variant font-body-md text-body-md hover:text-primary transition-colors py-1">
+                    稍后再说
+                </button>
+<div class="flex items-center gap-1.5 opacity-60">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+<p class="font-label-zh-sm text-label-zh-sm">你的私人思想资产默认不会公开。</p>
+</div>
+</div>
+</div>
+</footer>
+<!-- Background Atmospheric Effect -->
+<div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+<div class="absolute top-[-10%] right-[-20%] w-[80%] h-[60%] bg-primary/5 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-[-10%] left-[-20%] w-[80%] h-[60%] bg-secondary/5 rounded-full blur-[100px]"></div>
+</div>
+<script>
+        function toggleChip(element, category) {
+            // Check if category is single select or multiple
+            const singleSelectCategories = ['native', 'target', 'level'];
+            
+            if (singleSelectCategories.includes(category)) {
+                // Remove active class from all siblings in the same container
+                const container = element.parentElement;
+                const siblings = container.querySelectorAll('button');
+                siblings.forEach(sib => sib.classList.remove('chip-active'));
+                element.classList.add('chip-active');
+            } else {
+                // Toggle for multi-select
+                element.classList.toggle('chip-active');
+            }
+            
+            // Haptic-like feedback if supported
+            if (window.navigator.vibrate) {
+                window.navigator.vibrate(10);
+            }
+        }
+
+        // Initialize with some defaults for demonstration
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstNative = document.querySelector('button[onclick*="native"]');
+            if(firstNative) firstNative.classList.add('chip-active');
+            
+            const firstTarget = document.querySelector('button[onclick*="target"]');
+            if(firstTarget) firstTarget.classList.add('chip-active');
+        });
+    </script>
+</body></html>

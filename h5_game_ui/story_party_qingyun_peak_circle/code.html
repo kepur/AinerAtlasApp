@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Multiplayer Party Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "deep-purple": "#4F46E5",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-dim": "#d8dadc",
+                        "ai-gradient-start": "#EEF2FF",
+                        "secondary": "#0058be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "inverse-primary": "#c0c1ff",
+                        "on-secondary-fixed": "#001a42",
+                        "primary": "#4648d4",
+                        "on-tertiary-container": "#000703",
+                        "on-surface-variant": "#464554",
+                        "on-surface": "#191c1e",
+                        "soft-mint": "#D1FAE5",
+                        "on-secondary-fixed-variant": "#004395",
+                        "surface-bright": "#f7f9fb",
+                        "ai-gradient-end": "#E0E7FF",
+                        "tertiary": "#006c49",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "primary-fixed": "#e1e0ff",
+                        "primary-container": "#6063ee",
+                        "tertiary-container": "#00885d",
+                        "surface-tint": "#494bd6",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#2170e4",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "inverse-surface": "#2d3133",
+                        "surface-container": "#eceef0",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "background": "#f7f9fb",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary-container": "#fefcff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-primary-fixed": "#07006c",
+                        "tertiary-fixed": "#6ffbbe",
+                        "outline": "#767586",
+                        "on-background": "#191c1e",
+                        "on-tertiary-fixed": "#002113",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "outline-variant": "#c7c4d7",
+                        "on-primary-container": "#fffbff",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#d8e2ff",
+                        "surface-variant": "#e0e3e5",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "20px",
+                        "stack-sm": "8px",
+                        "touch-target-min": "44px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "base": "4px",
+                        "gutter-md": "16px",
+                        "safe": "env(safe-area-inset-bottom)"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "label-en-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        .bg-lumina {
+            background: linear-gradient(135deg, var(--tw-colors-ai-gradient-start) 0%, var(--tw-colors-ai-gradient-end) 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .orb-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+        
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-lumina text-on-surface font-body-md min-h-screen flex flex-col pt-[72px] pb-[90px] antialiased">
+<!-- TopAppBar Component (from JSON, modified for context) -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg dark:bg-glass-bg backdrop-blur-xl border-b border-white/10 shadow-sm flex items-center px-margin-mobile h-[72px]">
+<button aria-label="Go back" class="w-touch-target-min h-touch-target-min flex items-center justify-center text-primary dark:text-inverse-primary hover:opacity-80 transition-opacity scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex-1 text-center">
+<h1 class="font-headline-md text-headline-md-mobile text-primary dark:text-inverse-primary">AinerWise Story Forge</h1>
+<p class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-widest">Party Room</p>
+</div>
+<button aria-label="Settings" class="w-touch-target-min h-touch-target-min flex items-center justify-center text-on-surface-variant hover:opacity-80 transition-opacity scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col gap-stack-md px-margin-mobile pt-stack-sm overflow-y-auto">
+<!-- Scene Context Card -->
+<section class="glass-card rounded-xl p-5 shadow-[0_8px_30px_rgba(99,102,241,0.05)]">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2 text-deep-purple">
+<span class="material-symbols-outlined icon-fill" data-icon="movie">movie</span>
+<h2 class="font-headline-md text-headline-md">当前场景</h2>
+</div>
+<span class="font-label-en-sm text-label-en-sm bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-full">Scene Context</span>
+</div>
+<p class="text-on-surface-variant mb-4">You are a group of explorers negotiating passage with a suspicious merchant in a futuristic bazaar.</p>
+<div class="bg-surface-container-lowest/50 rounded-lg p-3 border border-outline-variant/30">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-tertiary-container" data-icon="flag">flag</span>
+<span class="font-label-zh-sm text-label-zh-sm text-tertiary-container">团队目标 Group Goal</span>
+</div>
+<p class="font-body-md text-body-md">Persuade the merchant to lower the price without revealing your true identity.</p>
+</div>
+</section>
+<!-- Active Players Avatar Row -->
+<section class="py-2">
+<div class="flex justify-between items-center px-1 mb-2">
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">参与者 Players (4/5)</span>
+</div>
+<div class="flex gap-4 overflow-x-auto pb-2 snap-x">
+<!-- Player 1 (Speaking) -->
+<div class="flex flex-col items-center gap-1 snap-start relative">
+<div class="w-14 h-14 rounded-full border-2 border-deep-purple p-[2px] relative orb-pulse">
+<img alt="Avatar" class="w-full h-full rounded-full object-cover" data-alt="A futuristic sci-fi character portrait of a female explorer with subtle neon lighting. High-end, hyper-realistic, soft minimalist styling. Clean studio lighting catching subtle purple and blue accents. Ethereal and sophisticated mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA54TJUeisxrKqmaeFJO4F7oTCVH_LL3hw0MAtPzZKcDWa1Jwrvlzdx4QEHdIzGx9GCOCObG61xutpPdaKI2Ib8r_3HuqOLyA8P9nDiCHC5wN6O__qF36911IAwqc3UuOKfUjZnf-FPQYF38oIAISAuMIJ8PgkUICW3KlanqtentdvuGLzlSWOb5TUlvKPiDuSR1MGgFXZfB_XyJsYaTiFVsYE9VtlU83sVwjdEJKZKqs6FQj4qEvXoG7yS_MZaVQRBCDQ4fVUK_LCD"/>
+<div class="absolute -bottom-1 -right-1 bg-deep-purple text-white rounded-full p-1 border-2 border-white flex items-center justify-center w-6 h-6">
+<span class="material-symbols-outlined text-[12px]" data-icon="mic">mic</span>
+</div>
+</div>
+<span class="font-label-en-sm text-label-en-sm">Sarah (You)</span>
+</div>
+<!-- Player 2 -->
+<div class="flex flex-col items-center gap-1 snap-start opacity-80">
+<div class="w-14 h-14 rounded-full border-2 border-transparent p-[2px]">
+<img alt="Avatar" class="w-full h-full rounded-full object-cover" data-alt="A futuristic sci-fi character portrait of a male rogue with a mysterious smirk. High-end, hyper-realistic, soft minimalist styling. Clean studio lighting catching subtle purple and blue accents. Ethereal and sophisticated mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgbSqB1TOjTBv8wqE_TkXxN6Gy_flaH5kpOYqfmqg6Mm6529WHH_QowtmqfCRpT35C2Hh-aw9SUe4QS-fc7LxyugNDMxGfqWjf9UjuV87-d0hTDMgNW0tPyzuQZhQ8Nmx0NLCWyyyffdg9zkBs8V6JhaI1jRVXjYtFPvAtuIST46rLz4eWyhFZNTa1GTA-gze-TQIxmkjG-ieclLNk7KUJO4e46p0ebPeHJ5Dfa0gLsMe9neHPtKLZTVgC0C_SPYKBARsXhJnxwzS2"/>
+</div>
+<span class="font-label-en-sm text-label-en-sm">Leo</span>
+</div>
+<!-- Player 3 -->
+<div class="flex flex-col items-center gap-1 snap-start opacity-80">
+<div class="w-14 h-14 rounded-full border-2 border-transparent p-[2px]">
+<img alt="Avatar" class="w-full h-full rounded-full object-cover" data-alt="A futuristic sci-fi character portrait of a female pilot with short hair. High-end, hyper-realistic, soft minimalist styling. Clean studio lighting catching subtle purple and blue accents. Ethereal and sophisticated mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiH-ChogCWZbl-kf9kTt4CQzsSjhqijX42mjDZ4BBT7KCoMQ2dtPjdN36YgAknTL74b6DIyAuZMOUfY0Fz8_ooX7J9sUTBDDdpIPl7pxCYZ6e0ld-ClCGmqmNTF85ONLA-1KOIWwEVwkgKe5ujbe_LywLOA3p2DqOt_mKw8LeD-rnW-UZAwcGDFpvolSZlNgKVk_PFmTTBogOADVcPkcwp2Shh5Ut-Idwi7HZTRw3_aAUdIIK8vf-nueLSN2pp_zLgRC9_hKY_dFXL"/>
+</div>
+<span class="font-label-en-sm text-label-en-sm">Wei</span>
+</div>
+<!-- Merchant AI -->
+<div class="flex flex-col items-center gap-1 snap-start ml-auto">
+<div class="w-14 h-14 rounded-full bg-surface-container-high border-2 border-outline-variant p-[2px] flex items-center justify-center relative shadow-inner">
+<span class="material-symbols-outlined text-outline text-[30px]" data-icon="smart_toy">smart_toy</span>
+<div class="absolute top-0 right-0 w-3 h-3 bg-tertiary-fixed-dim rounded-full border-2 border-white"></div>
+</div>
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">Merchant</span>
+</div>
+</div>
+</section>
+<!-- Collaborative Chat Feed -->
+<section class="flex-1 flex flex-col gap-4 mb-4">
+<!-- Merchant Message -->
+<div class="flex gap-3 max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex-shrink-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="glass-card rounded-2xl rounded-tl-none p-3 shadow-sm border border-outline-variant/20">
+<p class="font-body-md text-body-md text-on-surface">These crystals are rare. I won't go lower than 500 credits. Who are you people anyway?</p>
+<div class="mt-2 pt-2 border-t border-outline-variant/20 flex items-start gap-2">
+<span class="material-symbols-outlined text-[14px] text-primary mt-[2px]" data-icon="translate">translate</span>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">这些水晶很稀有。我不会低于500信用点。你们到底是谁？</p>
+</div>
+</div>
+</div>
+<!-- Player 2 Message -->
+<div class="flex gap-3 max-w-[85%] ml-4">
+<img alt="Avatar" class="w-8 h-8 rounded-full flex-shrink-0 object-cover" data-alt="Small portrait of a male sci-fi character. High-end, soft minimalist style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXRN_iUUwUM_1aAeRpxmioacnBq-BeEG-zeCGQxkQLRNLbprk1uEJ1vcUtD8SReSv1PxmmcnMFFJTITNMhyCE9nKN70qvQuyW9cQxi8_gb56Bf0QhXc4s1jzrdgyCOLvPDIXHoXxyCmlpdCuqT2_w1NIvrkhoNy8mb1oQNNftzt2Ap7N5CfsJX0BZuX4FYsZBT3mwhXzxoGSXcmfenGYXIITyZv33K6AtwHCPURlq5A379u40j4RkiYcd7OPnRucSI9wk5Zh1IXnNG"/>
+<div class="bg-white/60 backdrop-blur-md rounded-2xl rounded-tl-none p-3 shadow-sm">
+<p class="font-body-md text-body-md text-on-surface">We are just humble traders from the outer rim. 500 is too steep for our modest budget.</p>
+<div class="mt-2 pt-2 border-t border-outline-variant/20 flex items-start gap-2">
+<span class="material-symbols-outlined text-[14px] text-primary mt-[2px]" data-icon="translate">translate</span>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">我们只是外环的卑微商人。对于我们微薄的预算来说，500太贵了。</p>
+</div>
+</div>
+</div>
+<!-- System / AI Mod Note -->
+<div class="self-center bg-primary-fixed/50 backdrop-blur-sm rounded-full px-4 py-1.5 flex items-center gap-2 my-2 border border-primary/20">
+<span class="material-symbols-outlined text-[14px] text-primary" data-icon="info">info</span>
+<span class="font-label-zh-sm text-label-zh-sm text-on-primary-fixed-variant">Tip: Use polite but firm language to negotiate.</span>
+</div>
+</section>
+</main>
+<!-- Bottom Interaction Area -->
+<div class="fixed bottom-[72px] w-full px-margin-mobile pb-4 pt-2 bg-gradient-to-t from-background via-background/90 to-transparent z-40">
+<!-- Action Row -->
+<div class="flex gap-2 mb-3">
+<button class="flex-1 glass-card h-touch-target-min rounded-full flex items-center justify-center gap-2 hover:bg-white/40 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-deep-purple" data-icon="mic">mic</span>
+<span class="font-label-zh-sm text-label-zh-sm text-deep-purple">Hold to Speak</span>
+</button>
+<button class="w-touch-target-min h-touch-target-min glass-card rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors shadow-sm">
+<span class="material-symbols-outlined" data-icon="keyboard">keyboard</span>
+</button>
+<button class="w-touch-target-min h-touch-target-min bg-tertiary-container text-on-tertiary rounded-full flex items-center justify-center shadow-md hover:opacity-90 transition-opacity relative group">
+<span class="material-symbols-outlined" data-icon="support_agent">support_agent</span>
+<!-- Tooltip simulation -->
+<span class="absolute -top-10 bg-inverse-surface text-inverse-on-surface text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">AI Moderator</span>
+</button>
+</div>
+</div>
+<!-- BottomNavBar Component (from JSON, suppressed logic applied as this is a specific 'room' destination, but keeping it as requested per instructions 'leverage visual tokens for all new sections while using the Shared Components as a guide' - Wait, instruction says: "Automatic Suppression: You MUST exclude the navigation shell if the page intent is Task-Focused: Any sub-page featuring a 'Close' or 'Back' action that implies a temporary departure from the main navigation flow." Since the top bar has a 'Back' arrow (arrow_back), this is a sub-page/room. Therefore, I MUST suppress the BottomNavBar according to the logic rules. I will omit it.) -->
+<script>
+        // Simple script to handle mic button visual state
+        const micBtn = document.querySelector('button:has(span[data-icon="mic"])');
+        micBtn.addEventListener('mousedown', () => {
+            micBtn.classList.add('bg-primary-container', 'text-on-primary-container');
+            micBtn.classList.remove('glass-card', 'text-deep-purple');
+        });
+        micBtn.addEventListener('mouseup', () => {
+            micBtn.classList.remove('bg-primary-container', 'text-on-primary-container');
+            micBtn.classList.add('glass-card', 'text-deep-purple');
+        });
+        micBtn.addEventListener('mouseleave', () => {
+            micBtn.classList.remove('bg-primary-container', 'text-on-primary-container');
+            micBtn.classList.add('glass-card', 'text-deep-purple');
+        });
+        
+        // Touch events for mobile
+        micBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            micBtn.classList.add('bg-primary-container', 'text-on-primary-container');
+            micBtn.classList.remove('glass-card', 'text-deep-purple');
+        });
+        micBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            micBtn.classList.remove('bg-primary-container', 'text-on-primary-container');
+            micBtn.classList.add('glass-card', 'text-deep-purple');
+        });
+    </script>
+</body></html>

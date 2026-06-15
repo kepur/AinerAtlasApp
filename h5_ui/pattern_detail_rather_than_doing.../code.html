@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>AinerWise - Pattern Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#6ffbbe",
+                    "on-surface": "#191c1e",
+                    "surface-container-high": "#e6e8ea",
+                    "primary": "#4648d4",
+                    "on-tertiary": "#ffffff",
+                    "on-background": "#191c1e",
+                    "primary-fixed": "#e1e0ff",
+                    "outline": "#767586",
+                    "on-secondary-container": "#fefcff",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "on-secondary-fixed-variant": "#004395",
+                    "surface-tint": "#494bd6",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#d8e2ff",
+                    "on-surface-variant": "#464554",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f7f9fb",
+                    "primary-fixed-dim": "#c0c1ff",
+                    "on-secondary": "#ffffff",
+                    "deep-purple": "#4F46E5",
+                    "inverse-surface": "#2d3133",
+                    "on-secondary-fixed": "#001a42",
+                    "on-error": "#ffffff",
+                    "primary-container": "#6063ee",
+                    "ai-gradient-end": "#E0E7FF",
+                    "tertiary": "#006c49",
+                    "soft-mint": "#D1FAE5",
+                    "secondary-container": "#2170e4",
+                    "on-primary-fixed-variant": "#2f2ebe",
+                    "surface-variant": "#e0e3e5",
+                    "error-container": "#ffdad6",
+                    "on-primary-container": "#fffbff",
+                    "surface-container-low": "#f2f4f6",
+                    "ai-gradient-start": "#EEF2FF",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "surface-dim": "#d8dadc",
+                    "secondary": "#0058be",
+                    "outline-variant": "#c7c4d7",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "surface": "#f7f9fb",
+                    "on-primary-fixed": "#07006c",
+                    "background": "#f7f9fb",
+                    "inverse-primary": "#c0c1ff",
+                    "on-primary": "#ffffff",
+                    "tertiary-container": "#00885d",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-tertiary-container": "#000703",
+                    "on-tertiary-fixed": "#002113",
+                    "glass-bg": "rgba(255, 255, 255, 0.7)",
+                    "inverse-on-surface": "#eff1f3",
+                    "surface-container": "#eceef0",
+                    "error": "#ba1a1a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter-md": "16px",
+                    "touch-target-min": "44px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "margin-mobile": "20px",
+                    "base": "4px",
+                    "stack-lg": "32px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Manrope"],
+                    "headline-lg": ["Manrope"],
+                    "label-en-sm": ["Inter"],
+                    "label-zh-sm": ["Manrope"],
+                    "body-lg": ["Manrope"],
+                    "headline-md": ["Manrope"],
+                    "body-md": ["Manrope"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                    "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #f7f9fb 0%, #EEF2FF 50%, #D1FAE5 100%);
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 24px -1px rgba(79, 70, 229, 0.05);
+        }
+        .ai-glow {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+        }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        .safe-pt { padding-top: env(safe-area-inset-top); }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-glass-bg dark:bg-inverse-surface/70 backdrop-blur-xl border-b border-white/10 flex justify-between items-center px-margin-mobile h-touch-target-min shadow-sm">
+<div class="flex items-center gap-2">
+<button class="h-touch-target-min w-touch-target-min flex items-center justify-center hover:opacity-80 transition-opacity active:scale-90">
+<span class="material-symbols-outlined text-deep-purple">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold tracking-tight text-deep-purple">句型详情</h1>
+</div>
+<button class="h-touch-target-min w-touch-target-min flex items-center justify-center hover:opacity-80 transition-opacity active:scale-90">
+<span class="material-symbols-outlined text-deep-purple">bookmark</span>
+</button>
+</nav>
+<!-- Content Canvas -->
+<main class="pt-16 pb-32 px-margin-mobile space-y-stack-lg max-w-lg mx-auto">
+<!-- Hero Card -->
+<section class="glass-card rounded-xl p-6 mt-stack-md relative overflow-hidden">
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl"></div>
+<div class="flex justify-between items-start mb-4">
+<span class="bg-soft-mint text-tertiary px-3 py-1 rounded-full font-label-zh-sm text-label-zh-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+                    来自你的真实对话 8 次
+                </span>
+</div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-deep-purple mb-1">rather than doing...</h2>
+<p class="font-body-md text-on-surface-variant mb-6">表达‘不是做A，而是做B’的高级结构</p>
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<span class="font-label-zh-sm text-label-zh-sm text-outline">掌握进度</span>
+<span class="font-label-en-sm text-label-en-sm text-deep-purple font-bold">64%</span>
+</div>
+<div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-deep-purple h-full w-[64%] rounded-full shadow-sm"></div>
+</div>
+</div>
+</section>
+<!-- Context Explanation -->
+<section class="glass-card rounded-xl p-6">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-deep-purple" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<h3 class="font-headline-md text-headline-md">为什么你需要学这个？</h3>
+</div>
+<p class="font-body-md text-on-surface-variant leading-relaxed">
+                你经常讨论人生选择、移民和创业，这个句型可以帮你更自然地表达取舍和对比。
+            </p>
+</section>
+<!-- Examples -->
+<section class="space-y-stack-md">
+<h3 class="font-label-zh-sm text-label-zh-sm text-outline uppercase tracking-wider ml-1">自然表达 Examples</h3>
+<div class="glass-card rounded-xl p-6 group transition-all hover:bg-white/80">
+<div class="flex justify-between items-start gap-4">
+<p class="font-body-lg text-body-lg text-on-surface font-medium italic">
+                        “Rather than chasing a higher salary, I want to pursue a freer life.”
+                    </p>
+<button class="h-10 w-10 flex-shrink-0 bg-primary-fixed-dim rounded-full flex items-center justify-center text-deep-purple active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+</button>
+</div>
+<div class="mt-4 pt-4 border-t border-white/30">
+<p class="font-body-md text-on-surface-variant">比起追求更高薪水，我更想追求更自由的生活。</p>
+</div>
+</div>
+</section>
+<!-- Structure Breakdown -->
+<section class="glass-card rounded-xl p-6 border-l-4 border-deep-purple">
+<h3 class="font-headline-md text-headline-md mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-deep-purple">rebase_edit</span>
+                结构拆解
+            </h3>
+<div class="bg-primary/5 p-4 rounded-lg mb-4 font-body-lg text-body-lg text-center font-bold text-deep-purple">
+                Rather than + <span class="underline">doing</span>, 主语 + 动词...
+            </div>
+<ul class="space-y-3">
+<li class="flex items-start gap-3">
+<span class="w-1.5 h-1.5 rounded-full bg-deep-purple mt-2"></span>
+<p class="font-body-md text-on-surface-variant">rather than 后面常接 doing</p>
+</li>
+<li class="flex items-start gap-3">
+<span class="w-1.5 h-1.5 rounded-full bg-deep-purple mt-2"></span>
+<p class="font-body-md text-on-surface-variant">用来表达更清晰的选择关系</p>
+</li>
+<li class="flex items-start gap-3">
+<span class="w-1.5 h-1.5 rounded-full bg-deep-purple mt-2"></span>
+<p class="font-body-md text-on-surface-variant">比 instead of 更正式一点</p>
+</li>
+</ul>
+</section>
+<!-- Comparison / Common Mistake -->
+<section class="glass-card rounded-xl overflow-hidden">
+<div class="bg-surface-container-high px-6 py-3">
+<h3 class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface-variant">你之前容易这样说</h3>
+</div>
+<div class="p-6 space-y-6">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-error mt-1">cancel</span>
+<div>
+<p class="font-body-md text-outline line-through italic">I want freedom rather than to earn more money.</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-tertiary mt-1" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="flex-1">
+<p class="font-body-md text-on-surface font-semibold italic">I want freedom rather than earning more money.</p>
+<div class="mt-2 flex justify-end">
+<button class="flex items-center gap-1 text-label-en-sm text-deep-purple font-bold">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+                                LISTEN
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Practice Widget -->
+<section class="glass-card rounded-2xl p-6 ai-glow ring-2 ring-deep-purple/10">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-md text-headline-md">练一题</h3>
+<span class="bg-primary-fixed text-on-primary-fixed-variant text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-widest">Challenge</span>
+</div>
+<p class="font-body-md text-on-surface mb-4">我想移民不是为了赚钱，而是为了自由。</p>
+<div class="relative mb-6">
+<textarea class="w-full bg-surface-container-lowest/50 border-none rounded-xl p-4 focus:ring-2 focus:ring-deep-purple font-body-md text-on-surface placeholder:text-outline-variant" placeholder="输入你的英文表达..." rows="3"></textarea>
+</div>
+<button class="w-full bg-deep-purple text-on-primary font-headline-md py-4 rounded-full shadow-lg active:scale-95 transition-transform">
+                检查答案
+            </button>
+</section>
+</main>
+<!-- Bottom Actions & Navigation Shell -->
+<div class="fixed bottom-0 w-full z-50">
+<!-- Contextual Quick Actions -->
+<div class="px-margin-mobile pb-4 flex gap-2 overflow-x-auto no-scrollbar">
+<button class="whitespace-nowrap bg-white/90 border border-deep-purple/20 text-deep-purple px-4 py-3 rounded-full font-label-zh-sm flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">play_circle</span>标记已掌握
+            </button>
+<button class="whitespace-nowrap bg-white/90 border border-deep-purple/20 text-deep-purple px-4 py-3 rounded-full font-label-zh-sm flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">calendar_add_on</span>加入今日复习
+            </button>
+</div>
+<!-- Bottom Navigation -->
+<nav class="bg-glass-bg dark:bg-inverse-surface/80 backdrop-blur-2xl border-t border-white/20 flex justify-around items-center h-16 px-base pb-safe shadow-[0_-4px_20px_rgba(79,70,229,0.1)] rounded-t-xl">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-outline opacity-60 transition-all hover:opacity-100 active:scale-95" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-en-sm text-label-en-sm">Home</span>
+</a>
+<!-- Chat -->
+<a class="flex flex-col items-center justify-center text-outline opacity-60 transition-all hover:opacity-100 active:scale-95" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-en-sm text-label-en-sm">Chat</span>
+</a>
+<!-- Assets -->
+<a class="flex flex-col items-center justify-center text-outline opacity-60 transition-all hover:opacity-100 active:scale-95" href="#">
+<span class="material-symbols-outlined">auto_awesome_motion</span>
+<span class="font-label-en-sm text-label-en-sm">Assets</span>
+</a>
+<!-- Crush (Active) -->
+<a class="flex flex-col items-center justify-center text-deep-purple relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-deep-purple after:rounded-full transition-all active:scale-95" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-en-sm text-label-en-sm">Crush</span>
+</a>
+<!-- Me -->
+<a class="flex flex-col items-center justify-center text-outline opacity-60 transition-all hover:opacity-100 active:scale-95" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-en-sm text-label-en-sm">Me</span>
+</a>
+</nav>
+</div>
+<!-- Background AI Orb Floating Element -->
+<div class="fixed bottom-24 right-4 z-40">
+<button class="w-14 h-14 rounded-full bg-gradient-to-tr from-deep-purple to-secondary-container shadow-xl flex items-center justify-center text-white ai-glow group relative active:scale-90 transition-transform">
+<span class="absolute inset-0 rounded-full bg-deep-purple animate-ping opacity-20"></span>
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+</div>
+<script>
+        // Simple micro-interaction for button feedback
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const originalScale = this.style.transform;
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = originalScale;
+                }, 100);
+            });
+        });
+    </script>
+</body></html>

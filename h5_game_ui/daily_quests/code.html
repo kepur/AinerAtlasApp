@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AinerWise - Daily Quests</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "outline": "#767586",
+                        "primary-container": "#6063ee",
+                        "on-tertiary-fixed": "#002113",
+                        "soft-mint": "#D1FAE5",
+                        "tertiary-container": "#00885d",
+                        "on-surface-variant": "#464554",
+                        "on-surface": "#191c1e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-secondary-container": "#fefcff",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#4648d4",
+                        "tertiary": "#006c49",
+                        "background": "#f7f9fb",
+                        "secondary-container": "#2170e4",
+                        "on-tertiary-container": "#000703",
+                        "on-background": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface": "#f7f9fb",
+                        "surface-tint": "#494bd6",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-primary-container": "#fffbff",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary-fixed": "#07006c",
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-high": "#e6e8ea",
+                        "outline-variant": "#c7c4d7",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "secondary": "#0058be",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-dim": "#d8dadc",
+                        "surface-container-low": "#f2f4f6",
+                        "on-secondary-fixed": "#001a42",
+                        "deep-purple": "#4F46E5",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#c0c1ff",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-fixed-variant": "#004395",
+                        "primary-fixed-dim": "#c0c1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "base": "4px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px"
+                    },
+                    "fontFamily": {
+                        "label-en-sm": ["Inter"],
+                        "headline-md": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .progress-bar-fill {
+            transition: width 1s ease-in-out;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background antialiased pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 border-b border-white/20 bg-glass-bg backdrop-blur-xl shadow-sm md:hidden">
+<div class="flex justify-between items-center px-margin-mobile h-touch-target-min w-full max-w-md mx-auto">
+<div class="flex items-center gap-2">
+<img alt="User profile photo" class="w-8 h-8 rounded-full border-2 border-primary-fixed-dim" data-alt="A close-up portrait of a user profile picture showing a diverse, modern professional. The image should be well-lit with a soft, ethereal quality fitting a premium AI app. The aesthetic is clean, light-mode friendly, and high-quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3U7coIFakz_Vhi8m7MDD3DSIzeqKxvpzlVySsqcbCySWvkgM8iJ8xwSJGL-GcMY6tPk4T0HIGKNOD_UiSqMCeJNevrTHIgFyFM-VH_a_F3ugE8R_o8ZeGcNX5ogV6oU1nBeHX0PYjKxko6ioMOsfVJreA22ghHTQynwe51MXurRnfZVfGyxiKqlchSnqFQBB9GYdsALm6_--UBqGbyavYYHeL0Co_cTfr8k-paLPoRSw2YuRkPDlfYAv_senRDYzI4Llhtgp5jdcQ"/>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim tracking-tight">AinerWise</span>
+</div>
+<div class="flex items-center hover:opacity-80 transition-opacity">
+<span class="font-headline-md text-headline-md text-primary font-bold">7</span>
+<span class="material-symbols-outlined text-primary ml-1" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+</div>
+</header>
+<main class="pt-20 px-margin-mobile max-w-md mx-auto md:max-w-2xl md:pt-10">
+<!-- Header Section -->
+<div class="mb-stack-lg text-center mt-stack-md">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-stack-sm md:font-headline-lg md:text-headline-lg">Daily Quests</h1>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-outline">timer</span>
+                Resets in <span class="font-bold text-primary">04:22:15</span>
+</p>
+</div>
+<!-- Progress Card -->
+<div class="glass-card rounded-xl p-stack-md mb-stack-lg shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
+<div class="relative z-10">
+<div class="flex justify-between items-end mb-stack-sm">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-background mb-1">Today's Progress</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Complete all for a bonus reward!</p>
+</div>
+<div class="text-right">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary">3</span>
+<span class="font-body-md text-body-md text-outline">/5</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="h-4 bg-surface-container-high rounded-full overflow-hidden mt-stack-md relative">
+<div class="h-full bg-primary progress-bar-fill rounded-full absolute left-0 top-0" style="width: 60%;"></div>
+</div>
+<div class="flex justify-between mt-2 px-1">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-outline-variant text-sm">star</span>
+<span class="material-symbols-outlined text-outline-variant text-sm">star_rate</span> <!-- using star_rate as placeholder for chest/final reward -->
+</div>
+</div>
+</div>
+<!-- Quest List -->
+<div class="flex flex-col gap-stack-md mb-stack-lg">
+<!-- Completed Quest -->
+<div class="glass-card rounded-xl p-stack-md flex items-center gap-stack-md opacity-70">
+<div class="w-12 h-12 rounded-full bg-soft-mint flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-grow">
+<h3 class="font-headline-md text-body-md font-semibold text-on-background line-through">Interrogate a suspect in AI Detective</h3>
+<p class="font-label-en-sm text-label-en-sm text-tertiary-container mt-1">+50 EXP</p>
+</div>
+</div>
+<!-- Active Quest 1 -->
+<div class="glass-card rounded-xl p-stack-md flex items-center gap-stack-md relative shadow-[0_4px_20px_rgba(99,102,241,0.08)]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl"></div>
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">groups</span>
+</div>
+<div class="flex-grow">
+<h3 class="font-headline-md text-body-md font-semibold text-on-background">Join a Story Party</h3>
+<p class="font-label-en-sm text-label-en-sm text-secondary-container mt-1">+100 Tokens</p>
+</div>
+<button class="h-touch-target-min px-4 rounded-full bg-surface-container-high text-on-surface-variant font-label-en-sm text-label-en-sm hover:bg-surface-variant transition-colors">
+                    Go
+                </button>
+</div>
+<!-- Active Quest 2 -->
+<div class="glass-card rounded-xl p-stack-md flex items-center gap-stack-md relative shadow-[0_4px_20px_rgba(99,102,241,0.08)]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl"></div>
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">inventory_2</span>
+</div>
+<div class="flex-grow">
+<h3 class="font-headline-md text-body-md font-semibold text-on-background">Save 3 new Thought Assets</h3>
+<p class="font-label-en-sm text-label-en-sm text-primary mt-1">+30 EXP</p>
+</div>
+<div class="text-right mr-2">
+<span class="font-body-md text-body-md text-on-background font-bold">1</span>
+<span class="font-label-en-sm text-label-en-sm text-outline">/3</span>
+</div>
+<button class="h-touch-target-min px-4 rounded-full bg-surface-container-high text-on-surface-variant font-label-en-sm text-label-en-sm hover:bg-surface-variant transition-colors">
+                    Go
+                </button>
+</div>
+</div>
+<!-- Claim Action -->
+<div class="flex justify-center pb-stack-lg">
+<button class="w-full max-w-xs h-14 rounded-full bg-primary text-on-primary font-headline-md text-body-md font-bold shadow-[0_8px_20px_rgba(79,70,229,0.3)] hover:scale-95 transition-transform duration-200 flex items-center justify-center gap-2">
+                Claim Rewards
+                <span class="material-symbols-outlined">redeem</span>
+</button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl border-t border-white/20 bg-glass-bg backdrop-blur-xl shadow-[0_-4px_20px_rgba(79,70,229,0.1)]">
+<div class="flex justify-around items-center px-4 pb-safe h-16">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-primary/5 transition-colors w-16 h-full" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-en-sm text-label-en-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-primary/5 transition-colors w-16 h-full" href="#">
+<span class="material-symbols-outlined mb-1">chat_bubble</span>
+<span class="font-label-en-sm text-label-en-sm">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-bold hover:bg-primary/5 transition-colors w-16 h-full relative" href="#">
+<div class="absolute -top-1 w-8 h-1 bg-primary rounded-full"></div>
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-label-en-sm text-label-en-sm">Assets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-primary/5 transition-colors w-16 h-full" href="#">
+<span class="material-symbols-outlined mb-1">favorite</span>
+<span class="font-label-en-sm text-label-en-sm">Crush</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-primary/5 transition-colors w-16 h-full" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-label-en-sm text-label-en-sm">Me</span>
+</a>
+</div>
+</nav>
+<!-- Desktop Navigation (Placeholder for structural alignment on larger screens) -->
+<nav class="hidden md:flex fixed top-0 w-full z-50 border-b border-white/20 bg-glass-bg backdrop-blur-xl h-16 items-center px-8 justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">AinerWise</span>
+</div>
+<div class="flex gap-8">
+<a class="text-on-surface-variant hover:text-primary font-body-md text-body-md flex items-center gap-2" href="#"><span class="material-symbols-outlined">home</span>Home</a>
+<a class="text-on-surface-variant hover:text-primary font-body-md text-body-md flex items-center gap-2" href="#"><span class="material-symbols-outlined">chat_bubble</span>Chat</a>
+<a class="text-primary font-bold font-body-md text-body-md flex items-center gap-2" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>Assets</a>
+<a class="text-on-surface-variant hover:text-primary font-body-md text-body-md flex items-center gap-2" href="#"><span class="material-symbols-outlined">favorite</span>Crush</a>
+<a class="text-on-surface-variant hover:text-primary font-body-md text-body-md flex items-center gap-2" href="#"><span class="material-symbols-outlined">person</span>Me</a>
+</div>
+</nav>
+</body></html>

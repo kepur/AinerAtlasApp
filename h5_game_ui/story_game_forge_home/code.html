@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>AinerWise - Story Game Forge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#000703",
+                        "inverse-on-surface": "#eff1f3",
+                        "bg-gradient-purple": "#EEF2FF",
+                        "on-background": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "error": "#ba1a1a",
+                        "primary": "#4648d4",
+                        "secondary": "#0058be",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-secondary-container": "#fefcff",
+                        "alert-amber": "#F59E0B",
+                        "surface-dim": "#d8dadc",
+                        "outline": "#767586",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "surface-tint": "#494bd6",
+                        "on-primary-fixed": "#07006c",
+                        "surface-container-low": "#f2f4f6",
+                        "on-secondary-fixed-variant": "#004395",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#00885d",
+                        "primary-container": "#6063ee",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#001a42",
+                        "ai-logic": "#3B82F6",
+                        "surface-container": "#eceef0",
+                        "surface-container-lowest": "#ffffff",
+                        "mastery-mint": "#10B981",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-container-high": "#e6e8ea",
+                        "bg-gradient-mint": "#ECFDF5",
+                        "risk-red": "#EF4444",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-surface-variant": "#464554",
+                        "tertiary": "#006c49",
+                        "on-primary-container": "#fffbff",
+                        "secondary-container": "#2170e4",
+                        "primary-fixed": "#e1e0ff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-surface": "#191c1e",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f7f9fb",
+                        "background": "#f7f9fb",
+                        "outline-variant": "#c7c4d7",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface": "#f7f9fb",
+                        "surface-variant": "#e0e3e5",
+                        "error-container": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "unit": "4px",
+                        "margin-mobile": "20px",
+                        "margin-desktop": "40px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "label-sm": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-lg": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "headline-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #f7f9fb;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px -5px rgba(99, 102, 241, 0.1);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .story-gradient {
+            background: linear-gradient(135deg, #EEF2FF 0%, #ECFDF5 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface flex justify-center items-start min-h-screen">
+<!-- Mobile Container (iPhone 15 Pro Ratio) -->
+<main class="relative w-full max-w-[430px] min-h-screen bg-surface flex flex-col overflow-x-hidden pb-24">
+<!-- Background Animation Layer -->
+
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-5 h-[64px] bg-surface/70 dark:bg-on-tertiary-container/30 backdrop-blur-xl border-b border-white/20 shadow-[0_4px_20px_-5px_rgba(99,102,241,0.15)]">
+<div class="flex items-center gap-2">
+<span class="font-display-lg text-[24px] bg-gradient-to-r from-primary to-ai-logic bg-clip-text text-transparent font-extrabold tracking-tight">AinerWise</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary" data-icon="settings">settings</span>
+</button>
+<div class="w-9 h-9 rounded-full overflow-hidden border-2 border-primary/20">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBChtmUVmYT8uSMiR6w9iRO-_Vy_NQhKaS5SECdvyIc5Gf-LK-FJFdVoc4oCyuc7vDqgxdGVim9qwFjNbHXcGW-WMOe5cgBjJGu9_dztWkMTS4xdN-EGnpMSbI3yqqeR73ndh2AIf2YUa--C8rO9ilxwDY2ZjznB5CUNJDYJJrGRb_-XaTJrxbkJ881HF2RlcyYG8NSVxUNgbs1GqSVeP6HPG8OiX30XMrjZt8F_DKf-gyes3s06uydCDkIletZnVdBWEyfvbhOFRvl"/>
+</div>
+</div>
+</header>
+<!-- Content Spacer -->
+<div class="h-20"></div>
+<!-- Main Content Area -->
+<div class="px-5 space-y-8 relative z-10">
+<!-- Continue Last Game Section -->
+<section class="animate-in fade-in slide-in-from-bottom-4 duration-700">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-md text-headline-md text-on-surface">继续上次</h2>
+<span class="font-label-lg text-label-lg text-primary">Resume</span>
+</div>
+<div class="glass-card rounded-[24px] overflow-hidden relative border border-white/40">
+<div class="h-44 w-full relative">
+<img class="w-full h-full object-cover" data-alt="A lush, mystical mountain landscape at dusk with soft glowing fog weaving through ancient pine trees. The scene is cinematic and dreamlike, with ethereal blue and purple lighting illuminating a hidden stone path. The atmosphere is serene and intellectual, suggesting a deep narrative setting for a historical visual novel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDY0Zh_G3O-GEHbh7WStHUY-6XT6FC5EplbbiI8WhxBBJS-bD0TYuHBMzw8CWcA6BwjJ15N8_-kBMPVRbUvVmACfw0YUyQTc1nMB4PcJB7FTrNshACrPeL2-snRl2Z-TbalQxQrNWLt46vUohJIjg6Cha42hkabUfOYYKCzAQHIQXeXbxDis--ovg7J-QP88Qscl797YG2MOR58xt0KbXK-Uoq1ethfc-Sd1fNtPbm7S4wBKLvJoiFmFlkypwSht6qqRA2wNj6NNPWp"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="absolute bottom-4 left-5">
+<span class="bg-primary/90 text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider">Level C1</span>
+</div>
+</div>
+<div class="p-5 space-y-3">
+<div>
+<h3 class="font-headline-md text-[20px] text-on-surface mb-1">《青云重生》第 2 章：后山重逢</h3>
+<p class="font-body-md text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="translate">translate</span>
+                                目标：English | 重点：情绪表达
+                            </p>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant">当前进度</span>
+<span class="font-label-sm text-label-sm text-primary font-bold">42%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 42%"></div>
+</div>
+</div>
+<button class="w-full h-touch-target-min bg-primary text-on-primary rounded-xl font-label-lg text-label-lg shadow-lg shadow-primary/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+<span>继续游戏</span>
+<span class="material-symbols-outlined" data-icon="play_arrow">play_arrow</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Game Categories Section -->
+<section class="animate-in fade-in slide-in-from-bottom-6 duration-1000">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-md text-headline-md text-on-surface">游戏类别</h2>
+<span class="font-label-lg text-label-lg text-primary">Categories</span>
+</div>
+<div class="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-5 px-5">
+<!-- Category Card 1 -->
+<div class="min-w-[140px] glass-card p-4 rounded-[20px] flex flex-col items-center text-center space-y-3 hover:bg-primary/5 transition-colors border border-white/40">
+<div class="w-12 h-12 bg-primary-container/20 rounded-2xl flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[32px]" data-icon="set_meal">set_meal</span>
+</div>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface">海龟汤</p>
+<p class="text-[10px] font-bold text-primary-container bg-primary-fixed px-2 py-0.5 rounded-full inline-block mt-1">B1 · SOLO</p>
+</div>
+</div>
+<!-- Category Card 2 -->
+<div class="min-w-[140px] glass-card p-4 rounded-[20px] flex flex-col items-center text-center space-y-3 hover:bg-primary/5 transition-colors border border-white/40">
+<div class="w-12 h-12 bg-ai-logic/10 rounded-2xl flex items-center justify-center text-ai-logic">
+<span class="material-symbols-outlined text-[32px]" data-icon="theater_comedy">theater_comedy</span>
+</div>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface">角色扮演</p>
+<p class="text-[10px] font-bold text-ai-logic bg-blue-100 px-2 py-0.5 rounded-full inline-block mt-1">C1 · PARTY</p>
+</div>
+</div>
+<!-- Category Card 3 -->
+<div class="min-w-[140px] glass-card p-4 rounded-[20px] flex flex-col items-center text-center space-y-3 hover:bg-primary/5 transition-colors border border-white/40">
+<div class="w-12 h-12 bg-mastery-mint/10 rounded-2xl flex items-center justify-center text-mastery-mint">
+<span class="material-symbols-outlined text-[32px]" data-icon="search_insights">search_insights</span>
+</div>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface">AI 侦探</p>
+<p class="text-[10px] font-bold text-mastery-mint bg-emerald-100 px-2 py-0.5 rounded-full inline-block mt-1">B2 · SOLO</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Recommended Games Section -->
+<section class="animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-10">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-md text-headline-md text-on-surface">为你推荐</h2>
+<span class="font-label-lg text-label-lg text-primary">Recommended</span>
+</div>
+<div class="space-y-4">
+<!-- Recommendation Card 1 -->
+<div class="glass-card p-4 rounded-[24px] flex items-center gap-4 group transition-all hover:translate-x-1 border border-white/40">
+<div class="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A moody, high-contrast interior of an empty night train carriage with rain-streaked windows and dim yellow overhead lights. The aesthetic is film noir with a modern digital polish, using a palette of deep blues and amber glows. The composition creates a sense of mystery and suspense, perfectly suited for a detective-themed language game." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA10k5YyzksegYm0aU9OPOSyxWVcl3E5i6JDwBXDuog5ImhJD6C0ta3wH_GC84FNToMtUGxcdjdSl0Ubex2HGQbVGvWs2-mCnH6ahwHYf46a9tA6NTqofdXc-vJ7M4dDneRlCH-HvR190mmCN2Wxxz9rwBOO4Hi-vna1GU88sSBPEe1jnVbVfoUgGMCIVuTtsxS1D2TWQMWfHP3A8Uyh2SKLutU_2nkVQ2AiulZRQdtd7_TEPubRiFHApRAnX_IbOmLux7un_eGbXsO"/>
+</div>
+<div class="flex-grow space-y-1">
+<h4 class="font-label-lg text-[16px] text-on-surface">《消失的乘客》</h4>
+<div class="flex flex-wrap gap-1.5 mb-2">
+<span class="bg-surface-container px-2 py-0.5 rounded text-[10px] text-on-surface-variant">海龟汤</span>
+<span class="bg-surface-container px-2 py-0.5 rounded text-[10px] text-on-surface-variant">English</span>
+<span class="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold">B1</span>
+</div>
+<p class="font-label-sm text-[11px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="psychology">psychology</span>
+                                核心：提问句 / 过去时
+                            </p>
+</div>
+<button class="bg-primary/10 hover:bg-primary hover:text-white transition-colors text-primary w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 active:scale-90">
+<span class="material-symbols-outlined" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Recommendation Card 2 -->
+<div class="glass-card p-4 rounded-[24px] flex items-center gap-4 group transition-all hover:translate-x-1 border border-white/40">
+<div class="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A minimalist, high-tech office interview room with floor-to-ceiling glass windows showing a blurred futuristic city skyline. Soft, diffused daylight creates a bright, professional light-mode aesthetic. The focus is on a sleek wooden table with a single digital tablet, suggesting a role-play scenario for professional business English." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbvj1ID1PvG51JZ8v1URyOAUMVVyLXh1JHSeukQg4V778u_jQ_5y92fV4gnLnwsrLKZMDkUHeMvDIuFRXIzUYy87ntgYvXM29TQ-_dWPHXUxeYAKCH_A9ql2Wk-XZap-IiQZSjcIT27pxVr25XiMCTR7xA5iqKKV-tR3fKUe0I8ax_3m--S1Xmahmw-mKJh7ccOknQcJsevWlfvi6AS805GdHB_es93af--qKQOjDSLbuPQKt20MLMZc235lGRG_uIWuCPfcccaFWq"/>
+</div>
+<div class="flex-grow space-y-1">
+<h4 class="font-label-lg text-[16px] text-on-surface">《入职第一天》</h4>
+<div class="flex flex-wrap gap-1.5 mb-2">
+<span class="bg-surface-container px-2 py-0.5 rounded text-[10px] text-on-surface-variant">角色扮演</span>
+<span class="bg-surface-container px-2 py-0.5 rounded text-[10px] text-on-surface-variant">English</span>
+<span class="bg-ai-logic/10 text-ai-logic px-2 py-0.5 rounded text-[10px] font-bold">A2</span>
+</div>
+<p class="font-label-sm text-[11px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="business_center">business_center</span>
+                                核心：自我介绍 / 礼貌用语
+                            </p>
+</div>
+<button class="bg-primary/10 hover:bg-primary hover:text-white transition-colors text-primary w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 active:scale-90">
+<span class="material-symbols-outlined" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-2 px-4 pb-safe bg-on-tertiary-container/5 dark:bg-on-tertiary-container/40 backdrop-blur-md rounded-t-xl shadow-[0_-4px_16px_rgba(0,0,0,0.05)]">
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-sm text-label-sm">Chat</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="videogame_asset" style="font-variation-settings: 'FILL' 1;">videogame_asset</span>
+<span class="font-label-sm text-label-sm">Game</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-sm text-label-sm">Assets</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Me</span>
+</button>
+</nav>
+<!-- Dynamic Floating Action Button (Only on Home/Game) -->
+<div class="fixed bottom-24 right-5 z-40">
+<button class="w-14 h-14 bg-gradient-to-br from-primary to-ai-logic text-white rounded-full flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-all hover:rotate-12">
+<span class="material-symbols-outlined text-[32px]" data-icon="add_circle" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+</button>
+</div>
+</main>
+<script>
+        // Micro-interaction for category scrolling highlight
+        const categoryCards = document.querySelectorAll('.glass-card');
+        categoryCards.forEach(card => {
+            card.addEventListener('mousedown', () => {
+                card.style.transform = 'scale(0.96)';
+            });
+            card.addEventListener('mouseup', () => {
+                card.style.transform = 'scale(1)';
+            });
+        });
+
+        // Add scroll animation triggers
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body></html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AinerWise - Story Game Forge Lobby</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "on-tertiary-fixed": "#002113",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "on-secondary-fixed": "#001a42",
+                        "surface": "#f7f9fb",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-container-low": "#f2f4f6",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#006c49",
+                        "primary-fixed": "#e1e0ff",
+                        "secondary-container": "#2170e4",
+                        "primary": "#4648d4",
+                        "surface-variant": "#e0e3e5",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "deep-purple": "#4F46E5",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#000703",
+                        "on-error": "#ffffff",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-secondary": "#ffffff",
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#fefcff",
+                        "on-surface": "#191c1e",
+                        "tertiary-container": "#00885d",
+                        "error-container": "#ffdad6",
+                        "background": "#f7f9fb",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-background": "#191c1e",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-container": "#6063ee",
+                        "surface-container": "#eceef0",
+                        "on-primary-fixed": "#07006c",
+                        "outline-variant": "#c7c4d7",
+                        "on-primary-container": "#fffbff",
+                        "surface-bright": "#f7f9fb",
+                        "soft-mint": "#D1FAE5",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-secondary-fixed-variant": "#004395",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-tint": "#494bd6",
+                        "secondary": "#0058be",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "surface-dim": "#d8dadc",
+                        "outline": "#767586",
+                        "inverse-surface": "#2d3133",
+                        "on-surface-variant": "#464554"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "base": "4px",
+                        "margin-mobile": "20px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "body-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .ambient-shadow {
+            box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.15);
+        }
+        .lumina-text {
+            background: linear-gradient(to right, #4648d4, #00885d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        /* Custom Scrollbar for chat */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(70, 72, 212, 0.2);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(70, 72, 212, 0.4);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface antialiased font-body-md relative overflow-x-hidden pb-24 md:pb-0 pt-touch-target-min">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop h-touch-target-min bg-surface/70 backdrop-blur-xl border-b border-white/20 shadow-[0_4px_20px_-5px_rgba(99,102,241,0.15)]">
+<div class="flex items-center gap-2">
+<button class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/30 flex items-center justify-center bg-surface-container-high">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A close-up portrait of a sophisticated young professional user. Soft, diffused lighting creates a serene mood. Clean, high-key light-mode aesthetic with minimal background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUFRYDzsOnpniokRKT1QYYj9E80rYM3Fc7thj2sxrQsgtrJQi7kEeG8bh6ClTRyiVi5nGmMRu7wEAv9X5j8nFcO6fPo_-FLMLXxrl2UCv3yhP5XGIaOIXanFeIGsfJL3vW3vJwgsiTtNL3zFptyKkxHfkyFK-hAxJA1tE4lhd1w0tHZCf874ip3ygL9p2-euqX5DWiEm0Nt208kOVJ9C4_TT_GMskngC3f6rL-MmQIRq_tXjme4k0FmBbG7nwA60pTx38kmiPxL0Sh"/>
+</button>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-primary">
+            AinerWise
+        </div>
+<button class="text-on-surface-variant hover:bg-primary/10 transition-colors p-2 rounded-full active:scale-95 duration-200 flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="container mx-auto px-margin-mobile md:px-margin-desktop max-w-4xl py-stack-lg flex flex-col gap-stack-lg md:grid md:grid-cols-12 md:items-start">
+<!-- Left Column (Mobile: Top) -->
+<div class="flex flex-col gap-stack-lg md:col-span-7">
+<!-- Scene Setting Card -->
+<section class="glass-card ambient-shadow rounded-xl p-5 flex flex-col gap-stack-sm relative overflow-hidden">
+<!-- Decorative background image -->
+<div class="absolute inset-0 opacity-10 z-0 bg-cover bg-center" data-alt="A futuristic, bustling neon-lit bazaar scene. Holographic signs glow in deep purples and blues. The mood is energetic and cinematic, rendered in a sophisticated, slightly ethereal soft-minimalist style despite the complex subject." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDDrEm9CGeze4uzhj1dfcr5FoVM4lt8UeQaf3lYh-Em2_d9BoaQxBvrXLLJ6ztoyuewjF9MZcjIyByk569sqdZsrGAchYHlBOpyg8CDIEgnE3etYex9dgYD396QlfCQVCYGZTUdKl5QR7L0JNogLRSQ4fzZpTb_IDHdIr_0NrtrBwnnRl6bydx2DvWZ6sZLznhCALuhSvFKJRfBctRoxCk7R-Qfk6iF4dDPIPJ3_wwnE2d1kL2iG1uouAW08hYQrdnfC96qHJd2jAbJ')"></div>
+<div class="relative z-10 flex items-center gap-2 text-primary font-label-en-sm text-label-en-sm uppercase tracking-wider">
+<span class="material-symbols-outlined text-[16px]" data-icon="public">public</span>
+                    Story Party Lobby
+                </div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface relative z-10">
+                    The Neon Bazaar
+                </h1>
+<p class="font-body-md text-body-md text-on-surface-variant relative z-10">
+                    Negotiate passage off-world with a notoriously tricky merchant. Use your target vocabulary to haggle and persuade.
+                </p>
+<div class="mt-4 flex flex-wrap gap-2 relative z-10">
+<span class="inline-flex items-center gap-1 bg-soft-mint/50 border border-tertiary/20 text-tertiary px-3 py-1 rounded-full font-label-en-sm text-label-en-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="target">target</span> Goal: Persuasion
+                    </span>
+<span class="inline-flex items-center gap-1 bg-surface-container-high/50 border border-outline-variant/30 text-on-surface-variant px-3 py-1 rounded-full font-label-en-sm text-label-en-sm">
+<span class="material-symbols-outlined text-[14px]" data-icon="timer">timer</span> 15 Mins
+                    </span>
+</div>
+</section>
+<!-- Quick Chat & Practice Area -->
+<section class="glass-card ambient-shadow rounded-xl flex flex-col overflow-hidden h-[300px]">
+<div class="p-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-lowest/50">
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="forum">forum</span> Pre-Game Banter
+                    </h2>
+<span class="text-xs text-on-surface-variant font-label-en-sm bg-primary/10 px-2 py-1 rounded-md">Practice Mode</span>
+</div>
+<div class="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
+<!-- Chat Message -->
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-outline-variant/30">
+<img alt="Sarah" class="w-full h-full object-cover" data-alt="A sophisticated portrait of a young woman with a calm expression. Soft studio lighting. High-key, minimalist light-mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqfyy114Sxd7E17Wa1wavN1e0QOFX5BR9hZJv-bTdse7RMYcFaGP7VcwD_f-jT8gdfLNhh0EJ0AHNQvVj0anXWsztuNR14p6KRlihL_Gp2fqrdYAlJlIas7lWWKM9oH8959ajDP0Z8WlkLGjNuhqwmyL56cSdB9EsZ5iBaShAMsqBBm_AVJSGZ6ZkyW_St8PfnoWd8HrXN8EowJd9RFSGb4o74ixPc0LnbirD6PC6G2qSToGG-03utYsxF54r0Xhq0q_Y0J6V4nRWN"/>
+</div>
+<div class="flex flex-col gap-1 max-w-[85%]">
+<span class="font-label-en-sm text-label-en-sm text-on-surface-variant">Sarah</span>
+<div class="bg-surface-container-high text-on-surface p-3 rounded-2xl rounded-tl-sm text-sm">
+                                Hey everyone! Should we play good cop / bad cop with the merchant?
+                            </div>
+</div>
+</div>
+<!-- Learning HUD Tip in Chat -->
+<div class="flex justify-center my-2">
+<div class="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm flex items-start gap-2 max-w-[90%] shadow-sm">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5" data-icon="tips_and_updates">tips_and_updates</span>
+<p class="text-on-surface-variant leading-tight">
+<strong class="text-primary font-medium">AI Suggestion:</strong> Try using conditional phrasing to haggle. e.g., "If you can lower the price by 10%, we have a deal."
+                            </p>
+</div>
+</div>
+</div>
+<div class="p-3 border-t border-outline-variant/20 bg-surface-container-lowest/50">
+<div class="relative">
+<input class="w-full bg-surface-container-high border-none rounded-full py-3 pl-4 pr-12 text-sm focus:ring-2 focus:ring-primary/50 text-on-surface placeholder:text-on-surface-variant/50 h-touch-target-min" placeholder="Type a message or practice a line..." type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-primary hover:bg-primary/10 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column (Mobile: Bottom) -->
+<div class="flex flex-col gap-stack-lg md:col-span-5 relative">
+<!-- Player Slots -->
+<section class="glass-card ambient-shadow rounded-xl p-5 flex flex-col gap-stack-md">
+<div class="flex justify-between items-center">
+<h2 class="font-headline-md text-headline-md text-on-surface">Party <span class="text-on-surface-variant font-normal text-base">(2/5)</span></h2>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Slot 1: Host -->
+<div class="flex items-center gap-3 p-2 rounded-lg bg-primary/5 border border-primary/20 relative group">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary relative flex-shrink-0">
+<img alt="Host User" class="w-full h-full object-cover" data-alt="A close-up portrait of a sophisticated young professional user. Soft, diffused lighting creates a serene mood. Clean, high-key light-mode aesthetic with minimal background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqs0omIJYqQ6xIabx2sNCyvF-zprVgfy_XCwUng0-9rQJvG4-yIyxWUqHEPOgTK9rTJit-jCCoVIuZT1V8G8A4awY5EuIAPkVqOGHlGNWfoNY8LJN9QCeAyFO00Smt_xNHhoqy3gpkTola38trfhuRKD_4M7wdC2mXAjC4SgU0DaTe_bSe06E-pqz-hobRLXcqN42tuyUL3aI8l1Z2nBRzvSEH5dnR9PxFUmKg8UniFEhNRZCfUv6pC1aG8MVrW4OhawZV94tzHjAX"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-en-sm text-label-en-sm text-primary mb-0.5">Host</p>
+<p class="font-body-md text-body-md text-on-surface font-medium truncate">You</p>
+</div>
+<div class="text-tertiary flex items-center gap-1 bg-tertiary/10 px-2 py-1 rounded text-xs font-medium">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle">check_circle</span> Ready
+                        </div>
+</div>
+<!-- Slot 2: Player -->
+<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-container-high/50 transition-colors border border-transparent">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-outline-variant/30 flex-shrink-0">
+<img alt="Sarah" class="w-full h-full object-cover" data-alt="A sophisticated portrait of a young woman with a calm expression. Soft studio lighting. High-key, minimalist light-mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzZv1B5TrBvLfdaWDQfAgvjuEJIyYGnY04sQS5tBV6sv8_Zre4_veSD3C9pXET3mxZIriLEpNee-ml2ngv0Jaw00oh3IQyIaan00l86iEPtLvZ5NIa105O5Rnr_opOSJLI2Ehi5KWmtEVqvqw5iwzhL-krev7lIBQw7-1QvsvXSs_-nIMlGdXcsawax8WnQzocW1YDnQQZ-68CtvOH0m2M00m4XxcIz8vJhNMy1G_3KDotl4AfQ0IIrM_7Ku6esu47QboMUwwFXkER"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-md text-body-md text-on-surface font-medium truncate">Sarah</p>
+<p class="font-label-en-sm text-label-en-sm text-on-surface-variant truncate">Level 4 Negotiator</p>
+</div>
+<div class="text-on-surface-variant flex items-center gap-1 px-2 py-1 rounded text-xs">
+<span class="material-symbols-outlined text-[14px] animate-pulse" data-icon="more_horiz">more_horiz</span> Preparing
+                        </div>
+</div>
+<!-- Slot 3: Empty/Invite -->
+<button class="flex items-center gap-3 p-2 rounded-lg border border-dashed border-outline-variant/50 hover:bg-primary/5 hover:border-primary/50 transition-colors group text-left w-full h-[66px]">
+<div class="w-12 h-12 rounded-full border-2 border-dashed border-outline-variant/50 flex items-center justify-center text-outline-variant group-hover:text-primary group-hover:border-primary/50 transition-colors flex-shrink-0 bg-surface-container-lowest/50">
+<span class="material-symbols-outlined" data-icon="person_add">person_add</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Invite Friend</p>
+</div>
+</button>
+<!-- Slot 4: Empty -->
+<div class="flex items-center gap-3 p-2 rounded-lg border border-dashed border-outline-variant/30 h-[66px] opacity-70">
+<div class="w-12 h-12 rounded-full border-2 border-dashed border-outline-variant/30 flex items-center justify-center text-outline-variant/50 flex-shrink-0 bg-surface-container-lowest/30">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md text-outline-variant">Waiting for player...</p>
+</div>
+</div>
+<!-- Slot 5: Empty -->
+<div class="flex items-center gap-3 p-2 rounded-lg border border-dashed border-outline-variant/30 h-[66px] opacity-70">
+<div class="w-12 h-12 rounded-full border-2 border-dashed border-outline-variant/30 flex items-center justify-center text-outline-variant/50 flex-shrink-0 bg-surface-container-lowest/30">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md text-outline-variant">Waiting for player...</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Actions Footer (Sticky on Mobile, Static on Desktop) -->
+<section class="glass-card ambient-shadow rounded-t-xl md:rounded-xl p-5 flex flex-col gap-4 fixed md:static bottom-touch-target-min md:bottom-auto left-0 w-full md:w-auto z-40 md:z-auto md:mt-auto border-b-0 md:border-b">
+<div class="flex items-center justify-between">
+<span class="font-body-md text-body-md font-medium text-on-surface">Ready Status</span>
+<!-- Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-tertiary"></div>
+</label>
+</div>
+<button class="w-full h-touch-target-min bg-deep-purple text-white rounded-full font-headline-md text-[16px] flex items-center justify-center gap-2 hover:bg-primary transition-colors active:scale-95 shadow-md">
+<span class="material-symbols-outlined" data-icon="play_arrow">play_arrow</span> Start Game (Host)
+                </button>
+</section>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-2 px-4 pb-safe bg-on-tertiary-container/5 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.05)] rounded-t-xl md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-[10px]">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-sm text-[10px]">Chat</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="videogame_asset">videogame_asset</span>
+<span class="font-label-sm text-[10px] font-bold">Game</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-sm text-[10px]">Assets</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-[10px]">Me</span>
+</button>
+</nav>
+</body></html>

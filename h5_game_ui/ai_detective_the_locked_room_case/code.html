@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AinerWise - Interrogation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "deep-purple": "#4F46E5",
+                      "surface-container-low": "#f2f4f6",
+                      "surface-dim": "#d8dadc",
+                      "ai-gradient-start": "#EEF2FF",
+                      "secondary": "#0058be",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "inverse-primary": "#c0c1ff",
+                      "on-secondary-fixed": "#001a42",
+                      "primary": "#4648d4",
+                      "on-tertiary-container": "#000703",
+                      "on-surface-variant": "#464554",
+                      "on-surface": "#191c1e",
+                      "soft-mint": "#D1FAE5",
+                      "on-secondary-fixed-variant": "#004395",
+                      "surface-bright": "#f7f9fb",
+                      "ai-gradient-end": "#E0E7FF",
+                      "tertiary": "#006c49",
+                      "on-secondary": "#ffffff",
+                      "on-primary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "on-error": "#ffffff",
+                      "surface-container-high": "#e6e8ea",
+                      "primary-fixed": "#e1e0ff",
+                      "primary-container": "#6063ee",
+                      "tertiary-container": "#00885d",
+                      "surface-tint": "#494bd6",
+                      "on-tertiary": "#ffffff",
+                      "secondary-container": "#2170e4",
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "inverse-surface": "#2d3133",
+                      "surface-container": "#eceef0",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "background": "#f7f9fb",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary-container": "#fefcff",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-primary-fixed": "#07006c",
+                      "tertiary-fixed": "#6ffbbe",
+                      "outline": "#767586",
+                      "on-background": "#191c1e",
+                      "on-tertiary-fixed": "#002113",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "surface-container-lowest": "#ffffff",
+                      "surface": "#f7f9fb",
+                      "outline-variant": "#c7c4d7",
+                      "on-primary-container": "#fffbff",
+                      "error-container": "#ffdad6",
+                      "secondary-fixed": "#d8e2ff",
+                      "surface-variant": "#e0e3e5",
+                      "on-error-container": "#93000a",
+                      
+                      // Detective Theme Overrides (Dark Mode Feel within Light Theme Constraints)
+                      "detective-bg": "#0B0C10",
+                      "detective-surface": "#1F2833",
+                      "detective-accent": "#66FCF1",
+                      "detective-accent-dim": "#45A29E",
+                      "detective-text": "#C5C6C7",
+                      "suspicion-low": "#4edea3",
+                      "suspicion-med": "#F59E0B",
+                      "suspicion-high": "#ba1a1a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "stack-sm": "8px",
+                      "touch-target-min": "44px",
+                      "stack-md": "16px",
+                      "stack-lg": "32px",
+                      "base": "4px",
+                      "gutter-md": "16px"
+              },
+              "fontFamily": {
+                      "headline-md": ["Manrope"],
+                      "headline-lg-mobile": ["Manrope"],
+                      "body-md": ["Manrope"],
+                      "body-lg": ["Manrope"],
+                      "headline-lg": ["Manrope"],
+                      "label-zh-sm": ["Manrope"],
+                      "label-en-sm": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                      "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0B0C10; /* Forcing dark theme for detective vibe */
+            color: #C5C6C7;
+        }
+        
+        /* Glassmorphism utilities for dark theme */
+        .glass-panel {
+            background: rgba(31, 40, 51, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 252, 241, 0.1);
+        }
+        
+        .glass-hud {
+            background: rgba(11, 12, 16, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(102, 252, 241, 0.15);
+        }
+
+        .lumina-text {
+            text-shadow: 0 0 10px rgba(102, 252, 241, 0.3);
+        }
+
+        /* Meter Animation */
+        @keyframes pulse-suspicion {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        .suspicion-glow {
+            animation: pulse-suspicion 2s infinite;
+        }
+
+        /* Scan Line Effect */
+        .scanline {
+            position: relative;
+            overflow: hidden;
+        }
+        .scanline::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(102, 252, 241, 0.3);
+            opacity: 0.5;
+            animation: scan 4s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        /* Hide scrollbar */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased font-sans h-screen flex flex-col overflow-hidden relative selection:bg-detective-accent selection:text-detective-bg">
+<!-- TopAppBar (Modified for Detective Theme - Implicitly suppressed standard shell for task focus) -->
+<header class="fixed top-0 w-full z-50 glass-hud px-margin-mobile h-[60px] flex items-center justify-between pt-safe">
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors active:scale-95">
+<span class="material-symbols-outlined text-detective-text" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<div>
+<h1 class="font-headline-md text-headline-md text-white tracking-wide">审讯室 <span class="text-detective-accent text-sm opacity-80">Room 4B</span></h1>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="px-3 py-1 rounded-full border border-detective-accent/30 bg-detective-accent/10 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-detective-accent animate-pulse"></span>
+<span class="font-label-en-sm text-label-en-sm text-detective-accent">REC</span>
+</div>
+</div>
+</header>
+<!-- Learning HUD (Fixed below header) -->
+<div class="fixed top-[60px] w-full z-40 bg-detective-surface/90 backdrop-blur-md border-b border-white/5 py-2 px-margin-mobile flex gap-3 overflow-x-auto">
+<div class="flex-shrink-0 flex flex-col">
+<span class="font-label-en-sm text-[10px] text-detective-text/60 uppercase tracking-widest mb-1">Target Skill</span>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-deep-purple/20 border border-deep-purple/30">
+<span class="material-symbols-outlined text-[14px] text-primary-fixed" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<span class="font-label-zh-sm text-[12px] text-white">心理战术 <span class="opacity-60 text-[10px] ml-1">B2</span></span>
+</div>
+</div>
+<div class="flex-shrink-0 flex flex-col">
+<span class="font-label-en-sm text-[10px] text-detective-text/60 uppercase tracking-widest mb-1">Pattern</span>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary-container/20 border border-secondary-container/30">
+<span class="material-symbols-outlined text-[14px] text-secondary-fixed" style="font-variation-settings: 'FILL' 1;">forum</span>
+<span class="font-label-zh-sm text-[12px] text-white">引导性提问</span>
+</div>
+</div>
+</div>
+<!-- Main Canvas -->
+<main class="flex-1 flex flex-col pt-[125px] pb-[140px] overflow-hidden">
+<!-- Suspect Portrait & Meter Area -->
+<section class="relative w-full h-[265px] min-h-[220px] flex-shrink-0 border-b border-white/10 scanline">
+<div class="absolute inset-0 bg-gradient-to-t from-detective-bg via-transparent to-transparent z-10"></div>
+<!-- Placeholder for Suspect Portrait -->
+<div class="absolute inset-0 w-full h-full bg-surface-container-highest" data-alt="A cinematic, moody portrait of a suspect in an interrogation room. High-contrast, dramatic lighting illuminating one side of his face while the other is in deep shadow. Cyberpunk or modern noir aesthetic with subtle neon blue and teal rim lighting. The subject appears tense and guarded, looking slightly off-camera. Gritty, sophisticated dark UI background context." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDcShuwuVhnItvLWIFyPX7FeXGkpP95VfkM3uny64t4oHn-_fH2Nq-2g1DoKNW32vIUoBvf84j5kzqlO8Afx8BBy2Yv37X17_TnUMH2y9VPchQo66gZCBt5S4A5yr00T0Ih5n6idb6llfEI7vrShZW68wbIfqFDisP0xbZhU82oZK7nnVF5dymVqnnSB5H9NQlqYiqgll-4gPXQEQAFPtyw6SK-7waMxSb6iDMKciq3EaIPjgrHdju3x2VoHaI6rDUb4nYOc0VdyHeW'); background-size: cover; background-position: center; mix-blend-mode: luminosity; opacity: 0.6;"></div>
+<div class="absolute bottom-4 left-margin-mobile right-margin-mobile z-20 flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-white lumina-text">Marcus Thorne</h2>
+<p class="font-label-en-sm text-label-en-sm text-detective-text/70 uppercase tracking-widest">Suspect #402</p>
+</div>
+<!-- Suspicion Meter -->
+<div class="flex flex-col items-end gap-1">
+<span class="font-label-zh-sm text-[11px] text-suspicion-med uppercase tracking-wider">怀疑度 Suspicion</span>
+<div class="flex gap-1">
+<div class="w-8 h-2 bg-suspicion-high rounded-full opacity-20"></div>
+<div class="w-8 h-2 bg-suspicion-high rounded-full opacity-20"></div>
+<div class="w-8 h-2 bg-suspicion-med rounded-full suspicion-glow"></div>
+<div class="w-8 h-2 bg-suspicion-low rounded-full"></div>
+<div class="w-8 h-2 bg-suspicion-low rounded-full"></div>
+</div>
+<span class="font-label-en-sm text-[10px] text-white/50 mt-1">60% - DEFENSIVE</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Chat Interface -->
+<section class="flex-1 overflow-y-auto px-margin-mobile py-stack-md flex flex-col gap-stack-lg scroll-smooth" id="chat-container">
+<!-- System/Context Message -->
+<div class="flex justify-center">
+<span class="px-3 py-1 rounded-full bg-detective-surface border border-white/5 font-label-zh-sm text-[11px] text-detective-text/50">
+                    审讯开始 - 23:45 PM
+                </span>
+</div>
+<!-- Detective (User) Message -->
+<div class="flex flex-col items-end gap-1 w-full pl-[20%]">
+<span class="font-label-en-sm text-[10px] text-detective-text/50 mr-2">You (Detective)</span>
+<div class="glass-panel p-4 rounded-2xl rounded-tr-sm border-r-2 border-r-detective-accent">
+<p class="font-body-md text-body-md text-white mb-2">昨晚十点你在哪里？监控显示你的车出现在了案发现场附近。</p>
+<p class="font-body-md text-[14px] text-detective-text/70 italic">Where were you last night at 10 PM? Security cameras showed your car near the crime scene.</p>
+</div>
+</div>
+<!-- Suspect Message -->
+<div class="flex flex-col items-start gap-1 w-full pr-[20%]">
+<span class="font-label-en-sm text-[10px] text-suspicion-med mr-2">Marcus</span>
+<div class="bg-detective-surface p-4 rounded-2xl rounded-tl-sm border-l-2 border-l-suspicion-med shadow-lg relative group">
+<p class="font-body-md text-body-md text-white mb-2">我...我当时在家里。那辆车我借给朋友了。你不能仅凭一辆车就定我的罪。</p>
+<p class="font-body-md text-[14px] text-detective-text/70 italic">I... I was at home. I lent that car to a friend. You can't convict me just based on a car.</p>
+<!-- Statement Analysis Action (Hover/Active state implicit in mobile via tap) -->
+<button class="absolute -bottom-4 right-4 bg-deep-purple text-white px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg border border-white/20 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-label-zh-sm text-[11px]">分析供词</span>
+</button>
+</div>
+</div>
+<!-- Analysis Result (Revealed state simulation) -->
+<div class="flex flex-col items-start gap-1 w-full pr-[10%] pl-[10%] mt-4">
+<div class="bg-deep-purple/10 border border-deep-purple/30 p-3 rounded-xl w-full">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary-fixed text-[16px]">psychology_alt</span>
+<span class="font-label-zh-sm text-[12px] text-primary-fixed font-bold">AI 语用分析 (Pragmatic Analysis)</span>
+</div>
+<p class="font-body-md text-[13px] text-white/90 leading-relaxed">
+                        Notice the hesitation ("我...我" / "I... I") and immediate defensive deflection. The use of "convict" implies guilt awareness. <br/>
+<span class="text-suspicion-med mt-1 inline-block">Tactical Advice: Press for the friend's name immediately.</span>
+</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Action Area (Input & Evidence Drawer) -->
+<div class="fixed bottom-0 w-full z-50 glass-hud pb-safe">
+<!-- Expandable Evidence Drawer Handle -->
+<div class="w-full flex justify-center -mt-3 absolute top-0">
+<button class="w-12 h-1 bg-white/20 rounded-full hover:bg-white/40 transition-colors"></button>
+</div>
+<!-- Evidence Quick Bar -->
+<div class="px-margin-mobile py-2 flex items-center justify-between border-b border-white/5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-detective-text text-[16px]">folder_open</span>
+<span class="font-label-zh-sm text-[12px] text-detective-text uppercase tracking-widest">线索 Evidence</span>
+</div>
+<div class="flex gap-2">
+<!-- Evidence Chips -->
+<div class="w-8 h-8 rounded bg-surface-container-highest border border-white/10 flex items-center justify-center opacity-50 relative">
+<span class="material-symbols-outlined text-[14px] text-white/50">vpn_key</span>
+</div>
+<div class="w-8 h-8 rounded bg-surface-container-highest border border-detective-accent/50 flex items-center justify-center relative shadow-[0_0_10px_rgba(102,252,241,0.2)]">
+<span class="material-symbols-outlined text-[14px] text-detective-accent">receipt_long</span>
+<span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-error rounded-full border border-detective-bg"></span>
+</div>
+<button class="w-8 h-8 rounded bg-detective-surface border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-white">keyboard_arrow_up</span>
+</button>
+</div>
+</div>
+<!-- Input Area -->
+<div class="px-margin-mobile py-3 flex items-end gap-3 h-[72px]">
+<div class="flex-1 bg-detective-surface border border-white/10 rounded-xl px-4 py-3 flex items-center gap-2 min-h-[44px]">
+<input class="bg-transparent border-none outline-none w-full text-white font-body-md text-[14px] placeholder:text-white/30 focus:ring-0 p-0" placeholder="输入审问话术..." type="text"/>
+<button class="text-detective-accent/70 hover:text-detective-accent transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+</div>
+<button class="w-[44px] h-[44px] rounded-xl bg-deep-purple text-white flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform shadow-lg shadow-deep-purple/20">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+<!-- Script for subtle interactions -->
+<script>
+        // Scroll chat to bottom on load
+        document.addEventListener("DOMContentLoaded", () => {
+            const chatContainer = document.getElementById('chat-container');
+            if(chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        });
+    </script>
+</body></html>

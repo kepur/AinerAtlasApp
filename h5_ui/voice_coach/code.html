@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AinerWise Voice Coach</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-bright": "#f7f9fb",
+                        "surface-container": "#eceef0",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed": "#001a42",
+                        "ai-gradient-start": "#EEF2FF",
+                        "primary": "#4648d4",
+                        "tertiary-container": "#00885d",
+                        "inverse-surface": "#2d3133",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "secondary": "#0058be",
+                        "surface-container-low": "#f2f4f6",
+                        "soft-mint": "#D1FAE5",
+                        "primary-container": "#6063ee",
+                        "outline": "#767586",
+                        "on-surface-variant": "#464554",
+                        "surface-dim": "#d8dadc",
+                        "tertiary": "#006c49",
+                        "on-tertiary-container": "#000703",
+                        "outline-variant": "#c7c4d7",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#002113",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "secondary-fixed": "#d8e2ff",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface": "#f7f9fb",
+                        "deep-purple": "#4F46E5",
+                        "on-primary-fixed": "#07006c",
+                        "surface-tint": "#494bd6",
+                        "secondary-container": "#2170e4",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary-container": "#fffbff",
+                        "inverse-primary": "#c0c1ff",
+                        "background": "#f7f9fb",
+                        "on-background": "#191c1e",
+                        "surface-container-high": "#e6e8ea",
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "on-secondary-container": "#fefcff",
+                        "ai-gradient-end": "#E0E7FF"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px",
+                        "base": "4px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-zh-sm": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "body-lg": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .orb-pulse {
+            animation: pulse 3s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; filter: blur(20px); }
+            50% { transform: scale(1.1); opacity: 1; filter: blur(35px); }
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .nav-active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 999px;
+            background: #4F46E5;
+        }
+        body {
+            background: radial-gradient(circle at top right, #EEF2FF 0%, #f7f9fb 40%),
+                        radial-gradient(circle at bottom left, #E0E7FF 0%, #f7f9fb 40%);
+            background-attachment: fixed;
+        }
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .safe-pt {
+            padding-top: env(safe-area-inset-top);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background min-h-screen overflow-x-hidden font-body-md text-body-md">
+<!-- Header Section -->
+<header class="fixed top-0 left-0 w-full z-50 glass-card h-16 flex items-center justify-between px-margin-mobile safe-pt">
+<div class="flex items-center gap-3">
+<button class="w-touch-target-min h-touch-target-min flex items-center justify-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-on-surface">arrow_back_ios</span>
+</button>
+<div class="flex flex-col">
+<h1 class="font-headline-md text-headline-md text-primary font-bold leading-tight">Voice Coach</h1>
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">实时语音对话 · 逐句纠正</span>
+</div>
+</div>
+<div class="bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 border border-primary/20">
+<span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="font-label-en-sm text-label-en-sm text-primary font-bold">English B2</span>
+</div>
+</header>
+<main class="pt-24 pb-48 px-margin-mobile flex flex-col gap-stack-lg">
+<!-- Mode Selector -->
+<nav class="flex p-1 bg-surface-container rounded-xl overflow-x-auto no-scrollbar">
+<button class="flex-1 py-2 px-3 rounded-lg bg-white shadow-sm text-primary font-bold text-label-zh-sm whitespace-nowrap transition-all">自由对话</button>
+<button class="flex-1 py-2 px-3 rounded-lg text-outline text-label-zh-sm whitespace-nowrap hover:bg-white/50 transition-all">跟读训练</button>
+<button class="flex-1 py-2 px-3 rounded-lg text-outline text-label-zh-sm whitespace-nowrap hover:bg-white/50 transition-all">面试练习</button>
+<button class="flex-1 py-2 px-3 rounded-lg text-outline text-label-zh-sm whitespace-nowrap hover:bg-white/50 transition-all">小组语音</button>
+</nav>
+<!-- Central Voice Visualization -->
+<section class="relative aspect-[4/3] w-full flex flex-col items-center justify-center gap-6">
+<div class="absolute inset-0 bg-deep-purple/5 rounded-[40px] blur-3xl opacity-50"></div>
+<div class="relative w-48 h-48 flex items-center justify-center">
+<!-- AI Orb Visual -->
+<div class="absolute w-full h-full rounded-full bg-gradient-to-tr from-deep-purple via-primary to-secondary-container opacity-20 orb-pulse"></div>
+<div class="absolute w-32 h-32 rounded-full bg-gradient-to-bl from-primary to-soft-mint opacity-40 blur-xl"></div>
+<div class="relative w-24 h-24 rounded-full bg-white glass-card flex items-center justify-center shadow-2xl">
+<span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1;">graphic_eq</span>
+</div>
+</div>
+<div class="text-center z-10">
+<p class="font-headline-md text-headline-md text-primary font-medium animate-pulse">AI 正在听你表达...</p>
+<p class="font-label-zh-sm text-label-zh-sm text-outline-variant mt-1">Talk naturally as if with a friend</p>
+</div>
+</section>
+<!-- Feedback Stack -->
+<section class="flex flex-col gap-stack-md">
+<!-- Live Transcript -->
+<div class="glass-card p-stack-md rounded-3xl flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="text-label-en-sm font-bold text-outline uppercase tracking-wider">Your Transcript</span>
+<button class="text-primary active:scale-90 transition-transform"><span class="material-symbols-outlined text-lg">play_circle</span></button>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface">"I <span class="bg-error/10 text-error border-b-2 border-error/20 px-0.5">want Europe</span> because life <span class="bg-error/10 text-error border-b-2 border-error/20 px-0.5">more freedom</span>."</p>
+</div>
+<!-- AI Correction -->
+<div class="glass-card p-stack-md rounded-3xl flex flex-col gap-3 border-l-4 border-deep-purple">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="bg-deep-purple text-white px-2 py-0.5 rounded text-[10px] font-bold">AI BEST</span>
+<span class="text-label-en-sm font-bold text-deep-purple uppercase tracking-wider">Refined Expression</span>
+</div>
+<button class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+</button>
+</div>
+<p class="font-body-lg text-body-lg text-primary font-medium">"I want to <span class="text-on-surface font-bold">move to</span> Europe because life <span class="text-on-surface font-bold">feels freer</span> there."</p>
+</div>
+<!-- Grammar Tips -->
+<div class="glass-card p-stack-md rounded-3xl flex flex-col gap-3">
+<div class="flex items-center gap-2 text-outline">
+<span class="material-symbols-outlined text-lg">lightbulb</span>
+<span class="text-label-zh-sm font-bold">语法要点</span>
+</div>
+<ul class="flex flex-col gap-2">
+<li class="flex gap-2 text-label-zh-sm text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0"></span>
+<span>"Want Europe" 不完整。当表达想去某地时，应使用 <code class="bg-primary-fixed text-primary px-1 rounded font-bold">move to</code> 或 <code class="bg-primary-fixed text-primary px-1 rounded font-bold">go to</code>。</span>
+</li>
+<li class="flex gap-2 text-label-zh-sm text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0"></span>
+<span>"More freedom" 这里缺少系动词，用 <code class="bg-primary-fixed text-primary px-1 rounded font-bold">feels freer</code> 听起来更地道。</span>
+</li>
+</ul>
+</div>
+<!-- Scores -->
+<div class="grid grid-cols-4 gap-2">
+<div class="glass-card p-3 rounded-2xl flex flex-col items-center justify-center gap-1">
+<span class="text-headline-md font-bold text-primary">78</span>
+<span class="text-[10px] font-bold text-outline text-center uppercase leading-none">Pronun.</span>
+</div>
+<div class="glass-card p-3 rounded-2xl flex flex-col items-center justify-center gap-1">
+<span class="text-headline-md font-bold text-secondary">65</span>
+<span class="text-[10px] font-bold text-outline text-center uppercase leading-none">Fluency</span>
+</div>
+<div class="glass-card p-3 rounded-2xl flex flex-col items-center justify-center gap-1">
+<span class="text-headline-md font-bold text-tertiary">72</span>
+<span class="text-[10px] font-bold text-outline text-center uppercase leading-none">Grammar</span>
+</div>
+<div class="glass-card p-3 rounded-2xl flex flex-col items-center justify-center gap-1">
+<span class="text-headline-md font-bold text-on-primary-fixed-variant">61</span>
+<span class="text-[10px] font-bold text-outline text-center uppercase leading-none">Confi.</span>
+</div>
+</div>
+<!-- Next Question -->
+<div class="bg-primary/5 border border-primary/10 p-stack-md rounded-3xl flex flex-col gap-2 mt-4 relative overflow-hidden">
+<div class="absolute -right-4 -top-4 w-20 h-20 bg-primary/5 rounded-full blur-xl"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm">chat_bubble</span>
+<span class="text-label-zh-sm font-bold text-primary">追问引导</span>
+</div>
+<div class="flex items-start justify-between gap-4">
+<div class="flex flex-col gap-1">
+<p class="font-body-md text-on-surface italic font-medium">"Would you still move there if your income became lower?"</p>
+<p class="text-label-zh-sm text-outline-variant">如果收入降低，你还会选择搬去那里吗？</p>
+</div>
+<button class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Fixed Bottom Controls & Actions -->
+<div class="fixed bottom-0 left-0 w-full z-50 glass-card pt-6 pb-10 px-margin-mobile flex flex-col gap-6 safe-pb shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
+<!-- Quick Actions -->
+<div class="flex items-center justify-center gap-4">
+<button class="flex items-center gap-2 bg-secondary/10 text-secondary px-4 py-2 rounded-full font-label-zh-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg">archive</span>
+                保存到表达资产
+            </button>
+<button class="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full font-label-zh-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg">magic_button</span>
+                加入消消乐
+            </button>
+</div>
+<!-- Main Voice Controls -->
+<div class="flex items-center justify-between gap-4">
+<div class="flex flex-col items-center gap-1 flex-1">
+<button class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined">slow_motion_video</span>
+</button>
+<span class="text-[10px] text-outline font-bold">慢速朗读</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<button class="w-20 h-20 rounded-full bg-deep-purple flex items-center justify-center text-white shadow-xl active:scale-90 transition-all duration-300 ring-8 ring-deep-purple/10" id="mic-button">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+<span class="font-bold text-deep-purple text-label-zh-sm">按住说话</span>
+</div>
+<div class="flex flex-col items-center gap-1 flex-1">
+<button class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform">
+<span class="material-symbols-outlined">replay</span>
+</button>
+<span class="text-[10px] text-outline font-bold">重播 AI</span>
+</div>
+</div>
+<button class="text-center text-outline text-label-zh-sm font-medium opacity-60 hover:opacity-100 transition-opacity">
+            结束本轮对话
+        </button>
+</div>
+<script>
+        // Haptic feedback simulation for the microphone
+        const micBtn = document.getElementById('mic-button');
+        let isHolding = false;
+
+        micBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isHolding = true;
+            micBtn.classList.add('scale-110', 'ring-32');
+            micBtn.innerHTML = `<span class="material-symbols-outlined text-4xl animate-pulse" style="font-variation-settings: 'FILL' 1;">graphic_eq</span>`;
+        });
+
+        micBtn.addEventListener('touchend', () => {
+            isHolding = false;
+            micBtn.classList.remove('scale-110', 'ring-32');
+            micBtn.innerHTML = `<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">mic</span>`;
+        });
+
+        // Micro-interaction for mode tabs
+        const tabs = document.querySelectorAll('nav button');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('bg-white', 'shadow-sm', 'text-primary', 'font-bold');
+                    t.classList.add('text-outline');
+                });
+                tab.classList.add('bg-white', 'shadow-sm', 'text-primary', 'font-bold');
+                tab.classList.remove('text-outline');
+            });
+        });
+    </script>
+</body></html>

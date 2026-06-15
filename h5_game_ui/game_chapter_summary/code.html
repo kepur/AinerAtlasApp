@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AinerWise - Chapter Summary</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#07006c",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-tint": "#494bd6",
+                        "outline": "#767586",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "background": "#f7f9fb",
+                        "on-secondary-container": "#fefcff",
+                        "surface-variant": "#e0e3e5",
+                        "on-primary-container": "#fffbff",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container": "#eceef0",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#c0c1ff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "soft-mint": "#D1FAE5",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-error": "#ffffff",
+                        "on-background": "#191c1e",
+                        "on-tertiary-fixed": "#002113",
+                        "surface-container-low": "#f2f4f6",
+                        "primary-fixed": "#e1e0ff",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "primary": "#4648d4",
+                        "on-error-container": "#93000a",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-surface": "#191c1e",
+                        "secondary": "#0058be",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-tertiary-container": "#000703",
+                        "deep-purple": "#4F46E5",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "surface": "#f7f9fb",
+                        "tertiary": "#006c49",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#6063ee",
+                        "secondary-container": "#2170e4",
+                        "surface-dim": "#d8dadc",
+                        "inverse-surface": "#2d3133",
+                        "outline-variant": "#c7c4d7",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#464554",
+                        "tertiary-container": "#00885d",
+                        "on-secondary-fixed": "#001a42",
+                        "ai-gradient-end": "#E0E7FF",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-secondary-fixed-variant": "#004395",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "touch-target-min": "44px",
+                        "stack-md": "16px",
+                        "margin-mobile": "20px",
+                        "base": "4px",
+                        "gutter-md": "16px",
+                        "stack-lg": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "headline-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .lumina-bg {
+            background: linear-gradient(135deg, theme('colors.ai-gradient-start'), theme('colors.ai-gradient-end'));
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: theme('colors.glass-bg');
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 24px rgba(99, 102, 241, 0.05);
+        }
+        .ambient-shadow {
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+        }
+        /* Hide scrollbar for clean mobile look */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="lumina-bg text-on-surface antialiased font-body-md pb-safe">
+<!-- TopAppBar Content Canvas, navigation suppressed as per semantic shell mandate for transactional/linear screens -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg dark:bg-glass-bg backdrop-blur-xl border-b border-white/20 shadow-sm flex justify-between items-center px-margin-mobile h-touch-target-min">
+<button aria-label="Close Summary" class="text-on-surface scale-95 active:scale-90 transition-transform flex items-center justify-center w-touch-target-min h-touch-target-min -ml-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">close</span>
+</button>
+<span class="font-headline-md text-headline-md text-deep-purple font-bold tracking-tight">AinerWise</span>
+<div class="w-touch-target-min"></div> <!-- Placeholder for balance -->
+</header>
+<main class="pt-[80px] pb-[120px] px-margin-mobile flex flex-col gap-stack-lg max-w-md mx-auto">
+<!-- 1. Celebration Header -->
+<section class="flex justify-between items-start pt-4">
+<div class="flex flex-col gap-1">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">第 1 章 达成</h1>
+<p class="font-body-md text-body-md text-outline">《青云重生》：后山重逢</p>
+</div>
+<div class="glass-card rounded-full px-3 py-1 flex items-center gap-1 border-primary/20">
+<span class="material-symbols-outlined text-deep-purple text-sm" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+<span class="font-label-en-sm text-label-en-sm text-deep-purple">Story Master</span>
+</div>
+</section>
+<!-- 2. Story Recap Card -->
+<section class="glass-card rounded-xl p-5 flex flex-col gap-stack-sm">
+<h2 class="font-headline-md text-headline-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">history_edu</span>
+                剧情回顾
+            </h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                你重生后第一次见到小师妹。面对她的质问，你选择了冷静且克制的保持距离，这似乎让她感到非常困惑。
+            </p>
+<div class="mt-2 bg-primary/5 rounded-lg p-3 flex items-start gap-2 border border-primary/10">
+<span class="material-symbols-outlined text-primary mt-0.5 text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-zh-sm text-label-zh-sm text-primary-container font-semibold">核心选择：保持距离</span>
+</div>
+</section>
+<!-- 3. Highlights -->
+<section class="flex flex-col gap-stack-sm">
+<h2 class="font-headline-md text-headline-md px-1">高光台词</h2>
+<div class="glass-card ambient-shadow rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden">
+<!-- Decorative gradient blob -->
+<div class="absolute -right-10 -top-10 w-32 h-32 bg-primary-fixed rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+<div class="flex justify-between items-start z-10">
+<p class="font-body-lg text-body-lg text-on-surface italic pr-8">
+                        "I think it's better for us to keep some distance."
+                    </p>
+<button class="bg-primary-fixed/50 rounded-full w-8 h-8 flex items-center justify-center shrink-0 hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-2 z-10">
+<span class="bg-secondary-fixed/50 text-on-secondary-fixed-variant font-label-en-sm text-label-en-sm px-2 py-1 rounded-md border border-secondary-fixed">
+                        Emotional Control
+                    </span>
+</div>
+</div>
+</section>
+<!-- 4. Learning Stats -->
+<section class="grid grid-cols-3 gap-gutter-md">
+<div class="glass-card rounded-xl p-4 flex flex-col items-center justify-center gap-1">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-deep-purple">3</span>
+<span class="font-label-zh-sm text-label-zh-sm text-outline">新句型</span>
+</div>
+<div class="glass-card rounded-xl p-4 flex flex-col items-center justify-center gap-1">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-secondary-container">8</span>
+<span class="font-label-zh-sm text-label-zh-sm text-outline">新词汇</span>
+</div>
+<div class="glass-card rounded-xl p-4 flex flex-col items-center justify-center gap-1">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-tertiary-container">82</span>
+<span class="font-label-zh-sm text-label-zh-sm text-outline">口语评分</span>
+</div>
+</section>
+<!-- 5. Relationship Changes -->
+<section class="flex flex-col gap-stack-sm">
+<h2 class="font-headline-md text-headline-md px-1">关系变化</h2>
+<div class="glass-card rounded-xl p-4 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden border border-outline-variant">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="A detailed, soft-focus portrait of a young woman with a confused expression, rendered in a sophisticated, minimalist art style. The background is a subtle blend of cool blues and pristine whites, matching a modern light-mode interface. The lighting is diffused, highlighting her delicate features and conveying a sense of emotional depth. The overall mood is ethereal and slightly melancholic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtmY5wh6HKHPNTibGOYVgDLxta4xqp2bzUMMFGG9D0pIebB9aLtMVBvPjrP9IlERbnGdhnjaibctfz2tSmG4tgwKTV2dtVKqUgM4CKQr7iuvhlTrcddGYDfXI6m66s4X5k_4wRjLXGLhhy9ypvWD4TZCAaHo4ksVKXt87OoEbaBFgzwpvLPs_Zj3CAoP50pvZ5QWu9uUKS_H3WAhS_JgQEJeSrTWwO9m9E5p9ZA2lhlt1By7Pm166O6sINxrOcbzfZVu5KbTn-FIYr"/>
+</div>
+<span class="font-body-md text-body-md">小师妹</span>
+</div>
+<div class="flex items-center gap-1 text-secondary-container bg-secondary-fixed/30 px-2 py-1 rounded-md">
+<span class="font-label-zh-sm text-label-zh-sm font-bold">困惑 +12</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">arrow_upward</span>
+</div>
+</div>
+<div class="h-px bg-surface-variant/50 w-full"></div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden border border-outline-variant">
+<span class="material-symbols-outlined text-outline" style="font-variation-settings: 'FILL' 0;">shield_person</span>
+</div>
+<span class="font-body-md text-body-md">你的戒备心</span>
+</div>
+<div class="flex items-center gap-1 text-deep-purple bg-primary-fixed/30 px-2 py-1 rounded-md">
+<span class="font-label-zh-sm text-label-zh-sm font-bold">+15</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">arrow_upward</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 6. Patterns Learned -->
+<section class="flex flex-col gap-stack-sm mb-4">
+<h2 class="font-headline-md text-headline-md px-1">学到的重点</h2>
+<div class="flex flex-wrap gap-2">
+<div class="glass-card px-3 py-2 rounded-full border border-primary/20 flex items-center gap-2">
+<span class="font-label-en-sm text-label-en-sm text-on-surface">I think it's better for us to...</span>
+<span class="material-symbols-outlined text-tertiary-container text-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="glass-card px-3 py-2 rounded-full border border-primary/20 flex items-center gap-2 bg-soft-mint/10">
+<span class="font-label-en-sm text-label-en-sm text-on-surface">keep some distance</span>
+<span class="material-symbols-outlined text-tertiary-container text-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="glass-card px-3 py-2 rounded-full border border-surface-variant flex items-center gap-2">
+<span class="font-label-en-sm text-label-en-sm text-on-surface-variant">rather than doing...</span>
+</div>
+</div>
+</section>
+</main>
+<!-- 7. Actions (Fixed Bottom) -->
+<footer class="fixed bottom-0 w-full z-50 glass-card rounded-t-2xl px-margin-mobile pt-4 pb-safe border-b-0">
+<div class="flex flex-col gap-3 max-w-md mx-auto mb-4">
+<button class="w-full h-[52px] bg-deep-purple text-on-primary rounded-full font-headline-md text-headline-md shadow-lg shadow-deep-purple/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+<span>继续下一章</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_forward</span>
+</button>
+<div class="flex gap-3">
+<button class="flex-1 h-[44px] glass-card rounded-full font-label-zh-sm text-label-zh-sm text-primary-container border-primary/20 flex items-center justify-center gap-1 active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 0;">bookmark_add</span>
+                    保存到 Assets
+                </button>
+<button class="flex-1 h-[44px] bg-transparent rounded-full font-label-zh-sm text-label-zh-sm text-outline flex items-center justify-center hover:bg-surface-variant/50 transition-colors">
+                    加入今日消消乐
+                </button>
+</div>
+</div>
+</footer>
+</body></html>

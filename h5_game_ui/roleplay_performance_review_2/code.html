@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AinerWise - Roleplay Performance Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-variant": "#e0e3e5",
+                      "ai-gradient-end": "#E0E7FF",
+                      "surface-container-highest": "#e0e3e5",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-primary": "#c0c1ff",
+                      "ai-gradient-start": "#EEF2FF",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-secondary-fixed-variant": "#004395",
+                      "outline": "#767586",
+                      "on-surface-variant": "#464554",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#00885d",
+                      "surface-tint": "#494bd6",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-container": "#000703",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "outline-variant": "#c7c4d7",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "surface-container-low": "#f2f4f6",
+                      "on-background": "#191c1e",
+                      "surface-container": "#eceef0",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "tertiary": "#006c49",
+                      "on-secondary-fixed": "#001a42",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary-fixed": "#002113",
+                      "primary": "#4648d4",
+                      "surface-bright": "#f7f9fb",
+                      "secondary-container": "#2170e4",
+                      "primary-fixed": "#e1e0ff",
+                      "secondary-fixed": "#d8e2ff",
+                      "on-primary-fixed": "#07006c",
+                      "deep-purple": "#4F46E5",
+                      "on-secondary-container": "#fefcff",
+                      "error": "#ba1a1a",
+                      "secondary": "#0058be",
+                      "on-surface": "#191c1e",
+                      "surface-dim": "#d8dadc",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "surface": "#f7f9fb",
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "soft-mint": "#D1FAE5",
+                      "on-primary-container": "#fffbff",
+                      "inverse-surface": "#2d3133",
+                      "primary-container": "#6063ee",
+                      "background": "#f7f9fb"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "touch-target-min": "44px",
+                      "stack-sm": "8px",
+                      "margin-mobile": "20px",
+                      "stack-md": "16px",
+                      "stack-lg": "32px",
+                      "base": "4px",
+                      "gutter-md": "16px"
+              },
+              "fontFamily": {
+                      "label-en-sm": ["Inter"],
+                      "headline-lg": ["Manrope"],
+                      "body-lg": ["Manrope"],
+                      "label-zh-sm": ["Manrope"],
+                      "body-md": ["Manrope"],
+                      "headline-lg-mobile": ["Manrope"],
+                      "headline-md": ["Manrope"]
+              },
+              "fontSize": {
+                      "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                      "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 24px rgba(99, 102, 241, 0.05);
+        }
+
+        .ambient-shadow {
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Gauge Animation */
+        @keyframes fillGauge {
+            from { stroke-dasharray: 0 100; }
+            to { stroke-dasharray: 88 100; }
+        }
+        .gauge-path {
+            animation: fillGauge 1.5s ease-out forwards;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface antialiased pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg dark:bg-inverse-surface/70 backdrop-blur-xl border-b border-white/10 dark:border-white/5 shadow-sm">
+<div class="flex justify-between items-center px-margin-mobile h-touch-target-min">
+<button class="text-deep-purple dark:text-primary-fixed-dim hover:opacity-80 transition-opacity scale-95 active:scale-90 transition-transform h-touch-target-min w-touch-target-min flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold tracking-tight text-deep-purple dark:text-primary-fixed-dim">
+                Performance Analysis
+            </h1>
+<div class="w-touch-target-min"></div> <!-- Placeholder for balance -->
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-20 px-margin-mobile max-w-md mx-auto flex flex-col gap-stack-lg">
+<!-- Header Section -->
+<section class="text-center mt-stack-md">
+<p class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider mb-2">Qingyun Rebirth: Chapter 2</p>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Expression Power</h2>
+</section>
+<!-- Main Gauge Card -->
+<section class="glass-card rounded-xl p-6 flex flex-col items-center justify-center relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none"></div>
+<div class="relative w-48 h-48 mb-4">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<!-- Background Circle -->
+<path class="text-surface-variant" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<!-- Progress Circle -->
+<path class="text-deep-purple gauge-path" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="0 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-headline-lg text-headline-lg text-deep-purple font-extrabold">88</span>
+<span class="font-label-en-sm text-label-en-sm text-on-surface-variant bg-soft-mint px-2 py-1 rounded-full mt-1">GRADE A-</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-center text-on-surface-variant">Excellent contextual awareness. Your archaic phrasing elevated the scene perfectly.</p>
+</section>
+<!-- Metrics Grid -->
+<section class="grid grid-cols-2 gap-gutter-md">
+<!-- Metric 1 -->
+<div class="glass-card rounded-xl p-4 flex flex-col gap-2">
+<div class="flex justify-between items-center w-full">
+<span class="material-symbols-outlined text-deep-purple opacity-80" data-icon="menu_book">menu_book</span>
+<span class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface">85%</span>
+</div>
+<div>
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant">Vocabulary Range</h3>
+<div class="h-1 w-full bg-surface-variant rounded-full mt-1 overflow-hidden">
+<div class="h-full bg-deep-purple rounded-full" style="width: 85%;"></div>
+</div>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="glass-card rounded-xl p-4 flex flex-col gap-2">
+<div class="flex justify-between items-center w-full">
+<span class="material-symbols-outlined text-tertiary-container opacity-80" data-icon="spellcheck">spellcheck</span>
+<span class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface">78%</span>
+</div>
+<div>
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant">Grammar Accuracy</h3>
+<div class="h-1 w-full bg-surface-variant rounded-full mt-1 overflow-hidden">
+<div class="h-full bg-tertiary-container rounded-full" style="width: 78%;"></div>
+</div>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="glass-card rounded-xl p-4 flex flex-col gap-2">
+<div class="flex justify-between items-center w-full">
+<span class="material-symbols-outlined text-secondary opacity-80" data-icon="mood">mood</span>
+<span class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface">92%</span>
+</div>
+<div>
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant">Emotional Tone</h3>
+<div class="h-1 w-full bg-surface-variant rounded-full mt-1 overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 92%;"></div>
+</div>
+</div>
+</div>
+<!-- Metric 4 -->
+<div class="glass-card rounded-xl p-4 flex flex-col gap-2">
+<div class="flex justify-between items-center w-full">
+<span class="material-symbols-outlined text-deep-purple opacity-80" data-icon="account_tree">account_tree</span>
+<span class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface">80%</span>
+</div>
+<div>
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant">Logical Flow</h3>
+<div class="h-1 w-full bg-surface-variant rounded-full mt-1 overflow-hidden">
+<div class="h-full bg-deep-purple rounded-full opacity-70" style="width: 80%;"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- High-Light Lines -->
+<section class="flex flex-col gap-stack-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface px-1">High-Light Lines</h3>
+<div class="glass-card rounded-xl p-5 flex flex-col gap-4 border-l-4 border-l-deep-purple">
+<div>
+<p class="font-body-md text-body-md text-on-surface italic">"The winds of Qingyun care not for the pleas of mortals; they howl only for destiny."</p>
+</div>
+<div class="bg-primary/5 rounded-lg p-3 flex gap-3 items-start">
+<span class="material-symbols-outlined text-deep-purple mt-0.5 text-sm" data-icon="auto_awesome">auto_awesome</span>
+<div>
+<span class="font-label-en-sm text-label-en-sm text-deep-purple font-bold block mb-1">AI Note</span>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">Excellent use of archaic structure ("care not") and personification. It matched the high-fantasy tone perfectly.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Room for Growth -->
+<section class="flex flex-col gap-stack-sm mb-stack-lg">
+<h3 class="font-headline-md text-headline-md text-on-surface px-1">Room for Growth</h3>
+<div class="flex flex-wrap gap-2">
+<div class="glass-card rounded-full px-4 py-2 flex items-center gap-2 h-touch-target-min border border-outline-variant/30">
+<span class="material-symbols-outlined text-tertiary-container text-sm" data-icon="trending_up">trending_up</span>
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface">Subjunctive Mood</span>
+</div>
+<div class="glass-card rounded-full px-4 py-2 flex items-center gap-2 h-touch-target-min border border-outline-variant/30">
+<span class="material-symbols-outlined text-tertiary-container text-sm" data-icon="trending_up">trending_up</span>
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface">Passive Voice Mastery</span>
+</div>
+<div class="glass-card rounded-full px-4 py-2 flex items-center gap-2 h-touch-target-min border border-outline-variant/30 opacity-60">
+<span class="material-symbols-outlined text-outline text-sm" data-icon="add">add</span>
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">View More</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Action Area (Fixed) -->
+<div class="fixed bottom-0 left-0 right-0 p-margin-mobile bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/90 to-transparent pb-safe pt-8 z-40">
+<div class="max-w-md mx-auto">
+<button class="w-full h-14 bg-deep-purple text-on-primary rounded-full font-headline-md text-headline-md flex items-center justify-center ambient-shadow hover:opacity-90 active:scale-95 transition-all">
+                Continue Learning
+            </button>
+</div>
+</div>
+</body></html>

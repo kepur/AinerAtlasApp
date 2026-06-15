@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Detective: The Locked Room Case</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed-variant": "#005236",
+                      "surface": "#f7f9fb",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "surface-bright": "#f7f9fb",
+                      "on-primary-fixed": "#07006c",
+                      "on-secondary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-primary-container": "#fffbff",
+                      "secondary-fixed": "#d8e2ff",
+                      "deep-purple": "#4F46E5",
+                      "secondary": "#0058be",
+                      "soft-mint": "#D1FAE5",
+                      "surface-container": "#eceef0",
+                      "surface-container-low": "#f2f4f6",
+                      "on-tertiary": "#ffffff",
+                      "on-surface-variant": "#464554",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-error": "#ffffff",
+                      "outline-variant": "#c7c4d7",
+                      "on-secondary-fixed-variant": "#004395",
+                      "ai-gradient-end": "#E0E7FF",
+                      "on-tertiary-container": "#000703",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191c1e",
+                      "secondary-container": "#2170e4",
+                      "primary-container": "#6063ee",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "outline": "#767586",
+                      "surface-dim": "#d8dadc",
+                      "surface-container-high": "#e6e8ea",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "inverse-primary": "#c0c1ff",
+                      "surface-container-highest": "#e0e3e5",
+                      "tertiary": "#006c49",
+                      "on-tertiary-fixed": "#002113",
+                      "background": "#f7f9fb",
+                      "surface-variant": "#e0e3e5",
+                      "ai-gradient-start": "#EEF2FF",
+                      "inverse-on-surface": "#eff1f3",
+                      "primary": "#4648d4",
+                      "on-surface": "#191c1e",
+                      "inverse-surface": "#2d3133",
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#00885d",
+                      "primary-fixed": "#e1e0ff",
+                      "on-secondary-fixed": "#001a42",
+                      "on-secondary-container": "#fefcff",
+                      "surface-tint": "#494bd6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-md": "16px",
+                      "margin-mobile": "20px",
+                      "touch-target-min": "44px",
+                      "stack-sm": "8px",
+                      "base": "4px",
+                      "stack-lg": "32px",
+                      "gutter-md": "16px"
+              },
+              "fontFamily": {
+                      "label-zh-sm": [
+                              "Manrope"
+                      ],
+                      "label-en-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Manrope"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "headline-md": [
+                              "Manrope"
+                      ],
+                      "headline-lg-mobile": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "label-zh-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-en-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "26px",
+                              {
+                                      "lineHeight": "34px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .lumina-gradient {
+            background: radial-gradient(circle at top left, #EEF2FF 0%, #E0E7FF 100%);
+        }
+        .dark .lumina-gradient {
+            background: radial-gradient(circle at top left, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .ambient-shadow {
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+        }
+        .orb-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .safe-area-pt { padding-top: env(safe-area-inset-top, 20px); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface dark:bg-inverse-surface dark:text-inverse-on-surface antialiased lumina-gradient min-h-screen flex flex-col font-body-md text-body-md overflow-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 backdrop-blur-xl bg-glass-bg dark:bg-inverse-surface/80 border-b border-white/20 dark:border-outline-variant/10 shadow-sm flex justify-between items-center px-margin-mobile h-14 safe-area-pt">
+<button class="flex items-center text-primary dark:text-primary-fixed-dim hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back_ios</span>
+</button>
+<div class="font-headline-md text-headline-md-mobile text-deep-purple dark:text-primary-fixed font-bold tracking-tight">AI Detective</div>
+<div class="flex items-center gap-1 text-error dark:text-error-container font-label-en-sm text-label-en-sm bg-error-container/20 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[14px]">timer</span>
+<span>12:45</span>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col pt-[calc(3.5rem+env(safe-area-inset-top,20px))] pb-[calc(140px+env(safe-area-inset-bottom,20px))] overflow-y-auto px-margin-mobile gap-stack-lg">
+<!-- Suspect Portrait -->
+<section class="mt-stack-md flex flex-col items-center">
+<div class="relative w-48 h-48 rounded-full overflow-hidden border-2 border-primary-fixed-dim/30 ambient-shadow">
+<img alt="Suspect: Mr. Black" class="w-full h-full object-cover" data-alt="A cinematic, noir-style portrait of a mysterious man in his 40s. He wears a sharp, dark suit. The lighting is dramatic, characterized by deep shadows and a single, harsh light source illuminating half his face, creating a tense, interrogative mood. The background is a blurred, moody gray." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBe_f9Qx1I3RRXcGlvo1JJ2oNGPhqn943SVId2w0NKfKLqsZk9IiQ1Ltg2I4cuxvwdBZ9K6iQIZNE1cneTjjniT0B_1j6lgOGfWoirDdOyrmkzjw_t_yj-uMv9-B9Z8oCeULegtTdQ4eAgN7U9FtjBluOexR30hJ0A4H43WQwbdW1Bzn5ZtZfDXa3wDpQbugRWBlza8BNJ_I_i8iVjm2mR1GxiSr_fVpTzmqafFcGZdbkUyvg6FxM_wUIZpG8aPgigmT0PDY9T5QMW8"/>
+<div class="absolute inset-0 bg-gradient-to-b from-transparent to-inverse-surface/80"></div>
+<div class="absolute bottom-4 left-0 w-full text-center">
+<h2 class="font-headline-md text-headline-md text-white drop-shadow-md">Mr. Black</h2>
+<p class="font-label-en-sm text-label-en-sm text-surface-variant">Suspect</p>
+</div>
+</div>
+</section>
+<!-- Dialogue History -->
+<section class="flex flex-col gap-stack-sm w-full">
+<div class="glass-card rounded-xl p-4 self-start max-w-[85%]">
+<p class="font-body-md text-body-md text-inverse-on-surface">I told you, I was in the library the entire evening. I didn't see anyone enter or leave the study.</p>
+</div>
+</section>
+<!-- Learning HUD -->
+<section class="glass-card rounded-xl p-4 border border-error-container/50 relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-error"></div>
+<div class="flex items-start gap-stack-sm">
+<span class="material-symbols-outlined text-error mt-1" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-error-container mb-1">Evidence Detected: Inconsistent Timeline</h3>
+<p class="font-label-en-sm text-label-en-sm text-surface-variant mb-2">His previous statement claimed he was in the garden at 9 PM.</p>
+<div class="bg-primary/20 rounded p-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed-dim text-[16px]">lightbulb</span>
+<span class="font-label-en-sm text-label-en-sm text-primary-fixed-dim">Suggested Inquiry: Use conditional phrasing to trap him.</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Interrogation Controls (Bottom) -->
+<footer class="fixed bottom-0 w-full z-50 glass-card rounded-t-xl border-t border-white/20 dark:border-outline-variant/10 shadow-[0_-4px_20px_rgba(79,70,229,0.1)] px-margin-mobile pt-4 pb-safe flex flex-col gap-stack-md">
+<div class="flex justify-between items-center w-full gap-4">
+<button class="flex-1 min-h-[touch-target-min] glass-card rounded-full flex items-center justify-center gap-2 border border-deep-purple/50 text-primary-fixed-dim hover:bg-deep-purple/10 transition-colors">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="font-label-en-sm text-label-en-sm font-semibold">Present Evidence</span>
+</button>
+<!-- AI Voice Orb -->
+<button class="w-16 h-16 rounded-full bg-gradient-to-br from-deep-purple to-secondary-container flex items-center justify-center text-white shadow-lg orb-pulse hover:scale-95 transition-transform shrink-0">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+<div class="flex-1"></div> <!-- Spacer to balance layout -->
+</div>
+<div class="text-center font-label-en-sm text-label-en-sm text-outline-variant">Hold to interrogate</div>
+</footer>
+</body></html>

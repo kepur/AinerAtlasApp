@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>AinerWise Story Game Forge - Chat</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-container": "#fffbff",
+                    "tertiary": "#006c49",
+                    "secondary-container": "#2170e4",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "primary-fixed": "#e1e0ff",
+                    "secondary-fixed": "#d8e2ff",
+                    "ai-gradient-start": "#EEF2FF",
+                    "on-surface": "#191c1e",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f7f9fb",
+                    "background": "#f7f9fb",
+                    "outline-variant": "#c7c4d7",
+                    "primary-fixed-dim": "#c0c1ff",
+                    "surface": "#f7f9fb",
+                    "surface-variant": "#e0e3e5",
+                    "error-container": "#ffdad6",
+                    "glass-bg": "rgba(255, 255, 255, 0.7)",
+                    "primary-container": "#6063ee",
+                    "tertiary-container": "#00885d",
+                    "on-secondary-fixed": "#001a42",
+                    "on-primary": "#ffffff",
+                    "surface-container": "#eceef0",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-primary": "#c0c1ff",
+                    "surface-container-high": "#e6e8ea",
+                    "on-tertiary-fixed": "#002113",
+                    "on-error": "#ffffff",
+                    "on-surface-variant": "#464554",
+                    "surface-dim": "#d8dadc",
+                    "soft-mint": "#D1FAE5",
+                    "outline": "#767586",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "on-primary-fixed-variant": "#2f2ebe",
+                    "surface-tint": "#494bd6",
+                    "on-primary-fixed": "#07006c",
+                    "surface-container-low": "#f2f4f6",
+                    "on-secondary-fixed-variant": "#004395",
+                    "tertiary-fixed": "#6ffbbe",
+                    "on-secondary": "#ffffff",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#000703",
+                    "inverse-on-surface": "#eff1f3",
+                    "deep-purple": "#4F46E5",
+                    "on-background": "#191c1e",
+                    "inverse-surface": "#2d3133",
+                    "ai-gradient-end": "#E0E7FF",
+                    "primary": "#4648d4",
+                    "error": "#ba1a1a",
+                    "surface-container-highest": "#e0e3e5",
+                    "secondary": "#0058be",
+                    "on-secondary-container": "#fefcff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "gutter-md": "16px",
+                    "base": "4px",
+                    "touch-target-min": "44px",
+                    "stack-md": "16px",
+                    "stack-lg": "32px",
+                    "margin-mobile": "20px"
+            },
+            "fontFamily": {
+                    "label-zh-sm": ["Manrope"],
+                    "label-en-sm": ["Inter"],
+                    "body-md": ["Manrope"],
+                    "headline-lg-mobile": ["Manrope"],
+                    "headline-lg": ["Manrope"],
+                    "body-lg": ["Manrope"],
+                    "headline-md": ["Manrope"]
+            },
+            "fontSize": {
+                    "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                    "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden; /* Mobile app feel */
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.05);
+        }
+
+        .ambient-shadow {
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+        }
+        
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .pt-safe { padding-top: env(safe-area-inset-top, 44px); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="h-screen w-full flex flex-col relative text-on-surface">
+<!-- Top Game Status Bar -->
+<header class="fixed top-0 w-full z-50 pt-safe bg-glass-bg backdrop-blur-xl border-b border-white/20">
+<div class="flex items-center justify-between px-margin-mobile h-touch-target-min w-full">
+<button class="flex items-center justify-center w-8 h-8 rounded-full text-primary hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex flex-col items-center">
+<h1 class="font-headline-md text-headline-md text-primary tracking-tight">《青云重生》第 1 章</h1>
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface-variant mt-0.5">当前场景：后山重逢 · English B2</span>
+</div>
+<div class="relative flex items-center justify-center w-8 h-8">
+<!-- Circular Progress -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-variant stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-primary stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="42, 100" stroke-width="3"></path>
+</svg>
+<span class="absolute text-[9px] font-bold text-primary">42%</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto mt-[calc(44px+env(safe-area-inset-top))] mb-[240px] hide-scrollbar relative">
+<!-- Fixed Learning HUD (Scrolls with page but stays near top visually) -->
+<div class="px-margin-mobile py-stack-md">
+<div class="flex gap-gutter-md overflow-x-auto hide-scrollbar pb-stack-sm snap-x snap-mandatory">
+<!-- Card 1: Natural Expression -->
+<div class="snap-center shrink-0 w-[85%] sm:w-72 glass-card rounded-xl p-4 flex flex-col gap-3 min-h-[160px]">
+<div class="flex items-center justify-between">
+<span class="font-label-zh-sm text-label-zh-sm text-primary font-bold bg-primary/10 px-2 py-1 rounded-md">Natural Expression</span>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface text-primary shadow-sm hover:bg-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface flex-1">"I think it's better for us to keep some distance."</p>
+<div class="flex gap-2">
+<button class="flex-1 py-1.5 text-[11px] font-medium rounded-full bg-primary text-white">自然</button>
+<button class="flex-1 py-1.5 text-[11px] font-medium rounded-full bg-surface text-on-surface-variant hover:bg-primary/5">口语</button>
+<button class="flex-1 py-1.5 text-[11px] font-medium rounded-full bg-surface text-on-surface-variant hover:bg-primary/5">书面</button>
+<button class="flex-1 py-1.5 text-[11px] font-medium rounded-full bg-surface text-on-surface-variant hover:bg-primary/5">高级</button>
+</div>
+</div>
+<!-- Card 2: Why This Expression -->
+<div class="snap-center shrink-0 w-[85%] sm:w-72 glass-card rounded-xl p-4 flex flex-col gap-3 min-h-[160px]">
+<span class="font-label-zh-sm text-label-zh-sm text-secondary font-bold bg-secondary/10 px-2 py-1 rounded-md w-fit">Why This Expression</span>
+<p class="font-body-md text-body-md text-on-surface-variant">"I think it's better for us to..." 表示"我觉得我们最好..."，语气委婉但态度坚决，适合目前的师兄妹关系。</p>
+</div>
+<!-- Card 3: Focus Points -->
+<div class="snap-center shrink-0 w-[85%] sm:w-72 glass-card rounded-xl p-4 flex flex-col gap-3 min-h-[160px]">
+<span class="font-label-zh-sm text-label-zh-sm text-tertiary font-bold bg-tertiary/10 px-2 py-1 rounded-md w-fit">Focus Points</span>
+<div class="flex flex-wrap gap-2 mt-2">
+<span class="px-3 py-1.5 bg-soft-mint text-tertiary-container rounded-full font-label-en-sm text-label-en-sm flex items-center gap-1">
+                            keep some distance
+                            <span class="material-symbols-outlined text-[14px]">check_circle</span>
+</span>
+<span class="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full font-label-en-sm text-label-en-sm">better for us</span>
+<span class="px-3 py-1.5 bg-surface text-on-surface-variant rounded-full font-label-en-sm text-label-en-sm">distance</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Story Feed -->
+<div class="px-margin-mobile flex flex-col gap-stack-lg pb-stack-lg">
+<!-- Narrator -->
+<div class="text-center px-4 py-2">
+<p class="font-body-md text-[15px] italic text-on-surface-variant leading-relaxed">
+                    "夜色渐深，风吹过后山的竹林。小师妹忽然追了上来。"
+                </p>
+</div>
+<!-- Character Message -->
+<div class="flex gap-3 max-w-[90%]">
+<img alt="小师妹" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" data-alt="A portrait of a young woman with a serene expression, dressed in subtle fantasy or historical Asian-inspired clothing, rendered in a soft, ethereal light-mode aesthetic with a pristine white and blue color palette. High quality, clear focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjJu9EkCF8_quT-nP__5eEUkf21IpLZBuXcK7cyLctbyKJ9duWhJj4g_SDgJ_QefTLmLkKYXok5XfunZ2KUkDd-XTfaJAjKA_rHnhD7LjH06-yjsi1CrXpLaJga7TGzpw6roe08nThRnHMYlcGhIY0XJUjDFWXL4zXnzgL2_-9RLVqdtg1cVni83i5_cudWAbIBBI1COpcAsdAWdjry7XoS18PVuIEQ2eHEzCG-0j84yCyd_DRUQMGnjd0Y_iO7tghmi-Etyim529O"/>
+<div class="flex flex-col gap-1">
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface-variant ml-1">小师妹</span>
+<div class="glass-card rounded-2xl rounded-tl-sm p-4 relative group">
+<p class="font-body-md text-body-md">"师兄，你最近为什么总是避着我？"</p>
+<button class="absolute -right-3 -bottom-3 w-8 h-8 rounded-full bg-white shadow-md text-primary flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[16px]">volume_up</span>
+</button>
+</div>
+</div>
+</div>
+<!-- User Message (Translating thought) -->
+<div class="flex flex-col items-end gap-1 max-w-[90%] self-end">
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface-variant mr-1">你 想表达</span>
+<div class="bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-sm p-4 relative">
+<p class="font-body-md text-body-md text-primary">"我觉得我们还是保持一点距离比较好。"</p>
+<div class="absolute -top-2.5 -left-2 bg-secondary text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                        Learning Point 3
+                    </div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Input/Choice Area -->
+<div class="fixed bottom-0 w-full bg-glass-bg backdrop-blur-2xl border-t border-white/20 pb-safe z-40 rounded-t-2xl ambient-shadow">
+<div class="p-4 flex flex-col gap-3">
+<!-- Choice Options -->
+<div class="flex flex-col gap-2">
+<!-- Recommended Option -->
+<button class="w-full text-left p-3 rounded-xl bg-primary text-white font-body-md text-body-md flex items-center justify-between active:scale-[0.98] transition-transform">
+<span>"We should keep some distance."</span>
+<span class="flex items-center gap-1 text-[12px] bg-white/20 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[14px]">stars</span> Recommended
+                    </span>
+</button>
+<!-- Option B -->
+<button class="w-full text-left p-3 rounded-xl bg-white/60 border border-white hover:bg-white text-on-surface font-body-md text-body-md transition-colors">
+<span>"I don't want to see you."</span>
+</button>
+<!-- Option C -->
+<button class="w-full text-left p-3 rounded-xl bg-white/60 border border-white hover:bg-white text-on-surface font-body-md text-body-md transition-colors">
+<span>"It's not personal."</span>
+</button>
+</div>
+<!-- Input Bar -->
+<div class="flex items-center gap-2 mt-2">
+<!-- AI Voice Orb / Mic -->
+<button class="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-secondary-container text-white flex items-center justify-center ambient-shadow active:scale-95 transition-transform shrink-0 relative overflow-hidden">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mic</span>
+<div class="absolute inset-0 bg-white/20 rounded-full animate-ping opacity-0 hover:opacity-100"></div>
+</button>
+<!-- Text Input -->
+<div class="flex-1 relative">
+<input class="w-full h-12 bg-white/60 border border-white/80 rounded-full pl-4 pr-24 font-body-md focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-on-surface-variant/50" placeholder="Or type your own response..." type="text"/>
+<button class="absolute right-1 top-1 bottom-1 px-3 bg-surface text-primary font-label-zh-sm text-label-zh-sm font-bold rounded-full hover:bg-primary/5 transition-colors">
+                        帮我表达
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

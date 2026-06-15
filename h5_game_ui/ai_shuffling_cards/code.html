@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>AI Shuffling Cards Transition</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline-variant": "#c7c4d7",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "surface-container-low": "#f2f4f6",
+                      "on-surface-variant": "#464554",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#00885d",
+                      "surface-tint": "#494bd6",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-container": "#000703",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-primary": "#c0c1ff",
+                      "ai-gradient-start": "#EEF2FF",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-secondary-fixed-variant": "#004395",
+                      "outline": "#767586",
+                      "surface-variant": "#e0e3e5",
+                      "ai-gradient-end": "#E0E7FF",
+                      "surface-container-highest": "#e0e3e5",
+                      "soft-mint": "#D1FAE5",
+                      "on-primary-container": "#fffbff",
+                      "inverse-surface": "#2d3133",
+                      "primary-container": "#6063ee",
+                      "background": "#f7f9fb",
+                      "secondary": "#0058be",
+                      "on-surface": "#191c1e",
+                      "surface-dim": "#d8dadc",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "surface": "#f7f9fb",
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "secondary-fixed": "#d8e2ff",
+                      "on-primary-fixed": "#07006c",
+                      "deep-purple": "#4F46E5",
+                      "on-secondary-container": "#fefcff",
+                      "error": "#ba1a1a",
+                      "on-background": "#191c1e",
+                      "surface-container": "#eceef0",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "tertiary": "#006c49",
+                      "on-secondary-fixed": "#001a42",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary-fixed": "#002113",
+                      "primary": "#4648d4",
+                      "surface-bright": "#f7f9fb",
+                      "secondary-container": "#2170e4",
+                      "primary-fixed": "#e1e0ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "4px",
+                      "gutter-md": "16px",
+                      "touch-target-min": "44px",
+                      "stack-sm": "8px",
+                      "margin-mobile": "20px",
+                      "stack-md": "16px",
+                      "stack-lg": "32px"
+              },
+              "fontFamily": {
+                      "label-en-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "label-zh-sm": [
+                              "Manrope"
+                      ],
+                      "headline-md": [
+                              "Manrope"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "headline-lg-mobile": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "label-en-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-zh-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "26px",
+                              {
+                                      "lineHeight": "34px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Immersive Space Animations */
+        body {
+            /* Using deep brand tokens for an immersive dark feel within the system */
+            background-color: #001a42; /* on-secondary-fixed */
+            background-image: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.15) 0%, transparent 60%),
+                              radial-gradient(circle at 50% 0%, #07006c 0%, transparent 50%); /* on-primary-fixed */
+        }
+
+        .ambient-orb {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, rgba(99, 102, 241, 0) 70%);
+            filter: blur(40px);
+            animation: pulse-orb 4s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes pulse-orb {
+            0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
+            100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+        }
+
+        .loading-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 240px;
+            height: 240px;
+            border: 2px solid rgba(225, 224, 255, 0.1); /* primary-fixed */
+            border-top: 2px solid rgba(192, 193, 255, 0.8); /* primary-fixed-dim */
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Particle System */
+        .particles-container {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            animation: float-up linear infinite;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(-20vh) scale(1.2); opacity: 0; }
+        }
+
+        /* Deck Shuffling Animations */
+        .deck-container {
+            position: relative;
+            width: 140px;
+            height: 200px;
+            margin: 0 auto;
+            z-index: 10;
+            perspective: 1000px;
+        }
+
+        .card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            /* Lumina Glass effect adjusted for dark background */
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(192, 193, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .card-icon {
+            font-size: 48px;
+            color: rgba(225, 224, 255, 0.6); /* primary-fixed */
+            filter: drop-shadow(0 0 8px rgba(192, 193, 255, 0.4));
+        }
+
+        .card-1 { animation: shuffle-1 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+        .card-2 { animation: shuffle-2 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.2s; }
+        .card-3 { animation: shuffle-3 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.4s; }
+
+        @keyframes shuffle-1 {
+            0%, 100% { transform: rotate(-8deg) translateX(-15px) translateZ(-20px) scale(0.9); z-index: 1; opacity: 0.6;}
+            50% { transform: rotate(12deg) translateX(30px) translateZ(10px) scale(1.05); z-index: 3; opacity: 1;}
+        }
+
+        @keyframes shuffle-2 {
+            0%, 100% { transform: rotate(5deg) translateX(10px) translateZ(-10px) scale(0.95); z-index: 2; opacity: 0.8;}
+            50% { transform: rotate(-10deg) translateX(-25px) translateZ(0px) scale(0.95); z-index: 1; opacity: 0.7;}
+        }
+
+        @keyframes shuffle-3 {
+            0%, 100% { transform: rotate(0deg) translateX(0) translateZ(0) scale(1); z-index: 3; opacity: 1;}
+            50% { transform: rotate(-5deg) translateX(-10px) translateZ(-30px) scale(0.85); z-index: 0; opacity: 0.5;}
+        }
+
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="h-screen w-screen overflow-hidden flex flex-col items-center justify-center relative">
+<!-- Ambient Background Effects -->
+<div class="ambient-orb"></div>
+<div class="loading-ring"></div>
+<!-- Particle System Canvas -->
+<div class="particles-container" id="particles">
+<!-- Particles injected via JS -->
+</div>
+<!-- Main Content Canvas -->
+<div class="relative z-20 flex flex-col items-center w-full px-margin-mobile">
+<!-- Animated Deck -->
+<div class="deck-container mb-stack-lg">
+<div class="card card-1">
+<span class="material-symbols-outlined card-icon">psychology</span>
+</div>
+<div class="card card-2">
+<span class="material-symbols-outlined card-icon">visibility_off</span>
+</div>
+<div class="card card-3">
+<span class="material-symbols-outlined card-icon">casino</span>
+</div>
+</div>
+<!-- Typography Block -->
+<div class="text-center space-y-stack-md mt-stack-md">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-primary tracking-wide drop-shadow-md">
+                AI 正在洗牌...
+            </h1>
+<p class="font-body-md text-body-md text-primary-fixed-dim opacity-90 max-w-[280px] mx-auto leading-relaxed">
+                身份将随机分配，每个 AI 玩家只知道自己该知道的信息。
+            </p>
+</div>
+</div>
+<script>
+        // Lightweight inline JS for generating ambient particles
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('particles');
+            const particleCount = 20;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Randomize properties
+                const size = Math.random() * 4 + 2; // 2px to 6px
+                const left = Math.random() * 100; // 0% to 100%
+                const duration = Math.random() * 5 + 5; // 5s to 10s
+                const delay = Math.random() * 5; // 0s to 5s
+
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${left}%`;
+                particle.style.animationDuration = `${duration}s`;
+                particle.style.animationDelay = `${delay}s`;
+
+                container.appendChild(particle);
+            }
+        });
+    </script>
+</body></html>

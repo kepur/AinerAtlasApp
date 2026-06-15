@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>AinerWise - Crush</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#000703",
+                        "on-background": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#2170e4",
+                        "tertiary": "#006c49",
+                        "background": "#f7f9fb",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#4648d4",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-secondary-container": "#fefcff",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#00885d",
+                        "on-surface-variant": "#464554",
+                        "on-surface": "#191c1e",
+                        "soft-mint": "#D1FAE5",
+                        "on-tertiary-fixed": "#002113",
+                        "outline": "#767586",
+                        "primary-container": "#6063ee",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-fixed-variant": "#004395",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "inverse-primary": "#c0c1ff",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "surface-container": "#eceef0",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f2f4f6",
+                        "on-secondary-fixed": "#001a42",
+                        "deep-purple": "#4F46E5",
+                        "secondary": "#0058be",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-dim": "#d8dadc",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "outline-variant": "#c7c4d7",
+                        "ai-gradient-start": "#EEF2FF",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary-fixed": "#07006c",
+                        "ai-gradient-end": "#E0E7FF",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f7f9fb",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-primary-container": "#fffbff",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface": "#f7f9fb",
+                        "surface-tint": "#494bd6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "headline-md": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.05);
+        }
+        .circular-progress {
+            background: conic-gradient(var(--progress-color) calc(var(--percentage) * 1%), #E5E7EB 0);
+        }
+        .pulse-orb {
+            animation: pulse-aura 3s infinite ease-in-out;
+        }
+        @keyframes pulse-aura {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background min-h-screen pb-32">
+<!-- Top AppBar -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg backdrop-blur-xl border-b border-white/20 shadow-sm px-margin-mobile h-touch-target-min flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="menu">menu</span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-deep-purple">Crush</h1>
+</div>
+<div class="flex items-center bg-white/50 px-3 py-1 rounded-full border border-white/40 active:scale-95 transition-transform">
+<span class="text-label-zh-sm font-label-zh-sm text-primary">🔥 12 连续学习</span>
+</div>
+</header>
+<main class="pt-20 px-margin-mobile space-y-stack-lg">
+<!-- Header Subtitle -->
+<section class="mt-4">
+<p class="font-body-md text-body-md text-on-surface-variant">把高频语法一点点消灭</p>
+</section>
+<!-- Today Focus Card -->
+<section class="glass-card rounded-xl p-stack-md space-y-stack-md">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">今日待消灭</h2>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">这些句型来自你的真实对话，越学越地道</p>
+</div>
+<span class="material-symbols-outlined text-primary-container" data-icon="insights">insights</span>
+</div>
+<div class="space-y-stack-md pt-2">
+<!-- Item 1 -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<code class="font-bold text-deep-purple font-body-md">rather than doing...</code>
+<span class="text-label-en-sm font-label-en-sm text-outline">64%</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full transition-all duration-700" style="width: 64%"></div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<code class="font-bold text-deep-purple font-body-md">allow someone to do...</code>
+<span class="text-label-en-sm font-label-en-sm text-outline">82%</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container rounded-full transition-all duration-700" style="width: 82%"></div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<code class="font-bold text-deep-purple font-body-md">It depends on whether...</code>
+<span class="text-label-en-sm font-label-en-sm text-outline">37%</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary-container rounded-full transition-all duration-700" style="width: 37%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Learning Radar -->
+<section class="space-y-stack-md">
+<h2 class="font-headline-md text-headline-md text-on-surface">学习雷达</h2>
+<div class="flex gap-stack-sm overflow-x-auto no-scrollbar pb-2">
+<!-- Radar Items -->
+<div class="min-w-[100px] glass-card rounded-xl p-3 flex flex-col items-center gap-2">
+<div class="relative w-12 h-12 flex items-center justify-center rounded-full circular-progress" style="--percentage: 72; --progress-color: #4F46E5">
+<div class="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+<span class="text-label-en-sm font-label-en-sm font-bold">72%</span>
+</div>
+</div>
+<span class="text-label-zh-sm font-label-zh-sm text-on-surface-variant">Grammar</span>
+</div>
+<div class="min-w-[100px] glass-card rounded-xl p-3 flex flex-col items-center gap-2">
+<div class="relative w-12 h-12 flex items-center justify-center rounded-full circular-progress" style="--percentage: 68; --progress-color: #00885D">
+<div class="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+<span class="text-label-en-sm font-label-en-sm font-bold">68%</span>
+</div>
+</div>
+<span class="text-label-zh-sm font-label-zh-sm text-on-surface-variant">Expression</span>
+</div>
+<div class="min-w-[100px] glass-card rounded-xl p-3 flex flex-col items-center gap-2">
+<div class="relative w-12 h-12 flex items-center justify-center rounded-full circular-progress" style="--percentage: 61; --progress-color: #2170E4">
+<div class="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+<span class="text-label-en-sm font-label-en-sm font-bold">61%</span>
+</div>
+</div>
+<span class="text-label-zh-sm font-label-zh-sm text-on-surface-variant">Fluency</span>
+</div>
+<div class="min-w-[100px] glass-card rounded-xl p-3 flex flex-col items-center gap-2">
+<div class="relative w-12 h-12 flex items-center justify-center rounded-full circular-progress" style="--percentage: 55; --progress-color: #BA1A1A">
+<div class="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+<span class="text-label-en-sm font-label-en-sm font-bold">55%</span>
+</div>
+</div>
+<span class="text-label-zh-sm font-label-zh-sm text-on-surface-variant">Review</span>
+</div>
+</div>
+</section>
+<!-- Practice Gamified Card -->
+<section class="glass-card rounded-xl p-stack-md border-primary-container/20 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-3">
+<span class="bg-primary-container text-white px-2 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase">Perfect</span>
+</div>
+<div class="flex justify-between items-center mb-4">
+<h2 class="font-headline-md text-headline-md text-on-surface">消消乐练习</h2>
+<span class="text-label-zh-sm font-label-zh-sm text-primary">第 5 关 / 10</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl space-y-3 mb-4">
+<p class="text-on-surface-variant font-body-md">我想移民到国外生活。</p>
+<p class="text-deep-purple font-headline-md font-bold italic">“I want to move abroad.”</p>
+</div>
+<button class="w-full bg-deep-purple text-white h-touch-target-min rounded-full font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined" data-icon="play_arrow">play_arrow</span>
+                继续闯关
+            </button>
+</section>
+<!-- High-frequency Queue -->
+<section class="space-y-stack-md">
+<h2 class="font-headline-md text-headline-md text-on-surface">高频句型队列</h2>
+<div class="space-y-3">
+<!-- Queue Row 1 -->
+<div class="glass-card rounded-xl p-4 flex justify-between items-center gap-3">
+<div class="flex-1 space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-bold text-deep-purple font-body-lg">want to + verb</span>
+<span class="bg-soft-mint text-tertiary-container text-[10px] px-1.5 py-0.5 rounded-md font-bold">学习中</span>
+</div>
+<p class="text-label-zh-sm font-label-zh-sm text-outline">表达‘想做某事’的固定结构</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-primary active:scale-90 transition-transform"><span class="material-symbols-outlined" data-icon="volume_up">volume_up</span></button>
+<button class="p-2 text-primary active:scale-90 transition-transform"><span class="material-symbols-outlined" data-icon="bookmark">bookmark</span></button>
+<button class="bg-primary/10 text-primary px-3 py-1.5 rounded-full text-label-zh-sm font-bold active:scale-95 transition-transform">继续练习</button>
+</div>
+</div>
+<!-- Queue Row 2 -->
+<div class="glass-card rounded-xl p-4 flex justify-between items-center gap-3">
+<div class="flex-1 space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-bold text-deep-purple font-body-lg">move abroad</span>
+<span class="bg-primary-fixed text-primary text-[10px] px-1.5 py-0.5 rounded-md font-bold">快掌握了</span>
+</div>
+<p class="text-label-zh-sm font-label-zh-sm text-outline">比 emigrate 更口语，更自然</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-primary active:scale-90 transition-transform"><span class="material-symbols-outlined" data-icon="volume_up">volume_up</span></button>
+<button class="bg-surface-container-high text-on-surface px-3 py-1.5 rounded-full text-label-zh-sm font-bold active:scale-95 transition-transform">加入练习</button>
+</div>
+</div>
+<!-- Queue Row 3 -->
+<div class="glass-card rounded-xl p-4 flex justify-between items-center gap-3">
+<div class="flex-1 space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-bold text-deep-purple font-body-lg">formal vs spoken</span>
+<span class="bg-soft-mint text-tertiary-container text-[10px] px-1.5 py-0.5 rounded-md font-bold">学习中</span>
+</div>
+<p class="text-label-zh-sm font-label-zh-sm text-outline">区分正式表达和日常口语</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="bg-surface-container-high text-on-surface px-3 py-1.5 rounded-full text-label-zh-sm font-bold active:scale-95 transition-transform">加入练习</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Review Section -->
+<section class="space-y-stack-md">
+<div class="glass-card rounded-xl p-stack-md bg-gradient-to-br from-white/80 to-primary-fixed/30">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">复习计划</h3>
+<div class="grid grid-cols-4 gap-2 text-center">
+<div class="p-2 rounded-lg bg-white/60">
+<p class="text-label-en-sm text-outline">今天</p>
+<p class="text-headline-md font-bold text-deep-purple">12</p>
+</div>
+<div class="p-2 rounded-lg bg-white/40">
+<p class="text-label-en-sm text-outline">明天</p>
+<p class="text-headline-md font-bold text-on-surface-variant">8</p>
+</div>
+<div class="p-2 rounded-lg bg-white/40">
+<p class="text-label-en-sm text-outline">3天后</p>
+<p class="text-headline-md font-bold text-on-surface-variant">6</p>
+</div>
+<div class="p-2 rounded-lg bg-white/40">
+<p class="text-label-en-sm text-outline">7天后</p>
+<p class="text-headline-md font-bold text-on-surface-variant">4</p>
+</div>
+</div>
+</div>
+<div class="space-y-stack-sm">
+<p class="text-label-zh-sm font-label-zh-sm text-outline px-1">最近已掌握</p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-soft-mint/60 border border-tertiary-fixed text-tertiary-container px-3 py-1 rounded-full text-label-zh-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        not just...but...
+                    </span>
+<span class="bg-soft-mint/60 border border-tertiary-fixed text-tertiary-container px-3 py-1 rounded-full text-label-zh-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        The reason is that...
+                    </span>
+<span class="bg-soft-mint/60 border border-tertiary-fixed text-tertiary-container px-3 py-1 rounded-full text-label-zh-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        compared with...
+                    </span>
+</div>
+</div>
+</section>
+</main>
+<!-- FAB -->
+<button class="fixed bottom-24 right-margin-mobile w-[140px] h-touch-target-min bg-deep-purple text-white rounded-full shadow-lg flex items-center justify-center gap-2 font-bold z-[60] pulse-orb active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+        开始练习
+    </button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-glass-bg backdrop-blur-xl border-t border-white/20 shadow-[0_-4px_20px_rgba(99,102,241,0.1)] flex justify-around items-center h-[72px] px-2 pb-safe">
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-deep-purple transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-en-sm text-label-en-sm">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-deep-purple transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-en-sm text-label-en-sm">Chat</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-deep-purple transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined" data-icon="auto_awesome_motion">auto_awesome_motion</span>
+<span class="font-label-en-sm text-label-en-sm">Assets</span>
+</button>
+<button class="flex flex-col items-center justify-center text-deep-purple after:content-[''] after:w-1 after:h-1 after:bg-deep-purple after:rounded-full after:mt-1 transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined" data-icon="Catching_Pokemon" style="font-variation-settings: 'FILL' 1;">things_to_do</span>
+<span class="font-label-en-sm text-label-en-sm">Crush</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-deep-purple transition-colors active:scale-90 duration-200">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-en-sm text-label-en-sm">Me</span>
+</button>
+</nav>
+<script>
+        // Simple micro-interactions
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.classList.add('scale-95');
+            });
+            button.addEventListener('touchend', function() {
+                this.classList.remove('scale-95');
+            });
+        });
+    </script>
+</body></html>

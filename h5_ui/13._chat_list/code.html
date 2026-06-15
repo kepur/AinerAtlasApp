@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>AinerWise | Chat &amp; Resonance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;family=beVietnamPro:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline": "#7b7487",
+                      "on-primary-fixed-variant": "#5a00c6",
+                      "primary-container": "#7c3aed",
+                      "error": "#ba1a1a",
+                      "surface-tint": "#732ee4",
+                      "tertiary-fixed": "#6ffbbe",
+                      "surface": "#faf8ff",
+                      "surface-container-lowest": "#ffffff",
+                      "outline-variant": "#ccc3d8",
+                      "surface-container-high": "#e2e7ff",
+                      "on-secondary": "#ffffff",
+                      "primary-fixed": "#eaddff",
+                      "tertiary-container": "#007650",
+                      "on-surface-variant": "#4a4455",
+                      "on-surface": "#131b2e",
+                      "on-primary-fixed": "#25005a",
+                      "surface-bright": "#faf8ff",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed": "#d8e2ff",
+                      "on-tertiary-fixed": "#002113",
+                      "on-primary-container": "#ede0ff",
+                      "surface-variant": "#dae2fd",
+                      "secondary": "#0058be",
+                      "on-tertiary": "#ffffff",
+                      "inverse-on-surface": "#eef0ff",
+                      "surface-dim": "#d2d9f4",
+                      "primary": "#630ed4",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "on-secondary-container": "#fefcff",
+                      "on-primary": "#ffffff",
+                      "primary-fixed-dim": "#d2bbff",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-secondary-fixed-variant": "#004395",
+                      "surface-container-highest": "#dae2fd",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#76ffc2",
+                      "on-background": "#131b2e",
+                      "inverse-surface": "#283044",
+                      "secondary-container": "#2170e4",
+                      "inverse-primary": "#d2bbff",
+                      "surface-container": "#eaedff",
+                      "tertiary": "#005b3d",
+                      "error-container": "#ffdad6",
+                      "background": "#faf8ff",
+                      "surface-container-low": "#f2f3ff",
+                      "on-secondary-fixed": "#001a42"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "touch-target-min": "44px",
+                      "base": "8px",
+                      "margin-mobile": "20px",
+                      "gutter": "16px",
+                      "margin-desktop": "32px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Inter"],
+                      "headline-md": ["Plus Jakarta Sans"],
+                      "headline-xl-mobile": ["Plus Jakarta Sans"],
+                      "headline-xl": ["Plus Jakarta Sans"],
+                      "headline-lg": ["Plus Jakarta Sans"],
+                      "body-md": ["beVietnamPro"],
+                      "body-lg": ["beVietnamPro"]
+              },
+              "fontSize": {
+                      "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-xl-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                      "headline-xl": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #faf8ff;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .ai-glow {
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
+        }
+        .resonance-indicator {
+            background: linear-gradient(135deg, #7c3aed 0%, #4edea3 100%);
+        }
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface antialiased">
+<!-- Top AppBar (from JSON) -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-touch-target-min bg-surface/80 backdrop-blur-xl transition-all duration-300">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary/20">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="A professional close-up portrait of a sophisticated young woman with a calm expression, set against a soft, high-key studio background with lavender lighting. The visual style is premium and modern, aligned with a high-end digital identity, featuring crisp detail and a clean, airy atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQiffI_K4cnOaeR51Qm1j2Tyi4aFDXd26DeJHfeg29p02ulWZ5qbE9-CdrK_1PKxGC4ye_CbPl2HX6oNYGUxMpJJwXIatmZ7yUV0ufLYLl7dfqovwqtOsK9ZHhnIZciQF5t2fIoBBjmygAcip-qByWRlGjNPjY8W9_IL3XOQz6RTOrscoT9-eN-vz4laXuBikbLqZje5xV96PA4UuniNljhHQoJSa7FTaioJw4aKB1T0dN-rgGg3yI9D3j1Utp5FPI_MX9Kct9NgY"/>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerWise</h1>
+</div>
+<button class="text-primary hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-16 pb-24 px-margin-mobile">
+<!-- Search Section -->
+<section class="mt-4 mb-8">
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined text-[20px]" data-icon="search">search</span>
+</div>
+<input class="w-full h-12 pl-12 pr-4 bg-surface-container border-none rounded-2xl text-body-md focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline/60" placeholder="Search insights or circles..." type="text"/>
+</div>
+</section>
+<!-- AI Coach Section (Pinned) -->
+<section class="mb-8">
+<h2 class="font-label-sm text-label-sm text-outline mb-4 uppercase tracking-widest">Digital Mentor</h2>
+<div class="relative overflow-hidden rounded-3xl p-5 ai-glow glass-card border-primary/10">
+<div class="absolute -right-4 -top-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
+<div class="flex items-start gap-4 relative z-10">
+<div class="relative">
+<div class="w-14 h-14 rounded-2xl resonance-indicator flex items-center justify-center text-white shadow-lg">
+<span class="material-symbols-outlined text-[32px]" data-icon="psychology" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed-dim border-2 border-surface rounded-full"></div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-headline-md text-headline-md text-on-surface">AinerWise Coach</h3>
+<span class="font-label-sm text-label-sm text-primary font-bold">LIVE</span>
+</div>
+<p class="text-body-md text-on-surface-variant line-clamp-2">"You've expressed 12 new nuances in French today. Ready to refine your philosophical vocabulary?"</p>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-outline-variant/30 flex gap-2">
+<button class="flex-1 h-10 bg-primary text-white rounded-xl font-label-sm text-label-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                        Continue Session
+                    </button>
+<button class="w-10 h-10 flex items-center justify-center text-primary bg-primary-fixed/30 rounded-xl active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="settings_voice">settings_voice</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Active Circles (Horizontal Scroll) -->
+<section class="mb-8">
+<div class="flex justify-between items-end mb-4">
+<h2 class="font-label-sm text-label-sm text-outline uppercase tracking-widest">Active Circles</h2>
+<button class="text-primary font-label-sm text-label-sm font-bold">View All</button>
+</div>
+<div class="flex gap-4 overflow-x-auto pb-4 -mx-margin-mobile px-margin-mobile">
+<!-- Circle Item -->
+<div class="flex-shrink-0 w-24 flex flex-col items-center gap-2">
+<div class="w-20 h-20 rounded-full p-1 border-2 border-primary-container relative">
+<img alt="Circle" class="w-full h-full object-cover rounded-full" data-alt="A group of diverse professionals sitting in a sun-drenched, minimalist coworking space with glass walls and lush indoor plants. The lighting is warm and natural, creating an atmosphere of collaborative intellectual pursuit. The visual style is premium and clean, focusing on the high-end architectural details of the modern office." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLq4SyrCWQ4TwZGdUzGzLwa2WqkN98-ngz23a2PcJNZ3eICuHc7gFhuFZmHfMEN8Q95mdpAH8Q746EGX3ywIGCmC1tXQjtLS-ysPqL5ok90UX-FrXwitAg_IQz9E3WfsXrmQ63RVjOSaDmMMTwMwbOuaZmIaWCgu7TEZTjHjlFxus5knZuaoyjGbVWuxSv3v5iV1FQYsJ4RRJEXmH3ZxnqRvLNsm9QIkbHQw-ydh1lz3r7O7uALWAAErwWb6AvupBaAxyU5hTE8G4"/>
+<div class="absolute -bottom-1 right-2 bg-on-primary-fixed-variant text-[10px] text-white px-2 py-0.5 rounded-full font-bold">12+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface truncate w-full text-center">Paris Salon</span>
+</div>
+<!-- Circle Item -->
+<div class="flex-shrink-0 w-24 flex flex-col items-center gap-2">
+<div class="w-20 h-20 rounded-full p-1 border-2 border-outline-variant relative">
+<img alt="Circle" class="w-full h-full object-cover rounded-full" data-alt="Close up of diverse hands working together on a glass surface with floating digital icons, representing a tech-driven community. The mood is innovative and supportive, with a color palette of soft whites and cool blues. The lighting is ethereal and diffused, emphasizing a sophisticated AI-integrated learning environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFD09nHm78zVeMe-sKZna2qYqzZtLYGVK2KiQwUejCgNHL30eYkOyL2GD9Uo8k-meXOSa8mxX7gJM0Ktsa1aRtZhXB3jIXq4b9DqjsS6_ikFvYB5tryRfIy0AdxJZ7ZqWhpnY1MkFDsWn19bq5lAd7tIVWkVGLM1vkUoLNooA5j1_CY2xP-ng32FXQSE_EjwB18GXZvU6F2ger_1V6clKWkDVq9pdMNF34CAMh9c9eD-YLDziUyw5uxV1dsOE0klQuw_FTQ6E9QbY"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface truncate w-full text-center">Tech Ethics</span>
+</div>
+<!-- Add Circle -->
+<button class="flex-shrink-0 w-24 flex flex-col items-center gap-2">
+<div class="w-20 h-20 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center text-outline">
+<span class="material-symbols-outlined text-[32px]" data-icon="add">add</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline truncate w-full text-center">Create</span>
+</button>
+</div>
+</section>
+<!-- Direct Resonance List -->
+<section class="mb-4">
+<h2 class="font-label-sm text-label-sm text-outline mb-4 uppercase tracking-widest">Resonant Partners</h2>
+<div class="space-y-2">
+<!-- Message Item -->
+<div class="flex items-center gap-4 p-4 rounded-2xl hover:bg-surface-container transition-colors active:scale-[0.98] duration-150 group">
+<div class="relative">
+<img alt="Partner" class="w-14 h-14 rounded-2xl object-cover" data-alt="A portrait of a thoughtful man in his 30s with a sharp, intelligent gaze, set in a modern, dark-toned library. Subtle glowing blue accents from a laptop screen illuminate his face, signifying a deep focus on digital knowledge. The aesthetic is professional, sophisticated, and moody, with high-quality cinematic lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsp-PsPjtGHJgaFNYW54snXvkHvWa_3ZDFZVtWYC0aARwl2Cat6LCIQtTeCIajTIu8DgumtOjwW0XHj2Fvola_CQ5nA6_jeyo0JuZHVO9g0P-XfBpvYKJgeP4Rg_IqAwODBDmr4Xne639Xp69NY0erKL0vml3dlSKV7eKl7Hxo5A2M_Gv3cgmo4L_OLbCQakm_u6D9PSZKVcSHc9NP38bnjyp0pHuiQPi9y1Lv3lVglaeiqciCBBY66q6G1UE1zx9LTvSjcddpm00"/>
+<div class="absolute -top-1 -right-1 bg-tertiary-fixed text-[10px] text-on-tertiary-fixed font-bold px-1.5 py-0.5 rounded-lg border-2 border-surface">98% Sync</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-end mb-1">
+<h4 class="font-headline-md text-headline-md text-on-surface truncate">Julian Rossi</h4>
+<span class="text-[11px] text-outline">2m ago</span>
+</div>
+<p class="text-body-md text-on-surface-variant truncate font-medium">Your recent essay on digital stoicism was...</p>
+</div>
+<div class="w-2 h-2 rounded-full bg-primary shadow-sm shadow-primary/40"></div>
+</div>
+<!-- Message Item -->
+<div class="flex items-center gap-4 p-4 rounded-2xl hover:bg-surface-container transition-colors active:scale-[0.98] duration-150">
+<div class="relative">
+<img alt="Partner" class="w-14 h-14 rounded-2xl object-cover" data-alt="A minimalist studio portrait of a woman with vibrant, creative energy, wearing designer glasses. The background is a clean, neutral white, allowing her expressive personality to shine through. Lighting is soft and even, highlighting premium textures in her clothing. The mood is intelligent, artistic, and modern." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdjWJKlzTErFP7kXQWb5XVJ0WhrnaMUhL2WSQs_1coHOb02ZvveMbiv7uNXOCKJ834RiPZDYn7jdM8n_oxr2Oxqx44TLSX-s9NjN9rZIubP5IvrbhvcCxjkRgNqcvhWuVG7suOxxI5dFDUSiOYOaLrZw_rpzBoWIDC8exi7LLooIBuwFLze9UJKN-dAISoQo2_9u_1BEbCbNfVGBAibJ8EpdbT0QBjJmG2thyDxQMtYLfWnrW9UkMcXoKPsyEeinfgPVY5zKmRd7Q"/>
+<div class="absolute -top-1 -right-1 bg-surface-container-high text-[10px] text-primary font-bold px-1.5 py-0.5 rounded-lg border-2 border-surface">82% Sync</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-end mb-1">
+<h4 class="font-headline-md text-headline-md text-on-surface truncate">Elena Vance</h4>
+<span class="text-[11px] text-outline">1h ago</span>
+</div>
+<p class="text-body-md text-outline truncate">That's an interesting perspective on the...</p>
+</div>
+</div>
+<!-- Message Item -->
+<div class="flex items-center gap-4 p-4 rounded-2xl hover:bg-surface-container transition-colors active:scale-[0.98] duration-150">
+<div class="relative">
+<div class="w-14 h-14 rounded-2xl bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[28px]" data-icon="groups">groups</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-end mb-1">
+<h4 class="font-headline-md text-headline-md text-on-surface truncate">Philosophy Hub</h4>
+<span class="text-[11px] text-outline">Yesterday</span>
+</div>
+<p class="text-body-md text-outline truncate"><span class="text-primary font-medium">Marc:</span> Just uploaded the meeting notes.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- FAB for New Chat -->
+<button class="fixed right-6 bottom-24 w-14 h-14 resonance-indicator rounded-2xl text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform duration-200 z-40">
+<span class="material-symbols-outlined text-[28px]" data-icon="edit_square">edit_square</span>
+</button>
+<!-- Bottom Navigation Shell (from JSON) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-16 bg-surface/90 backdrop-blur-xl rounded-t-xl shadow-[0_-8px_20px_rgba(124,58,237,0.12)]">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="home_app_logo">home_app_logo</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<!-- Chat (Active) -->
+<a class="flex flex-col items-center justify-center text-primary font-bold bg-primary-fixed/30 rounded-xl px-3 py-1 scale-100 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="forum" style="font-variation-settings: 'FILL' 1;">forum</span>
+<span class="font-label-sm text-label-sm">Chat</span>
+</a>
+<!-- Assets -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="psychology">psychology</span>
+<span class="font-label-sm text-label-sm">Assets</span>
+</a>
+<!-- Connect -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+<span class="font-label-sm text-label-sm">Connect</span>
+</a>
+<!-- Me -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Me</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions
+        document.querySelectorAll('a, button').forEach(el => {
+            el.addEventListener('touchstart', () => {
+                el.classList.add('opacity-70');
+            });
+            el.addEventListener('touchend', () => {
+                el.classList.remove('opacity-70');
+            });
+        });
+
+        // Hide app bar on scroll
+        let lastScroll = 0;
+        const header = document.querySelector('header');
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            if (currentScroll <= 0) {
+                header.classList.remove('-translate-y-full');
+                return;
+            }
+            if (currentScroll > lastScroll && !header.classList.contains('-translate-y-full')) {
+                header.classList.add('-translate-y-full');
+            } else if (currentScroll < lastScroll && header.classList.contains('-translate-y-full')) {
+                header.classList.remove('-translate-y-full');
+            }
+            lastScroll = currentScroll;
+        });
+    </script>
+</body></html>

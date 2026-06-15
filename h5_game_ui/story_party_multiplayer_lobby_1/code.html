@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AinerWise - Story Party Lobby</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#005236",
+                        "surface": "#f7f9fb",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-bright": "#f7f9fb",
+                        "on-primary-fixed": "#07006c",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#fffbff",
+                        "secondary-fixed": "#d8e2ff",
+                        "deep-purple": "#4F46E5",
+                        "secondary": "#0058be",
+                        "soft-mint": "#D1FAE5",
+                        "surface-container": "#eceef0",
+                        "surface-container-low": "#f2f4f6",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#464554",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c7c4d7",
+                        "on-secondary-fixed-variant": "#004395",
+                        "ai-gradient-end": "#E0E7FF",
+                        "on-tertiary-container": "#000703",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "secondary-container": "#2170e4",
+                        "primary-container": "#6063ee",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "outline": "#767586",
+                        "surface-dim": "#d8dadc",
+                        "surface-container-high": "#e6e8ea",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-container-highest": "#e0e3e5",
+                        "tertiary": "#006c49",
+                        "on-tertiary-fixed": "#002113",
+                        "background": "#f7f9fb",
+                        "surface-variant": "#e0e3e5",
+                        "ai-gradient-start": "#EEF2FF",
+                        "inverse-on-surface": "#eff1f3",
+                        "primary": "#4648d4",
+                        "on-surface": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#00885d",
+                        "primary-fixed": "#e1e0ff",
+                        "on-secondary-fixed": "#001a42",
+                        "on-secondary-container": "#fefcff",
+                        "surface-tint": "#494bd6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "margin-mobile": "20px",
+                        "touch-target-min": "44px",
+                        "stack-sm": "8px",
+                        "base": "4px",
+                        "stack-lg": "32px",
+                        "gutter-md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-zh-sm": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .lumina-bg {
+            background: radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.1) 0%, transparent 70%),
+                        radial-gradient(circle at 100% 50%, rgba(96, 99, 238, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 0% 100%, rgba(173, 198, 255, 0.1) 0%, transparent 50%);
+            background-color: theme('colors.surface');
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 24px -4px rgba(79, 70, 229, 0.05);
+        }
+        .ambient-shadow {
+            box-shadow: 0 8px 32px -4px rgba(99, 102, 241, 0.15);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="lumina-bg text-on-surface min-h-screen flex flex-col font-body-md selection:bg-primary selection:text-white pb-24 relative">
+<!-- Top Navigation (Transactional, no Bottom Nav) -->
+<header class="fixed top-0 w-full z-50 glass-card border-b border-white/20 shadow-sm flex justify-between items-center px-margin-mobile h-14">
+<button class="flex items-center justify-center w-touch-target-min h-touch-target-min text-on-surface hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-on-surface">Story Party Lobby</h1>
+<button class="flex items-center justify-center w-touch-target-min h-touch-target-min text-on-surface hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</header>
+<main class="flex-grow pt-20 px-margin-mobile flex flex-col gap-stack-lg max-w-lg mx-auto w-full">
+<!-- Hero: Story Thumbnail -->
+<section class="glass-card rounded-xl p-stack-md flex items-center gap-stack-md">
+<div class="w-16 h-16 rounded-lg overflow-hidden shrink-0 relative bg-primary-container/20">
+<img alt="Neon Bazaar Thumbnail" class="w-full h-full object-cover" data-alt="A small atmospheric thumbnail representing 'The Neon Bazaar'. A bustling futuristic marketplace scene at night, illuminated by vibrant neon lights in shades of pink, purple, and blue. The style is modern, sleek, and highly detailed, fitting an ethereal and sophisticated high-end app aesthetic. The image conveys a sense of energy and exotic commerce." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsXsbMaT9SKiNmi4MfOOG39dpUbcJyG2LidzdON1y2QolMQMMHup6S51tDCwdqD5VXk7RQZLf1IR_O2BZy7BQmeZc8L2wQvL0E2SvIP7om82_TbzjaLNu4YapivMiTsKnRT9hmlSJtq3ojveVfT9_btqipWTu_we542NscXPzvu8s68pywXFC7tHWbbNYz3QpQj-Kx3tzNjUdx4ya-ND5_Mp2pUES51927Y_HGTfzzRWVHZr_Zw5E47-PkFqX6cNvhDNqeHlUf32w_"/>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-1">The Neon Bazaar</h2>
+<p class="font-label-en-sm text-label-en-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">public</span> Public Lobby
+                </p>
+</div>
+</section>
+<!-- Party Status -->
+<section class="flex flex-col gap-stack-sm">
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider mb-2">Party Roster (3/5)</h3>
+<div class="glass-card rounded-xl p-base">
+<!-- Slot 1: You -->
+<div class="flex items-center justify-between p-stack-sm rounded-lg hover:bg-white/50 transition-colors h-touch-target-min">
+<div class="flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-full bg-deep-purple text-white flex items-center justify-center font-headline-md text-headline-md">
+                            Y
+                        </div>
+<div>
+<p class="font-body-md text-body-md font-semibold">You <span class="text-xs font-normal text-on-surface-variant ml-1">(Host)</span></p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary" data-icon="star" data-weight="fill" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<!-- Slot 2: Leo -->
+<div class="flex items-center justify-between p-stack-sm rounded-lg hover:bg-white/50 transition-colors h-touch-target-min">
+<div class="flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-white flex items-center justify-center font-headline-md text-headline-md overflow-hidden">
+<img alt="Leo Avatar" class="w-full h-full object-cover" data-alt="A profile picture of a young man, styled to look friendly and approachable. Soft, modern lighting, clear focus, fitting a premium social app interface. The color palette is neutral with soft white light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-wcZXlsSIcI1kRLczzUAhXPZSIKXrb4q0GqrjNnjPZ2stft0jc3ie6agUEKBmz8Oj7vmMQ0QsILyse6u7tSNczC9sEssXF0D-0v3Lj3DKdHpCPpxu-tSZJOSiCC6yLLU1pz5xiiSkgoqGszB2Gt-oerCxhhP18mcVZqwcr30XIQ6io8FjBIz4_B462ZwKMT01g_URW8P_jl6wq0b-t4NWDi3FjgcMEqDi1pqI_oZgySbWMIRg1splbOkcIpa7eKE1a7oBPaYg2PJt"/>
+</div>
+<p class="font-body-md text-body-md">Leo</p>
+</div>
+<span class="font-label-en-sm text-label-en-sm text-soft-mint bg-tertiary-container/10 px-2 py-1 rounded-full">Ready</span>
+</div>
+<!-- Slot 3: Wei -->
+<div class="flex items-center justify-between p-stack-sm rounded-lg hover:bg-white/50 transition-colors h-touch-target-min">
+<div class="flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-full bg-tertiary-container text-white flex items-center justify-center font-headline-md text-headline-md overflow-hidden">
+<img alt="Wei Avatar" class="w-full h-full object-cover" data-alt="A profile picture of a young woman, styled to look intellectual and engaging. Soft, modern lighting, clear focus, fitting a premium social app interface. The background is a soft, ethereal blur." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBITFNXoQ1sqFaf9POBdrRUgZcV0RjlHkjytO8Lz4HR20psFf_5Ui8RTLp3uyTX1ugLu3AP9JBtdaeA9pIBCACyEy0sazZuYaa1l_VksiTOmTyEME8MY7JMmYjcHyymEyuysZAeHoJjXPkcTuSPu-3RpSBb7vg-gDRKNAYqgjrHTWLTmz8zWN6_8PHnETqnpfI_bmU3xYTpVYTpOfvSDtgerT-oHx7tXpB_4GXNtuWpgWTXE6I5FUCykqDfHn1csaZqOfb-5BIwwnCW"/>
+</div>
+<p class="font-body-md text-body-md">Wei</p>
+</div>
+<span class="font-label-en-sm text-label-en-sm text-outline px-2 py-1">Connecting...</span>
+</div>
+<!-- Slot 4: Open -->
+<button class="w-full flex items-center gap-stack-md p-stack-sm rounded-lg border border-dashed border-outline-variant/50 hover:bg-white/50 transition-colors h-touch-target-min mt-2">
+<div class="w-10 h-10 rounded-full border-2 border-dashed border-outline-variant/50 text-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</div>
+<p class="font-body-md text-body-md text-outline-variant">Invite Friend</p>
+</button>
+<!-- Slot 5: Open -->
+<button class="w-full flex items-center gap-stack-md p-stack-sm rounded-lg border border-dashed border-outline-variant/50 hover:bg-white/50 transition-colors h-touch-target-min mt-2">
+<div class="w-10 h-10 rounded-full border-2 border-dashed border-outline-variant/50 text-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</div>
+<p class="font-body-md text-body-md text-outline-variant">Invite Friend</p>
+</button>
+</div>
+</section>
+<!-- Pre-Game Banter Chat -->
+<section class="flex flex-col gap-stack-sm flex-grow">
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider mb-2">Lobby Chat</h3>
+<div class="glass-card rounded-xl p-stack-md flex flex-col gap-stack-md overflow-y-auto h-48">
+<!-- Chat Message from Leo -->
+<div class="flex gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden shrink-0 mt-1">
+<img alt="Leo Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC43JfBLU5-12T4tbkLTtmxWpjEIm0WJ9sxtrfc6-607ZkJjC7o3B-cJqtP94YCDYwzagCKUdiCcLt-ttEql14ZA3mrIt4gLcaUvmOSFiy7RqCk6oJdervkmrlX3ag0YeZ5NkwFEcjcHPV5QUXk3FJorMZB4z8Zq51NtcF-L-_Avu2OLWHry7uXbIIwXGa6tKaY_OVFoAH_2jZvhQbIS6F6wodLWjurRlwazOPOilvSeASDt714aFmRIvHzZIzq28KmqfRzuLx3KTXp"/>
+</div>
+<div class="bg-surface-container-low p-3 rounded-2xl rounded-tl-none max-w-[85%]">
+<p class="font-label-en-sm text-label-en-sm text-outline mb-1">Leo</p>
+<p class="font-body-md text-body-md">I'll play the strict buyer. You guys ready to haggle?</p>
+</div>
+</div>
+<!-- AI Suggestion Bubble -->
+<div class="flex gap-3 ml-11">
+<div class="bg-ai-gradient-start border border-primary/20 p-3 rounded-2xl max-w-[90%] ambient-shadow">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[16px] text-deep-purple" data-icon="auto_awesome">auto_awesome</span>
+<p class="font-label-en-sm text-label-en-sm text-deep-purple font-semibold">AI Suggestion</p>
+</div>
+<p class="font-body-md text-body-md text-on-surface">Try using conditional phrasing to haggle, like "If you include X, I might consider Y."</p>
+</div>
+</div>
+</div>
+<!-- Chat Input (Mock) -->
+<div class="glass-card rounded-full p-2 flex items-center gap-2 mt-2">
+<input class="flex-grow bg-transparent border-none focus:ring-0 font-body-md text-body-md px-4 py-2 placeholder:text-outline-variant h-10" placeholder="Type a message..." type="text"/>
+<button class="w-10 h-10 rounded-full bg-deep-purple text-white flex items-center justify-center shrink-0 hover:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]" data-icon="send">send</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Bottom Fixed Action Area -->
+<div class="fixed bottom-0 w-full p-margin-mobile glass-card border-t border-white/20 z-40 pb-safe">
+<button class="w-full bg-deep-purple text-white font-headline-md text-headline-md py-4 rounded-full h-touch-target-min ambient-shadow hover:scale-[0.98] transition-transform active:scale-95">
+            Start Game (Host)
+        </button>
+</div>
+</body></html>

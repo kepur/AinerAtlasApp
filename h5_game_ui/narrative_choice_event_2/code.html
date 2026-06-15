@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AinerWise - Narrative Choice</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#006c49",
+                        "on-tertiary-container": "#000703",
+                        "surface-dim": "#d8dadc",
+                        "on-surface-variant": "#464554",
+                        "outline": "#767586",
+                        "soft-mint": "#D1FAE5",
+                        "primary-container": "#6063ee",
+                        "surface-container-low": "#f2f4f6",
+                        "primary": "#4648d4",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed": "#001a42",
+                        "secondary": "#0058be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "tertiary-container": "#00885d",
+                        "inverse-surface": "#2d3133",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed": "#6ffbbe",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-secondary-container": "#fefcff",
+                        "ai-gradient-end": "#E0E7FF",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "background": "#f7f9fb",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-container-high": "#e6e8ea",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary-container": "#2170e4",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary-container": "#fffbff",
+                        "on-error": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "deep-purple": "#4F46E5",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-tint": "#494bd6",
+                        "on-primary-fixed": "#07006c",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "on-tertiary-fixed": "#002113",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#d8e2ff",
+                        "outline-variant": "#c7c4d7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "body-lg": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .lumina-glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(79, 70, 229, 0.05);
+        }
+        .ambient-glow {
+            box-shadow: 0 0 24px rgba(79, 70, 229, 0.15);
+        }
+        
+        /* Subtle pulse for AI Hint */
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.95); }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased selection:bg-primary-fixed selection:text-on-primary-fixed overflow-hidden">
+<!-- Full-screen Background Illustration -->
+<div class="fixed inset-0 z-0">
+<div class="absolute inset-0 bg-gradient-to-b from-ai-gradient-start to-ai-gradient-end opacity-80 mix-blend-multiply"></div>
+<img alt="Background Scene" class="w-full h-full object-cover opacity-60 blur-sm scale-105" data-alt="A highly detailed cinematic illustration of a tense scene inside a softly lit, dusty Middle Eastern bazaar. The lighting is moody and dramatic with deep shadows and soft volumetric light rays piercing through the hazy air. The overall visual style is soft-minimalist, slightly blurred to serve as a background, with subtle purple and blue lumina effects reflecting the app's AI companion identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBOtVr6Dgv8l0PIbvaDXvtYnvgvPfVHRrOMzIYvL2Av-6281Mg6gs3IlMUttXbx0pGbHaD4QnjRO8aNx55S9XSomYddiwe1p-e9W-GL1HjwsDft2jPutIFfyKufvADq1-aDVvKnsNW9-89dMaUYeTLNjBTzNIS8dbY7UKB-nZDj5eOaPkwY9aGibv9J0MkhCvYdLbbzRXap_pYklpcRdKu-DuJr74Ei76vGIEDXKtoVDXUSPVCC-_IBFDeIh4gGRHNAW3n_7DgGQz4"/>
+<div class="absolute inset-0 bg-white/20 backdrop-blur-[2px]"></div>
+</div>
+<!-- Top Navigation (Contextual departure) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-margin-mobile h-touch-target-min pt-safe">
+<button class="h-touch-target-min w-touch-target-min flex items-center justify-center rounded-full lumina-glass text-deep-purple hover:bg-white/90 transition-colors active:scale-95 shadow-sm">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex items-center gap-2 lumina-glass px-4 py-1.5 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-deep-purple text-sm" data-icon="hourglass_top" data-weight="fill">hourglass_top</span>
+<span class="font-label-en-sm text-label-en-sm text-deep-purple font-medium tracking-wide uppercase">Chapter 4</span>
+</div>
+<div class="w-touch-target-min"></div> <!-- Spacer for centering -->
+</header>
+<!-- Main Content Canvas -->
+<main class="relative z-10 h-screen flex flex-col justify-end pb-12 pt-24 px-margin-mobile md:max-w-md md:mx-auto">
+<!-- Context Card -->
+<div class="lumina-glass rounded-[24px] p-6 mb-stack-lg relative overflow-hidden animate-fade-in-up">
+<!-- Decorative accent line -->
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-deep-purple to-secondary-fixed-dim"></div>
+<p class="font-body-lg text-body-lg text-on-surface leading-relaxed text-center">
+                "The merchant narrows his eyes. He doesn't believe your story. What will you do?"
+            </p>
+<!-- AI Hint Orb -->
+<div class="absolute -top-3 -right-3 w-16 h-16 flex items-center justify-center">
+<button class="w-10 h-10 rounded-full bg-gradient-to-br from-ai-gradient-start to-primary-fixed border border-white/60 shadow-lg ambient-glow flex items-center justify-center animate-pulse-soft hover:scale-105 active:scale-95 transition-transform group">
+<span class="material-symbols-outlined text-deep-purple group-hover:rotate-12 transition-transform" data-icon="tips_and_updates">tips_and_updates</span>
+</button>
+</div>
+</div>
+<!-- Choices Container -->
+<div class="flex flex-col gap-stack-md">
+<!-- Choice 1 -->
+<button class="w-full text-left group relative overflow-hidden lumina-glass rounded-xl p-4 min-h-touch-target-min border border-white/50 shadow-sm hover:bg-white/80 hover:shadow-md active:scale-[0.98] transition-all duration-200">
+<div class="flex items-start gap-4">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-error-container/50 flex items-center justify-center mt-0.5">
+<span class="font-label-en-sm text-label-en-sm text-on-error-container font-bold">1</span>
+</div>
+<div class="flex-grow">
+<span class="block font-headline-md text-headline-md text-on-surface mb-1">Double Down on the Lie</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary-container" data-icon="psychology">psychology</span>
+<span class="font-label-zh-sm text-label-zh-sm text-tertiary-container">Requires Persuasion Lvl 3</span>
+</div>
+</div>
+</div>
+</button>
+<!-- Choice 2 -->
+<button class="w-full text-left group relative overflow-hidden lumina-glass rounded-xl p-4 min-h-touch-target-min border border-white/50 shadow-sm hover:bg-white/80 hover:shadow-md active:scale-[0.98] transition-all duration-200">
+<div class="flex items-start gap-4">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center mt-0.5">
+<span class="font-label-en-sm text-label-en-sm text-on-surface-variant font-bold">2</span>
+</div>
+<div class="flex-grow">
+<span class="block font-headline-md text-headline-md text-on-surface mb-1">Offer a Bribe</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-error" data-icon="warning">warning</span>
+<span class="font-label-zh-sm text-label-zh-sm text-error">Risky</span>
+</div>
+</div>
+</div>
+</button>
+<!-- Choice 3 -->
+<button class="w-full text-left group relative overflow-hidden lumina-glass rounded-xl p-4 min-h-touch-target-min border border-white/50 shadow-sm hover:bg-white/80 hover:shadow-md active:scale-[0.98] transition-all duration-200">
+<div class="flex items-start gap-4">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-secondary-fixed/50 flex items-center justify-center mt-0.5">
+<span class="font-label-en-sm text-label-en-sm text-on-secondary-fixed font-bold">3</span>
+</div>
+<div class="flex-grow">
+<span class="block font-headline-md text-headline-md text-on-surface mb-1">Change the Subject</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary" data-icon="analytics">analytics</span>
+<span class="font-label-zh-sm text-label-zh-sm text-secondary">Analytical Approach</span>
+</div>
+</div>
+</div>
+</button>
+</div>
+</main>
+<script>
+        // Simple entrance animation logic could go here if needed, 
+        // but keeping it structural with CSS transitions primarily.
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('button.lumina-glass');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 150 * (index + 1));
+            });
+        });
+    </script>
+</body></html>

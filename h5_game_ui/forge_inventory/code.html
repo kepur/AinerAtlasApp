@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Game Inventory - Story Game Forge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "outline": "#767586",
+                        "primary-container": "#6063ee",
+                        "on-tertiary-fixed": "#002113",
+                        "soft-mint": "#D1FAE5",
+                        "tertiary-container": "#00885d",
+                        "on-surface-variant": "#464554",
+                        "on-surface": "#191c1e",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-secondary-container": "#fefcff",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#4648d4",
+                        "tertiary": "#006c49",
+                        "background": "#f7f9fb",
+                        "secondary-container": "#2170e4",
+                        "on-tertiary-container": "#000703",
+                        "on-background": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface": "#f7f9fb",
+                        "surface-tint": "#494bd6",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-primary-container": "#fffbff",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary-fixed": "#07006c",
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-high": "#e6e8ea",
+                        "outline-variant": "#c7c4d7",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "secondary": "#0058be",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-dim": "#d8dadc",
+                        "surface-container-low": "#f2f4f6",
+                        "on-secondary-fixed": "#001a42",
+                        "deep-purple": "#4F46E5",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#c0c1ff",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-fixed-variant": "#004395",
+                        "primary-fixed-dim": "#c0c1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "base": "4px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px"
+                    },
+                    "fontFamily": {
+                        "label-en-sm": ["Inter"],
+                        "headline-md": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .ambient-shadow {
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+        }
+        
+        /* Hide scrollbar for horizontal scrolling tabs */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background pb-24 md:pb-0 font-body-md overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 border-b border-white/20 bg-glass-bg backdrop-blur-xl shadow-sm">
+<div class="flex justify-between items-center px-margin-mobile h-touch-target-min w-full max-w-md mx-auto">
+<!-- Leading Avatar -->
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-surface-variant overflow-hidden">
+<img alt="User Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrdw0S3pQWmw3GUT7h7kbRKX0u5oxv-ZQ_GY16AHKywpFyLViGPaWb13ROL6lgo7BVycW1VfknlyBdVCYICyIrUsCGKRo81BF1hGy3Mmu5QtPUZP9X9WBDxCkT4OF-T_PEWP6VwlHGlXNjpIkrhf-BJhByNfTOvyxUj-DJ1c-IGUvJdcmXLB6x-YPqH4eut9_--_IBtTgdXNkqHsOeqP4zCMMnOcVpg5zAiaGtU9Q5rsuDx4QWikGTCWx5jNF7eaC0aKyfASwN4qqU"/>
+</div>
+<!-- Headline -->
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim tracking-tight">AinerWise</h1>
+<!-- Trailing Action -->
+<div class="flex items-center text-primary dark:text-primary-fixed-dim font-headline-md text-headline-md hover:opacity-80 transition-opacity">
+<span>7 🔥</span>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-[60px] px-margin-mobile max-w-md mx-auto min-h-screen pb-safe">
+<!-- Screen Title -->
+<div class="py-stack-md mt-stack-sm">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Vault</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-base">Equip Linguistic Artifacts for your next encounter.</p>
+</div>
+<!-- Custom Tabs -->
+<div class="flex overflow-x-auto no-scrollbar gap-stack-sm py-stack-sm mb-stack-md">
+<button class="flex items-center justify-center h-touch-target-min px-stack-md rounded-full bg-deep-purple text-on-primary font-label-en-sm text-label-en-sm whitespace-nowrap ambient-shadow transition-transform active:scale-95">
+<span class="material-symbols-outlined mr-base text-[18px]">diamond</span>
+                Artifacts
+            </button>
+<button class="flex items-center justify-center h-touch-target-min px-stack-md rounded-full glass-card text-on-surface-variant font-label-en-sm text-label-en-sm whitespace-nowrap transition-transform active:scale-95">
+<span class="material-symbols-outlined mr-base text-[18px]">psychology</span>
+                Traits
+            </button>
+<button class="flex items-center justify-center h-touch-target-min px-stack-md rounded-full glass-card text-on-surface-variant font-label-en-sm text-label-en-sm whitespace-nowrap transition-transform active:scale-95">
+<span class="material-symbols-outlined mr-base text-[18px]">military_tech</span>
+                Achievements
+            </button>
+</div>
+<!-- Selected Item Detail Panel (Hero) -->
+<div class="glass-card rounded-xl p-margin-mobile mb-stack-lg ambient-shadow relative overflow-hidden">
+<!-- Decorative bg element -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl"></div>
+<div class="flex items-start justify-between relative z-10">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<span class="px-2 py-1 rounded-md bg-secondary-fixed text-on-secondary-fixed font-label-en-sm text-label-en-sm">Equipped</span>
+<span class="px-2 py-1 rounded-md bg-soft-mint text-tertiary font-label-en-sm text-label-en-sm">Legendary</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">The Merchant's Coin</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-md">A tarnished silver coin that seemingly sharpens the tongue during trades.</p>
+<div class="space-y-stack-sm">
+<div class="flex items-center text-tertiary">
+<span class="material-symbols-outlined mr-2">trending_up</span>
+<span class="font-label-en-sm text-label-en-sm">Boosts Negotiation +15%</span>
+</div>
+<div class="flex items-center text-primary">
+<span class="material-symbols-outlined mr-2">key</span>
+<span class="font-label-en-sm text-label-en-sm">Unlocks "Would you consider..."</span>
+</div>
+</div>
+</div>
+<div class="w-20 h-20 rounded-lg overflow-hidden bg-surface-container flex-shrink-0 ml-stack-md shadow-inner border border-white/40">
+<img alt="An ancient silver coin resting on a dark velvet surface" class="w-full h-full object-cover" data-alt="A macro photograph of an ancient, slightly tarnished silver coin with intricate, worn engravings resting on deep blue velvet. Soft, cool lighting highlights the raised details of the metal, creating a sense of history and value. The background is softly blurred, focusing entirely on the artifact. The overall mood is mysterious and premium, fitting a high-fantasy inventory item." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVFhGOZ0t6YecxIfoYF6VWdlWNMDAVc-Rm-qs-QQJt840tAxnaGbj6SEm1Ju8I8YRQ2zGN8Caw5d-G2WSEfPksssYNySysH_Zmq9kvTzSR23vW1XoXyR0OdOlyZpPhHkqwghSHFmqL9CrdmR7Sv39yJ2M9XSW70UCC98pDftbKMLyGbMXfqD_lT07SaHabla3JoD_77_vhxzILiz6q0Av1TWEIPt4iiUIWXVUkrVoDrBkldDWqTu7XVhWuRDeh-F_4kjpZvih6-HIw"/>
+</div>
+</div>
+<button class="w-full h-touch-target-min mt-stack-md rounded-full bg-surface-container-highest text-on-surface-variant font-label-en-sm text-label-en-sm transition-transform active:scale-95 border border-outline-variant/30 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">remove_circle_outline</span>
+                Unequip
+            </button>
+</div>
+<!-- Inventory Grid -->
+<h4 class="font-headline-md text-headline-md text-on-surface mb-stack-sm">Collection (12)</h4>
+<div class="grid grid-cols-2 gap-gutter-md mb-stack-lg">
+<!-- Item 1 -->
+<div class="glass-card rounded-xl p-stack-md flex flex-col items-center text-center cursor-pointer hover:bg-primary/5 transition-colors border-primary/30 ambient-shadow">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-stack-sm bg-surface-container border-2 border-primary/20">
+<img alt="Ancient Scroll" class="w-full h-full object-cover" data-alt="A tightly rolled parchment scroll tied with a faded crimson ribbon, resting on a polished wooden surface. Warm, golden lighting casts soft shadows, emphasizing the texture of the aged paper. Dust motes dance in a subtle shaft of light. The atmosphere is scholarly and ancient, suitable for a magical linguistics artifact." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAADhAHHdl--QVn0me9YQy_0TowJa1PrKpjxuRSCIBG_xm_NN0v4PFHz7JV8EvLQpjgWZcWtZMWNLDxi78UFlXF4FtPubFHq9136Plpe75K1DHhFUvT4Mwl4-jq7YS0uevuujp7b8xGAz_SGMbP4ThYhW4_Wab3vK6O_NTNxIEKELDaygN90Ub5j7uKsMJn0-a6vBpoho02FVJSSku_jeXm-hfGa6TyWnggdYaJNoiG23IHEuV0mcdT18NMVTudT655cAzW9ho73PjC"/>
+</div>
+<h5 class="font-label-en-sm text-label-en-sm font-bold text-on-surface mb-1 line-clamp-2">Ancient Scroll</h5>
+<p class="font-label-en-sm text-[10px] text-on-surface-variant opacity-80">Formal Phrases</p>
+<div class="mt-auto pt-stack-sm w-full">
+<button class="w-full py-1.5 rounded-full bg-primary text-on-primary text-[10px] font-bold uppercase tracking-wider">Equip</button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="glass-card rounded-xl p-stack-md flex flex-col items-center text-center cursor-pointer hover:bg-primary/5 transition-colors opacity-70">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-stack-sm bg-surface-container grayscale">
+<img alt="Traveler's Compass" class="w-full h-full object-cover" data-alt="A vintage brass compass lying open on a piece of weathered map. The glass is slightly cracked, and the needle points steadily to the north. Cool, diffused lighting creates a slightly moody, adventurous aesthetic. The image conveys a sense of exploration and navigation, fitting for a quest-related inventory item." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLhOeVJHEh6pPXCN9g53t0y4uAdhD6vm9qM7t3LK7YKpTTRmPixNBgteuFoP7IE45nmv6sMrERwfKTz9vB4QtjtyJRMxoUBBlwFsw7BEcklbsCS0t9gE1pGzIZGCUjbCmOS68TcePAYFeMqiClf0ejtDpIkq6Yt4MEis_Y-4FR_JDsYxuGq9w7-IzPfOW-mrrGL3d5N0gZIww4LAj-Xq0vrTtMepDsxjLCncx1pUuuoyj8dhqags3xGrBDsvn32Hqze07nHl8ybCHA"/>
+</div>
+<h5 class="font-label-en-sm text-label-en-sm font-bold text-on-surface mb-1 line-clamp-2">Traveler's Compass</h5>
+<p class="font-label-en-sm text-[10px] text-on-surface-variant opacity-80">Idiom Nav</p>
+<div class="mt-auto pt-stack-sm w-full">
+<span class="material-symbols-outlined text-outline text-[20px]">lock</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="glass-card rounded-xl p-stack-md flex flex-col items-center text-center cursor-pointer hover:bg-primary/5 transition-colors">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-stack-sm bg-surface-container">
+<img alt="Diplomat's Quill" class="w-full h-full object-cover" data-alt="A sleek, iridescent feather quill pen resting next to an ornate glass inkwell on a minimalist white marble desk. Bright, high-key lighting creates crisp reflections and a modern, airy feel. The aesthetic blends classic writing instruments with a clean, contemporary design space." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCO8qhdb-b6fdMSEfMqUqu12457-lDipim23H5JWRAgm-uxRYXlRG2BGlSqUwT7UAoH_8hzhcZWr3EEnigD-krglgH29Ifi3xih7N43Y-9iO_hcaFmDnnB-shtEqF8m4soXsjwOYUC_HtPak-BUAs1uis_-8MsYuBYZ-bAT8L866xGeF3l5UkB18M5X_qDmXe1fzDKGFJu0vwqI_j0zx5XNGAJ2tWN6KCc_dseGXCGJZXoF9sqnyEZeRKdm03JpXzWZ2vXtitjgwlqe"/>
+</div>
+<h5 class="font-label-en-sm text-label-en-sm font-bold text-on-surface mb-1 line-clamp-2">Diplomat's Quill</h5>
+<p class="font-label-en-sm text-[10px] text-on-surface-variant opacity-80">Persuasion +5%</p>
+<div class="mt-auto pt-stack-sm w-full">
+<button class="w-full py-1.5 rounded-full border border-primary/50 text-primary text-[10px] font-bold uppercase tracking-wider">Equip</button>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="glass-card rounded-xl p-stack-md flex flex-col items-center text-center cursor-pointer hover:bg-primary/5 transition-colors opacity-70">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-stack-sm bg-surface-container grayscale">
+<img alt="Jester's Bell" class="w-full h-full object-cover" data-alt="A small, brass jester's bell with a tiny loop at the top, placed against a dark, textured background. Dramatic, low-key lighting highlights the curved metallic surface of the bell while casting deep shadows. The mood is slightly whimsical but grounded in a dark fantasy aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJ7rC0lHPHEX5vgveTOf7oOf_Jp8Beyh7_dvZt_ySHspzR3xkgm3zCKG3eG-Y_2tvBc6D7LItya5dpn5uOXTrZWD5StsTrzR7CMvogODgG7_xwhzcmuCd9hjgzMelv-AYXQ9QSaaJzRFUW8WWLgSQZ84_orzJmGm1ROP4b2D4zuvq7kdTR3TH_rEE0Rq7cBUUYPeP8lNEwBhsUzwCsQL82EJx8oIaWCjDQmLAeN7Q6zhKSUQY7j5Y4Lns071UZ_b0soUsaxMF2hQKB"/>
+</div>
+<h5 class="font-label-en-sm text-label-en-sm font-bold text-on-surface mb-1 line-clamp-2">Jester's Bell</h5>
+<p class="font-label-en-sm text-[10px] text-on-surface-variant opacity-80">Sarcasm Unlock</p>
+<div class="mt-auto pt-stack-sm w-full">
+<span class="material-symbols-outlined text-outline text-[20px]">lock</span>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-16 border-t border-white/20 bg-glass-bg backdrop-blur-xl shadow-[0_-4px_20px_rgba(79,70,229,0.1)] md:hidden rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-primary/5 transition-colors w-full h-full" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-en-sm text-label-en-sm mt-1 text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-primary/5 transition-colors w-full h-full" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-en-sm text-label-en-sm mt-1 text-[10px]">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-bold hover:bg-primary/5 transition-colors w-full h-full scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-label-en-sm text-label-en-sm mt-1 text-[10px]">Assets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-primary/5 transition-colors w-full h-full" href="#">
+<span class="material-symbols-outlined">favorite</span>
+<span class="font-label-en-sm text-label-en-sm mt-1 text-[10px]">Crush</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-primary/5 transition-colors w-full h-full" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-en-sm text-label-en-sm mt-1 text-[10px]">Me</span>
+</a>
+</nav>
+</body></html>

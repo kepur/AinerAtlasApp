@@ -1,0 +1,383 @@
+<!DOCTYPE html><html class="light" lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+<title>Mind Dialogue - AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        :root {
+            --ios-safe-top: env(safe-area-inset-top);
+            --ios-safe-bottom: env(safe-area-inset-bottom);
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .orb-pulse {
+            animation: pulse 3s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 30px rgba(79, 70, 229, 0.4); }
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "primary": "#4648d4",
+                "inverse-primary": "#c0c1ff",
+                "on-secondary-fixed": "#001a42",
+                "on-tertiary-fixed-variant": "#005236",
+                "ai-gradient-start": "#EEF2FF",
+                "secondary": "#0058be",
+                "surface-container-low": "#f2f4f6",
+                "surface-dim": "#d8dadc",
+                "deep-purple": "#4F46E5",
+                "surface-bright": "#f7f9fb",
+                "soft-mint": "#D1FAE5",
+                "on-secondary-fixed-variant": "#004395",
+                "on-surface": "#191c1e",
+                "on-surface-variant": "#464554",
+                "on-tertiary-container": "#000703",
+                "surface-container-high": "#e6e8ea",
+                "on-error": "#ffffff",
+                "primary-fixed-dim": "#c0c1ff",
+                "error": "#ba1a1a",
+                "on-primary": "#ffffff",
+                "ai-gradient-end": "#E0E7FF",
+                "tertiary": "#006c49",
+                "on-secondary": "#ffffff",
+                "secondary-container": "#2170e4",
+                "on-tertiary": "#ffffff",
+                "surface-tint": "#494bd6",
+                "tertiary-container": "#00885d",
+                "primary-container": "#6063ee",
+                "primary-fixed": "#e1e0ff",
+                "surface-container": "#eceef0",
+                "inverse-surface": "#2d3133",
+                "glass-bg": "rgba(255, 255, 255, 0.7)",
+                "background": "#f7f9fb",
+                "surface-container-highest": "#e0e3e5",
+                "on-primary-fixed-variant": "#2f2ebe",
+                "on-tertiary-fixed": "#002113",
+                "secondary-fixed-dim": "#adc6ff",
+                "on-background": "#191c1e",
+                "outline": "#767586",
+                "tertiary-fixed": "#6ffbbe",
+                "tertiary-fixed-dim": "#4edea3",
+                "on-primary-fixed": "#07006c",
+                "on-secondary-container": "#fefcff",
+                "inverse-on-surface": "#eff1f3",
+                "surface-variant": "#e0e3e5",
+                "on-error-container": "#93000a",
+                "secondary-fixed": "#d8e2ff",
+                "error-container": "#ffdad6",
+                "outline-variant": "#c7c4d7",
+                "on-primary-container": "#fffbff",
+                "surface": "#f7f9fb",
+                "surface-container-lowest": "#ffffff"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+              },
+              "spacing": {
+                "gutter-md": "16px",
+                "base": "4px",
+                "touch-target-min": "44px",
+                "stack-md": "16px",
+                "stack-lg": "32px",
+                "stack-sm": "8px",
+                "margin-mobile": "20px"
+              },
+              "fontFamily": {
+                "headline-md": ["Manrope"],
+                "headline-lg-mobile": ["Manrope"],
+                "body-md": ["Manrope"],
+                "body-lg": ["Manrope"],
+                "headline-lg": ["Manrope"],
+                "label-zh-sm": ["Manrope"],
+                "label-en-sm": ["Inter"]
+              },
+              "fontSize": {
+                "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface bg-gradient-to-br from-white to-ai-gradient-start">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-glass-bg backdrop-blur-xl border-b border-white/10 shadow-sm px-margin-mobile h-16 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Mind Dialogue</h1>
+<p class="text-[10px] text-on-surface-variant leading-none">与 AI 对话中 · 逐句学习表达</p>
+</div>
+</div>
+<div class="flex items-center gap-2 bg-primary-fixed px-3 py-1.5 rounded-full text-on-primary-fixed font-bold text-label-en-sm">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="">🔥 12</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-20 pb-32 px-margin-mobile overflow-y-auto min-h-screen">
+<!-- Context Bar -->
+<div class="mb-stack-lg animate-in fade-in slide-in-from-top duration-700">
+<div class="flex items-center gap-2 mb-stack-sm">
+<span class="material-symbols-outlined text-primary text-[18px]">topic</span>
+<span class="text-body-md text-on-surface-variant font-medium">当前主题：移民 / 观点表达</span>
+</div>
+<div class="flex gap-2 overflow-x-auto hide-scrollbar">
+<div class="px-3 py-1 bg-soft-mint text-on-tertiary-fixed-variant rounded-full text-[12px] font-semibold whitespace-nowrap">自然表达</div>
+<div class="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-full text-[12px] font-semibold whitespace-nowrap">语法提示</div>
+<div class="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-full text-[12px] font-semibold whitespace-nowrap">可朗读</div>
+</div>
+</div>
+<!-- Chat Flow -->
+<div class="space-y-stack-lg">
+<!-- User Message -->
+<div class="flex justify-end">
+<div class="max-w-[80%] bg-deep-purple text-white px-5 py-3 rounded-2xl rounded-tr-none shadow-md">
+<p class="text-body-lg font-medium">我想去移民</p>
+</div>
+</div>
+<!-- AI Response - Main Card -->
+<div class="glass-card rounded-[24px] overflow-hidden transition-all duration-300 shadow-xl border-white/40 backdrop-blur-2xl">
+<!-- Tab Header -->
+<div class="flex border-b border-outline-variant/30">
+<button class="flex-1 py-3 text-label-en-sm font-bold text-primary border-b-2 border-primary bg-primary/5 shadow-[inset_0_-2px_10px_rgba(70,72,212,0.1)]">自然表达</button>
+<button class="flex-1 py-3 text-label-en-sm font-medium text-outline">口语版</button>
+<button class="flex-1 py-3 text-label-en-sm font-medium text-outline">书面版</button>
+<button class="flex-1 py-3 text-label-en-sm font-medium text-outline">高级版</button>
+</div>
+<div class="p-5">
+<!-- Expression Section -->
+<div class="flex items-start justify-between gap-4 mb-4 group cursor-pointer active:scale-[0.98] transition-transform">
+<div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2 tracking-tight text-[32px] font-extrabold">I want to move abroad.</h2>
+<p class="text-body-md text-on-surface-variant leading-relaxed">更自然地表达：我想移民到国外生活。</p>
+</div>
+<button class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mb-5">
+<span class="material-symbols-outlined text-outline text-[14px]">info</span>
+<p class="text-[11px] text-outline font-medium">点击单词、句子或喇叭即可朗读</p>
+</div>
+<!-- Phrase Chips -->
+<div class="flex flex-wrap gap-2">
+<button class="flex items-center gap-1 px-4 py-2 bg-ai-gradient-start border border-primary/10 rounded-xl active:bg-primary-fixed transition-colors min-h-[44px]">
+<span class="font-bold text-primary text-body-md">I want to</span>
+<span class="material-symbols-outlined text-primary text-[16px]">volume_up</span>
+</button>
+<button class="flex items-center gap-1 px-4 py-2 bg-ai-gradient-start border border-primary/10 rounded-xl active:bg-primary-fixed transition-colors min-h-[44px]">
+<span class="font-bold text-primary text-body-md">move abroad</span>
+<span class="material-symbols-outlined text-primary text-[16px]">volume_up</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Explanation Card -->
+<div class="glass-card rounded-[24px] p-5">
+<div class="flex items-center gap-2 mb-4">
+<div class="w-2 h-6 bg-primary rounded-full"></div>
+<h3 class="font-headline-md text-headline-md text-on-surface">为什么这么写</h3>
+</div>
+<ul class="space-y-4">
+<li class="flex gap-3">
+<div class="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></div>
+<p class="text-body-md text-on-surface-variant"><span class="font-bold text-on-surface">want to + 动词原形</span>：表达“想做某事”的常用结构。</p>
+</li>
+<li class="flex gap-3">
+<div class="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></div>
+<p class="text-body-md text-on-surface-variant"><span class="font-bold text-on-surface">move abroad</span> 比 emigrate 更口语、更常见。</p>
+</li>
+<li class="flex gap-3">
+<div class="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></div>
+<p class="text-body-md text-on-surface-variant">如果强调正式法律语境的定居，可以用 <span class="italic text-primary">emigrate</span>。</p>
+</li>
+</ul>
+</div>
+<!-- Learning Tags Card -->
+<div class="glass-card rounded-[24px] p-5">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">逐句提示 / 学习标记</h3>
+<span class="material-symbols-outlined text-outline">auto_awesome</span>
+</div>
+<div class="divide-y divide-outline-variant/30">
+<div class="py-4 first:pt-0 last:pb-0 flex items-center justify-between">
+<div>
+<p class="font-bold text-primary mb-0.5">want to + verb</p>
+<p class="text-[12px] text-on-surface-variant">想做某事的固定结构</p>
+</div>
+<div class="flex gap-3 text-outline">
+<span class="material-symbols-outlined text-[20px] active:text-primary">volume_up</span>
+<span class="material-symbols-outlined text-[20px] active:text-primary">bookmark</span>
+<span class="material-symbols-outlined text-[20px] active:text-primary">add_circle</span>
+</div>
+</div>
+<div class="py-4 flex items-center justify-between">
+<div>
+<p class="font-bold text-primary mb-0.5">move abroad</p>
+<p class="text-[12px] text-on-surface-variant">移居国外，口语自然表达</p>
+</div>
+<div class="flex gap-3 text-outline">
+<span class="material-symbols-outlined text-[20px] active:text-primary">volume_up</span>
+<span class="material-symbols-outlined text-[20px] active:text-primary">bookmark</span>
+<span class="material-symbols-outlined text-[20px] active:text-primary">add_circle</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Agent Analysis Card -->
+<div class="glass-card rounded-[24px] p-5">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4">多智能体解析</h3>
+<div class="space-y-4">
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-soft-mint flex-shrink-0 flex items-center justify-center text-on-tertiary-fixed-variant shadow-sm border border-tertiary/10">
+<span class="material-symbols-outlined text-[20px]">spellcheck</span>
+</div>
+<div class="flex-1 bg-surface-container-low p-3 rounded-2xl">
+<div class="flex justify-between mb-1">
+<span class="text-[12px] font-bold text-on-tertiary-fixed-variant">Grammar Agent</span>
+<span class="material-symbols-outlined text-[16px] text-outline">volume_up</span>
+</div>
+<p class="text-body-md text-on-surface-variant">语法正确。尝试添加状语使句子更完整。</p>
+</div>
+</div>
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed flex-shrink-0 flex items-center justify-center text-on-secondary-fixed-variant shadow-sm border border-secondary/10">
+<span class="material-symbols-outlined text-[20px]">translate</span>
+</div>
+<div class="flex-1 bg-surface-container-low p-3 rounded-2xl">
+<div class="flex justify-between mb-1">
+<span class="text-[12px] font-bold text-on-secondary-fixed-variant">Native Expression</span>
+<span class="material-symbols-outlined text-[16px] text-outline">volume_up</span>
+</div>
+<p class="text-body-md text-on-surface-variant">地道口语建议使用 relocate 或 settle down。</p>
+</div>
+</div>
+<div class="flex gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex-shrink-0 flex items-center justify-center text-on-primary-fixed-variant">
+<span class="material-symbols-outlined text-[20px]">forum</span>
+</div>
+<div class="flex-1 bg-surface-container-low p-3 rounded-2xl">
+<div class="flex justify-between mb-1">
+<span class="text-[12px] font-bold text-on-primary-fixed-variant">Debate Coach</span>
+<span class="material-symbols-outlined text-[16px] text-outline">volume_up</span>
+</div>
+<p class="text-body-md text-on-surface-variant">这是一个深刻的话题。你可以聊聊具体想去的国家。</p>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Next Question -->
+<div class="flex justify-start">
+<div class="max-w-[85%] bg-white border border-outline-variant/30 p-5 rounded-3xl rounded-tl-none shadow-sm">
+<p class="text-headline-md font-bold text-on-surface mb-2">Why do you want to move abroad?</p>
+<p class="text-body-md text-on-surface-variant">你为什么想要移民到国外呢？</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Learning Focus Bar & Input -->
+<div class="fixed bottom-20 left-0 w-full z-40 px-margin-mobile pointer-events-none">
+<div class="flex gap-2 overflow-x-auto hide-scrollbar mb-3 pointer-events-auto">
+<button class="px-3 py-1.5 bg-deep-purple/10 border border-deep-purple/20 text-deep-purple rounded-full text-[12px] font-bold whitespace-nowrap">want to</button>
+<button class="px-3 py-1.5 bg-deep-purple/10 border border-deep-purple/20 text-deep-purple rounded-full text-[12px] font-bold whitespace-nowrap">move abroad</button>
+<button class="px-3 py-1.5 bg-surface-container-highest text-on-surface-variant rounded-full text-[12px] font-bold whitespace-nowrap">正式 vs 口语</button>
+<button class="px-3 py-1.5 bg-secondary-container text-white rounded-full text-[12px] font-bold whitespace-nowrap flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">grid_view</span> 加入消消乐
+            </button>
+</div>
+</div>
+<!-- Bottom Input Bar -->
+<div class="fixed bottom-0 left-0 w-full z-50 bg-white/90 backdrop-blur-2xl border-t border-outline-variant/20 px-4 pb-8 pt-3 flex items-center gap-3">
+<button class="w-12 h-12 bg-surface-container-high rounded-2xl flex items-center justify-center text-on-surface active:scale-90 transition-all">
+<span class="material-symbols-outlined">mic</span>
+</button>
+<div class="flex-1 bg-surface-container rounded-2xl px-4 py-3 flex items-center focus-within:ring-2 focus-within:ring-primary/20 shadow-inner">
+<input class="w-full bg-transparent border-none focus:ring-0 text-body-md placeholder:text-outline" placeholder="输入中文或英文，AI 帮你升级表达..." type="text">
+</div>
+<button class="w-12 h-12 bg-deep-purple rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all shadow-lg shadow-deep-purple/20">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-1 h-20 bg-glass-bg backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_12px_rgba(79,70,229,0.08)] rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-outline transition-all duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-en-sm text-label-en-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-deep-purple font-bold after:content-[''] after:w-1 after:h-1 after:bg-deep-purple after:rounded-full after:mt-1 transition-all duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+<span class="font-label-en-sm text-label-en-sm">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline transition-all duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="font-label-en-sm text-label-en-sm">Assets</span>
+</a>
+<div class="relative -top-4">
+<div class="w-14 h-14 bg-deep-purple rounded-full flex items-center justify-center text-white shadow-xl orb-pulse">
+<span class="material-symbols-outlined text-[32px]">graphic_eq</span>
+</div>
+</div>
+<a class="flex flex-col items-center justify-center text-outline transition-all duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">favorite</span>
+<span class="font-label-en-sm text-label-en-sm">Crush</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline transition-all duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-en-sm text-label-en-sm">Me</span>
+</a>
+</nav>
+<!-- Floating Background Effect -->
+<div class="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none opacity-40">
+<div class="absolute top-[10%] left-[10%] w-64 h-64 bg-primary/20 blur-[100px] rounded-full"></div>
+<div class="absolute bottom-[20%] right-[10%] w-80 h-80 bg-secondary/20 blur-[120px] rounded-full"></div>
+</div>
+<script>
+        // Simple Interaction Logic
+        document.querySelectorAll('.active\\:scale-90, .active\\:scale-95, .active\\:scale-\\[0\\.98\\]').forEach(el => {
+            el.addEventListener('touchstart', () => {}, {passive: true});
+        });
+
+        // Speaker Click Feedback
+        document.querySelectorAll('.material-symbols-outlined').forEach(icon => {
+            if(icon.innerText === 'volume_up') {
+                icon.parentElement.addEventListener('click', () => {
+                    icon.classList.add('text-primary-container');
+                    setTimeout(() => icon.classList.remove('text-primary-container'), 500);
+                });
+            }
+        });
+    </script>
+
+
+</body></html>

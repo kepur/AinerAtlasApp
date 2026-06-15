@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>AinerWise - Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Be+Vietnam+Pro:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "outline": "#7b7487",
+                "on-primary-fixed-variant": "#5a00c6",
+                "primary-container": "#7c3aed",
+                "error": "#ba1a1a",
+                "surface-tint": "#732ee4",
+                "tertiary-fixed": "#6ffbbe",
+                "surface": "#faf8ff",
+                "surface-container-lowest": "#ffffff",
+                "outline-variant": "#ccc3d8",
+                "surface-container-high": "#e2e7ff",
+                "on-secondary": "#ffffff",
+                "primary-fixed": "#eaddff",
+                "tertiary-container": "#007650",
+                "on-surface-variant": "#4a4455",
+                "on-surface": "#131b2e",
+                "on-primary-fixed": "#25005a",
+                "surface-bright": "#faf8ff",
+                "on-error-container": "#93000a",
+                "secondary-fixed": "#d8e2ff",
+                "on-tertiary-fixed": "#002113",
+                "on-primary-container": "#ede0ff",
+                "surface-variant": "#dae2fd",
+                "secondary": "#0058be",
+                "on-tertiary": "#ffffff",
+                "inverse-on-surface": "#eef0ff",
+                "surface-dim": "#d2d9f4",
+                "primary": "#630ed4",
+                "on-tertiary-fixed-variant": "#005236",
+                "secondary-fixed-dim": "#adc6ff",
+                "on-secondary-container": "#fefcff",
+                "on-primary": "#ffffff",
+                "primary-fixed-dim": "#d2bbff",
+                "tertiary-fixed-dim": "#4edea3",
+                "on-secondary-fixed-variant": "#004395",
+                "surface-container-highest": "#dae2fd",
+                "on-error": "#ffffff",
+                "on-tertiary-container": "#76ffc2",
+                "on-background": "#131b2e",
+                "inverse-surface": "#283044",
+                "secondary-container": "#2170e4",
+                "inverse-primary": "#d2bbff",
+                "surface-container": "#eaedff",
+                "tertiary": "#005b3d",
+                "error-container": "#ffdad6",
+                "background": "#faf8ff",
+                "surface-container-low": "#f2f3ff",
+                "on-secondary-fixed": "#001a42"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+              },
+              "spacing": {
+                "touch-target-min": "44px",
+                "base": "8px",
+                "margin-mobile": "20px",
+                "gutter": "16px",
+                "margin-desktop": "32px"
+              },
+              "fontFamily": {
+                "label-sm": ["Inter"],
+                "headline-md": ["Plus Jakarta Sans"],
+                "headline-xl-mobile": ["Plus Jakarta Sans"],
+                "headline-xl": ["Plus Jakarta Sans"],
+                "headline-lg": ["Plus Jakarta Sans"],
+                "body-md": ["Be Vietnam Pro"],
+                "body-lg": ["Be Vietnam Pro"]
+              },
+              "fontSize": {
+                "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                "headline-xl-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                "headline-xl": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body {
+            background-color: #faf8ff;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.08);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .active-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface antialiased">
+<!-- Top AppBar -->
+<nav class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-touch-target-min bg-surface/80 backdrop-blur-xl transition-opacity">
+<h1 class="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerWise</h1>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary">auto_awesome</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border-2 border-primary-fixed">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional studio portrait of a woman with a confident expression, set against a soft, defocused lavender background. She has clean, modern aesthetic with soft high-key lighting that emphasizes her intelligent and approachable persona. The visual style is premium and polished, perfectly matching a high-end digital learning platform's sophisticated brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfFTJvVXl4TD3GjQ2qIEroHl57l5X4Z8-Rmf3-RWNlBFA-u8txZ-JyDbJ4u4C83v0gv9Q0QUhDH2UEWNIk_66uAn7kTUElWl-UPM_lfdEh8XQP_3cFiWDXuNFZMBQDY61qw9I5IRlpuHA2ja8yIPE0w-J3brGdWKwq4iXkJzatx5PW91YTFNtLw3iHUT48R970Bx3sHdA0r1q77CDYH8HxVLAAll5E85p5eo2du99DL26eFI9TP6zno4bsC1q5zSiSFXGhihleRzU"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="pt-16 pb-32 px-margin-mobile">
+<!-- Profile Header Section -->
+<section class="mt-8 flex flex-col items-center text-center">
+<div class="relative mb-6">
+<div class="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-primary to-tertiary-fixed-dim">
+<div class="w-full h-full rounded-full overflow-hidden border-4 border-surface">
+<img alt="Large User Avatar" class="w-full h-full object-cover" data-alt="Close up portrait of a sophisticated female professional with a warm smile. The image is brightly lit with a clean, high-end commercial aesthetic. Background is a subtle gradient of soft whites and pale violets, reflecting a calm and intelligent environment. Her attire is modern and professional, fitting the Language Architect persona." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDI15QNx_Zv6H7N9tAvy5JOToqEqYS20XLjKlnLPQIAearHqWOfFnYLMcc1Rxm9pDoE0OgwU9aW5WPf90iAbGG1CyxsTtz4PXtjvOkuom0zEm2HcDdxx6kWX4yL5dJECQK0bwnMvXVLLIH6B0G9qStfI7XapnrGmSQPPisW5rL0w3TH4jcKzOKcRiMQlzT1GLoOp7T046gK7Yq5hyRxr8Im1pg4XNHd7yJ77YS8zWPflZvjBX_I_2RIc1A4SI9BmtI_3nj9HIV2ac"/>
+</div>
+</div>
+<div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary px-3 py-1 rounded-full shadow-lg border border-surface">
+<span class="text-white font-label-sm text-[10px] uppercase tracking-wider font-bold">Level 42 Expressionist</span>
+</div>
+</div>
+<h2 class="font-headline-xl-mobile text-headline-xl-mobile text-on-surface">Elena Vance</h2>
+<p class="font-body-md text-on-surface-variant font-medium">Language Architect</p>
+</section>
+<!-- Resonance Stats (Bento Grid Style) -->
+<section class="mt-10">
+<h3 class="font-headline-md text-headline-md mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">insights</span>
+                Resonance Stats
+            </h3>
+<div class="grid grid-cols-2 gap-3">
+<div class="glass-card p-4 rounded-2xl flex flex-col justify-between h-32">
+<div class="flex justify-between items-start">
+<span class="font-label-sm text-on-surface-variant">Academic</span>
+<span class="text-tertiary-container font-bold">92%</span>
+</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[92%]"></div>
+</div>
+</div>
+<div class="glass-card p-4 rounded-2xl flex flex-col justify-between h-32">
+<div class="flex justify-between items-start">
+<span class="font-label-sm text-on-surface-variant">Poetic</span>
+<span class="text-tertiary-container font-bold">78%</span>
+</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[78%]"></div>
+</div>
+</div>
+<div class="glass-card p-4 rounded-2xl col-span-2 relative overflow-hidden h-40">
+<div class="relative z-10">
+<span class="font-label-sm text-on-surface-variant">Global Mastery</span>
+<p class="font-headline-lg text-headline-lg text-primary">Advanced Fluent</p>
+<p class="text-[12px] text-on-surface-variant mt-1">Growth: +14% this month</p>
+</div>
+<!-- Decorative Chart Background -->
+<div class="absolute bottom-0 right-0 left-0 h-16 opacity-30">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 20">
+<path d="M0 20 Q 25 5 50 15 T 100 5 L 100 20 L 0 20 Z" fill="#7C3AED"></path>
+</svg>
+</div>
+</div>
+</div>
+</section>
+<!-- Menu Sections -->
+<section class="mt-10 space-y-4">
+<!-- Intelligence Settings -->
+<div class="space-y-2">
+<h4 class="font-label-sm text-outline px-2">INTELLIGENCE</h4>
+<div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
+<button class="w-full flex items-center justify-between p-4 hover:bg-surface-variant/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-primary-fixed/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">tune</span>
+</div>
+<span class="font-body-md font-medium text-on-surface">Intelligence Settings</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-high mx-4"></div>
+<button class="w-full flex items-center justify-between p-4 hover:bg-surface-variant/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-tertiary-fixed/30 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<span class="font-body-md font-medium text-on-surface">My Growth Reports</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Privacy Section -->
+<div class="space-y-2">
+<h4 class="font-label-sm text-outline px-2">ACCOUNT</h4>
+<div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
+<button class="w-full flex items-center justify-between p-4 hover:bg-surface-variant/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-secondary-fixed/30 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<div class="text-left">
+<span class="font-body-md font-medium text-on-surface block">Privacy &amp; Security</span>
+<span class="text-[12px] text-tertiary-container font-medium">Thought Shield: Active</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+<div class="h-[1px] bg-surface-container-high mx-4"></div>
+<button class="w-full flex items-center justify-between p-4 hover:bg-surface-variant/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">help</span>
+</div>
+<span class="font-body-md font-medium text-on-surface">Help &amp; Feedback</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Danger Zone -->
+<button class="w-full p-4 rounded-2xl border border-error-container text-error font-medium hover:bg-error-container/20 transition-colors mt-4">
+                Logout of Session
+            </button>
+</section>
+<!-- Footer Meta -->
+<footer class="mt-12 mb-8 text-center space-y-2 opacity-60">
+<p class="font-label-sm text-on-surface-variant">AinerWise v2.4.0-pro</p>
+<div class="flex items-center justify-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></span>
+<p class="font-label-sm text-tertiary">Semantic Engine: Optimal</p>
+</div>
+</footer>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-16 bg-surface/90 backdrop-blur-xl rounded-t-xl shadow-[0_-8px_20px_rgba(124,58,237,0.12)]">
+<!-- Home -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant/50 rounded-xl transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px]">home_app_logo</span>
+<span class="font-label-sm text-label-sm mt-0.5">Home</span>
+</button>
+<!-- Chat -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant/50 rounded-xl transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px]">forum</span>
+<span class="font-label-sm text-label-sm mt-0.5">Chat</span>
+</button>
+<!-- Assets -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant/50 rounded-xl transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px]">psychology</span>
+<span class="font-label-sm text-label-sm mt-0.5">Assets</span>
+</button>
+<!-- Connect -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-variant/50 rounded-xl transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px]">hub</span>
+<span class="font-label-sm text-label-sm mt-0.5">Connect</span>
+</button>
+<!-- Me (ACTIVE) -->
+<button class="flex flex-col items-center justify-center text-primary font-bold bg-primary-fixed/30 rounded-xl px-3 py-1 transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined text-[24px] active-icon">person</span>
+<span class="font-label-sm text-label-sm mt-0.5">Me</span>
+</button>
+</nav>
+<script>
+        // Micro-interaction for feedback
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.classList.add('opacity-70');
+            });
+            button.addEventListener('touchend', function() {
+                this.classList.remove('opacity-70');
+            });
+        });
+
+        // Simple parallax on scroll for header
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('section:first-of-type');
+            const scrolled = window.pageYOffset;
+            if (header) {
+                header.style.transform = `translateY(${scrolled * 0.1}px)`;
+                header.style.opacity = 1 - (scrolled / 500);
+            }
+        });
+    </script>
+</body></html>

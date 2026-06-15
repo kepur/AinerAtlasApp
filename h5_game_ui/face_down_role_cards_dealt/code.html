@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Face-down Role Cards Dealt</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline-variant": "#c7c4d7",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "surface-container-low": "#f2f4f6",
+                      "on-surface-variant": "#464554",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#00885d",
+                      "surface-tint": "#494bd6",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-container": "#000703",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-primary": "#c0c1ff",
+                      "ai-gradient-start": "#EEF2FF",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-secondary-fixed-variant": "#004395",
+                      "outline": "#767586",
+                      "surface-variant": "#e0e3e5",
+                      "ai-gradient-end": "#E0E7FF",
+                      "surface-container-highest": "#e0e3e5",
+                      "soft-mint": "#D1FAE5",
+                      "on-primary-container": "#fffbff",
+                      "inverse-surface": "#2d3133",
+                      "primary-container": "#6063ee",
+                      "background": "#f7f9fb",
+                      "secondary": "#0058be",
+                      "on-surface": "#191c1e",
+                      "surface-dim": "#d8dadc",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "surface": "#f7f9fb",
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "secondary-fixed": "#d8e2ff",
+                      "on-primary-fixed": "#07006c",
+                      "deep-purple": "#4F46E5",
+                      "on-secondary-container": "#fefcff",
+                      "error": "#ba1a1a",
+                      "on-background": "#191c1e",
+                      "surface-container": "#eceef0",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "tertiary": "#006c49",
+                      "on-secondary-fixed": "#001a42",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary-fixed": "#002113",
+                      "primary": "#4648d4",
+                      "surface-bright": "#f7f9fb",
+                      "secondary-container": "#2170e4",
+                      "primary-fixed": "#e1e0ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "4px",
+                      "gutter-md": "16px",
+                      "touch-target-min": "44px",
+                      "stack-sm": "8px",
+                      "margin-mobile": "20px",
+                      "stack-md": "16px",
+                      "stack-lg": "32px"
+              },
+              "fontFamily": {
+                      "label-en-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "label-zh-sm": [
+                              "Manrope"
+                      ],
+                      "headline-md": [
+                              "Manrope"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "headline-lg-mobile": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "label-en-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-zh-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "26px",
+                              {
+                                      "lineHeight": "34px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #111827 100%); /* Dark premium background override for this specific screen context, despite light mode theme config */
+            color: #ffffff; /* Override text color for dark mode context */
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .lumina-gradient {
+            background: linear-gradient(to right, rgba(238, 242, 255, 0.05), rgba(224, 231, 255, 0.05));
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+        }
+
+        .glass-card-dim {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+        }
+
+        @keyframes subtleBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .bounce-anim {
+            animation: subtleBounce 2s ease-in-out infinite;
+        }
+
+        .glow-purple {
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.4), inset 0 0 10px rgba(79, 70, 229, 0.2);
+            border-color: rgba(79, 70, 229, 0.6);
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col antialiased">
+<!-- Top Navigation (Suppressed per rules for transactional/task-focused screen, but keeping a minimal header for context) -->
+<header class="w-full px-margin-mobile py-4 flex justify-between items-center z-50">
+<button class="w-touch-target-min h-touch-target-min flex items-center justify-center text-on-surface-variant hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">close</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-on-secondary">Topics Explore</h1> <!-- Reused from JSON for context, though slightly modified for dark background -->
+<div class="w-touch-target-min h-touch-target-min"></div> <!-- Placeholder for balance -->
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center px-margin-mobile pb-stack-lg relative w-full max-w-md mx-auto">
+<!-- Header Text -->
+<div class="text-center mb-stack-lg z-10 w-full">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-secondary mb-stack-sm tracking-tight drop-shadow-md">身份牌已发放</h2>
+<p class="font-body-md text-body-md text-inverse-on-surface opacity-80">点击你的身份牌查看身份</p>
+</div>
+<!-- Cards Carousel -->
+<div class="w-full relative z-10 mb-stack-lg">
+<div class="flex overflow-x-auto hide-scrollbar gap-gutter-md snap-x snap-mandatory py-4 px-1" style="scroll-padding-left: 20px;">
+<!-- AI Card 1 (Dimmed) -->
+<div class="snap-center shrink-0 w-[140px] h-[200px] glass-card-dim flex flex-col items-center justify-center relative">
+<div class="w-12 h-12 rounded-full bg-surface-variant/20 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-outline-variant text-2xl">person</span>
+</div>
+<span class="font-label-zh-sm text-label-zh-sm text-outline-variant">AI 玩家 1</span>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 rounded-2xl mix-blend-overlay"></div>
+</div>
+<!-- User Card (Active, Glowing, Bouncing) -->
+<div class="snap-center shrink-0 w-[160px] h-[220px] glass-card glow-purple bounce-anim flex flex-col items-center justify-center relative cursor-pointer group">
+<div class="absolute -top-3 px-3 py-1 bg-deep-purple text-on-primary font-label-zh-sm text-label-zh-sm rounded-full shadow-[0_2px_8px_rgba(79,70,229,0.5)] z-20 whitespace-nowrap">你的身份牌</div>
+<div class="w-16 h-16 rounded-full bg-deep-purple/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-inverse-primary text-3xl" style="font-variation-settings: 'FILL' 1;">help_outline</span>
+</div>
+<span class="font-label-zh-sm text-label-zh-sm text-on-secondary">点击翻开</span>
+<!-- Decorative back pattern -->
+<div class="absolute inset-2 border border-deep-purple/30 rounded-xl pointer-events-none"></div>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 rounded-2xl mix-blend-overlay"></div>
+</div>
+<!-- AI Card 2 (Dimmed) -->
+<div class="snap-center shrink-0 w-[140px] h-[200px] glass-card-dim flex flex-col items-center justify-center relative">
+<div class="w-12 h-12 rounded-full bg-surface-variant/20 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-outline-variant text-2xl">person</span>
+</div>
+<span class="font-label-zh-sm text-label-zh-sm text-outline-variant">AI 玩家 2</span>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 rounded-2xl mix-blend-overlay"></div>
+</div>
+<!-- AI Card 3 (Dimmed) -->
+<div class="snap-center shrink-0 w-[140px] h-[200px] glass-card-dim flex flex-col items-center justify-center relative">
+<div class="w-12 h-12 rounded-full bg-surface-variant/20 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-outline-variant text-2xl">person</span>
+</div>
+<span class="font-label-zh-sm text-label-zh-sm text-outline-variant">AI 玩家 3</span>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 rounded-2xl mix-blend-overlay"></div>
+</div>
+<!-- AI Card 4 (Dimmed) -->
+<div class="snap-center shrink-0 w-[140px] h-[200px] glass-card-dim flex flex-col items-center justify-center relative">
+<div class="w-12 h-12 rounded-full bg-surface-variant/20 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-outline-variant text-2xl">person</span>
+</div>
+<span class="font-label-zh-sm text-label-zh-sm text-outline-variant">AI 玩家 4</span>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 rounded-2xl mix-blend-overlay"></div>
+</div>
+<!-- AI Card 5 (Dimmed) -->
+<div class="snap-center shrink-0 w-[140px] h-[200px] glass-card-dim flex flex-col items-center justify-center relative">
+<div class="w-12 h-12 rounded-full bg-surface-variant/20 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-outline-variant text-2xl">person</span>
+</div>
+<span class="font-label-zh-sm text-label-zh-sm text-outline-variant">AI 玩家 5</span>
+<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 rounded-2xl mix-blend-overlay"></div>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="w-full flex flex-col gap-stack-sm z-10 mt-auto">
+<button class="w-full min-h-touch-target-min bg-deep-purple text-on-primary rounded-full font-headline-md text-headline-md shadow-[0_4px_14px_rgba(79,70,229,0.39)] hover:scale-[0.98] transition-transform duration-200 py-3 flex items-center justify-center">
+                查看我的身份
+            </button>
+<button class="w-full min-h-touch-target-min bg-transparent border border-outline-variant/30 text-inverse-on-surface rounded-full font-headline-md text-headline-md hover:bg-surface-variant/10 transition-colors duration-200 py-3 flex items-center justify-center">
+                稍后查看
+            </button>
+</div>
+</main>
+<!-- Bottom Navigation Suppressed per structural rules for this specific flow context -->
+<script>
+        // Simple script to auto-scroll to the active card on load for better UX
+        document.addEventListener('DOMContentLoaded', () => {
+            const carousel = document.querySelector('.overflow-x-auto');
+            const activeCard = document.querySelector('.glow-purple');
+            
+            if (carousel && activeCard) {
+                // Calculate scroll position to center the active card
+                const scrollLeft = activeCard.offsetLeft - (carousel.clientWidth / 2) + (activeCard.clientWidth / 2);
+                carousel.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
+        });
+    </script>
+</body></html>

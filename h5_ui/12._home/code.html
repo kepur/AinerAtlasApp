@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>AinerWise | Language Architect</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#7b7487",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "primary-container": "#7c3aed",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#732ee4",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface": "#faf8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#ccc3d8",
+                        "surface-container-high": "#e2e7ff",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#eaddff",
+                        "tertiary-container": "#007650",
+                        "on-surface-variant": "#4a4455",
+                        "on-surface": "#131b2e",
+                        "on-primary-fixed": "#25005a",
+                        "surface-bright": "#faf8ff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-tertiary-fixed": "#002113",
+                        "on-primary-container": "#ede0ff",
+                        "surface-variant": "#dae2fd",
+                        "secondary": "#0058be",
+                        "on-tertiary": "#ffffff",
+                        "inverse-on-surface": "#eef0ff",
+                        "surface-dim": "#d2d9f4",
+                        "primary": "#630ed4",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-secondary-container": "#fefcff",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#d2bbff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-fixed-variant": "#004395",
+                        "surface-container-highest": "#dae2fd",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#76ffc2",
+                        "on-background": "#131b2e",
+                        "inverse-surface": "#283044",
+                        "secondary-container": "#2170e4",
+                        "inverse-primary": "#d2bbff",
+                        "surface-container": "#eaedff",
+                        "tertiary": "#005b3d",
+                        "error-container": "#ffdad6",
+                        "background": "#faf8ff",
+                        "surface-container-low": "#f2f3ff",
+                        "on-secondary-fixed": "#001a42"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "base": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "16px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-xl-mobile": ["Plus Jakarta Sans"],
+                        "headline-xl": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "body-lg": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-xl-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                        "headline-xl": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #faf8ff; -webkit-tap-highlight-color: transparent; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .premium-shadow {
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.08);
+        }
+        .bento-inner-glow {
+            box-shadow: inset 0 0 40px rgba(124, 58, 237, 0.03);
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface">
+<!-- Top AppBar -->
+<nav class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-margin-mobile h-touch-target-min bg-surface/80 dark:bg-surface-container/80 backdrop-blur-xl">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-primary-fixed border border-primary/10">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional high-resolution avatar of a young creative professional with a friendly expression. The style is clean and modern, set against a soft purple pastel background that matches the brand identity of a premium educational technology platform. The lighting is soft and studio-quality, emphasizing a sophisticated yet approachable personality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9Bc9RPyyya0EgjirDk4lT8mlUScnKZVSxH7ajG7Nygml1fTQhedUCGmbGElu39dzdQTlbT_aIx23qhmrchKJ98hNFp7lOrhGZrQjpdAHg4fiwfao-oBTr4JOXibOGh4wXhDX1OMU5uhmMN-5_EjHZjlTMlV4ImNrzFIuHSm1nTy5-WubVX8oCj0_AGPI_mLY05aAKpESIMj3Cr6Uz0w4x6i-LNhYlEPO6j9s6avxzHiIxtMRDXGvusDsfwaj9z4uuVaKcbVGtBss"/>
+</div>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim tracking-tight">AinerWise</span>
+</div>
+<button class="material-symbols-outlined text-primary hover:opacity-80 transition-opacity" data-icon="auto_awesome">auto_awesome</button>
+</nav>
+<main class="pt-16 pb-24 px-margin-mobile space-y-8">
+<!-- Welcome Header -->
+<header class="pt-4">
+<h1 class="font-headline-xl-mobile text-headline-xl-mobile text-on-surface tracking-tight">Good Morning, Language Architect</h1>
+<p class="font-body-md text-on-surface-variant mt-2">Today we focus on <span class="text-primary font-semibold">Nuanced Negotiation</span>. You've mastered 14 new thought-assets this week.</p>
+</header>
+<!-- Daily Resonance Hero Card -->
+<section class="relative overflow-hidden rounded-3xl premium-shadow bg-surface-container-lowest p-6 border border-primary/5">
+<div class="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-primary/5 rounded-full blur-3xl"></div>
+<div class="relative z-10">
+<div class="flex items-center justify-between mb-4">
+<span class="px-3 py-1 bg-primary/10 text-primary font-label-sm text-label-sm rounded-full">Daily Resonance</span>
+<span class="material-symbols-outlined text-primary/40" data-icon="lightbulb">lightbulb</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-2 italic">"The art of silence is as expressive as the choice of words."</h2>
+<p class="font-body-md text-on-surface-variant mb-6">How would you translate this sentiment into your target language's formal register?</p>
+<button class="w-full h-12 bg-primary text-on-primary rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="edit_note">edit_note</span>
+                    Express Your Thought
+                </button>
+</div>
+</section>
+<!-- Active Learning Grid -->
+<section class="grid grid-cols-2 gap-4">
+<button class="col-span-2 flex items-center justify-between p-5 bg-primary-container text-on-primary-container rounded-3xl premium-shadow active:scale-[0.98] transition-transform">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-on-primary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl" data-icon="mic" style="font-variation-settings: 'FILL' 1;">mic</span>
+</div>
+<div class="text-left">
+<p class="font-headline-md text-headline-md leading-tight">Quick Start</p>
+<p class="font-label-sm text-label-sm opacity-80 uppercase tracking-wider">Voice Coach</p>
+</div>
+</div>
+<span class="material-symbols-outlined" data-icon="arrow_forward_ios">arrow_forward_ios</span>
+</button>
+<div class="col-span-2 p-5 bg-white rounded-3xl premium-shadow border border-surface-variant/30 flex flex-col justify-between min-h-[160px]">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Recent Discussion</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">The Subtle nuances of 'Heimat'</h3>
+<p class="font-body-md text-on-surface-variant line-clamp-1">AI: "While often translated as home, it carries..."</p>
+</div>
+<div class="flex -space-x-2 mt-4">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-surface-dim flex items-center justify-center text-[10px] font-bold">AI</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-primary-fixed flex items-center justify-center text-[10px] font-bold">ME</div>
+</div>
+</div>
+</section>
+<!-- My Assets: Thought Freeze -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-lg text-headline-lg text-on-surface">Thought Freeze Assets</h3>
+<button class="text-primary font-label-sm text-label-sm font-semibold">View All</button>
+</div>
+<div class="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-margin-mobile px-margin-mobile">
+<!-- Asset 1 -->
+<div class="flex-shrink-0 w-40 p-4 bg-white rounded-2xl premium-shadow border border-surface-variant/20">
+<div class="w-full aspect-square rounded-xl mb-3 overflow-hidden">
+<img alt="Serene Landscape" class="w-full h-full object-cover" data-alt="A serene cinematic landscape with rolling misty hills and soft purple morning light hitting the peaks. The atmosphere is calm and contemplative, reflecting the premium and intelligent brand aesthetic of AinerWise. High-end photography with a focus on deep textures and atmospheric depth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRt6ymdbYkm502m8wxjR3lCoiOajAxbqJPWpOBaOkRlrs3t6W1uuQNQIKIX3rkxat0MKX5adYiV2ToXSlTq0Gh60ONzm-UOPlXNNnUEFY133CkfZUHQESG7p9ANRqd5Js1AM6so3oki9AqG45LwgTVUhgwlz6_g5RiraLRHsSpzNXM6cMbmkdhqQHaX3hnP2JTmvehjt51xne7Ore5ksflQux8ny4FA9fxjvtGPWt0x76gdUDYYsKvYbRdbSRcPxAb3__RihG2esA"/>
+</div>
+<p class="font-label-sm text-label-sm font-bold text-on-surface truncate">Nostalgia vs Sehnsucht</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">2 hours ago</p>
+</div>
+<!-- Asset 2 -->
+<div class="flex-shrink-0 w-40 p-4 bg-white rounded-2xl premium-shadow border border-surface-variant/20">
+<div class="w-full aspect-square rounded-xl mb-3 overflow-hidden">
+<img alt="Minimalist Light" class="w-full h-full object-cover" data-alt="A minimalist architectural shot of light hitting a textured white wall in a high-end gallery. The shadows are soft and navy-tinted, creating a sophisticated sense of space and structure. Clean, airy, and professional, representing clarity in thought and language learning." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDBwcQxtJTeDcV3Jc-lZZdY6ZaFQWGcWJOw5hLJ1lwBS7Eib1gH4rDkd_BiWy7NQd7VUDIW7Qe0MUFmnr76dd6no1UYI6oRC4XKlzMRdmGDI82Pv9Y4eBdEe_bpIxd_uK1CjB740Dlas5eVRpyRtL-Z1O2p3BSOK07ZLex1_S5ktSBuVOoiRAic9QWpD47IWUoMu9iV9rRWhsFxoX0UeBG7_NLHx7bqE6H3noO83ahc0aCP-hZfBS-KY0aF0fvU6DBd45Z0hhUgcQ"/>
+</div>
+<p class="font-label-sm text-label-sm font-bold text-on-surface truncate">Formal Greetings</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Yesterday</p>
+</div>
+<!-- Asset 3 -->
+<div class="flex-shrink-0 w-40 p-4 bg-white rounded-2xl premium-shadow border border-surface-variant/20">
+<div class="w-full aspect-square rounded-xl mb-3 overflow-hidden">
+<img alt="Abstract Flow" class="w-full h-full object-cover" data-alt="An abstract macro photograph of fluid white and purple gradients flowing together like liquid silk. The lighting is ethereal and glowy, representing the fluidity of expression and the intelligent AI core of the AinerWise platform. Premium digital art aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAATDk4wjys-jyF03TlyJqYajyH0SGjGKlIDNIhMkVd0jF7FXphvm-j5v-YSIr2BrLqWhiYLJAfI_6DS7dzPcl0khic0Rx1l0wXhgWWUw1HqEpvAEV2lLHghAKXmuPMSX73yHifrp9qqL-dTHbKp_5YoYxE89dlWlJHFyGW3rXfUJ8wd-rKNaTl9FBUWOTEEL19idHx3JRQdPe_ubI5Y_GWAic3Gv6BFG-p1adVhfX2JAl5ei3oPMICnfxfwNBE3p3htWh-DYzmwdA"/>
+</div>
+<p class="font-label-sm text-label-sm font-bold text-on-surface truncate">Abstract Metaphor</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Oct 24</p>
+</div>
+</div>
+</section>
+<!-- Community Carousel -->
+<section class="pb-8">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-lg text-headline-lg text-on-surface">Live Circle Rooms</h3>
+<div class="flex gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="w-2 h-2 rounded-full bg-surface-dim"></span>
+</div>
+</div>
+<div class="relative rounded-3xl overflow-hidden aspect-[16/9] glass-card premium-shadow">
+<img alt="Collaborative Circle" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-multiply" data-alt="A group of diverse professionals sitting in a bright, modern, plant-filled creative studio engaging in a collaborative discussion. The atmosphere is warm and supportive, with soft natural light streaming through large windows. The overall aesthetic is high-end, intelligent, and focused on communal growth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTfefq_SonClYIA45TR7y3QEFlGjeI7nwCOynZkhP2xMOS2qOE7f6IgJ1JILxOfElOAasfkZ2rDIQsSHvU20qfQj8LKj32ah8aQ68qVDHGe9wLh9z_uDxfxYsVKIsPErQh01mlEvFVOJPg1Wn5-Nh20wji9KnT8VLb9oxwZAXoXnfy67lcibUXWRvYZhDp4_F6HeSxlkReUpcJNsSyquyr175SwqBK1YhcL-2EnXmbvwknMDADDx0uybJURBGa9FfworgKn6sfjN8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent flex flex-col justify-end p-6">
+<div class="flex items-center gap-2 mb-2">
+<span class="flex h-2 w-2 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+</span>
+<p class="font-label-sm text-label-sm text-white uppercase tracking-widest">Trending Now</p>
+</div>
+<h4 class="font-headline-lg text-headline-lg text-white mb-1">Poetic Structures in Business</h4>
+<p class="font-body-md text-white/80">14 architects discussing right now</p>
+<button class="mt-4 px-6 h-10 bg-white text-primary rounded-full font-bold self-start hover:bg-primary-fixed active:scale-95 transition-all">Join Circle</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-16 bg-surface/90 dark:bg-surface-container-low/90 backdrop-blur-xl rounded-t-xl shadow-[0_-8px_20px_rgba(124,58,237,0.12)]">
+<!-- Home (Active) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-bold bg-primary-fixed/30 dark:bg-primary-container/20 rounded-xl px-3 py-1 scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="home_app_logo" style="font-variation-settings: 'FILL' 1;">home_app_logo</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<!-- Chat -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-3 py-1 hover:bg-surface-variant/50 dark:hover:bg-surface-container-highest/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="forum">forum</span>
+<span class="font-label-sm text-label-sm">Chat</span>
+</a>
+<!-- Assets -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-3 py-1 hover:bg-surface-variant/50 dark:hover:bg-surface-container-highest/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="psychology">psychology</span>
+<span class="font-label-sm text-label-sm">Assets</span>
+</a>
+<!-- Connect -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-3 py-1 hover:bg-surface-variant/50 dark:hover:bg-surface-container-highest/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+<span class="font-label-sm text-label-sm">Connect</span>
+</a>
+<!-- Me -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-3 py-1 hover:bg-surface-variant/50 dark:hover:bg-surface-container-highest/50 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Me</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions and interactions
+        document.querySelectorAll('button, a').forEach(el => {
+            el.addEventListener('mousedown', () => {
+                el.classList.add('scale-95');
+            });
+            el.addEventListener('mouseup', () => {
+                el.classList.remove('scale-95');
+            });
+            el.addEventListener('mouseleave', () => {
+                el.classList.remove('scale-95');
+            });
+        });
+
+        // Simple scroll reveal for cards
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-4');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            section.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-4');
+            observer.observe(section);
+        });
+    </script>
+</body></html>

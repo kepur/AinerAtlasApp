@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AinerWise - Character Creation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "on-tertiary-fixed": "#002113",
+                      "on-primary": "#ffffff",
+                      "surface-container-high": "#e6e8ea",
+                      "on-secondary-fixed": "#001a42",
+                      "surface": "#f7f9fb",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "inverse-on-surface": "#eff1f3",
+                      "tertiary-fixed": "#6ffbbe",
+                      "surface-container-low": "#f2f4f6",
+                      "on-error-container": "#93000a",
+                      "tertiary": "#006c49",
+                      "primary-fixed": "#e1e0ff",
+                      "secondary-container": "#2170e4",
+                      "primary": "#4648d4",
+                      "surface-variant": "#e0e3e5",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "deep-purple": "#4F46E5",
+                      "on-tertiary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-tertiary-container": "#000703",
+                      "on-error": "#ffffff",
+                      "ai-gradient-start": "#EEF2FF",
+                      "on-secondary": "#ffffff",
+                      "ai-gradient-end": "#E0E7FF",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-container": "#fefcff",
+                      "on-surface": "#191c1e",
+                      "tertiary-container": "#00885d",
+                      "error-container": "#ffdad6",
+                      "background": "#f7f9fb",
+                      "surface-container-highest": "#e0e3e5",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "on-background": "#191c1e",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "primary-container": "#6063ee",
+                      "surface-container": "#eceef0",
+                      "on-primary-fixed": "#07006c",
+                      "outline-variant": "#c7c4d7",
+                      "on-primary-container": "#fffbff",
+                      "surface-bright": "#f7f9fb",
+                      "soft-mint": "#D1FAE5",
+                      "secondary-fixed": "#d8e2ff",
+                      "on-secondary-fixed-variant": "#004395",
+                      "inverse-primary": "#c0c1ff",
+                      "surface-tint": "#494bd6",
+                      "secondary": "#0058be",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "surface-dim": "#d8dadc",
+                      "outline": "#767586",
+                      "inverse-surface": "#2d3133",
+                      "on-surface-variant": "#464554"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "touch-target-min": "44px",
+                      "gutter-md": "16px",
+                      "base": "4px",
+                      "margin-mobile": "20px",
+                      "stack-md": "16px",
+                      "stack-lg": "32px",
+                      "stack-sm": "8px"
+              },
+              "fontFamily": {
+                      "headline-md": ["Manrope"],
+                      "headline-lg-mobile": ["Manrope"],
+                      "body-lg": ["Manrope"],
+                      "label-en-sm": ["Inter"],
+                      "headline-lg": ["Manrope"],
+                      "label-zh-sm": ["Manrope"],
+                      "body-md": ["Manrope"]
+              },
+              "fontSize": {
+                      "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                      "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                      "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                      "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                      "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .lumina-bg {
+            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, rgba(247, 249, 251, 1) 60%);
+            background-attachment: fixed;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 8px 32px -8px rgba(99, 102, 241, 0.05);
+        }
+        .ambient-shadow {
+            box-shadow: 0 4px 20px -5px rgba(99, 102, 241, 0.15);
+        }
+        /* Hide scrollbar for clean horizontal scrolling */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .pulse-orb {
+            animation: pulse-soft 3s infinite ease-in-out alternate;
+        }
+        @keyframes pulse-soft {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 30px rgba(99, 102, 241, 0.3); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased lumina-bg min-h-screen pb-32">
+<!-- Top Navigation Area (Task Focus, Minimal Shell) -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop h-touch-target-min bg-surface/70 backdrop-blur-xl border-b border-white/20 shadow-[0_4px_20px_-5px_rgba(99,102,241,0.15)]">
+<button class="h-touch-target-min w-touch-target-min flex items-center justify-center text-on-surface-variant hover:bg-primary/10 transition-colors rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary font-bold">Forge Persona</h1>
+<button class="h-touch-target-min w-touch-target-min flex items-center justify-center text-on-surface-variant hover:bg-primary/10 transition-colors rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help_outline</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 px-margin-mobile md:px-margin-desktop max-w-2xl mx-auto space-y-stack-lg">
+<!-- Avatar Preview Section -->
+<section class="relative w-full aspect-square md:aspect-video rounded-3xl overflow-hidden glass-card ambient-shadow flex flex-col items-center justify-center">
+<!-- Decorative Background Orb -->
+<div class="absolute w-64 h-64 bg-gradient-to-tr from-primary/20 to-tertiary/20 rounded-full blur-3xl pulse-orb"></div>
+<img alt="Portrait of an avatar" class="relative z-10 w-48 h-48 md:w-56 md:h-56 object-cover rounded-full border-4 border-white ambient-shadow" data-alt="A highly detailed portrait of a stylized, elegant character suitable for an immersive role-playing game. The character is illuminated by soft, ethereal studio lighting, set against a pristine, semi-translucent background that evokes a high-end, light-mode glassmorphism aesthetic. Subtle hues of deep purple and serene blue gently reflect off the character's features, establishing a calm, intellectual, and slightly mysterious mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0Xeji3Q2jq-0IWVPIQ1h9mmh512ez3X6Elqk_z7ms61oG4S6C7gb4PG7t8HmTmU-1lfOKHDE8siMvvX33W9RP08FbXqwqEbTYfKWI1gHz-cNEmarKfeDpdm8M0qEB9csJFC-H8-JpeuwkhslHPzEo3tB7SSXxe_xYN5pzcVNkDn_n-AQQysEUbFxzgsMbTrQpOEU-HCnNVb_3nN9h1BmYm52SSq1oLv594_n38CRmt7xWnNba4WMNnjmBkv3VMctu6L14iQG03Ndq"/>
+<button class="relative z-10 mt-stack-md flex items-center gap-2 bg-glass-bg border border-primary/20 text-primary font-label-en-sm text-label-en-sm px-4 py-2 rounded-full hover:bg-primary/10 transition-colors h-touch-target-min">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                Regenerate Avatar
+            </button>
+</section>
+<!-- Persona Selection -->
+<section class="space-y-stack-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface px-2">Path &amp; Persona</h2>
+<div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-2 snap-x">
+<!-- Active Persona -->
+<button class="snap-start flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-on-primary ambient-shadow min-w-[120px] justify-center transition-transform active:scale-95 h-touch-target-min">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">swords</span>
+<span class="font-label-en-sm text-label-en-sm">Swordsman</span>
+</button>
+<!-- Inactive Personas -->
+<button class="snap-start flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl glass-card text-on-surface-variant hover:bg-primary/5 min-w-[120px] justify-center transition-transform active:scale-95 h-touch-target-min border-outline-variant/30">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-label-en-sm text-label-en-sm">Scholar</span>
+</button>
+<button class="snap-start flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl glass-card text-on-surface-variant hover:bg-primary/5 min-w-[120px] justify-center transition-transform active:scale-95 h-touch-target-min border-outline-variant/30">
+<span class="material-symbols-outlined">storefront</span>
+<span class="font-label-en-sm text-label-en-sm">Merchant</span>
+</button>
+<button class="snap-start flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl glass-card text-on-surface-variant hover:bg-primary/5 min-w-[120px] justify-center transition-transform active:scale-95 h-touch-target-min border-outline-variant/30">
+<span class="material-symbols-outlined">self_improvement</span>
+<span class="font-label-en-sm text-label-en-sm">Monk</span>
+</button>
+</div>
+</section>
+<!-- Traits Definition -->
+<section class="space-y-stack-sm">
+<div class="flex justify-between items-center px-2">
+<h2 class="font-headline-md text-headline-md text-on-surface">Core Traits</h2>
+<span class="font-label-en-sm text-label-en-sm text-primary">3 / 3 Selected</span>
+</div>
+<div class="glass-card rounded-2xl p-4 flex flex-wrap gap-2">
+<div class="px-4 py-2 rounded-full bg-soft-mint/50 border border-tertiary-fixed text-tertiary font-label-en-sm text-label-en-sm flex items-center gap-1 h-touch-target-min cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[16px]">check</span>
+                    Analytical
+                </div>
+<div class="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary font-label-en-sm text-label-en-sm flex items-center gap-1 h-touch-target-min cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[16px]">check</span>
+                    Brave
+                </div>
+<div class="px-4 py-2 rounded-full bg-secondary-container/20 border border-secondary/20 text-secondary font-label-en-sm text-label-en-sm flex items-center gap-1 h-touch-target-min cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-[16px]">check</span>
+                    Charismatic
+                </div>
+<div class="px-4 py-2 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant font-label-en-sm text-label-en-sm flex items-center gap-1 h-touch-target-min cursor-pointer hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                    Emotional
+                </div>
+<div class="px-4 py-2 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant font-label-en-sm text-label-en-sm flex items-center gap-1 h-touch-target-min cursor-pointer hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                    Stoic
+                </div>
+</div>
+</section>
+<!-- Narrative Goal Input (The "Thought" Box) -->
+<section class="space-y-stack-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface px-2">Define Your Motivation</h2>
+<div class="glass-card rounded-2xl p-4 relative group focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+<textarea class="w-full bg-transparent border-none focus:ring-0 resize-none font-body-lg text-body-lg text-on-surface placeholder-on-surface-variant/50 min-h-[120px] p-0" placeholder="E.g., I want to uncover the secrets of the lost jade scroll and restore my family's honor..."></textarea>
+<!-- AI Translation Helper -->
+<div class="mt-4 pt-4 border-t border-outline-variant/20 flex justify-between items-center">
+<div class="flex items-center gap-2 text-on-surface-variant font-label-en-sm text-label-en-sm">
+<span class="material-symbols-outlined text-[16px] text-primary pulse-orb">translate</span>
+                        Translating intent...
+                    </div>
+<button class="text-primary font-label-en-sm text-label-en-sm hover:underline">
+                        Preview Target Language
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Fixed Bottom Action Area -->
+<div class="fixed bottom-0 left-0 w-full p-margin-mobile bg-gradient-to-t from-surface via-surface/90 to-transparent z-40 pb-safe pb-8">
+<div class="max-w-2xl mx-auto flex gap-4">
+<button class="h-[56px] px-6 rounded-full glass-card text-on-surface font-label-en-sm text-label-en-sm flex items-center justify-center transition-transform active:scale-95 border-outline-variant/50">
+                Draft
+            </button>
+<button class="flex-1 h-[56px] rounded-full bg-deep-purple text-on-primary font-headline-md text-headline-md ambient-shadow flex items-center justify-center gap-2 transition-transform active:scale-95 group">
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">swords</span>
+                Enter Story
+            </button>
+</div>
+</div>
+</body></html>

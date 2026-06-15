@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>投票阶段 - Vote Phase</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline-variant": "#c7c4d7",
+                      "error-container": "#ffdad6",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "surface-container-low": "#f2f4f6",
+                      "on-surface-variant": "#464554",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#00885d",
+                      "surface-tint": "#494bd6",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-container": "#000703",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-primary": "#c0c1ff",
+                      "ai-gradient-start": "#EEF2FF",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-secondary-fixed-variant": "#004395",
+                      "outline": "#767586",
+                      "surface-variant": "#e0e3e5",
+                      "ai-gradient-end": "#E0E7FF",
+                      "surface-container-highest": "#e0e3e5",
+                      "soft-mint": "#D1FAE5",
+                      "on-primary-container": "#fffbff",
+                      "inverse-surface": "#2d3133",
+                      "primary-container": "#6063ee",
+                      "background": "#f7f9fb",
+                      "secondary": "#0058be",
+                      "on-surface": "#191c1e",
+                      "surface-dim": "#d8dadc",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "surface": "#f7f9fb",
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "secondary-fixed": "#d8e2ff",
+                      "on-primary-fixed": "#07006c",
+                      "deep-purple": "#4F46E5",
+                      "on-secondary-container": "#fefcff",
+                      "error": "#ba1a1a",
+                      "on-background": "#191c1e",
+                      "surface-container": "#eceef0",
+                      "on-primary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "tertiary": "#006c49",
+                      "on-secondary-fixed": "#001a42",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary-fixed": "#002113",
+                      "primary": "#4648d4",
+                      "surface-bright": "#f7f9fb",
+                      "secondary-container": "#2170e4",
+                      "primary-fixed": "#e1e0ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "base": "4px",
+                      "gutter-md": "16px",
+                      "touch-target-min": "44px",
+                      "stack-sm": "8px",
+                      "margin-mobile": "20px",
+                      "stack-md": "16px",
+                      "stack-lg": "32px"
+              },
+              "fontFamily": {
+                      "label-en-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "label-zh-sm": [
+                              "Manrope"
+                      ],
+                      "headline-md": [
+                              "Manrope"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "headline-lg-mobile": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "label-en-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-zh-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "26px",
+                              {
+                                      "lineHeight": "34px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        /* Base styles forcing dark mode aesthetic despite generic tailwind config not being fully customized for dark body */
+        body {
+            background-color: #0f111a; /* Dark ethereal background */
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(79, 70, 229, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(96, 99, 238, 0.1), transparent 25%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism utilities */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card-active {
+            background: rgba(79, 70, 229, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(79, 70, 229, 0.4);
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.15);
+        }
+
+        .glass-card-eliminated {
+            background: rgba(255, 0, 0, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            opacity: 0.6;
+            filter: grayscale(100%);
+        }
+
+        /* Subtle animations */
+        @keyframes subtlePulse {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+
+        .pulse-active {
+            animation: subtlePulse 2s infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased font-sans flex flex-col md:hidden">
+<!-- TopAppBar -->
+<header class="bg-glass-bg backdrop-blur-xl dark:bg-glass-bg text-primary dark:text-primary-fixed-dim font-headline-md text-headline-md font-headline-md text-headline-md font-bold text-deep-purple docked full-width top-0 border-b border-white/10 shadow-sm flex justify-between items-center w-full px-margin-mobile pt-4 h-14 sticky top-0 z-50 transition-transform duration-200">
+<button class="flex items-center justify-center w-touch-target-min h-touch-target-min text-on-surface-variant hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="text-deep-purple font-headline-md text-headline-md font-bold tracking-tight">Logic Lite</span>
+<button class="flex items-center justify-center w-touch-target-min h-touch-target-min text-on-surface-variant hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 px-margin-mobile pb-32 pt-stack-md flex flex-col gap-stack-lg">
+<!-- Header Section -->
+<section class="flex flex-col gap-stack-sm text-center">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-white tracking-tight">投票阶段</h1>
+<p class="font-body-md text-body-md text-primary-fixed-dim">请选择你认为最可疑的玩家，并给出一句理由。</p>
+</section>
+<!-- Player Grid -->
+<section class="grid grid-cols-2 gap-gutter-md">
+<!-- Player A -->
+<button class="glass-card rounded-xl p-4 flex flex-col items-center justify-center gap-2 aspect-square transition-all duration-200 hover:scale-95">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant font-headline-md text-headline-md relative overflow-hidden">
+<img alt="Player A avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH1Ux7Q8T_ugNO00XEzj7Tv7Bfw-cyYbl0hFsBcVFxGKM5FBzgzqvJALpGEfVQwEwsdGRPgRAaOo4pJXfQ4I3mQEyWbJC2Y1U038zrgeak3RZi00BYo4QatlZ_cA0MAbtAvm6HTeDMusKpIWQJ-rDQfMb-qs0WdBgJiALPVQ3P9hcpSyO4_gGIC7gQBWdkQo-XAPPFzhYscnvaxePiXbQIDo6mwzdvS2Dc3956Ch-x1ZjoNfzoXsCmY1-c0ZglQXsacHNxfvdU1p8t"/>
+</div>
+<span class="font-label-en-sm text-label-en-sm text-white">Player A</span>
+<span class="font-label-zh-sm text-label-zh-sm text-outline-variant">Suspicion: Low</span>
+</button>
+<!-- Player B (Active / Selected) -->
+<button class="glass-card-active pulse-active rounded-xl p-4 flex flex-col items-center justify-center gap-2 aspect-square transition-all duration-200 hover:scale-95">
+<div class="w-16 h-16 rounded-full bg-deep-purple flex items-center justify-center text-white font-headline-md text-headline-md relative overflow-hidden ring-2 ring-primary-fixed ring-offset-2 ring-offset-[#0f111a]">
+<img alt="Player B avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZdQB_aFciHuQChXtx0yRRCBiYo8lCu3ibfSHcm8w8sdCdK3uD80gSgyX_mq7n4rDOTDp0KYFX1W6emfLsdMFf4dkHO3ZN431-fGMOCO72bzjmTcFDv4W59hZkGP5Kt6pSwWnok-COWJjTQacUXwPAuL9ZKljUTuDoVuc3_HH5guAZERCF4f3hcF9hAnpA4jy5LbKAKpu8AjItqyzxDuJCQHCH31Cxrysz_rNaeYWkLUibHZCRyd4BjpV30HXOTkdQRw9lLRhPfgjS"/>
+</div>
+<span class="font-label-en-sm text-label-en-sm text-white font-bold">Player B</span>
+<span class="font-label-zh-sm text-label-zh-sm text-tertiary-fixed-dim flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">warning</span> High Suspicion
+                </span>
+</button>
+<!-- Player C -->
+<button class="glass-card rounded-xl p-4 flex flex-col items-center justify-center gap-2 aspect-square transition-all duration-200 hover:scale-95">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant font-headline-md text-headline-md relative overflow-hidden">
+<img alt="Player C avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtEYUjv51YkBqWO4ZiA7eNd_aNWhM6fsDvjj0pPqOb3rcn84zQU6oFlKjzYessQpMtYhj54je0ImxUcpHkOlin7uMTp7YTnjcT13_g7uW6A7KE2cN1PPwsnD_pJxRxGwZN3QLkhNMDApST4Eju8znCulI0kX7FD2uBNnErsQ64pMZd2HRX0ZNc9c_hYp9GC2qF6J3e8iNlKr8ek7O-jS9_MhQIBFpRVCmg7VI5-y0Fbko9qOlqSwbTim1krdC7HJNxiepczuy8HX8e"/>
+</div>
+<span class="font-label-en-sm text-label-en-sm text-white">Player C</span>
+<span class="font-label-zh-sm text-label-zh-sm text-outline-variant">Suspicion: Med</span>
+</button>
+<!-- Player D (Eliminated) -->
+<div class="glass-card-eliminated rounded-xl p-4 flex flex-col items-center justify-center gap-2 aspect-square cursor-not-allowed">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant font-headline-md text-headline-md relative overflow-hidden">
+<img alt="Player D avatar" class="w-full h-full object-cover opacity-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAR03qTxKxuvBmmQAvl3Kq1bh6GzGWNAZtHth90Uljh8Ys-ap9JFzjaS0BxcZRdNa84y_7ew5XoIuCSOz64xlDoDlsOvj78tRuFgyhbHuUDEpIUNLCt6O9EBMCx3FvNEkvNMaeHE1VkUj0ennFvbWcYWCtqOZRwNi_EhhnPIOARx67K_F80dplbcpaT9Xb8uQRJlbzGIQeJxTPy4GEq2A_7HgXraqa6ITt6n2oYTIKFqFUzcacvgZJKQkl8KCYl81-aF6L0GFV879E2"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/40">
+<span class="material-symbols-outlined text-white">close</span>
+</div>
+</div>
+<span class="font-label-en-sm text-label-en-sm text-white line-through">Player D</span>
+<span class="font-label-zh-sm text-label-zh-sm text-error-container">Out</span>
+</div>
+</section>
+<!-- Reason Builder Section (Visible when B is selected) -->
+<section class="glass-card rounded-xl p-5 flex flex-col gap-stack-md mt-4 relative overflow-hidden">
+<!-- Decorative gradient blur inside card -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-deep-purple/20 rounded-full blur-3xl"></div>
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-primary-fixed-dim">投票理由</h3>
+<span class="material-symbols-outlined text-deep-purple">edit_note</span>
+</div>
+<div class="bg-black/20 rounded-lg p-4 border border-white/5 font-body-md text-body-md text-white min-h-[100px]">
+                "I vote for B because his story contradicts what C said earlier."
+            </div>
+<div class="flex flex-col gap-stack-sm mt-2">
+<button class="w-full min-h-touch-target-min rounded-full border border-deep-purple/50 bg-deep-purple/10 text-primary-fixed-dim font-label-zh-sm text-label-zh-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                    自动生成英文理由
+                </button>
+<button class="w-full min-h-touch-target-min rounded-full border border-white/20 bg-transparent text-white font-label-zh-sm text-label-zh-sm transition-all active:scale-95">
+                    自己输入
+                </button>
+</div>
+</section>
+<!-- Final Action -->
+<section class="mt-auto pt-stack-md">
+<button class="w-full min-h-[56px] rounded-full bg-deep-purple text-white font-headline-md text-headline-md transition-all active:scale-95 shadow-[0_8px_30px_rgba(79,70,229,0.3)] flex items-center justify-center gap-2">
+                确认投票 <span class="material-symbols-outlined">check_circle</span>
+</button>
+</section>
+</main>
+<!-- BottomNavBar Suppressed as per semantic shell mandate for transactional/focused task screens -->
+<!-- The user is in a focused journey (voting), so we hide the global nav to prioritize the canvas. -->
+</body></html>

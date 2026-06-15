@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Quest Map: Qingyun Path - AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed-variant": "#005236",
+                      "surface": "#f7f9fb",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "surface-bright": "#f7f9fb",
+                      "on-primary-fixed": "#07006c",
+                      "on-secondary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-primary-container": "#fffbff",
+                      "secondary-fixed": "#d8e2ff",
+                      "deep-purple": "#4F46E5",
+                      "secondary": "#0058be",
+                      "soft-mint": "#D1FAE5",
+                      "surface-container": "#eceef0",
+                      "surface-container-low": "#f2f4f6",
+                      "on-tertiary": "#ffffff",
+                      "on-surface-variant": "#464554",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-error": "#ffffff",
+                      "outline-variant": "#c7c4d7",
+                      "on-secondary-fixed-variant": "#004395",
+                      "ai-gradient-end": "#E0E7FF",
+                      "on-tertiary-container": "#000703",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191c1e",
+                      "secondary-container": "#2170e4",
+                      "primary-container": "#6063ee",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "outline": "#767586",
+                      "surface-dim": "#d8dadc",
+                      "surface-container-high": "#e6e8ea",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "inverse-primary": "#c0c1ff",
+                      "surface-container-highest": "#e0e3e5",
+                      "tertiary": "#006c49",
+                      "on-tertiary-fixed": "#002113",
+                      "background": "#f7f9fb",
+                      "surface-variant": "#e0e3e5",
+                      "ai-gradient-start": "#EEF2FF",
+                      "inverse-on-surface": "#eff1f3",
+                      "primary": "#4648d4",
+                      "on-surface": "#191c1e",
+                      "inverse-surface": "#2d3133",
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#00885d",
+                      "primary-fixed": "#e1e0ff",
+                      "on-secondary-fixed": "#001a42",
+                      "on-secondary-container": "#fefcff",
+                      "surface-tint": "#494bd6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-md": "16px",
+                      "margin-mobile": "20px",
+                      "touch-target-min": "44px",
+                      "stack-sm": "8px",
+                      "base": "4px",
+                      "stack-lg": "32px",
+                      "gutter-md": "16px"
+              },
+              "fontFamily": {
+                      "label-zh-sm": [
+                              "Manrope"
+                      ],
+                      "label-en-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Manrope"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "headline-md": [
+                              "Manrope"
+                      ],
+                      "headline-lg-mobile": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "label-zh-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-en-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "26px",
+                              {
+                                      "lineHeight": "34px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bg-lumina {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .ambient-shadow {
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+        }
+        .path-line {
+            background: linear-gradient(to bottom, #4F46E5 0%, #4F46E5 50%, #c7c4d7 50%, #c7c4d7 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-lumina text-on-surface min-h-screen pb-24 font-body-md relative overflow-x-hidden">
+<!-- Background Illustration -->
+<div class="fixed inset-0 z-0 pointer-events-none opacity-40 mix-blend-multiply" data-alt="A mystical, ethereal mountain landscape rendered in a soft minimalist style. The scene is bathed in a pale, almost transparent light mode aesthetic, with subtle hints of luminescent blues and purples filtering through mist. The composition is expansive, suggesting a long journey or quest, utilizing high-quality whitespace and gentle tonal transitions. The mood is calm, intellectual, and mysterious, fitting for an immersive, sophisticated narrative game." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBs7cCY6YviqXaY0wdbzJC33XgTmczPOHYIGJ96KNvbwiVMpYc3rhh6yAdb1u21VhibsPrCCapXPsW-tg-6RAAUCejPLhJJJZmo3Wc7qqeyOBodI8RqC7xaU3xSxLm9CnntnkNtb9gOPamQZdMjimeaJX2AoEls5SC3rjZyydA12V3D2nPLeosi8Z-GdxhOCcVjfQrlWUoHideaS4MAgHk2tRpI859wxXTX-oPo-zflwV35vsdfgjFfb4FxsBxx7Fsp-s_lPYUZNHRx'); background-size: cover; background-position: center;">
+</div>
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 backdrop-blur-xl bg-glass-bg dark:bg-inverse-surface/80 border-b border-white/20 dark:border-outline-variant/10 shadow-sm flex justify-between items-center px-margin-mobile h-14 w-full">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" data-icon="local_fire_department" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-headline-md text-headline-md-mobile text-deep-purple font-bold">12</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile tracking-tight text-deep-purple dark:text-primary-fixed">AinerWise</h1>
+<div class="flex items-center gap-3">
+<img alt="User Profile Avatar" class="w-8 h-8 rounded-full border border-white/50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC61HjGyJfjFOlAIZoMjeVx2R_eToOnxIipSu97SBIYgRWbeQ-wiWaiZdIbbLZTGA-JNH5BU5YZ7qJMDo8RsuYarTQfSOvl4J2R51s0Y2zbW2-bKz-c0CFno2Dmh_p5mlZGL76YuJh1HWK0FYrI3l9x6QKuOiekSLtjGD6VgPIbD7nx0JSXE6li0Dvjt0qKG88jIBEl5aemQy8NcpyQh6giyy8eE2yiXwpIlwi_X2mXgqGsm8f-5rm66SxVw-Xyn-1xOh0NnlSEl9rY"/>
+</div>
+</header>
+<!-- Main Content -->
+<main class="relative z-10 pt-20 px-margin-mobile flex flex-col gap-stack-lg max-w-md mx-auto">
+<div class="text-center">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">Qingyun Path</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Quest Map</p>
+</div>
+<!-- Quest Path -->
+<div class="relative py-8 pl-8 pr-4">
+<!-- Vertical Line -->
+<div class="absolute left-10 top-12 bottom-12 w-1 rounded-full path-line z-0"></div>
+<div class="flex flex-col gap-12 relative z-10">
+<!-- Chapter 1: Completed -->
+<div class="flex gap-stack-md items-start group cursor-pointer hover:opacity-80 transition-opacity">
+<div class="flex flex-col items-center shrink-0 w-6 mt-1">
+<div class="w-6 h-6 rounded-full bg-deep-purple flex items-center justify-center ambient-shadow text-white">
+<span class="material-symbols-outlined text-[14px]" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<div class="glass-card rounded-xl p-4 flex-1 ambient-shadow">
+<span class="font-label-en-sm text-label-en-sm text-primary uppercase tracking-widest">Chapter 1</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mt-1 mb-2">The Awakening</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-3">You discovered the hidden resonance within the ancient jade.</p>
+<button class="bg-white/50 hover:bg-white/80 transition-colors border border-outline-variant/30 rounded-full px-4 py-2 font-label-en-sm text-label-en-sm text-deep-purple flex items-center gap-1 min-h-[touch-target-min]">
+<span class="material-symbols-outlined text-[16px]" data-icon="menu_book">menu_book</span>
+                            Summary
+                        </button>
+</div>
+</div>
+<!-- Chapter 2: Completed -->
+<div class="flex gap-stack-md items-start group cursor-pointer hover:opacity-80 transition-opacity">
+<div class="flex flex-col items-center shrink-0 w-6 mt-1">
+<div class="w-6 h-6 rounded-full bg-deep-purple flex items-center justify-center ambient-shadow text-white">
+<span class="material-symbols-outlined text-[14px]" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+</div>
+<div class="glass-card rounded-xl p-4 flex-1 ambient-shadow">
+<span class="font-label-en-sm text-label-en-sm text-primary uppercase tracking-widest">Chapter 2</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mt-1 mb-2">Echoes of the Past</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-3">Whispers from the ancestors guided you through the bamboo forest maze.</p>
+<button class="bg-white/50 hover:bg-white/80 transition-colors border border-outline-variant/30 rounded-full px-4 py-2 font-label-en-sm text-label-en-sm text-deep-purple flex items-center gap-1 min-h-[touch-target-min]">
+<span class="material-symbols-outlined text-[16px]" data-icon="menu_book">menu_book</span>
+                            Summary
+                        </button>
+</div>
+</div>
+<!-- Chapter 3: Current -->
+<div class="flex gap-stack-md items-start">
+<div class="flex flex-col items-center shrink-0 w-6 mt-1 relative">
+<div class="absolute -inset-2 bg-deep-purple/20 rounded-full animate-ping"></div>
+<div class="w-8 h-8 -ml-1 rounded-full bg-surface border-4 border-deep-purple flex items-center justify-center shadow-lg relative z-10">
+<div class="w-2 h-2 rounded-full bg-deep-purple"></div>
+</div>
+</div>
+<div class="glass-card rounded-xl p-5 flex-1 ambient-shadow border-deep-purple/30 bg-white/90">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-en-sm text-label-en-sm text-primary uppercase tracking-widest flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-soft-mint inline-block"></span> Current
+                            </span>
+</div>
+<h3 class="font-headline-md text-headline-md text-deep-purple mb-2">The Jade Rebellion</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">The factions are moving. You must decide who to trust before the eclipse.</p>
+<button class="w-full bg-deep-purple hover:bg-primary-fixed-variant text-white rounded-full py-3 font-headline-md text-[16px] flex justify-center items-center gap-2 transition-transform active:scale-[0.98] min-h-[touch-target-min] ambient-shadow">
+                            Continue Journey
+                            <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Chapter 4: Locked -->
+<div class="flex gap-stack-md items-start opacity-60">
+<div class="flex flex-col items-center shrink-0 w-6 mt-1">
+<div class="w-6 h-6 rounded-full bg-surface-variant border-2 border-outline-variant flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="lock">lock</span>
+</div>
+</div>
+<div class="glass-card rounded-xl p-4 flex-1 bg-surface-container/50 border-dashed border-outline-variant/50">
+<span class="font-label-en-sm text-label-en-sm text-outline uppercase tracking-widest">Chapter 4</span>
+<h3 class="font-headline-md text-headline-md text-on-surface-variant mt-1">Mountain’s Shadow</h3>
+<p class="font-body-md text-body-md text-outline mt-2 italic">Complete previous chapters to unlock.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 backdrop-blur-2xl rounded-t-xl bg-glass-bg dark:bg-inverse-surface/90 border-t border-white/20 dark:border-outline-variant/10 shadow-[0_-4px_20px_rgba(79,70,229,0.1)] flex justify-around items-center pt-2 pb-safe w-full min-h-[72px]">
+<button class="flex flex-col items-center justify-center text-outline dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed min-w-[64px] min-h-[touch-target-min]">
+<span class="material-symbols-outlined text-[24px] mb-1" data-icon="home">home</span>
+<span class="font-label-en-sm text-label-en-sm">Home</span>
+</button>
+<!-- Active Tab: Game -->
+<button class="flex flex-col items-center justify-center text-deep-purple dark:text-primary-fixed-dim relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-deep-purple after:rounded-full Active: scale-90 transition-transform duration-150 min-w-[64px] min-h-[touch-target-min]">
+<span class="material-symbols-outlined text-[24px] mb-1" data-icon="sports_esports" data-weight="fill" style="font-variation-settings: 'FILL' 1;">sports_esports</span>
+<span class="font-label-en-sm text-label-en-sm font-bold">Game</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed min-w-[64px] min-h-[touch-target-min]">
+<span class="material-symbols-outlined text-[24px] mb-1" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-en-sm text-label-en-sm">Assets</span>
+</button>
+<button class="flex flex-col items-center justify-center text-outline dark:text-surface-variant hover:text-primary dark:hover:text-primary-fixed min-w-[64px] min-h-[touch-target-min]">
+<span class="material-symbols-outlined text-[24px] mb-1" data-icon="person">person</span>
+<span class="font-label-en-sm text-label-en-sm">Me</span>
+</button>
+</nav>
+</body></html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Match Details | AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Plus+Jakarta+Sans:wght@100..900&amp;family=beVietnamPro:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .resonance-glow {
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.15);
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "surface-tint": "#732ee4",
+                "on-surface-variant": "#4a4455",
+                "error": "#ba1a1a",
+                "surface-container-lowest": "#ffffff",
+                "on-secondary-fixed": "#001a42",
+                "surface-dim": "#d2d9f4",
+                "surface-bright": "#faf8ff",
+                "secondary": "#0058be",
+                "on-secondary": "#ffffff",
+                "on-primary-fixed-variant": "#5a00c6",
+                "tertiary-container": "#007650",
+                "error-container": "#ffdad6",
+                "secondary-fixed-dim": "#adc6ff",
+                "on-tertiary": "#ffffff",
+                "on-primary-container": "#ede0ff",
+                "on-primary-fixed": "#25005a",
+                "tertiary-fixed": "#6ffbbe",
+                "primary-fixed": "#eaddff",
+                "on-error-container": "#93000a",
+                "on-primary": "#ffffff",
+                "surface": "#faf8ff",
+                "secondary-fixed": "#d8e2ff",
+                "inverse-surface": "#283044",
+                "tertiary-fixed-dim": "#4edea3",
+                "secondary-container": "#2170e4",
+                "tertiary": "#005b3d",
+                "on-tertiary-container": "#76ffc2",
+                "surface-container": "#eaedff",
+                "primary-container": "#7c3aed",
+                "surface-container-highest": "#dae2fd",
+                "surface-container-low": "#f2f3ff",
+                "outline-variant": "#ccc3d8",
+                "on-tertiary-fixed": "#002113",
+                "on-secondary-fixed-variant": "#004395",
+                "inverse-primary": "#d2bbff",
+                "on-tertiary-fixed-variant": "#005236",
+                "surface-variant": "#dae2fd",
+                "surface-container-high": "#e2e7ff",
+                "on-surface": "#131b2e",
+                "primary-fixed-dim": "#d2bbff",
+                "inverse-on-surface": "#eef0ff",
+                "primary": "#630ed4",
+                "outline": "#7b7487",
+                "on-secondary-container": "#fefcff",
+                "background": "#faf8ff",
+                "on-error": "#ffffff",
+                "on-background": "#131b2e"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+              },
+              "spacing": {
+                "touch-target-min": "44px",
+                "margin-desktop": "32px",
+                "margin-mobile": "20px",
+                "gutter": "16px",
+                "base": "8px"
+              },
+              "fontFamily": {
+                "body-md": ["beVietnamPro"],
+                "label-sm": ["Inter"],
+                "headline-xl-mobile": ["Plus Jakarta Sans"],
+                "headline-md": ["Plus Jakarta Sans"],
+                "headline-lg": ["Plus Jakarta Sans"],
+                "body-lg": ["beVietnamPro"],
+                "headline-xl": ["Plus Jakarta Sans"]
+              },
+              "fontSize": {
+                "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                "headline-xl-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                "headline-xl": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md selection:bg-primary-container/30">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-margin-mobile h-16">
+<button class="active:scale-95 transition-transform duration-200 text-on-surface">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md-mobile text-primary">Match Detail</h1>
+<button class="active:scale-95 transition-transform duration-200 text-on-surface">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</header>
+<main class="pt-24 pb-32 px-margin-mobile max-w-lg mx-auto">
+<!-- Intellectual Resonance Score -->
+<section class="mb-10 text-center relative">
+<div class="absolute inset-0 -z-10 flex justify-center items-center opacity-30">
+<div class="w-48 h-48 bg-primary rounded-full blur-[60px]"></div>
+</div>
+<div class="relative inline-block mb-4">
+<svg class="w-32 h-32 transform -rotate-90">
+<circle class="text-surface-container-highest" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary-container" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" stroke-dasharray="364.4" stroke-dashoffset="29" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-headline-xl text-headline-xl-mobile text-primary">92%</span>
+<span class="text-[10px] uppercase tracking-widest text-on-surface-variant font-label-sm">Resonance</span>
+</div>
+</div>
+<h2 class="font-headline-lg text-headline-lg-mobile text-on-surface">High-Alignment Sync</h2>
+<p class="text-body-md text-on-surface-variant mt-2 px-4">Your core concepts regarding <span class="text-primary font-medium">Digital Ethics</span> and <span class="text-primary font-medium">Sovereignty</span> are deeply interlinked.</p>
+</section>
+<!-- Participant Profiles -->
+<section class="mb-10">
+<h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-4">Intellectual Cohort</h3>
+<div class="space-y-4">
+<!-- User Card 1 -->
+<div class="glass-card resonance-glow rounded-xl p-4 flex flex-col gap-4 shadow-sm border border-white/40">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img alt="Julian's Avatar" class="w-full h-full object-cover" data-alt="A professional, artistic studio portrait of a sophisticated young man with glasses, wearing a minimalist black turtleneck. The lighting is soft and cinematic, with a clean, high-key white background that matches a premium, modern UI aesthetic. The overall mood is intelligent, calm, and scholarly." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXKf1_-PAEdNgWG4AkKRp48JtpdNzAQcGoZvNqW8NM48k8hm-sorn4kZkIFGkSFTP_jTeAAakLZW-7kmOMZ-L5XvxrbLZztmH4COdCnnet-bIMRSAiGjXGVSiglGgAXgqBsLUmuQmQ80a9Kk12GEAvjzYCpx2VmMxsCf1tT7_UiEfRm1gff6iTi59qfphRQ4YjdhheBGE8TyxXEdfKWZcxBxoStOk4tAA2agDclipWQYkqivAC98P3G8fBXmBxPR6xkTCe_T1vnP0"/>
+</div>
+<div>
+<h4 class="font-headline-md text-on-surface">Julian V.</h4>
+<div class="flex gap-1 mt-1">
+<span class="bg-surface-container px-2 py-0.5 rounded text-[10px] font-medium text-on-surface-variant">Lvl 8 Architect</span>
+<span class="bg-primary-container/10 px-2 py-0.5 rounded text-[10px] font-medium text-primary">Philosophy</span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<div class="bg-surface-bright/50 p-3 rounded-lg border border-outline-variant/20 italic text-body-md text-on-surface-variant">
+                        "The intersection of algorithmic governance and individual moral agency is the defining crisis of our decade."
+                    </div>
+</div>
+<!-- User Card 2 -->
+<div class="glass-card rounded-xl p-4 flex flex-col gap-4 shadow-sm border border-white/40">
+<div class="flex items-start justify-between">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img alt="Elena's Avatar" class="w-full h-full object-cover" data-alt="A close-up studio photograph of a young woman with a thoughtful, creative expression, wearing minimalist silver earrings. The background is a soft, out-of-focus lavender gradient that feels modern and high-end. The lighting is balanced and professional, creating an atmosphere of intellectual curiosity and professional poise." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCANDnZ3suhNpHYSYLax2YK78c34Icluj4ZvWSrKWO0XCla4FPSKqKFMAfcZS85pZmqmWkeP8kgRmdJ-I2faYc8nR0jxXHAxkul0O7YrkjjybY5-kQk1Rt-OCwH60HX8-tBkGfINCFht-rZA43A0qRoJd11Gnuy0wGihYqil1RLQ1ERq19JNgEqrP1bD2yst2kefS7ZYqoVhw75Lde6CO4V0WdCmllzP-g75I80Wg9IRXK2p5pQq0M7M9fUN2BtUHDL2hqi0aXbcfs"/>
+</div>
+<div>
+<h4 class="font-headline-md text-on-surface">Elena S.</h4>
+<div class="flex gap-1 mt-1">
+<span class="bg-surface-container px-2 py-0.5 rounded text-[10px] font-medium text-on-surface-variant">Lvl 6 Architect</span>
+<span class="bg-primary-container/10 px-2 py-0.5 rounded text-[10px] font-medium text-primary">Sociology</span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline">verified</span>
+</div>
+<div class="bg-surface-bright/50 p-3 rounded-lg border border-outline-variant/20 italic text-body-md text-on-surface-variant">
+                        "If we digitize empathy, do we lose the human 'noise' that makes social structures resilient?"
+                    </div>
+</div>
+</div>
+</section>
+<!-- Shared Discussion Foundation -->
+<section class="mb-10 bg-white/60 p-6 rounded-2xl border border-primary-container/10 shadow-inner">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">mediation</span>
+<h3 class="font-headline-md text-on-surface">Synthesis Foundation</h3>
+</div>
+<div class="space-y-4">
+<div class="flex gap-3">
+<div class="w-1 h-auto bg-primary-container rounded-full"></div>
+<p class="text-body-md text-on-surface-variant">
+<strong class="text-on-surface">Shared Axiom:</strong> Both assets agree that decentralized platforms are necessary for preserving semantic nuance in professional discourse.
+                    </p>
+</div>
+<div class="flex gap-3">
+<div class="w-1 h-auto bg-tertiary-fixed-dim rounded-full"></div>
+<p class="text-body-md text-on-surface-variant">
+<strong class="text-on-surface">Tension Point:</strong> Julian prioritizes structural automation, while Elena argues for human-in-the-loop validation layers.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Visual Asset Placeholder (Atmospheric) -->
+<div class="mb-10 h-32 rounded-3xl overflow-hidden relative group">
+
+<div class="absolute inset-0 flex items-center justify-center bg-primary/5">
+<span class="text-[10px] font-bold tracking-[0.3em] text-primary/40 uppercase">AI Synaptic Mapping</span>
+</div>
+</div>
+</main>
+<!-- Bottom Action Bar -->
+<footer class="fixed bottom-0 left-0 w-full bg-surface/90 backdrop-blur-2xl border-t border-outline-variant/20 px-margin-mobile py-6 z-50">
+<div class="max-w-lg mx-auto">
+<button class="w-full h-14 bg-primary text-white rounded-xl font-headline-md shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group">
+                Enter Discussion Room
+                <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<p class="text-center text-[11px] text-on-surface-variant mt-3 opacity-60 font-label-sm uppercase tracking-wider">Session starts in 02:45</p>
+</div>
+</footer>
+<!-- Bottom Navigation Bar (Hidden on this focused detail screen as per Shell Visibility rules) -->
+<!-- We hide the shell to prioritize the 'Enter Room' journey. -->
+<script>
+        // Micro-interaction for resonance score
+        document.addEventListener('DOMContentLoaded', () => {
+            const score = document.querySelector('.resonance-glow');
+            if(score) {
+                setTimeout(() => {
+                    score.classList.add('transition-all', 'duration-1000');
+                    score.style.transform = 'scale(1.02)';
+                }, 500);
+            }
+        });
+    </script>
+</body></html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AinerWise Game Lobby</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "on-tertiary-fixed": "#002113",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "on-secondary-fixed": "#001a42",
+                        "surface": "#f7f9fb",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-container-low": "#f2f4f6",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#006c49",
+                        "primary-fixed": "#e1e0ff",
+                        "secondary-container": "#2170e4",
+                        "primary": "#4648d4",
+                        "surface-variant": "#e0e3e5",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "deep-purple": "#4F46E5",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#000703",
+                        "on-error": "#ffffff",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-secondary": "#ffffff",
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#fefcff",
+                        "on-surface": "#191c1e",
+                        "tertiary-container": "#00885d",
+                        "error-container": "#ffdad6",
+                        "background": "#f7f9fb",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-background": "#191c1e",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-container": "#6063ee",
+                        "surface-container": "#eceef0",
+                        "on-primary-fixed": "#07006c",
+                        "outline-variant": "#c7c4d7",
+                        "on-primary-container": "#fffbff",
+                        "surface-bright": "#f7f9fb",
+                        "soft-mint": "#D1FAE5",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-secondary-fixed-variant": "#004395",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-tint": "#494bd6",
+                        "secondary": "#0058be",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "surface-dim": "#d8dadc",
+                        "outline": "#767586",
+                        "inverse-surface": "#2d3133",
+                        "on-surface-variant": "#464554"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "base": "4px",
+                        "margin-mobile": "20px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "stack-sm": "8px",
+                        "safe-bottom": "env(safe-area-inset-bottom)"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "body-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Subtle lumina animation background */
+        .lumina-bg {
+            background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                        radial-gradient(circle at bottom right, rgba(0, 108, 73, 0.05) 0%, transparent 40%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md antialiased min-h-screen pb-[90px] lumina-bg selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop h-touch-target-min bg-surface/70 dark:bg-on-tertiary-container/30 backdrop-blur-xl border-b border-white/20 shadow-[0_4px_20px_-5px_rgba(99,102,241,0.15)]">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-white/40 shadow-sm flex-shrink-0">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTssX1qYipE-RRDJVsfGh6VF81sNg_D22GX8xElbSjmXfCUBjVfE5j0aYFWAms-vwnm9aFzrsDmpABK2Crz0l9PU2jonjXtB3aXYmvnXeoFDJH5L-efJKMYvY945Auri0xRkkREd43uhj5wWwkyoiVvSOuB_UW2j09FK0S39CZqJLf1kkLh3b4QlLRHSRdlnZss839tFV26GXRnZUAvBc4SqoueWe8xcUhs70leOE0GKHq4n6JB5yPSBGOLSDHmXWP4mVBUh-3MeKU"/>
+</div>
+<span class="font-headline-md text-headline-md font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">AinerWise</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1 bg-surface-container/50 rounded-full px-3 py-1 border border-white/30">
+<span class="material-symbols-outlined text-[#FF9800] text-sm" data-icon="local_fire_department" data-weight="fill">local_fire_department</span>
+<span class="font-label-en-sm text-label-en-sm font-bold text-on-surface">12</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 transition-colors active:scale-95 duration-200 text-primary">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="pt-[60px] px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto space-y-stack-lg">
+<!-- Hero Featured Game -->
+<section class="mt-stack-md">
+<div class="relative w-full h-[400px] rounded-[24px] overflow-hidden group cursor-pointer shadow-[0_8px_30px_-10px_rgba(99,102,241,0.2)] border border-white/40">
+<!-- Image with data-alt for high-end aesthetic prompt -->
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="A highly atmospheric, cinematic digital painting of a sophisticated detective's desk lit by a single glowing lamp casting long, dramatic shadows. The scene incorporates subtle, glowing neon-purple and deep indigo accents, reflecting a modern, ethereal, soft-minimalist glassmorphism style. Suspended, translucent geometric data fragments float in the air above a classic leather-bound journal, merging classic mystery aesthetics with advanced AI elements. The lighting is soft but high-contrast, designed to inspire adult learners with a sense of intellectual curiosity." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBjY-YWW1Ze8GPwzU7_MIOhARcEA_rXRb-__LI8lMGm4Oxt7pRlMRynC-keWNphhCBIalXLq8f2pIt2WU8Fj6lI-5-zFvRaVOqG4jITlCpX0XFTgFyFCGdEV2os7SbHIvyPIAc8fKB1BJtbGdZJIuxUTtyauUTWS2qlkWVbxZS-V1n7C-fZGCH5qVGYO08nqSwNH8uQnLR-xEtFECj5owOtmTKI8jgIat8H1DR7dNvgi6CAUC2hKRsBvaHP69UL2Q6hln4ERLJWxdei');">
+</div>
+<!-- Gradient Overlay -->
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+<!-- Content -->
+<div class="absolute bottom-0 left-0 w-full p-6 flex flex-col justify-end">
+<div class="flex items-center gap-2 mb-2">
+<span class="px-2 py-1 rounded-md bg-tertiary-container/80 backdrop-blur-md text-on-tertiary text-xs font-bold uppercase tracking-wider">Featured</span>
+<span class="px-2 py-1 rounded-md bg-glass-bg backdrop-blur-md text-on-surface text-xs font-semibold flex items-center gap-1 border border-white/20">
+<span class="material-symbols-outlined text-[14px]" data-icon="group">group</span> 4k+ Active
+                        </span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-white mb-2 shadow-sm drop-shadow-md">The Midnight Heist</h1>
+<p class="font-body-md text-body-md text-white/90 mb-4 line-clamp-2 max-w-xl">
+                        A collaborative mystery where you must interrogate AI suspects, analyze clues, and use your B2 level vocabulary to crack the case before dawn.
+                    </p>
+<button class="self-start h-touch-target-min px-6 bg-primary text-on-primary rounded-full font-label-en-sm text-label-en-sm font-bold flex items-center justify-center gap-2 hover:bg-primary-container active:scale-95 transition-all shadow-[0_4px_15px_rgba(70,72,212,0.4)]">
+<span class="material-symbols-outlined" data-icon="play_arrow" data-weight="fill">play_arrow</span>
+                        Enter Game
+                    </button>
+</div>
+</div>
+</section>
+<!-- New & Trending -->
+<section>
+<div class="flex justify-between items-end mb-stack-sm">
+<h2 class="font-headline-md text-headline-md text-on-surface">New &amp; Trending</h2>
+<button class="text-primary font-label-en-sm text-label-en-sm hover:underline">View All</button>
+</div>
+<div class="flex overflow-x-auto hide-scrollbar gap-gutter-md pb-4 -mx-margin-mobile px-margin-mobile snap-x">
+<!-- Card 1 -->
+<div class="snap-start flex-none w-[280px] bg-glass-bg backdrop-blur-xl border border-white/50 rounded-xl overflow-hidden shadow-sm hover:shadow-[0_8px_20px_-5px_rgba(99,102,241,0.15)] transition-all cursor-pointer">
+<div class="h-32 w-full relative bg-cover bg-center" data-alt="A minimalist, soft-focus 3D rendering of a glowing, ethereal sea turtle floating in an abstract digital ocean. The water is represented by smooth, translucent glass-like waves in soft mint and deep blue hues, catching subtle purple light. The composition is clean, modern, and serene, fitting a sophisticated adult learning environment." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB0kWm8WxcJISRT61VObkrsI_I9w3_HI0e9d8aa-ex3E0k8arIU5YuA0jq7riq6N5E8q79Qvp1u-NMXfydmEpRCHNYTzwZRQOLo5SQR7y4NIzRnHsbE-bLIHFT0F4o3hXrV52299e4-YIFCumNMY3YmLbmt3mWXBLYXjyrSMAFtjPlzNsrIYb2y0tucavFfKo4KgaMz1PyQGDFV3wYSJk-mRPyxIyC-vBuEiH8bG5HMILNlHTqjVR5wjNI5ywieHHWmCHUy7Q8qZz1f');">
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded text-white text-xs font-bold border border-white/20">B1</div>
+</div>
+<div class="p-4">
+<div class="flex items-start justify-between gap-2 mb-1">
+<h3 class="font-headline-md text-[16px] leading-[22px] font-semibold text-on-surface line-clamp-1">Sea Turtle Soup: The Island</h3>
+</div>
+<p class="font-body-md text-[13px] leading-[18px] text-on-surface-variant mb-3 line-clamp-2">Ask yes/no questions to solve lateral thinking puzzles.</p>
+<div class="flex items-center justify-between mt-auto">
+<span class="text-xs text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="person">person</span> 1-4 Players</span>
+<button class="bg-primary/10 text-primary h-8 px-4 rounded-full font-label-en-sm text-[11px] font-semibold hover:bg-primary hover:text-white transition-colors">Play</button>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="snap-start flex-none w-[280px] bg-glass-bg backdrop-blur-xl border border-white/50 rounded-xl overflow-hidden shadow-sm hover:shadow-[0_8px_20px_-5px_rgba(99,102,241,0.15)] transition-all cursor-pointer">
+<div class="h-32 w-full relative bg-cover bg-center" data-alt="A sleek, modern stylized illustration of a futuristic sci-fi cityscape viewed through a frosted glass window. Glowing neon accents in primary purple and soft mint illuminate the misty atmosphere. The style is soft-minimalist, ethereal, and sophisticated, avoiding overly complex detailing in favor of bold, atmospheric shapes that inspire intellectual engagement." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAA_gooIFtWVz7RxdWfTeanUXhgCFkeoSagcxmSIOo2VdnxCvDnDPmXaVwwu6ktJIrHVvf7drkvhmPxl-Hk4wDhGzgxDsI-_7pP35NN4OPTYdTxRKWrl3y3nGVzyE1-3li49PsS9QFpALIgMNwP0xfKwbOpt68WJ9cYkBuVRsnUfP10dDHaXhye3FkXqJM7DiVGwl6mzRGUshydKZIoZZIwxdpbWaqAZsB2x3l2Sb2xz8X7jW7LRyEKmHhSXwz5kQ1QQGIup_gpMZep');">
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded text-white text-xs font-bold border border-white/20">C1</div>
+</div>
+<div class="p-4">
+<div class="flex items-start justify-between gap-2 mb-1">
+<h3 class="font-headline-md text-[16px] leading-[22px] font-semibold text-on-surface line-clamp-1">Cyber-Diplomat RPG</h3>
+</div>
+<p class="font-body-md text-[13px] leading-[18px] text-on-surface-variant mb-3 line-clamp-2">Negotiate peace treaties in a hostile alien environment.</p>
+<div class="flex items-center justify-between mt-auto">
+<span class="text-xs text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="person">person</span> Solo</span>
+<button class="bg-primary/10 text-primary h-8 px-4 rounded-full font-label-en-sm text-[11px] font-semibold hover:bg-primary hover:text-white transition-colors">Play</button>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="snap-start flex-none w-[280px] bg-glass-bg backdrop-blur-xl border border-white/50 rounded-xl overflow-hidden shadow-sm hover:shadow-[0_8px_20px_-5px_rgba(99,102,241,0.15)] transition-all cursor-pointer">
+<div class="h-32 w-full relative bg-cover bg-center" data-alt="An abstract, high-end visualization of interlocking gears and speech bubbles rendered in frosted glass materials. Soft, diffused lighting passes through the translucent objects, casting subtle primary purple and secondary blue shadows on a pristine white surface. The image conveys communication, logic, and intellectual expansion in a premium, ethereal visual style." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAKQ3Ew7DjevPBjksMelIu8Lc8K-TX32SnIluMh2vaEOfGB12qyP2BNQuPYW368t5DeNEHTJYHFUH72FvyPwla6BWlBeker1ccgZaup1K4PAPUXAhioO0ExZIiWNZ_TECWozJpDfivp4LHnqLzBpquXghCTchQ8eVIx0Lp1EJDezOoH5rRHGcS88rtGwtT-y_aMevUKMG4A3kwL_tm_o3zoRG-G9eJLMmTywVz_zsDO4C1jJVPxW-Q5YE_LuKKv-t7WZp7OWleNzlZW');">
+<div class="absolute top-2 right-2 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded text-white text-xs font-bold border border-white/20">A2</div>
+</div>
+<div class="p-4">
+<div class="flex items-start justify-between gap-2 mb-1">
+<h3 class="font-headline-md text-[16px] leading-[22px] font-semibold text-on-surface line-clamp-1">Debate Club: The Cafe</h3>
+</div>
+<p class="font-body-md text-[13px] leading-[18px] text-on-surface-variant mb-3 line-clamp-2">Practice argumentation on casual, everyday topics.</p>
+<div class="flex items-center justify-between mt-auto">
+<span class="text-xs text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="group">group</span> 2-6 Players</span>
+<button class="bg-primary/10 text-primary h-8 px-4 rounded-full font-label-en-sm text-[11px] font-semibold hover:bg-primary hover:text-white transition-colors">Play</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-2 px-4 pb-[max(8px,env(safe-area-inset-bottom))] bg-on-tertiary-container/5 dark:bg-on-tertiary-container/40 backdrop-blur-md shadow-[0_-4px_16px_rgba(0,0,0,0.05)] rounded-t-xl md:hidden">
+<!-- Inactive: Home -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-label-en-sm text-[10px]">Home</span>
+</a>
+<!-- Inactive: Chat -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-en-sm text-[10px]">Chat</span>
+</a>
+<!-- Active: Game -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-90 transition-transform shadow-sm" href="#">
+<span class="material-symbols-outlined mb-0.5" data-icon="videogame_asset" data-weight="fill">videogame_asset</span>
+<span class="font-label-en-sm text-[10px] font-bold">Game</span>
+</a>
+<!-- Inactive: Assets -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-en-sm text-[10px]">Assets</span>
+</a>
+<!-- Inactive: Me -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity active:scale-90 transition-transform w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-label-en-sm text-[10px]">Me</span>
+</a>
+</nav>
+</body></html>

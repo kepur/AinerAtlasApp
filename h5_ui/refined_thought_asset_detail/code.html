@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AinerWise - 思想资产详情</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "tertiary-container": "#00885d",
+                "on-surface-variant": "#464554",
+                "on-surface": "#191c1e",
+                "on-secondary": "#ffffff",
+                "on-tertiary-fixed": "#002113",
+                "soft-mint": "#D1FAE5",
+                "error": "#ba1a1a",
+                "primary-container": "#6063ee",
+                "outline": "#767586",
+                "surface-container-lowest": "#ffffff",
+                "secondary-container": "#2170e4",
+                "surface-container-highest": "#e0e3e5",
+                "on-error": "#ffffff",
+                "on-tertiary-container": "#000703",
+                "on-background": "#191c1e",
+                "inverse-surface": "#2d3133",
+                "background": "#f7f9fb",
+                "tertiary": "#006c49",
+                "primary": "#4648d4",
+                "surface-variant": "#e0e3e5",
+                "on-tertiary": "#ffffff",
+                "on-secondary-container": "#fefcff",
+                "on-tertiary-fixed-variant": "#005236",
+                "ai-gradient-start": "#EEF2FF",
+                "ai-gradient-end": "#E0E7FF",
+                "on-primary-fixed": "#07006c",
+                "primary-fixed": "#e1e0ff",
+                "outline-variant": "#c7c4d7",
+                "surface-container-high": "#e6e8ea",
+                "on-primary-container": "#fffbff",
+                "secondary-fixed": "#d8e2ff",
+                "surface-bright": "#f7f9fb",
+                "on-error-container": "#93000a",
+                "surface-tint": "#494bd6",
+                "tertiary-fixed": "#6ffbbe",
+                "surface": "#f7f9fb",
+                "on-primary-fixed-variant": "#2f2ebe",
+                "surface-container": "#eceef0",
+                "glass-bg": "rgba(255, 255, 255, 0.7)",
+                "inverse-primary": "#c0c1ff",
+                "primary-fixed-dim": "#c0c1ff",
+                "tertiary-fixed-dim": "#4edea3",
+                "on-secondary-fixed-variant": "#004395",
+                "on-secondary-fixed": "#001a42",
+                "deep-purple": "#4F46E5",
+                "surface-container-low": "#f2f4f6",
+                "error-container": "#ffdad6",
+                "surface-dim": "#d8dadc",
+                "secondary": "#0058be",
+                "inverse-on-surface": "#eff1f3",
+                "on-primary": "#ffffff",
+                "secondary-fixed-dim": "#adc6ff"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "spacing": {
+                "touch-target-min": "44px",
+                "gutter-md": "16px",
+                "stack-sm": "8px",
+                "stack-md": "16px",
+                "stack-lg": "32px",
+                "margin-mobile": "20px",
+                "base": "4px"
+            },
+            "fontFamily": {
+                "headline-md": ["Manrope"],
+                "label-en-sm": ["Inter"],
+                "label-zh-sm": ["Manrope"],
+                "headline-lg": ["Manrope"],
+                "body-md": ["Manrope"],
+                "body-lg": ["Manrope"],
+                "headline-lg-mobile": ["Manrope"]
+            },
+            "fontSize": {
+                "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.04);
+        }
+        .lumina-bg {
+            background: radial-gradient(circle at 10% 10%, #EEF2FF 0%, transparent 40%),
+                        radial-gradient(circle at 90% 90%, #E0E7FF 0%, transparent 40%),
+                        #f7f9fb;
+        }
+        .active-pill {
+            background: #4F46E5;
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .ai-gradient-btn {
+            background: linear-gradient(135deg, #4F46E5 0%, #4648d4 50%, #0058be 100%);
+            box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.4);
+        }
+        
+        .tab-indicator {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: #4F46E5;
+        }
+    </style>
+</head>
+<body class="lumina-bg min-h-screen font-body-md text-on-surface antialiased pb-28">
+<!-- Header: Clean Fixed TopAppBar -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-outline-variant/20 px-margin-mobile flex justify-between items-center h-[64px]">
+<button class="w-touch-target-min h-touch-target-min flex items-center justify-start text-on-surface active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-on-surface">思想资产</h1>
+<button class="w-touch-target-min h-touch-target-min flex items-center justify-end text-on-surface active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[24px]">more_horiz</span>
+</button>
+</header>
+<main class="mt-[84px] px-margin-mobile space-y-stack-lg">
+<!-- Title Card: Glassmorphism with Badges -->
+<section class="glass-card rounded-[28px] p-stack-md relative overflow-hidden">
+<!-- Subtle gradient background overlay -->
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 pointer-events-none"></div>
+<div class="relative z-10">
+<div class="flex justify-between items-center mb-stack-sm">
+<div class="flex gap-2">
+<span class="px-2 py-0.5 bg-primary-fixed text-on-primary-fixed font-label-zh-sm text-[11px] rounded-lg font-bold">v4</span>
+<span class="px-2 py-0.5 bg-soft-mint text-tertiary-fixed-variant font-label-zh-sm text-[11px] rounded-lg flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: 'FILL' 1;">ac_unit</span>
+                            已 Freeze
+                        </span>
+</div>
+<span class="text-on-surface-variant font-label-zh-sm text-[12px]">昨天 21:34</span>
+</div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface leading-tight mb-stack-sm">
+                    为什么我想去欧洲发展
+                </h2>
+<div class="flex gap-2 text-on-surface-variant font-label-zh-sm text-label-zh-sm mb-stack-lg">
+<span>人生规划</span>
+<span class="opacity-30">•</span>
+<span>移民</span>
+<span class="opacity-30">•</span>
+<span>价值观</span>
+</div>
+<!-- Primary Actions -->
+<div class="grid grid-cols-3 gap-stack-sm">
+<button class="col-span-1 h-[56px] ai-gradient-btn text-white rounded-2xl flex flex-col items-center justify-center transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+<span class="text-[10px] font-bold mt-0.5">继续迭代</span>
+</button>
+<button class="col-span-1 h-[56px] glass-card border-none bg-white/60 text-on-surface-variant rounded-2xl flex flex-col items-center justify-center transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">public</span>
+<span class="text-[10px] font-bold mt-0.5">转公开</span>
+</button>
+<button class="col-span-1 h-[56px] glass-card border-none bg-white/60 text-on-surface-variant rounded-2xl flex flex-col items-center justify-center transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+<span class="text-[10px] font-bold mt-0.5">语音练习</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Version Tabs -->
+<nav class="flex overflow-x-auto hide-scrollbar gap-6 border-b border-outline-variant/30 px-2">
+<button class="pb-3 font-label-zh-sm text-label-zh-sm text-on-surface-variant whitespace-nowrap transition-colors">中文原文</button>
+<button class="pb-3 font-label-zh-sm text-label-zh-sm text-deep-purple whitespace-nowrap relative font-bold transition-colors">
+                自然英文
+                <span class="tab-indicator"></span>
+</button>
+<button class="pb-3 font-label-zh-sm text-label-zh-sm text-on-surface-variant whitespace-nowrap transition-colors">口语版</button>
+<button class="pb-3 font-label-zh-sm text-label-zh-sm text-on-surface-variant whitespace-nowrap transition-colors">书面版</button>
+<button class="pb-3 font-label-zh-sm text-label-zh-sm text-on-surface-variant whitespace-nowrap transition-colors">高级版</button>
+</nav>
+<!-- Main Content Card: Elevated Typography -->
+<section class="glass-card rounded-[28px] p-6 relative">
+<div class="flex gap-4 items-start">
+<div class="flex-1">
+<p class="font-headline-md text-[22px] text-on-surface leading-[1.4] mb-stack-lg">
+                        “I want to move to Europe not only for <span class="bg-primary/5 border-b-2 border-primary/30 text-primary font-bold">better opportunities</span>, but also for a <span class="bg-primary/5 border-b-2 border-primary/30 text-primary font-bold">freer and more stable life</span>.”
+                    </p>
+<p class="font-body-md text-body-md text-on-surface-variant italic border-l-2 border-primary/20 pl-4 py-1">
+                        我想去欧洲，不仅是为了更好的机会，也是为了更自由、更稳定的生活。
+                    </p>
+</div>
+<button class="w-[48px] h-[48px] flex items-center justify-center rounded-full bg-primary-fixed text-on-primary-fixed shadow-md active:scale-90 transition-all shrink-0">
+<span class="material-symbols-outlined text-[24px]">volume_up</span>
+</button>
+</div>
+<!-- Contextual Actions -->
+<div class="flex flex-wrap gap-2 mt-8">
+<button class="px-4 h-9 rounded-full bg-secondary-container/10 text-secondary-container font-label-zh-sm text-[12px] flex items-center gap-1.5 font-bold active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">extension</span>
+                    加入消消乐
+                </button>
+<button class="px-4 h-9 rounded-full bg-secondary-container/10 text-secondary-container font-label-zh-sm text-[12px] flex items-center gap-1.5 font-bold active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                    生成相似句
+                </button>
+<button class="px-4 h-9 rounded-full bg-primary/10 text-primary font-label-zh-sm text-[12px] flex items-center gap-1.5 font-bold active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">play_circle</span>
+                    朗读整段
+                </button>
+</div>
+</section>
+<!-- Sentence Explanation Card -->
+<section class="glass-card rounded-[28px] p-6 border-l-4 border-l-deep-purple">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-deep-purple" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+                这一句为什么这样写
+            </h3>
+<ul class="space-y-5 mb-8">
+<li class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-deep-purple mt-[10px] shrink-0"></div>
+<p class="font-body-md text-on-surface leading-snug">
+<strong class="text-deep-purple font-bold">not only...but also...</strong> 用来表达两个并列原因，增强逻辑递进感。
+                    </p>
+</li>
+<li class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-deep-purple mt-[10px] shrink-0"></div>
+<p class="font-body-md text-on-surface leading-snug">
+<strong class="text-deep-purple font-bold">a freer and more stable life</strong> 这种形容词并列方式比单一描述更具画面感。
+                    </p>
+</li>
+<li class="flex items-start gap-4">
+<div class="w-2 h-2 rounded-full bg-deep-purple mt-[10px] shrink-0"></div>
+<p class="font-body-md text-on-surface leading-snug">
+<strong class="text-deep-purple font-bold">opportunities</strong> 比 jobs 词义更广，体现了对长期发展的深层考虑。
+                    </p>
+</li>
+</ul>
+<!-- Pattern Chips -->
+<div class="flex flex-wrap gap-2 pt-6 border-t border-outline-variant/20">
+<span class="px-3 py-1.5 bg-surface-container-high text-on-surface-variant font-label-en-sm text-[11px] rounded-full flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[14px]">bookmark</span>
+                    not only...but also
+                </span>
+<span class="px-3 py-1.5 bg-surface-container-high text-on-surface-variant font-label-en-sm text-[11px] rounded-full flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[14px]">bookmark</span>
+                    freer and more stable
+                </span>
+<span class="px-3 py-1.5 bg-surface-container-high text-on-surface-variant font-label-en-sm text-[11px] rounded-full flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[14px]">bookmark</span>
+                    opportunities
+                </span>
+</div>
+</section>
+<!-- Generation Options -->
+<section class="space-y-stack-md">
+<h3 class="font-headline-md text-headline-md text-on-surface px-1">可生成版本</h3>
+<div class="flex overflow-x-auto hide-scrollbar gap-stack-md pb-4 px-1">
+<!-- Version Option 1 -->
+<div class="min-w-[140px] aspect-[4/5] glass-card rounded-[24px] p-stack-md flex flex-col justify-between active:scale-95 transition-transform cursor-pointer">
+<div class="bg-primary/10 w-10 h-10 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[24px]">movie</span>
+</div>
+<div>
+<p class="font-bold text-[16px] leading-tight mb-1 text-on-surface">Vlog 版</p>
+<p class="font-label-zh-sm text-[11px] text-on-surface-variant">富有生活气息</p>
+</div>
+</div>
+<!-- Version Option 2 -->
+<div class="min-w-[140px] aspect-[4/5] glass-card rounded-[24px] p-stack-md flex flex-col justify-between active:scale-95 transition-transform cursor-pointer">
+<div class="bg-secondary/10 w-10 h-10 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-[24px]">badge</span>
+</div>
+<div>
+<p class="font-bold text-[16px] leading-tight mb-1 text-on-surface">面试版</p>
+<p class="font-label-zh-sm text-[11px] text-on-surface-variant">专业且客观</p>
+</div>
+</div>
+<!-- Version Option 3 -->
+<div class="min-w-[140px] aspect-[4/5] glass-card rounded-[24px] p-stack-md flex flex-col justify-between active:scale-95 transition-transform cursor-pointer">
+<div class="bg-tertiary-container/10 w-10 h-10 rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-[24px]">history_edu</span>
+</div>
+<div>
+<p class="font-bold text-[16px] leading-tight mb-1 text-on-surface">日记版</p>
+<p class="font-label-zh-sm text-[11px] text-on-surface-variant">内心真实独白</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- AI Interaction Orb -->
+<div class="fixed bottom-margin-mobile left-1/2 -translate-x-1/2 z-[60]">
+<div class="relative group">
+<div class="absolute inset-0 bg-deep-purple/30 blur-2xl rounded-full scale-150 animate-pulse"></div>
+<button class="w-[68px] h-[68px] rounded-full ai-gradient-btn flex items-center justify-center shadow-2xl active:scale-90 transition-all relative z-10" id="ai-orb">
+<span class="material-symbols-outlined text-white text-[32px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</button>
+</div>
+</div>
+<script>
+        // Simple Interaction logic
+        const orb = document.getElementById('ai-orb');
+        orb.addEventListener('click', () => {
+            orb.classList.add('animate-ping');
+            setTimeout(() => orb.classList.remove('animate-ping'), 600);
+        });
+
+        // Tab switching
+        const tabs = document.querySelectorAll('nav button');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('text-deep-purple', 'font-bold');
+                    t.classList.add('text-on-surface-variant');
+                    const indicator = t.querySelector('.tab-indicator');
+                    if (indicator) indicator.remove();
+                });
+                tab.classList.remove('text-on-surface-variant');
+                tab.classList.add('text-deep-purple', 'font-bold');
+                
+                const indicator = document.createElement('span');
+                indicator.className = 'tab-indicator';
+                tab.appendChild(indicator);
+            });
+        });
+    </script>
+</body></html>

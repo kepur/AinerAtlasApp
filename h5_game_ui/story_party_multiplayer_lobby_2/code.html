@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Story Party Lobby - AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary": "#006c49",
+                        "on-tertiary-container": "#000703",
+                        "surface-dim": "#d8dadc",
+                        "on-surface-variant": "#464554",
+                        "outline": "#767586",
+                        "soft-mint": "#D1FAE5",
+                        "primary-container": "#6063ee",
+                        "surface-container-low": "#f2f4f6",
+                        "primary": "#4648d4",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed": "#001a42",
+                        "secondary": "#0058be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "tertiary-container": "#00885d",
+                        "inverse-surface": "#2d3133",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed": "#6ffbbe",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-secondary-container": "#fefcff",
+                        "ai-gradient-end": "#E0E7FF",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "background": "#f7f9fb",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-container-high": "#e6e8ea",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary-container": "#2170e4",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary-container": "#fffbff",
+                        "on-error": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "deep-purple": "#4F46E5",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-tint": "#494bd6",
+                        "on-primary-fixed": "#07006c",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "on-tertiary-fixed": "#002113",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#d8e2ff",
+                        "outline-variant": "#c7c4d7"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "base": "4px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px",
+                        "pb-safe": "env(safe-area-inset-bottom)"
+                    },
+                    fontFamily: {
+                        "body-md": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "body-lg": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    fontSize: {
+                        "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "headline-lg": ["30px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "label-zh-sm": ["13px", { lineHeight: "18px", fontWeight: "500" }],
+                        "label-en-sm": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }],
+                        "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+                        "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "headline-lg-mobile": ["26px", { lineHeight: "34px", letterSpacing: "-0.02em", fontWeight: "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .lumina-bg {
+            background: radial-gradient(circle at 0% 0%, rgba(238, 242, 255, 1) 0%, rgba(247, 249, 251, 1) 50%, rgba(224, 231, 255, 1) 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 24px -4px rgba(79, 70, 229, 0.08);
+        }
+        .ai-orb-pulse {
+            animation: orbPulse 4s ease-in-out infinite;
+        }
+        @keyframes orbPulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 20px rgba(79, 70, 229, 0.2); }
+            50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 30px rgba(79, 70, 229, 0.4); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background lumina-bg min-h-screen text-on-surface antialiased overflow-x-hidden selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-glass-bg dark:bg-inverse-surface/70 backdrop-blur-xl border-b border-white/10 dark:border-white/5 shadow-sm">
+<div class="flex justify-between items-center px-margin-mobile h-touch-target-min">
+<button class="w-touch-target-min h-touch-target-min flex items-center justify-center text-deep-purple dark:text-primary-fixed-dim hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="arrow_back" data-weight="regular">arrow_back</span>
+</button>
+<div class="text-center">
+<h1 class="font-headline-md text-headline-md font-bold tracking-tight text-deep-purple dark:text-primary-fixed-dim">Story Party Lobby</h1>
+<p class="font-label-zh-sm text-label-zh-sm text-outline">故事派对大厅</p>
+</div>
+<button class="w-touch-target-min h-touch-target-min flex items-center justify-center text-on-surface-variant dark:text-outline-variant hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="settings" data-weight="regular">settings</span>
+</button>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="pt-[80px] pb-[120px] px-margin-mobile flex flex-col gap-stack-lg max-w-md mx-auto relative z-10">
+<!-- Featured Story Card -->
+<section class="glass-card rounded-2xl overflow-hidden relative group">
+<div class="h-32 bg-surface-variant relative overflow-hidden" data-alt="A cinematic, softly blurred view of a futuristic cyberpunk bazaar at night. The scene is illuminated by glowing neon signs in vibrant pinks and electric blues, casting reflections on wet pavement. The atmosphere is tense yet inviting, typical of a high-stakes negotiation setting. Soft volumetric lighting cuts through a gentle haze, establishing a premium, ethereal sci-fi mood. The image is bright enough to suit a modern light-mode UI, with smooth color transitions rather than harsh contrasts." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCn0jf2QuIeO-dlsFXbFfpx-jTxSzxF1XW4X6pzeJ095SrmChLgGSOC6sU08bg_sTsZSa6NVsGLZ7fFyODtFpGzj6uPSyzGV1Sy4RyHCO1cASb_b6xOnOIgvYmgGm1fTaVJ6w5hSLO1kEjn9vuUvND54kDcU8qdlhhAhp6nXXSZMy1s66upiWX_m52ysLPmXm20-yMovK2zYYYNW7slvwGC56z7-TZg3vhxgQXial01_MScjjCOIwd1XhuUd1VJm1Vy9-TA35ZeIH7a'); background-size: cover; background-position: center;">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="absolute bottom-3 left-4 right-4 flex justify-between items-end">
+<h2 class="font-headline-md text-headline-md text-white font-bold tracking-tight shadow-sm">The Neon Bazaar</h2>
+</div>
+</div>
+<div class="p-4 flex flex-col gap-stack-md">
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">
+                    Navigate the treacherous merchant stalls of Sector 4. Haggling is an art, and words are your currency. Secure the hyper-drive core before the sector locks down.
+                </p>
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-soft-mint text-tertiary-container font-label-zh-sm text-label-zh-sm border border-tertiary-fixed-dim/30">
+<span class="material-symbols-outlined text-[14px] mr-1" data-icon="forum" data-weight="fill">forum</span>
+                        Negotiation (谈判)
+                    </span>
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-primary-fixed/50 text-on-primary-container font-label-zh-sm text-label-zh-sm border border-primary-fixed-dim/30">
+<span class="material-symbols-outlined text-[14px] mr-1" data-icon="timer" data-weight="regular">timer</span>
+                        15 Mins
+                    </span>
+</div>
+</div>
+</section>
+<!-- Party Status Card -->
+<section class="glass-card rounded-2xl p-5 flex flex-col gap-stack-md">
+<div class="flex justify-between items-center border-b border-outline-variant/30 pb-3">
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold">Party Status <span class="text-outline font-normal text-sm ml-1">队伍状态</span></h3>
+<span class="font-label-en-sm text-label-en-sm text-deep-purple bg-primary-fixed px-2 py-1 rounded-md font-semibold">3/5</span>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Host -->
+<div class="flex items-center gap-4 bg-surface-container-lowest p-2 rounded-xl border border-primary/10">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-primary-container border-2 border-primary-fixed relative flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A soft, high-key studio portrait of a young adult, serving as a user avatar. The subject has a warm, confident expression. The lighting is diffused and ethereal, casting gentle shadows that suit a premium, light-mode interface. The background is a clean, neutral tone that does not distract from the subject. Overall aesthetic is sophisticated and approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-O4PsAL0gQLblnYLsEZ1cZ-VGTnLio1IF1sZgMEjr_Ku4sgE5ADfnAHtJqgkMH8kovyOPdivwIAbDaPumg4WzvxLasz9s80cbf6hOPxEn1Y-f7RzTKpqs8lC4T7HMo0eb_FhExQeqG3x0sB7B8rkqcgCrrlLp_UD8pTKS8HRVVzJAlbO0PMXwiHPWP-EGP_QVXCJiIMS_fP5hLL21A8mcmxaUt9TkJ2iZ8l3m0-PZjTc1ey5CiOI5sI4UdS0sandoDPk-Nth6k9kw"/>
+<div class="absolute -bottom-1 -right-1 bg-deep-purple w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+<span class="material-symbols-outlined text-white text-[10px]" data-icon="star" data-weight="fill">star</span>
+</div>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md font-semibold text-on-surface">You <span class="text-outline text-sm font-normal">(Host)</span></p>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">Ready</p>
+</div>
+</div>
+<!-- Player 2 -->
+<div class="flex items-center gap-4 p-2">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-variant relative flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A clean, minimalist portrait of a man, used as a user avatar. He has a thoughtful, engaging expression. The lighting is bright and even, highlighting his features without harsh contrasts. The background is softly blurred and light, fitting seamlessly into a modern glassmorphism UI. The mood is friendly and intellectual." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBD34Ga87opWVGjw0_viDZ4JHK82krVZJP4rCSun5xnxURuWXfkFax8XZmhBl3VGLaFc8XNBeOU4grJYeKCgt3Nf7gV7VOQuWeuxPoQ75pU7MHf5x6E1qIGadMzj5JIzAu68QOFqzxzT65Ijk6N0tQDrjzI589ol7fdAhvK8IKeGcqGOO86c1JxVrdSJC6xVt_Q6vKnxFWUtNpzp1T1_JNOkFWE_gjVXB6R-7axgmIgCPeA8RRTuuWylFNRBELt1sY2Y4ZbqA0sJ3au"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md font-medium text-on-surface">Leo</p>
+<p class="font-label-zh-sm text-label-zh-sm text-soft-mint text-tertiary-container">Ready</p>
+</div>
+</div>
+<!-- Player 3 -->
+<div class="flex items-center gap-4 p-2">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-variant relative flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A bright, airy portrait of a woman, serving as a player avatar in a UI. Her expression is energetic and ready for interaction. The image is lit with soft, diffused white light, creating a pristine, ethereal quality. The background is a subtle, light gradient that complements a sophisticated light-mode application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvYlgHx46lcFy1y7boKESRMLIz0aobknyYSMlGXSQHTDP0t9GLDDnEU5P839Ho_njoSfLfRhUeEe4B9sZ28p7UTgUSlk9aVUB2kmcBK-LPJIByDHtEj91TR1-ICPM0Qo4m3sD8tUewDZ_nkOUik0xtgWMNK6KjntTpZyFbLEkMAzN-xdS0ngvdAgw44NS8K9KCkj20b-xQNwRSxTpqPfPicL7pC1AioC2yK339NviXQHuBQZLWpsjux1H7v5p4s_-mStEhRSazoMmM"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md font-medium text-on-surface">Wei</p>
+<p class="font-label-zh-sm text-label-zh-sm text-outline">Connecting...</p>
+</div>
+</div>
+<!-- Empty Slot -->
+<button class="flex items-center gap-4 p-2 group hover:bg-surface-container-lowest rounded-xl transition-colors border border-transparent hover:border-outline-variant/30 border-dashed">
+<div class="w-12 h-12 rounded-full bg-surface-container-high border-2 border-dashed border-outline-variant flex items-center justify-center text-outline group-hover:border-deep-purple group-hover:text-deep-purple transition-colors flex-shrink-0">
+<span class="material-symbols-outlined" data-icon="add" data-weight="regular">add</span>
+</div>
+<div class="flex-1 text-left">
+<p class="font-body-md text-body-md text-outline group-hover:text-deep-purple transition-colors">Invite Friend</p>
+<p class="font-label-zh-sm text-label-zh-sm text-outline-variant">邀请好友</p>
+</div>
+</button>
+</div>
+</section>
+<!-- Social Chat & AI Suggestion -->
+<section class="glass-card rounded-2xl p-5 flex flex-col gap-stack-md">
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold border-b border-outline-variant/30 pb-3">Pre-Game Banter <span class="text-outline font-normal text-sm ml-1">赛前交流</span></h3>
+<div class="flex flex-col gap-4">
+<!-- Chat Bubble Left -->
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-variant flex-shrink-0">
+<img alt="Leo avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCT2Bk-73rkDQeh3Q3nmFcH-ZicnxXnnq5Sq-8pVZgmBKxpifikhxrT7DCvm82fMrm46t0fUn92LhMZIzTwKrAWHua_qggRC9rsS5R_aQGohUMQ14ZovPSUVtgJ5kCFtan1BE5Tiwvbl5IAAznZRbHHEHZ8sQ3B_M_D9cR6BSuP3PGuT9nhb-mjbYj9-RqDBIHtH0uXZA4fjYFHWiP5cOVmtWISxgsVMhIjKc_fLxLgKg1DEQYQecTHlgVSy4lF7xHYi9I0xk3AUx9Z"/>
+</div>
+<div class="bg-surface-container-low px-4 py-2 rounded-2xl rounded-tl-sm border border-white/50 max-w-[80%]">
+<p class="font-body-md text-body-md text-on-surface">I'll play the strict buyer. You guys ready to haggle?</p>
+</div>
+</div>
+<!-- Chat Bubble Right (User) -->
+<div class="flex items-start gap-3 flex-row-reverse">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-primary-container border border-primary-fixed flex-shrink-0">
+<img alt="Your avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxs-G6l_cScmcByfgunRsNE-b9q8B4R_LUWKztcgKMjPVGjUjCZhLGfQfFIl-o2xMZi-E9RIaOQd9hQVdfj4sTF9LY6wg_KBNmkc_j4tUasc21p4yFma6HEp0BEUmR5jZEMYfVgjbZPw6mKOAbYPSJ9kOqIkYHr9LmHxr21T3n4tc-PtoGa858TMyfcKepywY7smAftXYQhmDD8slOIJmgOBElSvJEu7kITMICeLafylQkRdENNRa9DjhvbeLF1045M5Bn8KtbTqkz"/>
+</div>
+<div class="bg-deep-purple text-white px-4 py-2 rounded-2xl rounded-tr-sm shadow-sm max-w-[80%]">
+<p class="font-body-md text-body-md">Bring it on. I've got my negotiation vocab ready.</p>
+</div>
+</div>
+</div>
+<!-- AI Suggestion Box -->
+<div class="mt-2 bg-gradient-to-br from-ai-gradient-start to-ai-gradient-end p-4 rounded-xl border border-primary-fixed/50 relative overflow-hidden">
+<div class="absolute -right-6 -top-6 w-24 h-24 bg-primary-fixed-dim/30 rounded-full blur-xl ai-orb-pulse"></div>
+<div class="flex items-start gap-3 relative z-10">
+<div class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center text-deep-purple shadow-sm flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="psychology" data-weight="fill">psychology</span>
+</div>
+<div>
+<p class="font-label-en-sm text-label-en-sm font-semibold text-deep-purple mb-1">AI Suggestion <span class="font-label-zh-sm text-outline ml-1 font-normal">AI建议</span></p>
+<p class="font-body-md text-body-md text-on-surface-variant italic">
+                            "Try using conditional phrasing to haggle, e.g., 'If you can... I will...'"
+                        </p>
+</div>
+</div>
+</div>
+<!-- Chat Input Area (Visual only) -->
+<div class="mt-2 flex items-center gap-2 bg-surface-container-lowest rounded-full p-1 pl-4 border border-outline-variant/40">
+<input class="flex-1 bg-transparent border-none focus:ring-0 font-body-md text-body-md placeholder:text-outline p-0 h-8" disabled="" placeholder="Type a message..." type="text"/>
+<button class="w-8 h-8 rounded-full bg-deep-purple text-white flex items-center justify-center flex-shrink-0 opacity-50 cursor-not-allowed">
+<span class="material-symbols-outlined text-[16px]" data-icon="send" data-weight="fill">send</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Floating Action Button Area (Bottom Fixed) -->
+<div class="fixed bottom-0 left-0 right-0 p-margin-mobile pb-safe bg-gradient-to-t from-background via-background/90 to-transparent z-40 pointer-events-none flex justify-center">
+<div class="w-full max-w-md pointer-events-auto">
+<button class="w-full h-14 bg-deep-purple text-white rounded-full font-headline-md text-headline-md font-bold shadow-[0_8px_30px_rgba(79,70,229,0.3)] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform overflow-hidden relative group">
+<div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+<span class="relative z-10">Start Game</span>
+<span class="font-label-en-sm text-primary-fixed relative z-10 font-normal ml-1">(Host)</span>
+<span class="material-symbols-outlined relative z-10" data-icon="play_arrow" data-weight="fill">play_arrow</span>
+</button>
+</div>
+</div>
+</body></html>

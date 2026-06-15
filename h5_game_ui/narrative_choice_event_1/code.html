@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>AinerWise - Narrative Choice Event</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e0e3e5",
+                    "ai-gradient-end": "#E0E7FF",
+                    "surface-container-highest": "#e0e3e5",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-primary": "#c0c1ff",
+                    "ai-gradient-start": "#EEF2FF",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "on-secondary-fixed-variant": "#004395",
+                    "outline": "#767586",
+                    "on-surface-variant": "#464554",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-secondary": "#ffffff",
+                    "tertiary-container": "#00885d",
+                    "surface-tint": "#494bd6",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-container": "#000703",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "outline-variant": "#c7c4d7",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "primary-fixed-dim": "#c0c1ff",
+                    "surface-container-low": "#f2f4f6",
+                    "on-background": "#191c1e",
+                    "surface-container": "#eceef0",
+                    "on-primary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "tertiary": "#006c49",
+                    "on-secondary-fixed": "#001a42",
+                    "surface-container-high": "#e6e8ea",
+                    "on-tertiary-fixed": "#002113",
+                    "primary": "#4648d4",
+                    "surface-bright": "#f7f9fb",
+                    "secondary-container": "#2170e4",
+                    "primary-fixed": "#e1e0ff",
+                    "secondary-fixed": "#d8e2ff",
+                    "on-primary-fixed": "#07006c",
+                    "deep-purple": "#4F46E5",
+                    "on-secondary-container": "#fefcff",
+                    "error": "#ba1a1a",
+                    "secondary": "#0058be",
+                    "on-surface": "#191c1e",
+                    "surface-dim": "#d8dadc",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-fixed": "#6ffbbe",
+                    "on-primary-fixed-variant": "#2f2ebe",
+                    "surface": "#f7f9fb",
+                    "glass-bg": "rgba(255, 255, 255, 0.7)",
+                    "soft-mint": "#D1FAE5",
+                    "on-primary-container": "#fffbff",
+                    "inverse-surface": "#2d3133",
+                    "primary-container": "#6063ee",
+                    "background": "#f7f9fb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "touch-target-min": "44px",
+                    "stack-sm": "8px",
+                    "margin-mobile": "20px",
+                    "stack-md": "16px",
+                    "stack-lg": "32px",
+                    "base": "4px",
+                    "gutter-md": "16px"
+            },
+            "fontFamily": {
+                    "label-en-sm": [
+                            "Inter"
+                    ],
+                    "headline-lg": [
+                            "Manrope"
+                    ],
+                    "body-lg": [
+                            "Manrope"
+                    ],
+                    "label-zh-sm": [
+                            "Manrope"
+                    ],
+                    "body-md": [
+                            "Manrope"
+                    ],
+                    "headline-lg-mobile": [
+                            "Manrope"
+                    ],
+                    "headline-md": [
+                            "Manrope"
+                    ]
+            },
+            "fontSize": {
+                    "label-en-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.02em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-lg": [
+                            "30px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-zh-sm": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg-mobile": [
+                            "26px",
+                            {
+                                    "lineHeight": "34px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "headline-md": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "600"
+                            }
+                    ]
+            }
+          }
+        }
+      }
+    </script>
+<style>.lumina-glass {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px rgba(79, 70, 229, 0.05)
+    }
+.ambient-shadow-primary {
+    box-shadow: 0 12px 36px rgba(79, 70, 229, 0.15)
+    }
+.ambient-shadow-secondary {
+    box-shadow: 0 8px 24px rgba(0, 88, 190, 0.1)
+    }
+.bg-bazaar-blur {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuD3HXbAQ6aEw_ladjkB3YdfTlZR53xCTTcXZ1M-nwhON4HwZ8FlDYmTiPfLuG5LO6mFZwExBuBZHVUs-bO6XMulKSKHqoC09UM07JwL0s_EPy_NWMInwUvTQHnAlF6_VtmnKLIO5EITRFm0SIOy82bpEiKPdyFDKj6bL-W0rPuowCOPnIbJAaa9yVP_Q0pdgzT8QmRuyp5QNvHYGH1d7hRlzGFuwl04BIdPjFHNYIqBHwoRwj_QMZ4TZL-DKj7YYPl9vCkR3KypQngn);
+    background-size: cover;
+    background-position: center
+    }
+/* Prevent overscroll on iOS */
+body {
+    overscroll-behavior-y: none
+    }</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased w-full h-screen overflow-hidden flex flex-col relative">
+<!-- Blurred Background Image -->
+<div class="absolute inset-0 w-full h-full z-0 bg-bazaar-blur" data-alt="A highly atmospheric, heavily blurred cinematic shot of a bustling Middle Eastern bazaar or ancient palace courtyard at dusk. The scene is bathed in warm, ethereal light with subtle, glowing highlights of primary deep purple and soft blues reflecting off distant, indistinct architecture. The light-mode aesthetic maintains a bright yet deeply textured composition, evoking a sense of mystery and sophisticated narrative depth. The image is strictly out of focus to serve as an immersive backdrop without distracting from foreground UI elements.">
+<div class="absolute inset-0 bg-white/40 backdrop-blur-[60px]"></div>
+<div class="absolute inset-0 bg-gradient-to-b from-ai-gradient-start/60 to-ai-gradient-end/60 mix-blend-overlay"></div>
+</div>
+<!-- Main Content Canvas (No TopAppBar or BottomNav as this is a focused task/event) -->
+<main class="relative z-10 flex-1 flex flex-col justify-center px-margin-mobile pb-safe w-full max-w-lg mx-auto h-full overflow-y-auto">
+<div class="flex flex-col gap-stack-lg py-stack-lg w-full">
+<!-- Context Header -->
+<div class="flex justify-center w-full">
+<div class="lumina-glass rounded-full px-4 py-1.5 flex items-center gap-2 ambient-shadow-secondary">
+<span class="material-symbols-outlined text-[16px] text-secondary">menu_book</span>
+<span class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider">Chapter 4</span>
+</div>
+</div>
+<!-- Narrative Central Card -->
+<div class="lumina-glass rounded-xl p-6 ambient-shadow-primary w-full text-center relative overflow-hidden group transition-all duration-300">
+<div class="absolute -inset-1 bg-gradient-to-r from-deep-purple/10 to-secondary-container/10 blur-xl opacity-50 group-hover:opacity-70 transition-opacity"></div>
+<div class="relative z-10">
+<span class="material-symbols-outlined text-[32px] text-deep-purple mb-stack-md block opacity-80">psychology_alt</span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface leading-snug">
+                        "The merchant narrows his eyes. He doesn't believe your story. What will you do?"
+                    </h1>
+</div>
+</div>
+<!-- Choices Stack -->
+<div class="flex flex-col gap-stack-sm w-full mt-stack-md">
+<!-- Choice 1: Skill Check -->
+<button class="w-full text-left lumina-glass rounded-xl p-4 min-h-touch-target-min hover:bg-white/90 active:scale-[0.98] transition-all duration-200 border-l-4 border-l-tertiary group relative overflow-hidden">
+<div class="absolute inset-0 bg-tertiary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative z-10 flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-tertiary-container/20 text-tertiary px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">model_training</span>
+                                Persuasion Lvl 3
+                            </span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">Double Down on the Lie</span>
+<span class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Lean into the narrative with unwavering confidence.</span>
+</div>
+</button>
+<!-- Choice 2: Risky -->
+<button class="w-full text-left lumina-glass rounded-xl p-4 min-h-touch-target-min hover:bg-white/90 active:scale-[0.98] transition-all duration-200 border-l-4 border-l-error group relative overflow-hidden">
+<div class="absolute inset-0 bg-error/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative z-10 flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-error-container/50 text-error px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">warning</span>
+                                Risky
+                            </span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">Offer a Bribe</span>
+<span class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Attempt to buy his silence.</span>
+</div>
+</button>
+<!-- Choice 3: Analytical -->
+<button class="w-full text-left lumina-glass rounded-xl p-4 min-h-touch-target-min hover:bg-white/90 active:scale-[0.98] transition-all duration-200 border-l-4 border-l-secondary group relative overflow-hidden">
+<div class="absolute inset-0 bg-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative z-10 flex flex-col gap-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-secondary-container/20 text-secondary px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">analytics</span>
+                                Analytical
+                            </span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">Change the Subject</span>
+<span class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Pivot the conversation to his wares.</span>
+</div>
+</button>
+</div>
+</div>
+</main>
+</body></html>

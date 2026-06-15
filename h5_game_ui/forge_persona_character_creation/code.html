@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Forge Persona - AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#005236",
+                        "surface": "#f7f9fb",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-bright": "#f7f9fb",
+                        "on-primary-fixed": "#07006c",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#fffbff",
+                        "secondary-fixed": "#d8e2ff",
+                        "deep-purple": "#4F46E5",
+                        "secondary": "#0058be",
+                        "soft-mint": "#D1FAE5",
+                        "surface-container": "#eceef0",
+                        "surface-container-low": "#f2f4f6",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#464554",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c7c4d7",
+                        "on-secondary-fixed-variant": "#004395",
+                        "ai-gradient-end": "#E0E7FF",
+                        "on-tertiary-container": "#000703",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "secondary-container": "#2170e4",
+                        "primary-container": "#6063ee",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "outline": "#767586",
+                        "surface-dim": "#d8dadc",
+                        "surface-container-high": "#e6e8ea",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-container-highest": "#e0e3e5",
+                        "tertiary": "#006c49",
+                        "on-tertiary-fixed": "#002113",
+                        "background": "#f7f9fb",
+                        "surface-variant": "#e0e3e5",
+                        "ai-gradient-start": "#EEF2FF",
+                        "inverse-on-surface": "#eff1f3",
+                        "primary": "#4648d4",
+                        "on-surface": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#00885d",
+                        "primary-fixed": "#e1e0ff",
+                        "on-secondary-fixed": "#001a42",
+                        "on-secondary-container": "#fefcff",
+                        "surface-tint": "#494bd6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "margin-mobile": "20px",
+                        "touch-target-min": "44px",
+                        "stack-sm": "8px",
+                        "base": "4px",
+                        "stack-lg": "32px",
+                        "gutter-md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-zh-sm": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--tw-colors-ai-gradient-start), var(--tw-colors-ai-gradient-end));
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .ambient-shadow {
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Hide scrollbar for horizontal scroll areas */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface antialiased pb-safe overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 backdrop-blur-xl bg-glass-bg shadow-sm border-b border-white/20 flex justify-between items-center px-margin-mobile h-14">
+<button aria-label="Go back" class="h-touch-target-min w-touch-target-min flex items-center justify-start text-primary hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-2xl" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-deep-purple tracking-tight">Forge Persona</h1>
+<button aria-label="Help" class="h-touch-target-min w-touch-target-min flex items-center justify-end text-primary hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-2xl" data-icon="help_outline">help_outline</span>
+</button>
+</header>
+<!-- Main Canvas -->
+<main class="pt-[72px] px-margin-mobile pb-[100px] flex flex-col gap-stack-lg">
+<!-- Avatar Display -->
+<section class="flex flex-col items-center pt-stack-sm relative">
+<div class="relative w-40 h-40 rounded-full glass-card flex items-center justify-center ambient-shadow p-2">
+<div class="w-full h-full rounded-full overflow-hidden bg-surface-container-highest">
+<img alt="Character Avatar" class="w-full h-full object-cover" data-alt="A highly detailed portrait of a fantasy scholar or swordsman character in an ethereal, light-mode setting. Soft purple and blue lumina lighting highlights their features. The background is a clean, minimalist frosted glass aesthetic. High-quality 3D render style with a modern RPG vibe." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZWK9ydnWdSm_-6VNr-bp--HRx8I4vdHu8rW80o3aEAglBxSqXGfXhoS7UJEXii4Un4ot9kT0fBC_oUp7xfYEYY2vufMthgxAvhXoK7r2ekR7hV3l27VCbhDQCjN4_6ponsYhQwE8OWSVc5cDwiZUkFveEePiGh0U8PsVd0cixcqLXpUNKIXADNeouc3dBPU6LQ8lpk574uD8cWQ9_xDAVW3TDDR1617k-Lg8x8ooke0FhIRpMV7Xb6DT5SqevwmvlyTzzKfVuHWnO"/>
+</div>
+</div>
+<button class="mt-stack-sm text-primary font-label-en-sm text-label-en-sm flex items-center gap-1 hover:opacity-80">
+<span class="material-symbols-outlined text-[16px]" data-icon="sync">sync</span> Reroll Avatar
+            </button>
+</section>
+<!-- Path & Persona -->
+<section class="glass-card rounded-xl p-5 flex flex-col gap-stack-md">
+<h2 class="font-headline-md text-[18px] text-on-surface">Path &amp; Persona</h2>
+<div class="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
+<button class="flex-shrink-0 h-touch-target-min px-6 rounded-full bg-deep-purple text-white font-label-en-sm text-label-en-sm ambient-shadow transition-transform active:scale-95">
+                    Scholar
+                </button>
+<button class="flex-shrink-0 h-touch-target-min px-6 rounded-full bg-glass-bg border border-deep-purple text-deep-purple font-label-en-sm text-label-en-sm transition-transform active:scale-95">
+                    Swordsman
+                </button>
+<button class="flex-shrink-0 h-touch-target-min px-6 rounded-full bg-glass-bg border border-deep-purple/30 text-outline font-label-en-sm text-label-en-sm transition-transform active:scale-95">
+                    Diplomat
+                </button>
+</div>
+</section>
+<!-- Core Traits -->
+<section class="glass-card rounded-xl p-5 flex flex-col gap-stack-md">
+<div class="flex justify-between items-end">
+<h2 class="font-headline-md text-[18px] text-on-surface">Core Traits</h2>
+<span class="font-label-en-sm text-label-en-sm text-outline">Pick 3/3</span>
+</div>
+<div class="flex flex-wrap gap-3">
+<!-- Selected Trait -->
+<button class="h-touch-target-min px-4 rounded-lg bg-soft-mint/60 border border-tertiary-fixed text-on-tertiary-fixed-variant font-label-en-sm text-label-en-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] filled text-tertiary" data-icon="check_circle">check_circle</span>
+                    Analytical
+                </button>
+<!-- Unselected Traits -->
+<button class="h-touch-target-min px-4 rounded-lg bg-white/50 border border-outline-variant text-on-surface-variant font-label-en-sm text-label-en-sm hover:border-deep-purple/50 transition-colors">
+                    Brave
+                </button>
+<button class="h-touch-target-min px-4 rounded-lg bg-white/50 border border-outline-variant text-on-surface-variant font-label-en-sm text-label-en-sm hover:border-deep-purple/50 transition-colors">
+                    Charismatic
+                </button>
+<button class="h-touch-target-min px-4 rounded-lg bg-soft-mint/60 border border-tertiary-fixed text-on-tertiary-fixed-variant font-label-en-sm text-label-en-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] filled text-tertiary" data-icon="check_circle">check_circle</span>
+                    Emotional
+                </button>
+<button class="h-touch-target-min px-4 rounded-lg bg-soft-mint/60 border border-tertiary-fixed text-on-tertiary-fixed-variant font-label-en-sm text-label-en-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] filled text-tertiary" data-icon="check_circle">check_circle</span>
+                    Stoic
+                </button>
+</div>
+</section>
+<!-- Motivation -->
+<section class="glass-card rounded-xl p-5 flex flex-col gap-stack-md">
+<h2 class="font-headline-md text-[18px] text-on-surface">Motivation</h2>
+<textarea class="w-full bg-white/40 border border-outline-variant/30 rounded-lg p-4 font-body-lg text-body-lg text-on-surface placeholder:text-outline-variant focus:border-deep-purple focus:ring-1 focus:ring-deep-purple transition-all outline-none resize-none h-32" placeholder="I want to uncover the secrets of the lost jade scroll..."></textarea>
+</section>
+</main>
+<!-- Bottom Action Area -->
+<div class="fixed bottom-0 left-0 w-full p-margin-mobile bg-gradient-to-t from-background via-background/90 to-transparent pb-safe z-40">
+<button class="w-full h-[56px] bg-deep-purple text-white rounded-full font-headline-md text-[18px] ambient-shadow flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+            Enter Story <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</body></html>

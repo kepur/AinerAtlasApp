@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;family=Be+Vietnam+Pro:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#6ffbbe",
+                    "outline": "#7b7487",
+                    "on-primary-container": "#ede0ff",
+                    "on-tertiary": "#ffffff",
+                    "surface": "#faf8ff",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed": "#d8e2ff",
+                    "on-background": "#131b2e",
+                    "tertiary-container": "#007650",
+                    "surface-variant": "#dae2fd",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "on-secondary-container": "#fefcff",
+                    "on-primary": "#ffffff",
+                    "inverse-on-surface": "#eef0ff",
+                    "on-surface": "#131b2e",
+                    "secondary-container": "#2170e4",
+                    "surface-container": "#eaedff",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "error": "#ba1a1a",
+                    "secondary": "#0058be",
+                    "inverse-surface": "#283044",
+                    "primary-fixed-dim": "#d2bbff",
+                    "surface-tint": "#732ee4",
+                    "on-secondary-fixed": "#001a42",
+                    "on-primary-fixed": "#25005a",
+                    "primary": "#630ed4",
+                    "tertiary": "#005b3d",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "on-tertiary-container": "#76ffc2",
+                    "surface-container-highest": "#dae2fd",
+                    "on-tertiary-fixed": "#002113",
+                    "surface-dim": "#d2d9f4",
+                    "on-secondary": "#ffffff",
+                    "background": "#faf8ff",
+                    "outline-variant": "#ccc3d8",
+                    "surface-container-high": "#e2e7ff",
+                    "surface-bright": "#faf8ff",
+                    "primary-container": "#7c3aed",
+                    "inverse-primary": "#d2bbff",
+                    "primary-fixed": "#eaddff",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "32px",
+                    "margin-mobile": "20px",
+                    "touch-target-min": "44px",
+                    "gutter": "16px",
+                    "base": "8px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "headline-xl-mobile": ["Plus Jakarta Sans"],
+                    "label-sm": ["Inter"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-md": ["beVietnamPro"],
+                    "headline-xl": ["Plus Jakarta Sans"],
+                    "body-lg": ["beVietnamPro"]
+            },
+            "fontSize": {
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-xl-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-xl": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #faf8ff;
+        }
+        .glass-sheet {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .thought-card-shadow {
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.08);
+        }
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface">
+<!-- Top AppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 flex items-center justify-between px-5 h-16 shadow-sm">
+<button class="w-10 h-10 flex items-center justify-center rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-on-surface">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-on-surface">收藏观点</h1>
+<button class="w-10 h-10 flex items-center justify-center rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-on-surface">more_vert</span>
+</button>
+</header>
+<main class="pt-20 pb-32 px-5 max-w-md mx-auto space-y-6">
+<!-- Source Context Section -->
+<section class="bg-surface-container-low rounded-xl p-4 border border-outline-variant/20 shadow-sm">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-sm">public</span>
+<span class="text-label-sm font-label-sm text-outline uppercase tracking-wider">来自公开讨论</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">“自由是否比高收入更重要？”</h2>
+<div class="inline-flex items-center px-2 py-1 bg-surface-variant rounded-full">
+<span class="text-label-sm font-label-sm text-on-surface-variant">匿名观点摘要</span>
+</div>
+</section>
+<!-- Original Viewpoint Card -->
+<div class="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/10 thought-card-shadow">
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-label-sm font-label-sm text-outline">原观点摘要</h3>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-variant/30 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-primary text-sm">volume_up</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                “对方认为，自由并不是完全不受限制，而是拥有选择生活方式的能力。”
+            </p>
+</div>
+<!-- AI Understanding Transformation -->
+<div class="relative p-5 rounded-2xl bg-white border border-primary/20 thought-card-shadow overflow-hidden">
+<div class="absolute top-0 right-0 p-3">
+<span class="material-symbols-outlined text-primary-container opacity-20 text-4xl">auto_awesome</span>
+</div>
+<div class="flex justify-between items-center mb-3 relative z-10">
+<h3 class="text-label-sm font-label-sm text-primary">AI 帮你整理成你的理解</h3>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-primary-container/10 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-primary text-sm">volume_up</span>
+</button>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface font-medium leading-relaxed relative z-10">
+                “我理解的自由，不是不承担责任，而是拥有选择方向和生活节奏的能力。”
+            </p>
+</div>
+<!-- Expression Versions Tabs -->
+<section class="space-y-4">
+<div class="flex bg-surface-container-high rounded-xl p-1 gap-1">
+<button class="flex-1 py-2 text-label-sm font-label-sm rounded-lg transition-all text-on-surface-variant" id="tab-cn" onclick="switchTab('cn')">中文</button>
+<button class="flex-1 py-2 text-label-sm font-label-sm rounded-lg transition-all bg-white text-primary shadow-sm font-semibold" id="tab-en-nat" onclick="switchTab('en-nat')">自然英文</button>
+<button class="flex-1 py-2 text-label-sm font-label-sm rounded-lg transition-all text-on-surface-variant" id="tab-en-adv" onclick="switchTab('en-adv')">高级英文</button>
+</div>
+<div class="glass-sheet rounded-2xl p-5 border border-primary/10" id="content-en-nat">
+<div class="flex justify-between items-start mb-3">
+<p class="font-body-lg text-body-lg text-on-surface italic leading-relaxed pr-8">
+                        “Freedom does not mean avoiding responsibility. It means having the ability to choose your direction and pace of life.”
+                    </p>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary active:scale-95 transition-transform shrink-0">
+<span class="material-symbols-outlined">volume_up</span>
+</button>
+</div>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed rounded-full text-xs font-medium">B2 Level</span>
+<span class="px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded-full text-xs font-medium">Natural</span>
+</div>
+</div>
+</section>
+<!-- Merge/Asset Selection -->
+<section class="space-y-3">
+<h3 class="text-label-sm font-label-sm text-outline px-1">加入到哪个思想资产？</h3>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-3 rounded-2xl border-2 border-primary bg-primary/5 text-primary text-label-sm font-medium flex items-center gap-2 transition-all">
+                    为什么我想去欧洲发展 v4
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+</button>
+<button class="px-4 py-3 rounded-2xl border border-outline-variant bg-surface text-on-surface-variant text-label-sm font-medium transition-all active:bg-surface-variant">
+                    创业是为了自由还是赚钱 v2
+                </button>
+<button class="px-4 py-3 rounded-2xl border border-dashed border-primary/40 bg-surface text-primary text-label-sm font-medium flex items-center gap-2 transition-all active:bg-primary/5">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+                    新建 Thought Freeze
+                </button>
+</div>
+</section>
+<!-- Action Buttons -->
+<div class="space-y-3 pt-4">
+<button class="w-full h-14 bg-primary-container text-on-primary-container rounded-2xl font-headline-md text-headline-md shadow-lg shadow-primary/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">inventory_2</span>
+                加入我的思想库
+            </button>
+<div class="grid grid-cols-2 gap-3">
+<button class="h-14 border-1.5 border-primary text-primary rounded-2xl font-label-sm font-semibold active:bg-primary/5 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">edit_note</span>
+                    继续改写
+                </button>
+<button class="h-14 border-1.5 border-outline text-on-surface-variant rounded-2xl font-label-sm font-semibold active:bg-surface-variant flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">compare_arrows</span>
+                    生成反方观点
+                </button>
+</div>
+</div>
+<!-- Privacy Footer -->
+<footer class="pb-10 pt-4 flex flex-col items-center gap-2 opacity-60">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-xs">verified_user</span>
+<p class="text-xs font-label-sm">收藏观点会生成你的理解版本，不会直接复制他人原文。</p>
+</div>
+</footer>
+</main>
+<!-- Bottom Navigation Bar (Context: Assets) -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-2 pb-safe bg-surface/80 backdrop-blur-xl border-t border-outline-variant/20 shadow-[0px_-4px_20px_rgba(124,58,237,0.06)] z-50">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline opacity-60 hover:bg-surface-variant/50 transition-colors p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline opacity-60 hover:bg-surface-variant/50 transition-colors p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-sm text-label-sm mt-1">Chat</span>
+</a>
+<!-- Active Tab: Assets -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed bg-primary-container/10 rounded-xl px-3 py-1 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+<span class="font-label-sm text-label-sm mt-1">Assets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline opacity-60 hover:bg-surface-variant/50 transition-colors p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined">radar</span>
+<span class="font-label-sm text-label-sm mt-1">Connect</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline opacity-60 hover:bg-surface-variant/50 transition-colors p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm mt-1">Me</span>
+</a>
+</nav>
+<script>
+        function switchTab(lang) {
+            const tabs = ['cn', 'en-nat', 'en-adv'];
+            const buttons = {
+                'cn': document.getElementById('tab-cn'),
+                'en-nat': document.getElementById('tab-en-nat'),
+                'en-adv': document.getElementById('tab-en-adv')
+            };
+
+            tabs.forEach(t => {
+                buttons[t].classList.remove('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
+                buttons[t].classList.add('text-on-surface-variant');
+            });
+
+            buttons[lang].classList.add('bg-white', 'text-primary', 'shadow-sm', 'font-semibold');
+            buttons[lang].classList.remove('text-on-surface-variant');
+
+            // Logic to change content would go here, for this static demo we keep the natural en active visually
+        }
+
+        // Micro-interaction for primary button
+        document.querySelector('button.bg-primary-container').addEventListener('click', function() {
+            this.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> 保存中...';
+            setTimeout(() => {
+                this.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 已加入库';
+                this.classList.replace('bg-primary-container', 'bg-tertiary-container');
+            }, 1200);
+        });
+    </script>
+</body></html>

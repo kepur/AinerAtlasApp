@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>狼人杀 Lite - Social Logic Lobby</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c7c4d7",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-container-low": "#f2f4f6",
+                        "on-surface-variant": "#464554",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#00885d",
+                        "surface-tint": "#494bd6",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#000703",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#c0c1ff",
+                        "ai-gradient-start": "#EEF2FF",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-fixed-variant": "#004395",
+                        "outline": "#767586",
+                        "surface-variant": "#e0e3e5",
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-highest": "#e0e3e5",
+                        "soft-mint": "#D1FAE5",
+                        "on-primary-container": "#fffbff",
+                        "inverse-surface": "#2d3133",
+                        "primary-container": "#6063ee",
+                        "background": "#f7f9fb",
+                        "secondary": "#0058be",
+                        "on-surface": "#191c1e",
+                        "surface-dim": "#d8dadc",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "surface": "#f7f9fb",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-primary-fixed": "#07006c",
+                        "deep-purple": "#4F46E5",
+                        "on-secondary-container": "#fefcff",
+                        "error": "#ba1a1a",
+                        "on-background": "#191c1e",
+                        "surface-container": "#eceef0",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "tertiary": "#006c49",
+                        "on-secondary-fixed": "#001a42",
+                        "surface-container-high": "#e6e8ea",
+                        "on-tertiary-fixed": "#002113",
+                        "primary": "#4648d4",
+                        "surface-bright": "#f7f9fb",
+                        "secondary-container": "#2170e4",
+                        "primary-fixed": "#e1e0ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "gutter-md": "16px",
+                        "touch-target-min": "44px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "20px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "safe-top": "env(safe-area-inset-top, 44px)",
+                        "safe-bottom": "env(safe-area-inset-bottom, 34px)"
+                    },
+                    "fontFamily": {
+                        "label-en-sm": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    },
+                    "backgroundImage": {
+                        'lumina-canvas': 'linear-gradient(145deg, #EEF2FF 0%, #E0E7FF 50%, #f7f9fb 100%)',
+                        'orb-gradient': 'linear-gradient(135deg, rgba(79,70,229,0.8) 0%, rgba(70,72,212,0.6) 100%)'
+                    }
+                }
+            }
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .glass-card {
+                @apply bg-white/70 backdrop-blur-[20px] border border-white rounded-xl shadow-[0_8px_32px_rgba(99,102,241,0.05)];
+            }
+            .ambient-shadow {
+                @apply shadow-[0_0_24px_rgba(99,102,241,0.15)];
+            }
+        }
+
+        /* Pulse animation for AI Orb / Ready indicator */
+        @keyframes subtlePulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 20px rgba(99,102,241,0.3); }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        .pulse-orb {
+            animation: subtlePulse 3s infinite ease-in-out;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-lumina-canvas text-on-surface min-h-screen relative overflow-x-hidden pt-safe-top pb-safe-bottom font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top Navigation (Shell structure, visually hidden context, back logic) -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile py-4 pt-[calc(env(safe-area-inset-top,44px)+16px)] backdrop-blur-xl border-b border-white/10 bg-glass-bg shadow-sm">
+<button aria-label="Back" class="h-touch-target-min w-touch-target-min flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-primary text-[24px]">arrow_back</span>
+</button>
+<div class="flex flex-col items-center">
+<h1 class="font-headline-md text-headline-md text-primary tracking-tight">狼人杀 Lite</h1>
+<p class="font-label-zh-sm text-label-zh-sm text-outline">AI 正在准备本局身份牌</p>
+</div>
+<button aria-label="Settings" class="h-touch-target-min w-touch-target-min flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-primary text-[24px]">settings</span>
+</button>
+</header>
+<main class="px-margin-mobile pt-[100px] pb-[120px] max-w-[600px] mx-auto flex flex-col gap-stack-lg">
+<!-- Game Settings Card (Bento style) -->
+<section class="glass-card p-5 mt-4">
+<h2 class="font-label-en-sm text-label-en-sm text-outline uppercase tracking-wider mb-stack-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">tune</span> Game Configuration
+            </h2>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-container-lowest/50 rounded-lg p-3 flex flex-col">
+<span class="font-label-en-sm text-label-en-sm text-outline">Format</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[18px] text-primary">groups</span> 6人局
+                    </span>
+</div>
+<div class="bg-surface-container-lowest/50 rounded-lg p-3 flex flex-col">
+<span class="font-label-en-sm text-label-en-sm text-outline">Setup</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[18px] text-error">nightlight</span> 2 狼人 / 4 好人
+                    </span>
+</div>
+<div class="bg-surface-container-lowest/50 rounded-lg p-3 flex flex-col">
+<span class="font-label-en-sm text-label-en-sm text-outline">Language</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[18px] text-secondary">language</span> English
+                    </span>
+</div>
+<div class="bg-surface-container-lowest/50 rounded-lg p-3 flex flex-col">
+<span class="font-label-en-sm text-label-en-sm text-outline">Difficulty</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[18px] text-tertiary">star_half</span> Normal
+                    </span>
+</div>
+</div>
+</section>
+<!-- Player Roster -->
+<section class="flex flex-col gap-stack-md">
+<h2 class="font-headline-md text-headline-md text-on-surface px-1">Lobby Roster <span class="text-outline text-body-md font-normal ml-2">(6/6)</span></h2>
+<div class="flex flex-col gap-3">
+<!-- Human Player (Host) -->
+<div class="glass-card p-3 flex items-center gap-4 relative overflow-hidden border-primary/30">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary"></div>
+<div class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-headline-md">
+                        Y
+                    </div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-bold">You <span class="text-primary font-normal text-sm ml-1">(Host)</span></span>
+<span class="font-label-zh-sm text-label-zh-sm text-outline mt-0.5">人类玩家</span>
+</div>
+<span class="material-symbols-outlined text-primary">how_to_reg</span>
+</div>
+<!-- AI Player A -->
+<div class="glass-card p-3 flex items-center gap-4 opacity-90 transition-all duration-300">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center relative">
+<span class="material-symbols-outlined text-outline">robot_2</span>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-medium">AI Player A</span>
+<div class="flex gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-zh-sm text-[11px]">冷静型</span>
+</div>
+</div>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed pulse-orb"></div>
+</div>
+<!-- AI Player B -->
+<div class="glass-card p-3 flex items-center gap-4 opacity-90 transition-all duration-300">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center relative">
+<span class="material-symbols-outlined text-outline">robot_2</span>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-medium">AI Player B</span>
+<div class="flex gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-zh-sm text-[11px]">逻辑型</span>
+</div>
+</div>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed pulse-orb" style="animation-delay: 0.2s;"></div>
+</div>
+<!-- AI Player C -->
+<div class="glass-card p-3 flex items-center gap-4 opacity-90 transition-all duration-300">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center relative">
+<span class="material-symbols-outlined text-outline">robot_2</span>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-medium">AI Player C</span>
+<div class="flex gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-zh-sm text-[11px]">强势型</span>
+</div>
+</div>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed pulse-orb" style="animation-delay: 0.4s;"></div>
+</div>
+<!-- AI Player D -->
+<div class="glass-card p-3 flex items-center gap-4 opacity-90 transition-all duration-300">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center relative">
+<span class="material-symbols-outlined text-outline">robot_2</span>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-medium">AI Player D</span>
+<div class="flex gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-zh-sm text-[11px]">煽动型</span>
+</div>
+</div>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed pulse-orb" style="animation-delay: 0.6s;"></div>
+</div>
+<!-- AI Player E -->
+<div class="glass-card p-3 flex items-center gap-4 opacity-90 transition-all duration-300">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center relative">
+<span class="material-symbols-outlined text-outline">robot_2</span>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1 flex flex-col">
+<span class="font-body-md text-body-md text-on-surface font-medium">AI Player E</span>
+<div class="flex gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-zh-sm text-[11px]">防守型</span>
+</div>
+</div>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed pulse-orb" style="animation-delay: 0.8s;"></div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Action Area (Sticky) -->
+<div class="fixed bottom-0 left-0 w-full p-margin-mobile pb-safe-bottom bg-gradient-to-t from-background via-background/90 to-transparent z-40">
+<button class="w-full h-14 bg-deep-purple text-on-primary rounded-full font-headline-md text-headline-md ambient-shadow flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+            开始发牌 <span class="material-symbols-outlined text-[20px]">playing_cards</span>
+</button>
+</div>
+</body></html>

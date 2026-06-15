@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Plus+Jakarta+Sans:wght@100..900&amp;family=beVietnamPro:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 20px -4px rgba(124, 58, 237, 0.08);
+        }
+        .active-tone-card {
+            border: 2px solid #7c3aed;
+            background: #fefcff;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #630ed4;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+            border: 3px solid white;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#732ee4",
+                        "on-surface-variant": "#4a4455",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed": "#001a42",
+                        "surface-dim": "#d2d9f4",
+                        "surface-bright": "#faf8ff",
+                        "secondary": "#0058be",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "tertiary-container": "#007650",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#ede0ff",
+                        "on-primary-fixed": "#25005a",
+                        "tertiary-fixed": "#6ffbbe",
+                        "primary-fixed": "#eaddff",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "surface": "#faf8ff",
+                        "secondary-fixed": "#d8e2ff",
+                        "inverse-surface": "#283044",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary-container": "#2170e4",
+                        "tertiary": "#005b3d",
+                        "on-tertiary-container": "#76ffc2",
+                        "surface-container": "#eaedff",
+                        "primary-container": "#7c3aed",
+                        "surface-container-highest": "#dae2fd",
+                        "surface-container-low": "#f2f3ff",
+                        "outline-variant": "#ccc3d8",
+                        "on-tertiary-fixed": "#002113",
+                        "on-secondary-fixed-variant": "#004395",
+                        "inverse-primary": "#d2bbff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "surface-variant": "#dae2fd",
+                        "surface-container-high": "#e2e7ff",
+                        "on-surface": "#131b2e",
+                        "primary-fixed-dim": "#d2bbff",
+                        "inverse-on-surface": "#eef0ff",
+                        "primary": "#630ed4",
+                        "outline": "#7b7487",
+                        "on-secondary-container": "#fefcff",
+                        "background": "#faf8ff",
+                        "on-error": "#ffffff",
+                        "on-background": "#131b2e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "20px",
+                        "gutter": "16px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["beVietnamPro"],
+                        "label-sm": ["Inter"],
+                        "headline-xl-mobile": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["beVietnamPro"],
+                        "headline-xl": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-xl-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-xl": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background font-body-md text-on-background min-h-screen overflow-x-hidden">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-margin-mobile h-16">
+<button class="material-symbols-outlined text-on-surface-variant active:scale-95 transition-transform" data-icon="close">close</button>
+<h1 class="font-headline-md text-headline-md-mobile text-primary tracking-tight">Intelligence Profile</h1>
+<button class="material-symbols-outlined text-primary active:scale-95 transition-transform" data-icon="auto_awesome">auto_awesome</button>
+</header>
+<main class="pt-24 pb-32 px-margin-mobile space-y-8 max-w-lg mx-auto">
+<!-- AI Insight Banner -->
+<section class="glass-card p-6 rounded-xl relative overflow-hidden">
+
+<div class="relative z-10">
+<p class="font-label-sm text-label-sm text-primary uppercase tracking-widest mb-1">AI Recommendation</p>
+<h2 class="font-headline-md text-headline-md-mobile mb-2">Refine your resonance</h2>
+<p class="text-on-surface-variant text-sm leading-relaxed">AinerWise adapts its linguistic logic based on your tone. Selecting "Natural" will prioritize colloquial flow over rigid grammar.</p>
+</div>
+</section>
+<!-- Language Pairs -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md-mobile">Language Pairs</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2 Selected</span>
+</div>
+<div class="grid grid-cols-1 gap-3">
+<!-- Primary Language -->
+<div class="glass-card p-4 rounded-xl flex items-center justify-between border-l-4 border-l-primary">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="language">language</span>
+</div>
+<div>
+<p class="font-label-sm text-on-surface-variant">Primary (Native)</p>
+<p class="font-headline-md text-headline-md-mobile">English (US)</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="expand_more">expand_more</span>
+</div>
+<!-- Secondary Language -->
+<div class="glass-card p-4 rounded-xl flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary" data-icon="translate">translate</span>
+</div>
+<div>
+<p class="font-label-sm text-on-surface-variant">Target (Learning)</p>
+<p class="font-headline-md text-headline-md-mobile">Mandarin (Simplified)</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</section>
+<!-- Expression Tone -->
+<section class="space-y-4">
+<h3 class="font-headline-md text-headline-md-mobile">Expression Tone</h3>
+<div class="grid grid-cols-2 gap-3">
+<button class="active-tone-card glass-card p-4 rounded-xl text-left transition-all duration-200" onclick="selectTone(this)">
+<span class="material-symbols-outlined text-primary mb-2 block" data-icon="school">school</span>
+<p class="font-bold text-sm">Academic</p>
+<p class="text-xs text-on-surface-variant mt-1">Precise &amp; structured</p>
+</button>
+<button class="glass-card p-4 rounded-xl text-left border-transparent transition-all duration-200" onclick="selectTone(this)">
+<span class="material-symbols-outlined text-on-surface-variant mb-2 block" data-icon="forum">forum</span>
+<p class="font-bold text-sm">Natural/Street</p>
+<p class="text-xs text-on-surface-variant mt-1">Slang &amp; daily flow</p>
+</button>
+<button class="glass-card p-4 rounded-xl text-left border-transparent transition-all duration-200" onclick="selectTone(this)">
+<span class="material-symbols-outlined text-on-surface-variant mb-2 block" data-icon="work">work</span>
+<p class="font-bold text-sm">Business</p>
+<p class="text-xs text-on-surface-variant mt-1">Polite &amp; executive</p>
+</button>
+<button class="glass-card p-4 rounded-xl text-left border-transparent transition-all duration-200" onclick="selectTone(this)">
+<span class="material-symbols-outlined text-on-surface-variant mb-2 block" data-icon="ink_pen">ink_pen</span>
+<p class="font-bold text-sm">Poetic</p>
+<p class="text-xs text-on-surface-variant mt-1">Metaphorical &amp; deep</p>
+</button>
+</div>
+</section>
+<!-- Proficiency Sliders -->
+<section class="space-y-6">
+<h3 class="font-headline-md text-headline-md-mobile">Proficiency Targets</h3>
+<div class="space-y-8 glass-card p-6 rounded-xl">
+<!-- Current Mastery -->
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-sm text-on-surface-variant">Current Mastery</label>
+<span class="text-primary font-bold" id="current-val">Beginner (B1)</span>
+</div>
+<input class="w-full h-1.5 bg-surface-container rounded-full appearance-none cursor-pointer" max="5" min="1" oninput="document.getElementById('current-val').innerText = ['Novice', 'Beginner (B1)', 'Intermediate (B2)', 'Advanced (C1)', 'Expert (C2)'][this.value-1]" type="range" value="2"/>
+</div>
+<!-- Target Mastery -->
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<label class="font-label-sm text-on-surface-variant">Target Mastery</label>
+<span class="text-secondary font-bold" id="target-val">Advanced (C1)</span>
+</div>
+<input class="w-full h-1.5 bg-surface-container rounded-full appearance-none cursor-pointer" max="5" min="1" oninput="document.getElementById('target-val').innerText = ['Novice', 'Beginner (B1)', 'Intermediate (B2)', 'Advanced (C1)', 'Expert (C2)'][this.value-1]" type="range" value="4"/>
+</div>
+</div>
+</section>
+<!-- Visual Identity / Branding -->
+<div class="py-8 flex flex-col items-center justify-center opacity-40">
+<img alt="AinerWise Logo" class="h-8 w-auto grayscale mb-2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZQgee9xg34CqdLwhxanQVt-dsbYXW5X-sN1YrHskjUxzQT6hWwUMgSvHKig1NjKGgfKTUzENsVuS8o21R3x7E36FC11M9dyIf_qpLDAyngtTkIxWWJHQ2UjG2nmBoogM1hRnJIaiSvlKRbUnO0IEWmMq-UOpY2v-krOlB-wxtPg29Q1UHuuu4hKS3xN-PQA28CcjOETqVsyLccRdz2frQd_QCfbeDWo-d7zVtJEAkqpbg9yz4EvK9l64Z0TAbrX15t6LfZB_uOCs"/>
+<p class="text-xs tracking-widest uppercase font-label-sm">AinerWise Semantic Engine v4.2</p>
+</div>
+</main>
+<!-- Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 w-full p-margin-mobile bg-surface/80 backdrop-blur-xl border-t border-outline-variant/20 z-50">
+<button class="w-full h-[56px] bg-primary text-on-primary rounded-xl font-headline-md flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+            Update Intelligence
+        </button>
+</div>
+<script>
+        function selectTone(element) {
+            // Remove active classes from all siblings
+            const parent = element.parentElement;
+            const buttons = parent.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.classList.remove('active-tone-card');
+                btn.classList.add('border-transparent');
+                const icon = btn.querySelector('.material-symbols-outlined');
+                icon.classList.remove('text-primary');
+                icon.classList.add('text-on-surface-variant');
+            });
+            
+            // Add active classes to selected
+            element.classList.add('active-tone-card');
+            element.classList.remove('border-transparent');
+            const icon = element.querySelector('.material-symbols-outlined');
+            icon.classList.remove('text-on-surface-variant');
+            icon.classList.add('text-primary');
+
+            // Haptic feedback simulation
+            if (window.navigator.vibrate) {
+                window.navigator.vibrate(5);
+            }
+        }
+    </script>
+</body></html>

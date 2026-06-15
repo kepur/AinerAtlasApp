@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>AinerWise - 思想圆桌</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#fefcff",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#d8e2ff",
+                        "deep-purple": "#4F46E5",
+                        "on-primary-fixed": "#07006c",
+                        "tertiary": "#006c49",
+                        "on-secondary-fixed": "#001a42",
+                        "surface-container": "#eceef0",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "on-tertiary-fixed": "#002113",
+                        "primary": "#4648d4",
+                        "primary-fixed": "#e1e0ff",
+                        "surface-bright": "#f7f9fb",
+                        "secondary-container": "#2170e4",
+                        "on-background": "#191c1e",
+                        "background": "#f7f9fb",
+                        "inverse-surface": "#2d3133",
+                        "soft-mint": "#D1FAE5",
+                        "on-primary-container": "#fffbff",
+                        "primary-container": "#6063ee",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface": "#f7f9fb",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "secondary": "#0058be",
+                        "on-surface": "#191c1e",
+                        "ai-gradient-start": "#EEF2FF",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-fixed-variant": "#004395",
+                        "outline": "#767586",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#c0c1ff",
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-variant": "#e0e3e5",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-container-low": "#f2f4f6",
+                        "outline-variant": "#c7c4d7",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-tertiary-container": "#000703",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-surface-variant": "#464554",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-container": "#00885d",
+                        "surface-tint": "#494bd6",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter-md": "16px",
+                        "base": "4px",
+                        "touch-target-min": "44px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px"
+                    },
+                    "fontFamily": {
+                        "label-en-sm": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #f7f9fb 0%, #EEF2FF 50%, #E0E7FF 100%);
+            overscroll-behavior-y: contain;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.05);
+        }
+        .ai-orb-pulse {
+            animation: pulse 3s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; filter: blur(0px); }
+            50% { transform: scale(1.1); opacity: 0.8; filter: blur(4px); }
+        }
+        .message-gradient-ai {
+            background: linear-gradient(135deg, #6063ee 0%, #4F46E5 100%);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c7c4d7;
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-background min-h-screen flex flex-col">
+<!-- Top AppBar (Predicted Component Mapping) -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg backdrop-blur-xl border-b border-white/20 flex justify-between items-center px-margin-mobile h-[64px]">
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 flex items-center justify-center rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-on-surface">arrow_back</span>
+</button>
+<div>
+<h1 class="font-headline-md text-headline-md text-on-surface leading-none">思想圆桌</h1>
+<p class="font-label-en-sm text-label-en-sm text-on-surface-variant opacity-70">中文 + English · 3/5 人</p>
+</div>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-on-surface">more_horiz</span>
+</button>
+</header>
+<main class="flex-1 pt-[80px] pb-[180px] px-margin-mobile flex flex-col gap-stack-lg">
+<!-- Topic Card -->
+<section class="glass-card rounded-[24px] p-stack-md flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<span class="bg-primary/10 text-primary px-3 py-1 rounded-full font-label-en-sm text-label-en-sm">反方挑战 phase</span>
+<button class="text-deep-purple font-label-en-sm flex items-center gap-1 active:opacity-70">
+                    查看背景 <span class="material-symbols-outlined text-[16px]">info</span>
+</button>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface">自由是否比高收入更重要？</h2>
+<div class="flex gap-2 items-start bg-primary-fixed/30 p-3 rounded-xl border border-primary-fixed/50">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<p class="font-body-md text-on-surface leading-snug italic">“如果自由重要，为什么很多人仍然选择高薪高压工作？”</p>
+</div>
+</section>
+<!-- Participants Row -->
+<section class="flex items-center justify-between px-2">
+<div class="flex -space-x-3">
+<div class="w-11 h-11 rounded-full border-2 border-white overflow-hidden shadow-sm relative">
+<img alt="User A" class="w-full h-full bg-soft-mint" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClUbbm70WwcgoyxnBETR6B3ubfUomB8_-HgUjFhUNRGvqXMv1sqGA-sbDd9qQYN6DRcyAhUAl-WhGGoJPu85pdIY_ZWPBO1t-SYfLlExLZqsCqhckbJqpA8AObbMnmhxpDBuc_C2W2oJlSF36JBZJ7T-D9gx1yv2wgOheupJXjzzud4-lJk6KT6Vzf-PAXGtEwF7C0Iwb6g7o9TrdjH_tqgoupBWtPYu_78ywKFbk29J9XWQ4n1Ipxsf_lsKTonX0AekzkgZUu8aMt"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+</div>
+<div class="w-11 h-11 rounded-full border-2 border-white overflow-hidden shadow-sm">
+<img alt="User B" class="w-full h-full bg-secondary-fixed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgDaA2dsax-XyESG5P_uhACztdq6I3bL_E9uo5RSheu1Z6caGGHgTfIxzhK_vfjWzuOCLMQ9-efEZqaEf3ZsvVNvI1czNpA2XBVmBOkfJuWQmZKOg0es5cI8b9CN7fbvr2vrz_XeMX_huQV0JUMroHKWNQR0pUVE4WjCo_A6_57JyXg7vMb44BjuTHmI0MTVfO2osDvHb0-Qq2YQA22nXyW464nARdaqAVNO9mhSk8FrMD5fMRkiIkuz9BpR1vddvbNwAvZM0QPeaF"/>
+</div>
+<div class="w-11 h-11 rounded-full border-2 border-white overflow-hidden shadow-sm grayscale">
+<img alt="User C" class="w-full h-full bg-surface-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgp1VM1km7nb4hZ_KFJ8SWRhrPvWWJLpu77QN0rSDTNCcmDg_UD7dFMd2S6iPDJuCi13t6lPb8DEOk1ystQjkBFmNqP-Z6ZYQfEuSb4b4gOa_5wPts9tZ9ZPer6FVZSTgVmrCMASKNa31HP6b14bXGvXbxeaHvzncyvfEkGmNgP_7jehu89if6Jn9qy2x5rZZgQ3SPxH7fjlCQwprCOXfsmbAxuHQLEwbGnIGrU0I3xE2dDsExzHCkedlNDpAH_X_GZeTCGjbEN-6v"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex flex-col items-end">
+<span class="font-label-en-sm text-label-en-sm text-on-surface font-bold">AI Moderator</span>
+<span class="font-label-en-sm text-[10px] text-primary uppercase tracking-wider">Listening...</span>
+</div>
+<div class="w-12 h-12 rounded-full bg-gradient-to-tr from-deep-purple to-secondary-container p-0.5 shadow-lg ai-orb-pulse">
+<div class="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-deep-purple text-3xl" style="font-variation-settings: 'FILL' 1;">blur_on</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Chat Area -->
+<section class="flex flex-col gap-stack-md flex-1">
+<!-- AI Host Message -->
+<div class="flex flex-col gap-2 max-w-[90%] self-start">
+<div class="message-gradient-ai text-white rounded-t-2xl rounded-br-2xl rounded-bl-sm p-4 shadow-md">
+<p class="font-body-md">我们先从核心问题开始：你认为自由和稳定哪个更重要？</p>
+<div class="w-full h-px bg-white/20 my-2"></div>
+<p class="font-body-md opacity-90 text-[14px]">Let's start with the core question: which do you think is more important, freedom or stability?</p>
+</div>
+</div>
+<!-- User A Message -->
+<div class="flex flex-col gap-2 max-w-[90%] self-end">
+<div class="bg-white text-on-surface rounded-t-2xl rounded-bl-2xl rounded-br-sm p-4 shadow-sm border border-outline-variant/30">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-en-sm text-deep-purple font-bold">You</span>
+<button class="material-symbols-outlined text-on-surface-variant text-[18px]">volume_up</button>
+</div>
+<p class="font-body-md">我觉得自由更重要，因为钱够用之后，生活掌控感才是核心。</p>
+<div class="w-full h-px bg-on-surface-variant/10 my-2"></div>
+<p class="font-body-md text-on-surface-variant text-[14px]">I think freedom is more important, because after money is enough, having control over life becomes the key.</p>
+</div>
+</div>
+<!-- AI Tip Card (Contextual Intervention) -->
+<div class="bg-soft-mint/30 border border-soft-mint rounded-2xl p-4 flex flex-col gap-2 mx-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]">lightbulb</span>
+<span class="font-headline-md text-[14px] text-tertiary">AI 语言提示 Language Tip</span>
+</div>
+<p class="font-body-md text-on-surface-variant text-[14px]">
+<span class="font-bold text-on-surface">'having control over life'</span> 很自然，可收藏。
+                </p>
+<button class="mt-1 self-start bg-tertiary text-white px-4 py-2 rounded-full font-label-en-sm text-label-en-sm active:scale-95 transition-transform">
+                    加入我的表达资产
+                </button>
+</div>
+<!-- User B Message -->
+<div class="flex flex-col gap-2 max-w-[90%] self-start">
+<div class="bg-white/60 backdrop-blur-md text-on-surface rounded-t-2xl rounded-br-2xl rounded-bl-sm p-4 border border-white">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-en-sm text-secondary font-bold">Aneka</span>
+<button class="material-symbols-outlined text-on-surface-variant text-[18px]">volume_up</button>
+</div>
+<p class="font-body-md text-on-surface-variant text-[14px]">我同意，但如果没有足够的收入，自由可能会变得不稳定。</p>
+<div class="w-full h-px bg-on-surface-variant/10 my-2"></div>
+<p class="font-body-md">I agree, but without enough income, freedom may become unstable.</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Interface (Docked) -->
+<div class="fixed bottom-0 w-full z-50 flex flex-col">
+<!-- Summary Strip -->
+<div class="bg-deep-purple text-white px-margin-mobile py-2 flex items-center gap-3 overflow-hidden whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<div class="animate-marquee inline-block font-label-en-sm">
+                本轮观点：自由需要稳定收入支撑，但稳定不等于高收入。
+            </div>
+</div>
+<!-- Action Bar (Floating Logic) -->
+<div class="bg-surface/90 backdrop-blur-2xl border-t border-white/20 px-margin-mobile pt-3 pb-safe">
+<div class="flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
+<button class="whitespace-nowrap px-4 h-10 rounded-full border border-outline-variant text-on-surface-variant font-label-zh-sm flex items-center gap-1 active:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">bookmark</span> 收藏观点
+                </button>
+<button class="whitespace-nowrap px-4 h-10 rounded-full border border-outline-variant text-on-surface-variant font-label-zh-sm flex items-center gap-1 active:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">summarize</span> 生成总结
+                </button>
+<button class="whitespace-nowrap px-4 h-10 rounded-full border border-outline-variant text-on-surface-variant font-label-zh-sm flex items-center gap-1 active:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">swords</span> 邀请 PK
+                </button>
+</div>
+<!-- Input Bar -->
+<div class="flex items-center gap-2 h-touch-target-min mb-4">
+<button class="h-11 px-3 rounded-xl bg-primary-fixed/50 text-deep-purple font-bold text-[12px] flex flex-col items-center justify-center leading-none border border-primary-fixed" id="langToggle">
+<span>中</span>
+<div class="w-4 h-[1px] bg-deep-purple/30 my-0.5"></div>
+<span>EN</span>
+</button>
+<div class="flex-1 h-11 relative">
+<input class="w-full h-full bg-surface-container-low border-none rounded-xl px-4 font-body-md focus:ring-2 focus:ring-primary/20 text-on-surface placeholder:text-on-surface-variant/40" placeholder="发表你的观点..." type="text"/>
+</div>
+<button class="w-11 h-11 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined">mic</span>
+</button>
+<button class="w-11 h-11 rounded-xl bg-deep-purple text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Background Elements -->
+<div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+<div class="absolute -top-[10%] -right-[10%] w-[300px] h-[300px] bg-deep-purple opacity-[0.03] blur-[100px] rounded-full"></div>
+<div class="absolute top-[40%] -left-[10%] w-[200px] h-[200px] bg-secondary-container opacity-[0.03] blur-[80px] rounded-full"></div>
+</div>
+<script>
+        // Micro-interactions
+        const langToggle = document.getElementById('langToggle');
+        langToggle.addEventListener('click', () => {
+            langToggle.classList.toggle('bg-primary-fixed/50');
+            langToggle.classList.toggle('bg-secondary-fixed/50');
+        });
+
+        // Simple smooth scroll for chat
+        window.scrollTo(0, document.body.scrollHeight);
+    </script>
+</body></html>

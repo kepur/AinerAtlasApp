@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html lang="zh"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Global Leaderboard - AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "deep-purple": "#4F46E5",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-dim": "#d8dadc",
+                        "ai-gradient-start": "#EEF2FF",
+                        "secondary": "#0058be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "inverse-primary": "#c0c1ff",
+                        "on-secondary-fixed": "#001a42",
+                        "primary": "#4648d4",
+                        "on-tertiary-container": "#000703",
+                        "on-surface-variant": "#464554",
+                        "on-surface": "#191c1e",
+                        "soft-mint": "#D1FAE5",
+                        "on-secondary-fixed-variant": "#004395",
+                        "surface-bright": "#f7f9fb",
+                        "ai-gradient-end": "#E0E7FF",
+                        "tertiary": "#006c49",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "primary-fixed": "#e1e0ff",
+                        "primary-container": "#6063ee",
+                        "tertiary-container": "#00885d",
+                        "surface-tint": "#494bd6",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#2170e4",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "inverse-surface": "#2d3133",
+                        "surface-container": "#eceef0",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "background": "#f7f9fb",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary-container": "#fefcff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-primary-fixed": "#07006c",
+                        "tertiary-fixed": "#6ffbbe",
+                        "outline": "#767586",
+                        "on-background": "#191c1e",
+                        "on-tertiary-fixed": "#002113",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "outline-variant": "#c7c4d7",
+                        "on-primary-container": "#fffbff",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#d8e2ff",
+                        "surface-variant": "#e0e3e5",
+                        "on-error-container": "#93000a"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "margin-mobile": "20px",
+                        "stack-sm": "8px",
+                        "touch-target-min": "44px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "base": "4px",
+                        "gutter-md": "16px"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "label-en-sm": ["Inter"]
+                    },
+                    fontSize: {
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .lumina-bg {
+            background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(0, 88, 190, 0.1) 0%, transparent 40%);
+            background-color: theme('colors.background');
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.05);
+        }
+        .podium-1 {
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+            border: 2px solid rgba(255, 215, 0, 0.8);
+        }
+        .podium-2 {
+            box-shadow: 0 0 15px rgba(192, 192, 192, 0.4);
+            border: 2px solid rgba(192, 192, 192, 0.8);
+        }
+        .podium-3 {
+            box-shadow: 0 0 15px rgba(205, 127, 50, 0.4);
+            border: 2px solid rgba(205, 127, 50, 0.8);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glow-text {
+            text-shadow: 0 0 10px rgba(79, 70, 229, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="lumina-bg min-h-screen text-on-surface font-sans overflow-x-hidden pb-[100px]">
+<!-- Top Navigation Anchor (Shared Component Derived) -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg dark:bg-glass-bg backdrop-blur-xl border-b border-white/10 shadow-sm flex items-center px-margin-mobile h-touch-target-min">
+<button aria-label="Go back" class="material-symbols-outlined text-primary dark:text-inverse-primary hover:opacity-80 transition-opacity active:scale-90">
+            arrow_back
+        </button>
+<div class="flex-1 text-center">
+<h1 class="font-headline-md text-headline-md-mobile text-primary dark:text-inverse-primary">排行榜</h1>
+<span class="font-label-en-sm text-label-en-sm text-outline uppercase tracking-widest block -mt-1">Global Leaderboard</span>
+</div>
+<button aria-label="Share" class="material-symbols-outlined text-primary dark:text-inverse-primary hover:opacity-80 transition-opacity active:scale-90">
+            ios_share
+        </button>
+</header>
+<!-- Main Content Area -->
+<main class="pt-[80px]">
+<!-- Time Filters -->
+<div class="px-margin-mobile flex gap-2 overflow-x-auto hide-scrollbar py-2">
+<button class="flex-1 min-w-[80px] h-touch-target-min rounded-full bg-deep-purple text-white flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(79,70,229,0.3)] transition-transform active:scale-95">
+<span class="font-label-zh-sm text-label-zh-sm font-bold">周榜</span>
+<span class="font-label-en-sm text-label-en-sm opacity-80">Weekly</span>
+</button>
+<button class="flex-1 min-w-[80px] h-touch-target-min rounded-full glass-card text-on-surface-variant flex flex-col items-center justify-center transition-transform active:scale-95">
+<span class="font-label-zh-sm text-label-zh-sm font-bold">月榜</span>
+<span class="font-label-en-sm text-label-en-sm opacity-60">Monthly</span>
+</button>
+<button class="flex-1 min-w-[80px] h-touch-target-min rounded-full glass-card text-on-surface-variant flex flex-col items-center justify-center transition-transform active:scale-95">
+<span class="font-label-zh-sm text-label-zh-sm font-bold">总榜</span>
+<span class="font-label-en-sm text-label-en-sm opacity-60">All Time</span>
+</button>
+</div>
+<!-- Podium Section (Top 3) -->
+<div class="mt-stack-md px-margin-mobile flex justify-center items-end gap-3 h-[260px] relative">
+<div class="absolute top-0 w-full text-center opacity-40">
+<span class="material-symbols-outlined text-[100px] text-primary" style="font-variation-settings: 'FILL' 0;">workspace_premium</span>
+</div>
+<!-- 2nd Place -->
+<div class="flex flex-col items-center z-10 w-1/3 pb-4">
+<div class="relative">
+<img alt="Avatar of user ranked second" class="w-[70px] h-[70px] rounded-full object-cover podium-2 bg-surface" data-alt="A highly detailed close-up portrait of an intellectual young woman with short dark hair, set against a soft, luminous light-mode background. The aesthetic is sophisticated and minimalist, featuring subtle ethereal purple and blue highlights reflecting the 'Lumina' glassmorphism UI style. The lighting is bright and clean, conveying a sense of premium quality and modern AI empowerment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABLg2ukE4-PuDnqhUiVqy-6kbhmDtVvPTg4WGUqIcQaeQI7wQBowKv6IQ_UKYQudVBQvsLGcHpAj8nDGEuF_hnLJP5cqu0qUbgwgXouvGqAOcsnnRNQkQEO3v7KQ14nx1rJz-GBRPZOWd9ewD8YU_3zGlcy8KIxserRghBx8yAkXT1RlzTs9FGtDyyGCDxbKF9xVG1-kKV7pi8eHom4mP0pWGf2QjKD16CZ1opVxM3IXRvkG5Du5xpdSa6LYvIGR5A8wbp7HGe9l2_"/>
+<div class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-surface-container text-on-surface font-label-en-sm text-[10px] px-2 py-0.5 rounded-full border border-white font-bold shadow-sm">
+                        2nd
+                    </div>
+</div>
+<div class="mt-5 text-center">
+<div class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface line-clamp-1">墨菲斯</div>
+<div class="flex items-center justify-center text-primary mt-1">
+<span class="material-symbols-outlined text-[14px] mr-0.5">electric_bolt</span>
+<span class="font-label-en-sm text-label-en-sm font-bold">8,420</span>
+</div>
+</div>
+</div>
+<!-- 1st Place -->
+<div class="flex flex-col items-center z-20 w-1/3 pb-8">
+<div class="relative">
+<div class="absolute -top-6 left-1/2 -translate-x-1/2 text-yellow-500">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">crown</span>
+</div>
+<img alt="Avatar of user ranked first" class="w-[90px] h-[90px] rounded-full object-cover podium-1 bg-surface" data-alt="A striking portrait of a thoughtful man wearing fine wire-rimmed glasses, illuminated by high-key, soft white lighting. The setting implies a futuristic, high-end gallery space or minimalist office. The overall palette relies on pristine whites with intense, ethereal accents of primary purple. The mood is serene, authoritative, and technologically advanced, perfectly aligning with a soft-minimalist UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeysBIdTWMifw-oJYKVSUIkH17brimZBipjdi6-7GEJBOpVy95MBZqQp0dPBINSvpeQx8Yk2glr0zkgNnjEn0w1jrTc8A881I8GIi-p49wWqkOz4I7sh4h-GIAoACojdqhxqvT4P5vsBKmyMUQVo8nVGN4IK2ixIOvT3-oshFjfzUBELKAV-0g7aCs9Ergkyrp6Z2WNenYP-niylzsKcpJ88PnCA1AcMFJRR7NGnRrIaOgPCyCYFi5wmQxGRdC1mdyAkJdDhc-HleO"/>
+<div class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white font-label-en-sm text-[12px] px-3 py-0.5 rounded-full border border-white font-bold shadow-md">
+                        1st
+                    </div>
+</div>
+<div class="mt-5 text-center">
+<div class="font-headline-md text-[16px] font-bold text-on-surface line-clamp-1 glow-text">星辰行者</div>
+<div class="font-label-en-sm text-[10px] text-outline uppercase tracking-wider">Story Master</div>
+<div class="flex items-center justify-center text-deep-purple mt-1 bg-white/50 px-2 py-0.5 rounded-full border border-white/40">
+<span class="material-symbols-outlined text-[14px] mr-0.5">electric_bolt</span>
+<span class="font-label-en-sm text-label-en-sm font-bold">12,500</span>
+</div>
+</div>
+</div>
+<!-- 3rd Place -->
+<div class="flex flex-col items-center z-10 w-1/3 pb-4">
+<div class="relative">
+<img alt="Avatar of user ranked third" class="w-[70px] h-[70px] rounded-full object-cover podium-3 bg-surface" data-alt="A bright, optimistic portrait of a creative individual against a frosted glass-like background. The image exhibits a 'Lumina' effect, catching subtle, diffused light in shades of soft mint and blue. The visual style is premium, empowering, and clean, suitable for a high-end educational or storytelling platform. The subject appears intelligent and engaged." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAd2Z8svVTP7IbzieVn5H70W23Y2RRy9QZPch0cGyuBGPVPofTB3UBQsyzKNkqijwfCvt4M4BhdW1ZgW3eWL4zkjHwxGzG8NcWo6IscduJfXCu2f3iHlXBijyr_desvP-PkcIoUZ4JmVVtFmLoltBD38oFi2XvFN4-2uD0Y2PcS5nKxrn3yLXzCb53OLa6oa2ZtVuuDUMsLw332tLMRU10uW-bYG5G3j0isLoJzX80E5LiEl88DI2xWLu1I8jher2stLzUoR6cQn8XG"/>
+<div class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-surface-container text-on-surface font-label-en-sm text-[10px] px-2 py-0.5 rounded-full border border-white font-bold shadow-sm">
+                        3rd
+                    </div>
+</div>
+<div class="mt-5 text-center">
+<div class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface line-clamp-1">云端漫步</div>
+<div class="flex items-center justify-center text-primary mt-1">
+<span class="material-symbols-outlined text-[14px] mr-0.5">electric_bolt</span>
+<span class="font-label-en-sm text-label-en-sm font-bold">7,890</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Leaderboard List -->
+<div class="mt-stack-lg px-margin-mobile flex flex-col gap-stack-sm">
+<!-- List Header -->
+<div class="flex justify-between items-end px-2 mb-2">
+<div class="font-label-zh-sm text-[14px] text-on-surface font-bold">全球排名 <span class="font-label-en-sm text-outline font-normal ml-1">Global Rankings</span></div>
+<div class="font-label-zh-sm text-[12px] text-outline">表达力 / Power</div>
+</div>
+<!-- Rank Item (4) -->
+<div class="glass-card rounded-xl p-3 flex items-center gap-3 transition-transform active:scale-[0.98]">
+<div class="w-6 text-center font-label-en-sm text-[14px] font-bold text-on-surface-variant">4</div>
+<img alt="Avatar user 4" class="w-10 h-10 rounded-full object-cover border border-white/50" data-alt="A highly detailed close-up portrait of an intellectual young man, set against a soft, luminous light-mode background. The aesthetic is sophisticated and minimalist, featuring subtle ethereal purple and blue highlights reflecting the 'Lumina' glassmorphism UI style. The lighting is bright and clean, conveying a sense of premium quality and modern AI empowerment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGL1pOPLG4HA6s8L8sN4Tej68RhB3pfLmnrlyZHS6WuLFot0pbHgXSu8X0EfPgsaR_w9shC1HO5dDkbSWvAoz03D0BPl5pjTcjaen4euCDbrW43vAzzGXmFb89dVV_dal87tox-9MCCb-ubXgc0rpSLd4pBLQNXlkRoDpNP-_vnHW7kVLfk6HX3jOip4xO7jngZ3ygF-QOBOYDAH0GaPM2nnGvh0QgO_3Vepy6wm_gYdHqEOYcLmYLRuh30DKRykGq11PO6uTg2Gnb"/>
+<div class="flex-1 min-w-0">
+<div class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface truncate">思维重构者</div>
+<div class="flex gap-1 mt-1">
+<span class="inline-block px-1.5 py-[2px] bg-soft-mint/50 border border-tertiary-fixed-dim/30 text-tertiary font-label-zh-sm text-[10px] rounded-md truncate">悬疑推理</span>
+</div>
+</div>
+<div class="text-right flex flex-col items-end">
+<div class="font-label-en-sm text-[14px] font-bold text-deep-purple">7,210</div>
+</div>
+</div>
+<!-- Rank Item (5) -->
+<div class="glass-card rounded-xl p-3 flex items-center gap-3 transition-transform active:scale-[0.98]">
+<div class="w-6 text-center font-label-en-sm text-[14px] font-bold text-on-surface-variant">5</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high border border-white/50 flex items-center justify-center text-primary font-bold font-label-en-sm">
+                    LW
+                </div>
+<div class="flex-1 min-w-0">
+<div class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface truncate">LinguaWeaver</div>
+<div class="flex gap-1 mt-1">
+<span class="inline-block px-1.5 py-[2px] bg-secondary-fixed/50 border border-secondary/20 text-secondary font-label-zh-sm text-[10px] rounded-md truncate">奇幻史诗</span>
+</div>
+</div>
+<div class="text-right flex flex-col items-end">
+<div class="font-label-en-sm text-[14px] font-bold text-deep-purple">6,950</div>
+</div>
+</div>
+<!-- Rank Item (6) -->
+<div class="glass-card rounded-xl p-3 flex items-center gap-3 transition-transform active:scale-[0.98]">
+<div class="w-6 text-center font-label-en-sm text-[14px] font-bold text-on-surface-variant">6</div>
+<img alt="Avatar user 6" class="w-10 h-10 rounded-full object-cover border border-white/50" data-alt="A striking portrait of a thoughtful woman wearing fine wire-rimmed glasses, illuminated by high-key, soft white lighting. The setting implies a futuristic, high-end gallery space or minimalist office. The overall palette relies on pristine whites with intense, ethereal accents of primary purple. The mood is serene, authoritative, and technologically advanced, perfectly aligning with a soft-minimalist UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCI-UuvfRqLw2MH3zoNeRCzi_sfopu7LV1hWfd58mjD88TqQZRn9D6QrvYAQz-CL4L137Y6lipEp8iJ0GNLqhfKmgGpOMCmLV-YXzpdaBpk9Jvq7wAcWg2rPQ2TVhs47_9UFa8kmzwqriVUDEin7cYJWDoIuHXwq3bTMKYHH4qwe_zSpToi_t6dKFe4gHjAsSLVhxxHZwnhlwH4YmGng9JOMTocpmnhDA91On0cZUQNUYUY_ANfM_0u9Ouz-cWbrzWKknQchFqF5dO6"/>
+<div class="flex-1 min-w-0">
+<div class="font-label-zh-sm text-label-zh-sm font-bold text-on-surface truncate">夜雨声烦</div>
+<div class="flex gap-1 mt-1">
+<span class="inline-block px-1.5 py-[2px] bg-surface-variant border border-outline-variant/50 text-on-surface-variant font-label-zh-sm text-[10px] rounded-md truncate">赛博朋克</span>
+</div>
+</div>
+<div class="text-right flex flex-col items-end">
+<div class="font-label-en-sm text-[14px] font-bold text-deep-purple">6,800</div>
+</div>
+</div>
+<!-- Skeleton for loading more -->
+<div class="glass-card rounded-xl p-3 flex items-center gap-3 opacity-50">
+<div class="w-6 h-4 bg-surface-container-high rounded animate-pulse"></div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high animate-pulse"></div>
+<div class="flex-1">
+<div class="w-24 h-4 bg-surface-container-high rounded animate-pulse"></div>
+<div class="w-16 h-3 bg-surface-container-high rounded animate-pulse mt-2"></div>
+</div>
+<div class="w-12 h-4 bg-surface-container-high rounded animate-pulse"></div>
+</div>
+</div>
+</main>
+<!-- Fixed Bottom Bar: My Rank -->
+<div class="fixed bottom-0 w-full z-50 glass-card !rounded-none !border-x-0 !border-b-0 border-t border-white/40 px-margin-mobile py-3 pb-safe shadow-[0_-4px_20px_rgba(99,102,241,0.1)]">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-12 h-12 rounded-full bg-gradient-to-tr from-primary to-deep-purple p-0.5">
+<div class="w-full h-full bg-surface rounded-full border-2 border-white overflow-hidden">
+<img alt="Current User Avatar" class="w-full h-full object-cover" data-alt="A bright, optimistic portrait of a creative individual against a frosted glass-like background. The image exhibits a 'Lumina' effect, catching subtle, diffused light in shades of soft mint and blue. The visual style is premium, empowering, and clean, suitable for a high-end educational or storytelling platform. The subject appears intelligent and engaged." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4mz1BegcXwduHzZbfL7hgcVGFqwGRkbS3iklU7_WsVgU40CSU8PXZFhWVjPdE3x8Kd9tXRZyIGnHkHX2EXyH6gtBtu9ErwUkvSjKyu65l_aH5R6p9JqXRpw1rGpcn-eohHfduo2vgwf5EE7owCGGSVskMO1E9JBaDRtkeDnuls3eQ2iycTcxM90qrGicbBvGfPxtdYAWSsqWscvTr-qK_ccU_NknKirCFC21gMss6z4RG64bpH4h_SXMSB5jHkjM3H1C13cc_Lh4X"/>
+</div>
+</div>
+<div class="absolute -top-1 -right-1 bg-error text-white font-label-en-sm text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white">
+<span class="material-symbols-outlined text-[10px]">arrow_upward</span>
+</div>
+</div>
+<div>
+<div class="font-label-zh-sm text-[12px] text-outline mb-0.5">我的排名 / My Rank</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">142</span>
+<span class="font-label-zh-sm text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">前 5%</span>
+</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-label-zh-sm text-[12px] text-outline mb-0.5">表达力 / Power</div>
+<div class="font-headline-md text-[18px] font-bold text-deep-purple">3,150</div>
+</div>
+</div>
+</div>
+</body></html>

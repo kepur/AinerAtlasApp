@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AinerWise - Sea Turtle Soup Game</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#006c49",
+                        "primary-fixed": "#e1e0ff",
+                        "secondary-container": "#2170e4",
+                        "primary": "#4648d4",
+                        "surface-variant": "#e0e3e5",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "deep-purple": "#4F46E5",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "on-tertiary-fixed": "#002113",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e6e8ea",
+                        "on-secondary-fixed": "#001a42",
+                        "surface": "#f7f9fb",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-container-low": "#f2f4f6",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c7c4d7",
+                        "on-primary-container": "#fffbff",
+                        "surface-bright": "#f7f9fb",
+                        "soft-mint": "#D1FAE5",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-secondary-fixed-variant": "#004395",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-tint": "#494bd6",
+                        "secondary": "#0058be",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "surface-dim": "#d8dadc",
+                        "outline": "#767586",
+                        "inverse-surface": "#2d3133",
+                        "on-surface-variant": "#464554",
+                        "on-tertiary-container": "#000703",
+                        "on-error": "#ffffff",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-secondary": "#ffffff",
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#fefcff",
+                        "on-surface": "#191c1e",
+                        "tertiary-container": "#00885d",
+                        "error-container": "#ffdad6",
+                        "background": "#f7f9fb",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-background": "#191c1e",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-container": "#6063ee",
+                        "surface-container": "#eceef0",
+                        "on-primary-fixed": "#07006c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "stack-sm": "8px",
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "margin-mobile": "20px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "label-zh-sm": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #1e1e2f 0%, #12121e 100%);
+            color: #ffffff;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-panel {
+            background: rgba(30, 30, 46, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .ai-glow {
+            box-shadow: 0 0 24px rgba(99, 102, 241, 0.15);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen pb-[150px] overflow-x-hidden">
+<!-- Header -->
+<header class="fixed top-0 w-full z-50 glass-panel flex justify-between items-center px-margin-mobile h-[72px]">
+<button class="h-touch-target-min w-touch-target-min flex items-center justify-center -ml-3 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-outline-variant">arrow_back</span>
+</button>
+<div class="flex flex-col items-center">
+<h1 class="font-headline-md text-headline-md text-on-primary">海龟汤：消失的乘客</h1>
+<span class="font-label-zh-sm text-label-zh-sm text-outline-variant">推理中 · English B2</span>
+</div>
+<div class="bg-primary/20 border border-primary/30 rounded-full px-3 py-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary-fixed">key</span>
+<span class="font-label-zh-sm text-label-zh-sm text-primary-fixed">线索 2/6</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="pt-[90px] px-margin-mobile flex flex-col gap-stack-lg max-w-lg mx-auto w-full">
+<!-- Surface Story Card -->
+<section class="relative rounded-xl overflow-hidden shadow-lg border border-white/10">
+<div class="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay" data-alt="A dark and moody image of an empty train carriage at night. The lighting is low and mysterious, with deep shadows and a slight blue hue typical of a night journey. The atmosphere is tense and suspenseful, perfectly matching the theme of a lateral thinking mystery game." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBjgISQ0zdOQvFDyaZKhzvbEwXxgscnibv95G6MMZ4qF4Q6L9wWWzGcG2p-A6o1hYxp58ufn2KtTpNCY8yDQuaXI9mDp3ydeb64mNxydAa9x125iWMZlYH3dWlXME-Lr_NnU-sUmQeVBMdWNO3EutrfaqwKPd6S6dWjKjAScLlHx0eQ_v13jUu1NI41Dsabd97SLDMbAicJ88kXN3CPw7pOHSwEIERxSNBZ7glIzQXp7qwYKK__bg67uc6dmaAFPLSh96cairwFIxeG')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#12121e] to-transparent"></div>
+<div class="relative p-6 glass-panel z-10 flex flex-col gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed">local_cafe</span>
+<h2 class="font-headline-md text-headline-md text-on-primary">汤面 (Surface Story)</h2>
+</div>
+<p class="font-body-md text-body-md text-surface-variant leading-relaxed">
+                    “一名乘客在列车通过隧道后凭空消失了，车厢内只留下一把打湿的雨伞。但那天全城并没有下雨。”
+                </p>
+<button class="w-full h-touch-target-min bg-white/10 hover:bg-white/20 border border-white/20 rounded-full font-label-zh-sm text-label-zh-sm text-on-primary transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">search</span>
+                    查看已解锁线索
+                </button>
+</div>
+</section>
+<!-- Fixed Learning HUD (Scrollable) -->
+<section class="-mx-margin-mobile px-margin-mobile">
+<div class="flex overflow-x-auto gap-4 hide-scrollbar snap-x">
+<!-- Card 1 -->
+<div class="snap-center shrink-0 w-[85%] sm:w-[320px] glass-panel rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden border border-white/10 ai-glow">
+<div class="absolute top-0 left-0 w-1 h-full bg-tertiary-fixed-dim"></div>
+<div class="flex justify-between items-start">
+<span class="font-label-zh-sm text-label-zh-sm text-tertiary-fixed-dim bg-tertiary-fixed-dim/10 px-2 py-0.5 rounded">Natural Expression</span>
+<button class="text-outline-variant hover:text-on-primary transition-colors"><span class="material-symbols-outlined">volume_up</span></button>
+</div>
+<div>
+<p class="font-headline-md text-headline-md text-on-primary">Had he tried this soup before?</p>
+<p class="font-body-md text-body-md text-outline-variant mt-1">他以前尝过这种汤吗？</p>
+</div>
+<div class="flex gap-2 mt-auto">
+<span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full font-label-zh-sm text-label-zh-sm">自然</span>
+<span class="bg-white/5 text-outline-variant px-3 py-1 rounded-full font-label-zh-sm text-label-zh-sm border border-white/10">口语</span>
+<span class="bg-white/5 text-outline-variant px-3 py-1 rounded-full font-label-zh-sm text-label-zh-sm border border-white/10">书面</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="snap-center shrink-0 w-[85%] sm:w-[320px] glass-panel rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden border border-white/10">
+<div class="absolute top-0 left-0 w-1 h-full bg-secondary-fixed-dim"></div>
+<div class="flex justify-between items-start">
+<span class="font-label-zh-sm text-label-zh-sm text-secondary-fixed-dim bg-secondary-fixed-dim/10 px-2 py-0.5 rounded">Grammar Point</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md text-on-primary">Had he tried... before?</p>
+<p class="font-body-md text-body-md text-outline-variant mt-2 leading-relaxed">过去完成时，用于询问“过去之中的过去”发生的动作。</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Question History -->
+<section class="flex flex-col gap-6">
+<!-- Exchange 1 -->
+<div class="flex flex-col gap-2">
+<div class="self-end bg-primary/20 border border-primary/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%]">
+<p class="font-body-md text-body-md text-on-primary">Was the umbrella open?</p>
+</div>
+<div class="self-start flex gap-2 items-end max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">robot_2</span>
+</div>
+<div class="glass-panel border border-error/30 rounded-2xl rounded-tl-sm px-4 py-3 relative">
+<div class="absolute -top-3 left-4 bg-error text-on-error font-label-zh-sm text-[10px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">No</div>
+<p class="font-body-md text-body-md text-surface-variant mt-1">No.</p>
+</div>
+</div>
+</div>
+<!-- Exchange 2 -->
+<div class="flex flex-col gap-2">
+<div class="self-end bg-primary/20 border border-primary/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%]">
+<p class="font-body-md text-body-md text-on-primary">Had he been to the station before?</p>
+</div>
+<div class="self-start flex gap-2 items-end max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">robot_2</span>
+</div>
+<div class="glass-panel border border-tertiary/30 rounded-2xl rounded-tl-sm px-4 py-3 relative">
+<div class="absolute -top-3 left-4 bg-tertiary-fixed-dim text-on-tertiary-fixed font-label-zh-sm text-[10px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">Yes</div>
+<p class="font-body-md text-body-md text-surface-variant mt-1">Yes.</p>
+</div>
+</div>
+</div>
+<!-- Exchange 3 -->
+<div class="flex flex-col gap-2">
+<div class="self-end bg-primary/20 border border-primary/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%]">
+<p class="font-body-md text-body-md text-on-primary">Is the umbrella related to his disappearance?</p>
+</div>
+<div class="self-start flex gap-2 items-end max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">robot_2</span>
+</div>
+<div class="glass-panel border border-tertiary/30 rounded-2xl rounded-tl-sm px-4 py-3 relative ai-glow">
+<div class="absolute -top-3 left-4 bg-tertiary-fixed-dim text-on-tertiary-fixed font-label-zh-sm text-[10px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider shadow-[0_0_10px_rgba(78,222,163,0.5)]">Yes</div>
+<p class="font-body-md text-body-md text-surface-variant mt-1">Yes, absolutely.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Question Area -->
+<section class="flex flex-col gap-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline-variant text-[18px]">bolt</span>
+<h3 class="font-label-zh-sm text-label-zh-sm text-outline-variant">快速提问 (Quick Question Chips)</h3>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="h-10 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full font-label-en-sm text-label-en-sm text-on-primary transition-colors">Did he...?</button>
+<button class="h-10 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full font-label-en-sm text-label-en-sm text-on-primary transition-colors">Was he...?</button>
+<button class="h-10 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full font-label-en-sm text-label-en-sm text-on-primary transition-colors">Is it related to...?</button>
+<button class="h-10 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full font-label-en-sm text-label-en-sm text-on-primary transition-colors">Had he...?</button>
+<button class="h-10 px-4 bg-error/10 border border-error/20 rounded-full font-label-en-sm text-label-en-sm text-error/80 flex items-center gap-1 opacity-70 cursor-not-allowed">
+                    Why...? <span class="material-symbols-outlined text-[14px]">block</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Bottom Input Area Fixed -->
+<div class="fixed bottom-0 left-0 w-full glass-panel border-t border-white/10 pt-4 pb-safe px-margin-mobile flex flex-col gap-3 z-40 bg-[#12121e]/90">
+<div class="flex gap-2 w-full max-w-lg mx-auto">
+<button class="h-[52px] px-4 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center shrink-0 text-primary-fixed hover:bg-white/10 transition-colors">
+                帮我表达
+            </button>
+<div class="flex-1 relative">
+<input class="w-full h-[52px] bg-black/30 border border-white/20 rounded-xl pl-4 pr-12 font-body-md text-on-primary placeholder:text-outline-variant focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all" placeholder="提出一个'是/否'问题，AI 帮你打磨英文..." type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-primary-fixed hover:text-white transition-colors">
+<span class="material-symbols-outlined">mic</span>
+</button>
+</div>
+<button class="h-[52px] w-[52px] bg-primary rounded-xl flex items-center justify-center shrink-0 hover:bg-primary/90 transition-colors shadow-[0_0_15px_rgba(79,70,229,0.3)]">
+<span class="material-symbols-outlined text-white">send</span>
+</button>
+</div>
+<button class="w-full max-w-lg mx-auto h-[48px] bg-transparent border border-primary text-primary hover:bg-primary/10 rounded-full font-headline-md text-headline-md transition-colors flex items-center justify-center mt-1">
+            提交最终推理
+        </button>
+<div class="h-safe"></div> <!-- iOS Home Indicator spacing -->
+</div>
+</body></html>

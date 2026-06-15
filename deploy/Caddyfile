@@ -1,0 +1,43 @@
+# AinerSpeak reverse proxy — Caddy
+# Routes: app / admin / api / studio subdomains
+
+{
+    email admin@ainerspeak.com
+}
+
+# Main app (H5)
+app.ainerspeak.com {
+    reverse_proxy web:80
+    encode gzip
+}
+
+# Admin console
+admin.ainerspeak.com {
+    reverse_proxy admin:80
+    encode gzip
+}
+
+# API backend
+api.ainerspeak.com {
+    reverse_proxy api:8000
+    encode gzip
+}
+
+# PC Studio (served via web /studio routes)
+studio.ainerspeak.com {
+    reverse_proxy web:80
+    encode gzip
+}
+
+# Local development fallback
+:80 {
+    handle /api/* {
+        reverse_proxy api:8000
+    }
+    handle /admin/* {
+        reverse_proxy admin:80
+    }
+    handle {
+        reverse_proxy web:80
+    }
+}

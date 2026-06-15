@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Scoped preflight: global preflight is disabled (to protect legacy Lumina
+ * pages), so re-apply essential button/form resets ONLY under `.premium`.
+ * `:where()` keeps specificity at (0,0,1) so every Tailwind utility
+ * (bg-*, border-*, .material-symbols-outlined, …) still overrides it.
+ */
+:where(.premium) button {
+  background-color: transparent;
+  background-image: none;
+  border: 0 solid transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+:where(.premium) input,
+:where(.premium) select,
+:where(.premium) textarea {
+  font: inherit;
+  color: inherit;
+  border: 0 solid transparent;
+}
+
+/*
+ * Premium "Amethyst" layer.
+ * Custom component classes are scoped under `.premium` so they never clash with
+ * the legacy Lumina classes of the same name in styles.css (e.g. `.glass-card`).
+ * Tailwind utilities (bg-primary, text-on-surface, …) are global but only used
+ * on migrated Premium pages, so legacy pages are unaffected.
+ */
+
+.premium {
+  font-family: "Be Vietnam Pro", "PingFang SC", ui-sans-serif, system-ui, sans-serif;
+  color: #131b2e;
+  background: #faf8ff;
+}
+
+.premium .glass-card {
+  /* width:auto cancels the legacy `.glass-card { width: 100% }` from styles.css —
+     block cards still fill their container, but glass chips used as flex items
+     shrink to content instead of stretching full-width. */
+  width: auto;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.premium .premium-shadow {
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.08);
+}
+
+.premium .bento-inner-glow {
+  box-shadow: inset 0 0 40px rgba(124, 58, 237, 0.03);
+}
+
+.premium .asset-card-shadow {
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.06);
+}
+
+.premium .ai-glow {
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
+}
+
+.premium .resonance-indicator {
+  background: linear-gradient(135deg, #7c3aed 0%, #4edea3 100%);
+}
+
+.premium .radar-pulse {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: rgba(99, 14, 212, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.premium .pulse-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid rgba(99, 14, 212, 0.2);
+  border-radius: 50%;
+  animation: premium-pulse 3s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+.premium .pulse-ring:nth-child(2) {
+  animation-delay: 1s;
+}
+.premium .pulse-ring:nth-child(3) {
+  animation-delay: 2s;
+}
+@keyframes premium-pulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+.premium .floating-tag {
+  animation: premium-float 4s ease-in-out infinite;
+}
+@keyframes premium-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.premium .circular-progress {
+  background: conic-gradient(var(--progress-color) calc(var(--percentage) * 1%), #e5e7eb 0);
+}
+
+.premium .pulse-orb {
+  animation: premium-pulse-orb 3s infinite ease-in-out;
+}
+@keyframes premium-pulse-orb {
+  0% { box-shadow: 0 0 0 0 rgba(99, 14, 212, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(99, 14, 212, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(99, 14, 212, 0); }
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.premium .glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.premium .ai-message-gradient {
+  background: linear-gradient(135deg, #f2f3ff 0%, #eaedff 100%);
+}
+
+.premium .user-message-gradient {
+  background: linear-gradient(135deg, #7c3aed 0%, #630ed4 100%);
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.98); }
+}
+.premium .animate-pulse-soft {
+  animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Voice Live Expression Overlay — lyric-style fade-in + subtle shimmer */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.premium .lyric-line {
+  background: linear-gradient(90deg, #630ed4 0%, #7c3aed 50%, #630ed4 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: lyric-shimmer 3s linear infinite;
+}
+@keyframes lyric-shimmer {
+  to { background-position: 200% center; }
+}
+
+/* Material Symbols base — sizing/fill controls match the mockups. */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+.material-symbols-outlined.fill {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}

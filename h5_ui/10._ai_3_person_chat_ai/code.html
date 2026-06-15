@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>AinerWise | Immersive Expression Training</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500&amp;family=Inter:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .ai-message-gradient {
+            background: linear-gradient(135deg, #f2f3ff 0%, #eaedff 100%);
+        }
+        .user-message-gradient {
+            background: linear-gradient(135deg, #7c3aed 0%, #630ed4 100%);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#732ee4",
+                    "on-surface-variant": "#4a4455",
+                    "error": "#ba1a1a",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed": "#001a42",
+                    "surface-dim": "#d2d9f4",
+                    "surface-bright": "#faf8ff",
+                    "secondary": "#0058be",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "tertiary-container": "#007650",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-container": "#ede0ff",
+                    "on-primary-fixed": "#25005a",
+                    "tertiary-fixed": "#6ffbbe",
+                    "primary-fixed": "#eaddff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "surface": "#faf8ff",
+                    "secondary-fixed": "#d8e2ff",
+                    "inverse-surface": "#283044",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "secondary-container": "#2170e4",
+                    "tertiary": "#005b3d",
+                    "on-tertiary-container": "#76ffc2",
+                    "surface-container": "#eaedff",
+                    "primary-container": "#7c3aed",
+                    "surface-container-highest": "#dae2fd",
+                    "surface-container-low": "#f2f3ff",
+                    "outline-variant": "#ccc3d8",
+                    "on-tertiary-fixed": "#002113",
+                    "on-secondary-fixed-variant": "#004395",
+                    "inverse-primary": "#d2bbff",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "surface-variant": "#dae2fd",
+                    "surface-container-high": "#e2e7ff",
+                    "on-surface": "#131b2e",
+                    "primary-fixed-dim": "#d2bbff",
+                    "inverse-on-surface": "#eef0ff",
+                    "primary": "#630ed4",
+                    "outline": "#7b7487",
+                    "on-secondary-container": "#fefcff",
+                    "background": "#faf8ff",
+                    "on-error": "#ffffff",
+                    "on-background": "#131b2e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "touch-target-min": "44px",
+                    "margin-desktop": "32px",
+                    "margin-mobile": "20px",
+                    "gutter": "16px",
+                    "base": "8px"
+            },
+            "fontFamily": {
+                    "body-md": ["beVietnamPro"],
+                    "label-sm": ["Inter"],
+                    "headline-xl-mobile": ["Plus Jakarta Sans"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-lg": ["beVietnamPro"],
+                    "headline-xl": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-xl-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-xl": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface select-none overflow-hidden">
+<!-- Immersive Background Animation -->
+<div class="fixed inset-0 -z-10 bg-surface-bright overflow-hidden">
+
+<div class="absolute inset-0 bg-gradient-to-b from-transparent via-surface/40 to-surface"></div>
+</div>
+<!-- Top Navigation App Bar -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-margin-mobile h-16 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30">
+<button class="flex items-center gap-1 text-on-surface-variant active:scale-95 transition-transform" onclick="window.history.back()">
+<span class="material-symbols-outlined">close</span>
+</button>
+<div class="flex flex-col items-center">
+<h1 class="font-headline-md text-headline-md-mobile text-primary tracking-tight">The Digital Atelier</h1>
+<span class="text-[10px] uppercase tracking-widest text-outline font-bold">Expression Training</span>
+</div>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+</button>
+</header>
+<!-- Main Discussion Canvas -->
+<main class="flex flex-col h-screen pt-16 pb-32">
+<!-- Personas Header -->
+<div class="px-margin-mobile py-4 flex justify-center gap-6">
+<div class="flex flex-col items-center">
+<div class="w-14 h-14 rounded-full border-2 border-primary-container p-0.5 overflow-hidden ring-4 ring-primary/5">
+<img alt="Marco" class="w-full h-full object-cover bg-surface-container" data-alt="A portrait of a sophisticated young man with a slight beard and glasses, rendered in a modern vector 3D style. The background is a soft lavender gradient, matching a clean, light-mode design system with a premium, focused atmosphere. Lighting is soft and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVrggaqxv3rgc3-7Vlj-EpSol8IvyOVDqsHoUd-ic0vYIUuzL-L5waul4iQsFJJXC3EsKZu3siK1PGC1_YTMdhtwwLVls7veB63mbFQlC0QwS6t6_jxFzfbNXsyYsRuxZ5zbq3MebM0_I9xfK42lLG4f5x6ZXgfz4h0QkgSk2V8qxmW16o5q2LabdnBRkJMeb41Wy6nVEz6btoD-EPrvSP2_O8A01tOlQjV8MOjEv7RX6Mybj0KCsUjNzf_mpp_7WyK19y_2ZagqE"/>
+</div>
+<span class="mt-2 font-label-sm text-label-sm text-on-surface-variant">Marco (Architect)</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-14 h-14 rounded-full border-2 border-tertiary-container p-0.5 overflow-hidden ring-4 ring-tertiary/5">
+<img alt="Sophie" class="w-full h-full object-cover bg-surface-container" data-alt="A portrait of a creative professional woman with vibrant hair and an expressive smile, designed in a high-end minimalist 3D character style. The lighting is bright and cheerful, set against a soft mint background that feels airy and intelligent, consistent with a high-end educational app aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBm6WTM07BMjstLUZgsbzJqLmcW7mBE_4UUYIOWUOtiCptULRIbaf-774hoSzQ343a4xS5z8nkyaBtYc4aLIcz4FcYuyq7orGUZ-2CkNJcguX3nP7oEdbtQVNFF2XLBsKdTHen9zJSDuWR4fbLPcTiMCzdK_st7NxuiBZu-9VvaU7FwqSitQVo7FOe8B_s64f3d9RzGLosj9wjhAr5bx-M8HOn1xdjVhok5dN4BkDylqTLi2Tm1rx5PjEFbnDeZV-cZ1ndSpydymM"/>
+</div>
+<span class="mt-2 font-label-sm text-label-sm text-on-surface-variant">Sophie (Critic)</span>
+</div>
+</div>
+<!-- Scrollable Conversation Area -->
+<div class="flex-1 overflow-y-auto px-margin-mobile space-y-6 hide-scrollbar pb-8" id="chat-container">
+<!-- Context Box -->
+<div class="glass-panel p-4 rounded-xl border-dashed border-outline-variant/50 text-center mb-4">
+<p class="text-label-sm text-on-surface-variant italic">Topic: The impact of generative design on urban landscapes.</p>
+</div>
+<!-- Message AI 1 -->
+<div class="flex items-start gap-3 max-w-[85%]">
+<div class="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
+<img alt="M" class="w-full h-full bg-surface-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1VhRhiJd1ESkgEg6ThpKcakkn2qg1Sqk8UNSh2xIVcM_ZzoXypgpsYgHnq_Ov6yDCnXPvtV1r0YyWE9Khz5DuwmLZqlWX-5pfViz53vYqGn6VwQ0QT0C4VqHiBsk7tExrGGWwLJ-GTRGWqD-PJPQdOzTo9hnRtUKTjBDXwhuR4Rk8CNO6wdBf5TMMTmEgzusUmnYbQQt1GxJj-hhcAAAjUFo06AlEstllKQ3WyfbIHWMnG3vtrXnvp4yUOb5aXibkFRwy2jYpeuE"/>
+</div>
+<div class="ai-message-gradient p-4 rounded-2xl rounded-tl-none shadow-sm border border-white/50">
+<p class="text-body-md text-on-surface">I believe the fluidity of these new structures challenges our traditional sense of permanence in the city. Do you agree, Sophie?</p>
+</div>
+</div>
+<!-- Message AI 2 -->
+<div class="flex items-start gap-3 max-w-[85%] flex-row-reverse self-end">
+<div class="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
+<img alt="S" class="w-full h-full bg-surface-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCH4idfRiDTfqYXZrTYsV0fvLoKpfbmiMGQ712X-E2cGfKNKVc7LJrAIyqBWFsYMPmNgsqXGNpa1wCPeJpTNBgdgDtnlm9rHhoyqbuCZy-K-KqqAlZodn0vgdWxI5aqU3E8s1EJvmtW1Ezd7cFV7_OYFpF8k458OQsjkN1VIQjp8YEiwDOzXLF59PutTq1vz5o9uxXjshu0Psz_ZAttGp49aIj-I-VpBSYtCm9gu9WFMeI04vn94I3KKF01-xVKWoHnApkzIeHq5aU"/>
+</div>
+<div class="bg-tertiary-container/10 p-4 rounded-2xl rounded-tr-none shadow-sm border border-tertiary-fixed-dim/20">
+<p class="text-body-md text-on-surface">Partially. But without historical grounding, aren't we just building digital ghosts? What do you think, User? Is functionality being sacrificed for aesthetics?</p>
+</div>
+</div>
+<!-- Moderator Intervention -->
+<div class="flex justify-center my-4">
+<div class="bg-surface-container-high/50 px-4 py-2 rounded-full flex items-center gap-2 border border-outline-variant/20 animate-pulse-soft">
+<span class="material-symbols-outlined text-primary text-[18px]">psychology</span>
+<p class="text-label-sm text-primary font-semibold">Moderator: Try using 'Juxtaposition' to describe the contrast.</p>
+</div>
+</div>
+<!-- Message User -->
+<div class="flex items-start gap-3 max-w-[85%] self-end">
+<div class="user-message-gradient p-4 rounded-2xl rounded-br-none shadow-lg text-white">
+<p class="text-body-md">I think there's a unique balance. It's not just about how it looks, but how it feels to walk through these spaces.</p>
+</div>
+</div>
+<!-- Naturalization Suggestion (Inline) -->
+<div class="flex flex-col gap-2 ml-auto w-[75%] mt-2">
+<div class="bg-white/60 backdrop-blur-md p-3 rounded-xl border border-primary/20 flex flex-col gap-2 shadow-sm">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">AI Refinement</span>
+</div>
+<p class="text-label-sm text-on-surface italic">"I believe it's a nuanced equilibrium; it's about the lived experience within these architectural forms."</p>
+<button class="self-end px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg active:scale-95 transition-transform">ADOPT</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Interactive Input Zone -->
+<div class="fixed bottom-0 w-full z-40">
+<!-- Floating Support Tools -->
+<div class="flex justify-between px-margin-mobile mb-4 pointer-events-none">
+<div class="flex gap-2 pointer-events-auto">
+<button class="w-12 h-12 glass-panel rounded-full flex items-center justify-center text-primary shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined">menu_book</span>
+</button>
+<button class="w-12 h-12 glass-panel rounded-full flex items-center justify-center text-tertiary shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined">translate</span>
+</button>
+</div>
+<button class="w-12 h-12 glass-panel rounded-full flex items-center justify-center text-error shadow-lg active:scale-90 transition-transform pointer-events-auto">
+<span class="material-symbols-outlined">mic</span>
+</button>
+</div>
+<!-- Glass Input Area -->
+<div class="bg-surface/90 backdrop-blur-2xl border-t border-outline-variant/30 p-margin-mobile pb-safe">
+<div class="flex items-center gap-3 bg-surface-container-low border border-outline-variant/30 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+<textarea class="flex-1 bg-transparent border-none focus:ring-0 p-0 text-body-md text-on-surface placeholder-on-surface-variant/50 resize-none min-h-[24px] max-h-32" placeholder="Contribute to the dialogue..." rows="1"></textarea>
+<button class="flex-shrink-0 w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+<!-- Quick Expression Chips -->
+<div class="flex gap-2 mt-4 overflow-x-auto hide-scrollbar -mx-2 px-2">
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant/20 text-label-sm text-on-surface-variant active:bg-primary-container/10">"In my view..."</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant/20 text-label-sm text-on-surface-variant active:bg-primary-container/10">"Building on that..."</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant/20 text-label-sm text-on-surface-variant active:bg-primary-container/10">"Contrarily..."</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant/20 text-label-sm text-on-surface-variant active:bg-primary-container/10">"Precisely."</button>
+</div>
+</div>
+</div>
+<!-- Action Bar (Record / Exit) -->
+<div class="fixed top-20 right-margin-mobile flex flex-col gap-3 z-30">
+<button class="w-10 h-10 glass-panel rounded-lg flex items-center justify-center text-on-surface shadow-sm active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">emergency_recording</span>
+</button>
+<button class="w-10 h-10 glass-panel rounded-lg flex items-center justify-center text-on-surface shadow-sm active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[20px]">help</span>
+</button>
+</div>
+<script>
+        // Simple Interaction: Auto-scroll to bottom of chat
+        const chatContainer = document.getElementById('chat-container');
+        
+        function scrollToBottom() {
+            chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        // Simulate initial scroll
+        window.addEventListener('load', () => {
+            setTimeout(scrollToBottom, 500);
+        });
+
+        // Toggle focus state visual for AI Input
+        const textarea = document.querySelector('textarea');
+        const inputWrapper = textarea.closest('div');
+
+        textarea.addEventListener('focus', () => {
+            inputWrapper.classList.add('shadow-[0_0_20px_rgba(124,58,237,0.15)]');
+        });
+
+        textarea.addEventListener('blur', () => {
+            inputWrapper.classList.remove('shadow-[0_0_20px_rgba(124,58,237,0.15)]');
+        });
+
+        // Simple typing effect simulation for AI Moderator
+        document.querySelectorAll('.animate-pulse-soft').forEach(mod => {
+            setInterval(() => {
+                mod.classList.toggle('opacity-70');
+            }, 2000);
+        });
+    </script>
+</body></html>

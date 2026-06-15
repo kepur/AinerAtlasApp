@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Character Skill Tree - Story Game Forge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary": "#006c49",
+                        "on-tertiary-container": "#000703",
+                        "surface-dim": "#d8dadc",
+                        "on-surface-variant": "#464554",
+                        "outline": "#767586",
+                        "soft-mint": "#D1FAE5",
+                        "primary-container": "#6063ee",
+                        "surface-container-low": "#f2f4f6",
+                        "primary": "#4648d4",
+                        "ai-gradient-start": "#EEF2FF",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed": "#001a42",
+                        "secondary": "#0058be",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "tertiary-container": "#00885d",
+                        "inverse-surface": "#2d3133",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed": "#6ffbbe",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-secondary-container": "#fefcff",
+                        "ai-gradient-end": "#E0E7FF",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "background": "#f7f9fb",
+                        "inverse-primary": "#c0c1ff",
+                        "surface-container-high": "#e6e8ea",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary-container": "#2170e4",
+                        "primary-fixed": "#e1e0ff",
+                        "on-primary-container": "#fffbff",
+                        "on-error": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "deep-purple": "#4F46E5",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "surface-tint": "#494bd6",
+                        "on-primary-fixed": "#07006c",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "on-tertiary-fixed": "#002113",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#d8e2ff",
+                        "outline-variant": "#c7c4d7"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "base": "4px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "touch-target-min": "44px",
+                        "gutter-md": "16px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px"
+                    },
+                    fontFamily: {
+                        "body-md": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "body-lg": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"]
+                    },
+                    boxShadow: {
+                        'ambient-primary': '0 4px 20px rgba(79, 70, 229, 0.15)',
+                        'ambient-glow': '0 0 15px rgba(79, 70, 229, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        body {
+            background: linear-gradient(135deg, theme('colors.ai-gradient-start'), theme('colors.ai-gradient-end'));
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* SVG Path Animation for the Skill Tree connections */
+        .path-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: dash 3s ease-out forwards;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+        
+        .pulse-glow {
+            animation: pulse-shadow 2s infinite;
+        }
+        
+        @keyframes pulse-shadow {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+
+        /* Safe area padding for mobile */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background font-body-md antialiased pb-safe pt-safe overflow-x-hidden selection:bg-deep-purple selection:text-white">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg backdrop-blur-xl border-b border-white/10 shadow-sm flex justify-between items-center px-margin-mobile h-[64px] pt-safe">
+<button aria-label="Menu" class="h-touch-target-min w-touch-target-min flex items-center justify-center text-deep-purple hover:opacity-80 transition-opacity scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="flex flex-col items-center justify-center">
+<h1 class="font-headline-md text-headline-md font-bold tracking-tight text-deep-purple">Forge Persona</h1>
+<span class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">Kevin • Lvl 8</span>
+</div>
+<button aria-label="Resources" class="h-touch-target-min min-w-[44px] px-2 flex items-center justify-center text-deep-purple bg-primary/10 rounded-full hover:opacity-80 transition-opacity scale-95 active:scale-90">
+<span class="font-label-en-sm text-label-en-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+                120
+            </span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="mt-[80px] mb-[90px] px-margin-mobile flex flex-col gap-stack-lg max-w-md mx-auto relative">
+<!-- Active Skills Summary Card -->
+<section class="glass-card rounded-xl p-5 shadow-ambient-primary flex flex-col gap-stack-sm relative overflow-hidden">
+<!-- Decorative background element -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl"></div>
+<h2 class="font-headline-md text-headline-md font-semibold text-on-surface relative z-10 flex items-center gap-2">
+<span class="material-symbols-outlined text-deep-purple" data-icon="psychology">psychology</span>
+                Active Proficiencies
+            </h2>
+<div class="flex flex-wrap gap-2 relative z-10 mt-2">
+<div class="bg-deep-purple/10 border border-deep-purple/20 px-3 py-2 rounded-full flex items-center gap-2 min-h-[32px]">
+<span class="w-2 h-2 rounded-full bg-deep-purple pulse-glow"></span>
+<span class="font-label-en-sm text-label-en-sm font-semibold text-deep-purple">Persuasion (Lvl 4)</span>
+</div>
+<div class="bg-secondary/10 border border-secondary/20 px-3 py-2 rounded-full flex items-center gap-2 min-h-[32px]">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label-en-sm text-label-en-sm font-semibold text-secondary">Analytical Thinking (Lvl 3)</span>
+</div>
+</div>
+</section>
+<!-- The Skill Tree Canvas -->
+<section class="relative py-8 flex flex-col items-center min-h-[400px]">
+<!-- SVG connecting lines layer -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 0;">
+<defs>
+<lineargradient id="lineGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#4F46E5" stop-opacity="0.6"></stop>
+<stop offset="100%" stop-color="#4F46E5" stop-opacity="0.1"></stop>
+</lineargradient>
+</defs>
+<!-- Central vertical trunk -->
+<path class="path-line" d="M 50% 10% L 50% 90%" fill="none" stroke="url(#lineGrad)" stroke-width="3"></path>
+<!-- Branches -->
+<path class="path-line" d="M 50% 30% Q 20% 30% 20% 45%" fill="none" stroke="#4F46E5" stroke-opacity="0.5" stroke-width="2"></path>
+<path d="M 50% 50% Q 80% 50% 80% 65%" fill="none" stroke="#c7c4d7" stroke-dasharray="4,4" stroke-width="2"></path>
+<path d="M 50% 70% Q 20% 70% 20% 85%" fill="none" stroke="#c7c4d7" stroke-dasharray="4,4" stroke-width="2"></path>
+</svg>
+<!-- Skill Nodes -->
+<div class="relative w-full h-full flex flex-col items-center gap-12 z-10">
+<!-- Core Node (Unlocked) -->
+<button aria-label="Scholar Skill" class="relative group flex flex-col items-center gap-2 mt-4">
+<div class="w-16 h-16 rounded-full bg-deep-purple text-white flex items-center justify-center shadow-ambient-glow pulse-glow transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[32px]" data-icon="school" style="font-variation-settings: 'FILL' 1;">school</span>
+</div>
+<span class="font-label-en-sm text-label-en-sm font-bold text-on-surface bg-glass-bg px-2 py-1 rounded-md backdrop-blur-sm">Scholar</span>
+<!-- Level indicator -->
+<div class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface-container-lowest border border-surface-variant flex items-center justify-center text-[10px] font-bold text-deep-purple shadow-sm">
+                        L3
+                    </div>
+</button>
+<!-- Left Branch Node (Active focus) -->
+<button aria-label="Negotiator Skill" class="relative group flex flex-col items-center gap-2 -ml-32 mt-4">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest border-2 border-deep-purple text-deep-purple flex items-center justify-center shadow-sm transition-transform active:scale-95 bg-white">
+<span class="material-symbols-outlined text-[28px]" data-icon="handshake">handshake</span>
+</div>
+<span class="font-label-en-sm text-label-en-sm font-semibold text-on-surface bg-glass-bg px-2 py-1 rounded-md backdrop-blur-sm">Negotiator</span>
+<div class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-deep-purple text-white flex items-center justify-center text-[10px] font-bold shadow-sm">
+                        L4
+                    </div>
+</button>
+<!-- Right Branch Node (Locked) -->
+<button aria-label="Diplomat Skill - Locked" class="relative group flex flex-col items-center gap-2 ml-32 mt-4 opacity-60">
+<div class="w-14 h-14 rounded-full bg-surface-variant border border-outline-variant text-outline flex items-center justify-center transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[28px]" data-icon="public">public</span>
+</div>
+<span class="font-label-en-sm text-label-en-sm font-medium text-outline bg-glass-bg px-2 py-1 rounded-md backdrop-blur-sm">Diplomat</span>
+<div class="absolute -bottom-2 right-1/2 translate-x-1/2 bg-surface-container-high rounded px-1 flex items-center">
+<span class="material-symbols-outlined text-[12px] text-outline" data-icon="lock">lock</span>
+</div>
+</button>
+<!-- Bottom Central Node (Locked) -->
+<button aria-label="Warrior Skill - Locked" class="relative group flex flex-col items-center gap-2 mt-4 opacity-60">
+<div class="w-14 h-14 rounded-full bg-surface-variant border border-outline-variant text-outline flex items-center justify-center transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[28px]" data-icon="swords">swords</span>
+</div>
+<span class="font-label-en-sm text-label-en-sm font-medium text-outline bg-glass-bg px-2 py-1 rounded-md backdrop-blur-sm">Warrior</span>
+</button>
+</div>
+</section>
+<!-- Selected Skill Detail Card (Floating UI) -->
+<section class="glass-card rounded-xl p-5 shadow-ambient-primary flex flex-col gap-stack-md mt-4 border-l-4 border-l-deep-purple">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">Persuasion</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Current Level: 4</p>
+</div>
+<div class="bg-primary/10 rounded-full p-2 text-deep-purple">
+<span class="material-symbols-outlined" data-icon="trending_up">trending_up</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest/50 rounded-lg p-3 border border-white/30">
+<span class="font-label-en-sm text-label-en-sm text-deep-purple uppercase tracking-wider font-bold block mb-1">Next Unlock (Lvl 5)</span>
+<p class="font-body-md text-body-md text-on-surface font-medium">Advanced Conditional Phrasing</p>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant mt-1">Unlocks complex "If/Then" grammatical structures during high-stakes dialogues.</p>
+</div>
+<button class="w-full h-touch-target-min bg-deep-purple text-white rounded-full font-label-en-sm text-label-en-sm font-bold flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-md">
+<span>Upgrade Skill</span>
+<span class="bg-white/20 px-2 py-0.5 rounded-full flex items-center gap-1 text-[11px]">
+<span class="material-symbols-outlined text-[14px]" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+                    40
+                </span>
+</button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-glass-bg backdrop-blur-2xl border-t border-white/20 shadow-[0_-4px_20px_rgba(79,70,229,0.1)] flex justify-around items-center h-16 px-base pb-safe md:hidden">
+<a class="flex flex-col items-center justify-center text-outline opacity-60 hover:opacity-100 transition-all active:scale-95 duration-200 h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-en-sm text-label-en-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline opacity-60 hover:opacity-100 transition-all active:scale-95 duration-200 h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-en-sm text-label-en-sm mt-1">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline opacity-60 hover:opacity-100 transition-all active:scale-95 duration-200 h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="auto_awesome_motion">auto_awesome_motion</span>
+<span class="font-label-en-sm text-label-en-sm mt-1">Assets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline opacity-60 hover:opacity-100 transition-all active:scale-95 duration-200 h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+<span class="font-label-en-sm text-label-en-sm mt-1">Crush</span>
+</a>
+<a class="flex flex-col items-center justify-center text-deep-purple relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-deep-purple after:rounded-full hover:opacity-100 transition-all active:scale-95 duration-200 h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-en-sm text-label-en-sm mt-1 font-bold">Me</span>
+</a>
+</nav>
+</body></html>

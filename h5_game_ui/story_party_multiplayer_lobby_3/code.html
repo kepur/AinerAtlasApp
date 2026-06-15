@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Story Party: Multiplayer Lobby - AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e0e3e5",
+                    "ai-gradient-end": "#E0E7FF",
+                    "surface-container-highest": "#e0e3e5",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-primary": "#c0c1ff",
+                    "ai-gradient-start": "#EEF2FF",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "on-secondary-fixed-variant": "#004395",
+                    "outline": "#767586",
+                    "on-surface-variant": "#464554",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-secondary": "#ffffff",
+                    "tertiary-container": "#00885d",
+                    "surface-tint": "#494bd6",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-container": "#000703",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "outline-variant": "#c7c4d7",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "primary-fixed-dim": "#c0c1ff",
+                    "surface-container-low": "#f2f4f6",
+                    "on-background": "#191c1e",
+                    "surface-container": "#eceef0",
+                    "on-primary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "tertiary": "#006c49",
+                    "on-secondary-fixed": "#001a42",
+                    "surface-container-high": "#e6e8ea",
+                    "on-tertiary-fixed": "#002113",
+                    "primary": "#4648d4",
+                    "surface-bright": "#f7f9fb",
+                    "secondary-container": "#2170e4",
+                    "primary-fixed": "#e1e0ff",
+                    "secondary-fixed": "#d8e2ff",
+                    "on-primary-fixed": "#07006c",
+                    "deep-purple": "#4F46E5",
+                    "on-secondary-container": "#fefcff",
+                    "error": "#ba1a1a",
+                    "secondary": "#0058be",
+                    "on-surface": "#191c1e",
+                    "surface-dim": "#d8dadc",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-fixed": "#6ffbbe",
+                    "on-primary-fixed-variant": "#2f2ebe",
+                    "surface": "#f7f9fb",
+                    "glass-bg": "rgba(255, 255, 255, 0.7)",
+                    "soft-mint": "#D1FAE5",
+                    "on-primary-container": "#fffbff",
+                    "inverse-surface": "#2d3133",
+                    "primary-container": "#6063ee",
+                    "background": "#f7f9fb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "touch-target-min": "44px",
+                    "stack-sm": "8px",
+                    "margin-mobile": "20px",
+                    "stack-md": "16px",
+                    "stack-lg": "32px",
+                    "base": "4px",
+                    "gutter-md": "16px",
+                    "safe": "env(safe-area-inset-bottom)"
+            },
+            "fontFamily": {
+                    "label-en-sm": ["Inter", "sans-serif"],
+                    "headline-lg": ["Manrope", "sans-serif"],
+                    "body-lg": ["Manrope", "sans-serif"],
+                    "label-zh-sm": ["Manrope", "sans-serif"],
+                    "body-md": ["Manrope", "sans-serif"],
+                    "headline-lg-mobile": ["Manrope", "sans-serif"],
+                    "headline-md": ["Manrope", "sans-serif"]
+            },
+            "fontSize": {
+                    "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                    "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            background-attachment: fixed;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.05);
+        }
+
+        .ambient-shadow {
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Orb Animation */
+        @keyframes subtle-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        .orb-pulse {
+            animation: subtle-pulse 3s ease-in-out infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface antialiased min-h-screen flex flex-col relative pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg dark:bg-inverse-surface/70 backdrop-blur-xl border-b border-white/10 dark:border-white/5 shadow-sm">
+<div class="flex justify-between items-center px-margin-mobile h-touch-target-min pt-[env(safe-area-inset-top)]">
+<button class="flex items-center justify-center w-10 h-10 -ml-2 text-deep-purple dark:text-primary-fixed-dim hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold tracking-tight text-deep-purple dark:text-primary-fixed-dim">Story Party Lobby</h1>
+<button class="flex items-center justify-center w-10 h-10 -mr-2 text-deep-purple dark:text-primary-fixed-dim hover:opacity-80 transition-opacity active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 px-margin-mobile pt-24 pb-stack-lg space-y-stack-lg relative z-10">
+<!-- Story Card (Bento Style) -->
+<section class="glass-card rounded-[24px] overflow-hidden p-1 relative">
+<div class="h-32 w-full rounded-[20px] overflow-hidden relative">
+<img alt="Neon lit market scene" class="w-full h-full object-cover" data-alt="A vibrant, cinematic shot of a futuristic neon market at night, filled with glowing holographic signs in pink and blue. The scene is highly detailed, showing diverse crowds and high-tech stalls, embodying a soft-minimalist cyberpunk aesthetic suitable for a high-end AI story game. The lighting is moody yet clear, with an ethereal quality emphasizing the lumina design system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDabaSpa1TdkwN_cBi_Xsnrs6YsgwpOlpf8bGGE3nnKpR8ZGfhLFExrCS2Nm-IIx-w8OiQIgFvY83WpkJPwiX7kAJggeTNJWqkuqO53ub7orqFYVg4TjMjF8Z7pWcfE3fOg-nUbi1S3eTcZOGTOY3xrIlcUVW-f6g3DvVgCwP1gC0Fw2EtfG9wtpz3nHQZf7yQyUYGSZnZkNEWi0ix698e_LFV_J2uL1RFOZRbH_90ww0clkzzP70ij6-mc9hiH1qHO8_Orj2vaBj9s"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="absolute bottom-3 left-4 right-4 flex justify-between items-end">
+<h2 class="font-headline-md text-headline-md text-white font-bold drop-shadow-md">The Neon Bazaar</h2>
+<div class="flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-1 rounded-full border border-white/20">
+<span class="material-symbols-outlined text-[14px] text-white">timer</span>
+<span class="font-label-en-sm text-label-en-sm text-white">15 Mins</span>
+</div>
+</div>
+</div>
+<div class="p-4 space-y-3">
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">Navigate the treacherous stalls of sector 4. Your goal is to secure the quantum core without starting a turf war.</p>
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center px-3 py-1 bg-surface-container rounded-full font-label-en-sm text-label-en-sm text-primary border border-white/50">
+<span class="material-symbols-outlined text-[14px] mr-1">handshake</span> Negotiation
+                    </span>
+<span class="inline-flex items-center px-3 py-1 bg-surface-container rounded-full font-label-en-sm text-label-en-sm text-secondary border border-white/50">
+<span class="material-symbols-outlined text-[14px] mr-1">language</span> Mandarin B1
+                    </span>
+</div>
+</div>
+</section>
+<!-- Party Status -->
+<section class="space-y-stack-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface px-1">Party (3/5)</h3>
+<div class="space-y-2">
+<!-- Slot 1: You -->
+<div class="glass-card rounded-xl p-3 flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center relative">
+<span class="material-symbols-outlined text-primary">face</span>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed-dim rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<span class="font-body-md text-body-md font-semibold text-on-surface">You</span>
+<span class="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-sm">Host</span>
+</div>
+<span class="font-label-en-sm text-label-en-sm text-tertiary-container">Ready</span>
+</div>
+</div>
+<!-- Slot 2: Leo -->
+<div class="glass-card rounded-xl p-3 flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-secondary-container/10 border border-secondary-container/20 flex items-center justify-center relative">
+<img alt="Leo" class="w-full h-full rounded-full object-cover" data-alt="A clean, bright headshot portrait of a young adult male with short dark hair, smiling softly against a minimalist white background. Soft studio lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCm2mFvTPWngfkS-U0AN1RoahF7bPdTiKqJ0sSfDXDAu_gQPZbSnANsuIehrk8PBtGFroKmaSxs5o5PJ0oUo7fWzh6HnL4L3TOAKkmRsC9ZT45_smIa-AUzzVYomJSanH2MX0Ywhfp-cgYp4XtTLMf_zVkgFqVt7NcV5P5MyaXVa2GP_WW-3cy_mw8vGuSYJF2GByAnBi9ZtC4eIrXLw_rVFIFRuFOD_KYSrwggzIDR8hVGPg1h2rsoqiVIBKk4YrxKoYlqE9V3Nro4"/>
+<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed-dim rounded-full border-2 border-white"></div>
+</div>
+<div class="flex-1">
+<span class="font-body-md text-body-md font-semibold text-on-surface block">Leo</span>
+<span class="font-label-en-sm text-label-en-sm text-tertiary-container">Ready</span>
+</div>
+</div>
+<!-- Slot 3: Wei -->
+<div class="glass-card rounded-xl p-3 flex items-center gap-3 opacity-70">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center relative animate-pulse">
+<span class="material-symbols-outlined text-outline">person</span>
+</div>
+<div class="flex-1">
+<span class="font-body-md text-body-md font-semibold text-on-surface block">Wei</span>
+<span class="font-label-en-sm text-label-en-sm text-outline flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-outline animate-ping"></span> Connecting...
+                        </span>
+</div>
+</div>
+<!-- Slot 4: Empty/Invite -->
+<button class="w-full glass-card rounded-xl p-3 flex items-center justify-center gap-2 border-dashed border-2 border-primary/20 hover:bg-primary/5 transition-colors active:scale-95 h-[74px]">
+<span class="material-symbols-outlined text-primary">add_circle</span>
+<span class="font-body-md text-body-md font-medium text-primary">Invite Friend</span>
+</button>
+</div>
+</section>
+<!-- Pre-Game Banter & AI Suggestion -->
+<section class="space-y-stack-sm relative">
+<h3 class="font-headline-md text-headline-md text-on-surface px-1">Lobby Chat</h3>
+<div class="glass-card rounded-[20px] p-4 flex flex-col h-64 relative overflow-hidden">
+<!-- Chat Background Decoration -->
+<div class="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl"></div>
+<div class="absolute bottom-10 -left-10 w-32 h-32 bg-secondary/5 rounded-full blur-2xl"></div>
+<div class="flex-1 overflow-y-auto space-y-4 pr-2 relative z-10">
+<!-- Leo Message -->
+<div class="flex flex-col items-start max-w-[85%]">
+<span class="font-label-en-sm text-label-en-sm text-outline ml-2 mb-1">Leo</span>
+<div class="bg-surface-container py-2 px-4 rounded-2xl rounded-tl-sm text-on-surface font-body-md text-body-md">
+                            I'll play the strict buyer. You guys ready to haggle?
+                        </div>
+</div>
+<!-- You Message -->
+<div class="flex flex-col items-end w-full">
+<span class="font-label-en-sm text-label-en-sm text-outline mr-2 mb-1">You</span>
+<div class="bg-deep-purple text-white py-2 px-4 rounded-2xl rounded-tr-sm font-body-md text-body-md max-w-[85%]">
+                            Bring it on...
+                        </div>
+</div>
+<!-- AI Suggestion Card -->
+<div class="mt-4 mx-2">
+<div class="bg-gradient-to-r from-ai-gradient-start to-ai-gradient-end border border-primary/20 rounded-xl p-3 flex gap-3 items-start relative overflow-hidden">
+<div class="absolute right-0 top-0 w-16 h-16 bg-white/40 rounded-full blur-xl orb-pulse"></div>
+<span class="material-symbols-outlined text-primary mt-0.5">auto_awesome</span>
+<div>
+<span class="font-label-en-sm text-label-en-sm font-bold text-primary block mb-1">AI Suggestion</span>
+<p class="font-label-en-sm text-label-en-sm text-on-surface-variant">Try using conditional phrasing: "If you lower the price, then..." (如果...就...)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="mt-3 relative z-10 flex items-end gap-2 pt-2 border-t border-white/50">
+<div class="flex-1 bg-surface/80 backdrop-blur-md rounded-2xl border border-white flex items-center px-3 focus-within:ring-2 ring-primary/30 transition-all h-touch-target-min">
+<input class="bg-transparent border-none w-full focus:ring-0 font-body-md text-body-md text-on-surface placeholder:text-outline p-0" placeholder="Send a message..." type="text"/>
+</div>
+<button class="w-touch-target-min h-touch-target-min bg-primary/10 rounded-full flex items-center justify-center text-primary hover:bg-primary/20 active:scale-95 transition-all flex-shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Fixed Bottom Action -->
+<div class="fixed bottom-0 left-0 w-full px-margin-mobile pb-8 pt-4 bg-gradient-to-t from-surface-container-highest/90 via-surface-container-highest/80 to-transparent backdrop-blur-lg z-40">
+<button class="w-full h-[56px] bg-deep-purple text-white rounded-full font-headline-md text-headline-md flex items-center justify-center gap-2 ambient-shadow active:scale-98 transition-transform">
+<span class="material-symbols-outlined">play_arrow</span>
+            Start Game (Host)
+        </button>
+</div>
+</body></html>

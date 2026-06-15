@@ -1,0 +1,334 @@
+<!DOCTYPE html><html class="light" lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>AinerWise - Premium AI Language Learning</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .ai-orb-glow {
+            box-shadow: 0 0 30px rgba(79, 70, 229, 0.2);
+            animation: pulse-aura 4s infinite ease-in-out;
+        }
+        @keyframes pulse-aura {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-container": "#eceef0",
+                        "primary-container": "#6063ee",
+                        "on-error": "#ffffff",
+                        "outline": "#767586",
+                        "deep-purple": "#4F46E5",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-variant": "#e0e3e5",
+                        "on-surface": "#191c1e",
+                        "soft-mint": "#D1FAE5",
+                        "ai-gradient-start": "#EEF2FF",
+                        "outline-variant": "#c7c4d7",
+                        "on-tertiary-fixed": "#002113",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed": "#001a42",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#e1e0ff",
+                        "surface-container-low": "#f2f4f6",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "on-tertiary-container": "#000703",
+                        "tertiary": "#006c49",
+                        "background": "#f7f9fb",
+                        "on-background": "#191c1e",
+                        "primary": "#4648d4",
+                        "on-secondary-container": "#fefcff",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-high": "#e6e8ea",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-secondary-fixed-variant": "#004395",
+                        "inverse-primary": "#c0c1ff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#fffbff",
+                        "tertiary-container": "#00885d",
+                        "surface-dim": "#d8dadc",
+                        "surface-bright": "#f7f9fb",
+                        "secondary": "#0058be",
+                        "on-surface-variant": "#464554",
+                        "surface-tint": "#494bd6",
+                        "secondary-container": "#2170e4",
+                        "surface": "#f7f9fb",
+                        "inverse-surface": "#2d3133",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-primary-fixed": "#07006c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "margin-mobile": "20px",
+                        "touch-target-min": "44px",
+                        "base": "4px",
+                        "gutter-md": "16px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Manrope"],
+                        "label-en-sm": ["Inter"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "body-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col items-center">
+<div class="w-full max-w-[430px] min-h-screen bg-white relative overflow-hidden flex flex-col">
+<!-- Background Animation -->
+
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg backdrop-blur-xl border-b border-white/10 shadow-sm flex justify-between items-center px-margin-mobile h-touch-target-min">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-deep-purple cursor-pointer active:scale-90 transition-transform" data-icon="menu">menu</span>
+<span class="font-headline-md text-headline-md font-bold tracking-tight text-deep-purple">AinerWise</span>
+</div>
+<div class="bg-deep-purple/5 border border-deep-purple/10 px-3 py-1 rounded-full flex items-center gap-1 active:scale-95 transition-transform">
+<span class="text-label-zh-sm font-label-zh-sm text-deep-purple font-semibold">🔥 12</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-margin-mobile pt-16 pb-32 overflow-y-auto no-scrollbar relative z-10 space-y-8">
+<!-- Header Subtitle -->
+<div class="mt-6 mb-8 text-center">
+<p class="text-label-zh-sm font-label-zh-sm text-outline opacity-70 uppercase tracking-widest">
+                    Think in your language. Grow in another.
+                </p>
+</div>
+<!-- Hero Card: Start Expression -->
+<section class="">
+<div class="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-white/80 to-deep-purple/5 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(79,70,229,0.1)]">
+<div class="absolute -top-12 -right-12 w-48 h-48 bg-deep-purple/10 rounded-full blur-3xl"></div>
+<h1 class="text-headline-md font-headline-md text-on-surface mb-2 relative z-10">今天想表达什么？</h1>
+<p class="text-body-md font-body-md text-on-surface-variant mb-6 relative z-10">输入一个想法，AI 帮你打磨表达、语法和观点</p>
+<div class="flex flex-col gap-3 relative z-10">
+<button class="w-full h-14 bg-deep-purple text-white rounded-full font-headline-md text-[16px] flex items-center justify-center gap-2 shadow-xl shadow-deep-purple/30 active:scale-[0.98] transition-all hover:shadow-deep-purple/40">
+<span class="material-symbols-outlined text-[22px]" data-icon="edit">edit</span>
+                            开始表达
+                        </button>
+<button class="w-full h-12 bg-white/40 text-deep-purple border border-deep-purple/10 rounded-full font-label-zh-sm text-label-zh-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform backdrop-blur-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="mic">mic</span>
+                            语音输入
+                        </button>
+</div>
+</div>
+</section>
+<!-- Continue Card -->
+<section class="">
+<div class="flex justify-between items-center mb-stack-sm">
+<h2 class="font-headline-md text-[18px] text-on-surface">继续上次思想</h2>
+<span class="text-label-en-sm font-label-en-sm text-deep-purple">查看全部</span>
+</div>
+<div class="glass-card rounded-2xl p-5 border border-white/30 flex gap-4 items-center active:bg-white/40 transition-colors cursor-pointer shadow-sm">
+<div class="w-14 h-14 bg-primary-fixed/30 flex items-center justify-center rounded-2xl shrink-0 border border-deep-purple/10">
+<span class="material-symbols-outlined text-deep-purple text-[28px]" data-icon="auto_awesome_motion">auto_awesome_motion</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-center mb-1">
+<h3 class="font-headline-md text-[16px] truncate font-bold">为什么我想去欧洲发展 v4</h3>
+<span class="shrink-0 bg-soft-mint text-[10px] px-2 py-0.5 rounded-full text-tertiary-container font-bold border border-tertiary/10">思想资产</span>
+</div>
+<p class="text-label-zh-sm font-label-zh-sm text-on-surface-variant truncate mb-2">我想去欧洲发展，不仅是为了更好的工作机会...</p>
+<div class="text-deep-purple font-headline-md text-[14px] flex items-center gap-1 font-semibold">
+                            继续 <span class="material-symbols-outlined text-[16px]" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Today Crush Card -->
+<section class="">
+<div class="flex justify-between items-center mb-stack-sm">
+<h2 class="font-headline-md text-[18px] text-on-surface">今日待消灭</h2>
+</div>
+<div class="glass-card rounded-2xl p-6 border border-white/30">
+<div class="space-y-5 mb-6"><div>
+<div class="flex justify-between text-label-en-sm font-label-en-sm mb-2">
+<span class="text-on-surface font-semibold italic">rather than doing...</span>
+<span class="text-deep-purple font-bold">64%</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full overflow-hidden">
+<div class="bg-deep-purple h-full rounded-full" style="width: 64%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-en-sm font-label-en-sm mb-2">
+<span class="text-on-surface font-semibold italic">allow someone to do...</span>
+<span class="text-deep-purple font-bold">82%</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full overflow-hidden">
+<div class="bg-deep-purple h-full rounded-full" style="width: 82%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-en-sm font-label-en-sm mb-2">
+<span class="text-on-surface font-semibold italic">It depends on whether...</span>
+<span class="text-deep-purple font-bold">37%</span>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full overflow-hidden">
+<div class="bg-deep-purple h-full rounded-full" style="width: 37%"></div>
+</div>
+</div></div>
+<button class="w-full h-touch-target-min bg-primary-container/10 text-deep-purple rounded-xl font-headline-md text-[15px] active:bg-primary-container/20 transition-colors">
+                        开始练习
+                    </button>
+</div>
+</section>
+<!-- Recommended Topics -->
+<section class="pb-12">
+<div class="flex justify-between items-center mb-stack-sm">
+<h2 class="font-headline-md text-[18px] text-on-surface">为你推荐的话题</h2>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<!-- Topic Card 1 -->
+<div class="glass-card rounded-2xl overflow-hidden border border-white/30 active:scale-[0.99] transition-transform">
+<div class="h-32 w-full relative">
+<img alt="Freedom vs Income" class="w-full h-full object-cover" data-alt="A cinematic low-angle shot of futuristic architectural curves against a soft lavender twilight sky. The scene is illuminated with a gentle, ambient purple and blue light, echoing a high-end minimalist design aesthetic. The mood is serene and intellectually stimulating, representing personal freedom and ambition. Minimalist, modern, and high-contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCp3iC29l3NN1YCMKIKTYXuIp6d2c6aOUdvIcvwKDfLtkG-E3Y64LJLWzOp3aIkY8-9tTrkmzZuHj6FPb02HWT-TDinrUY0i7I6kcbITyWGpYUjVJEhuJMjqQsEpNRv3b7BqgVu-R4inVEGN3teP2qK2hQSwC4F5vER1-tH7pAo2-3O72y0Yia4ACkSu4hTbr0un_sqmPu9nNaDluQAYeyOMahSmjpwTYOjwyfNq-WeO_VHi7XCndEmonimNmvzwU88nrXTS3s3kR_j">
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+</div>
+<div class="p-4">
+<h3 class="font-headline-md text-[16px] mb-2 leading-snug">自由是否比高收入更重要？</h3>
+<div class="flex flex-wrap gap-2 mb-3">
+<span class="bg-secondary-fixed/30 text-on-secondary-fixed-variant px-2 py-0.5 rounded text-[11px] font-semibold">人生</span>
+<span class="bg-secondary-fixed/30 text-on-secondary-fixed-variant px-2 py-0.5 rounded text-[11px] font-semibold">移民</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-label-en-sm font-label-en-sm text-outline">1.2k participants</span>
+<span class="material-symbols-outlined text-deep-purple text-[20px]" data-icon="add_circle">add_circle</span>
+</div>
+</div>
+</div>
+<!-- Topic Card 2 -->
+<div class="glass-card rounded-2xl overflow-hidden border border-white/30 active:scale-[0.99] transition-transform">
+<div class="h-32 w-full relative">
+<img alt="AI Entrepreneurship" class="w-full h-full object-cover" data-alt="A clean, abstract representation of artificial intelligence as a network of luminous, soft-edged purple and blue spheres interconnected by delicate glowing threads. The background is a crisp, off-white gallery-like space with soft-focus depth. The composition is professional and forward-thinking, embodying a premium business and technology atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQUfhYNNf4mcKDJ7_jKDKR2nMsScEpQHVpO1K7JCm6gONMLPYWvR1rx9UvKbbHdG4OaUk3P7dD6WEH6lJNpuBr3dR6vxjTD398owF9nHhzgzL1KEj1aHDmBt0_XOyEsLvj1Zid37QMx7yIn4RpyPLtzQXxC92SYtkIYdufyI3lyvP41CV4EQzfWeAef6RRZQM06LUFElB3zZSLxdDC4SlCveCz6f_SfTjMHsboAL53sfAvzyJJgBpVOPa9LIMVlGdxn9NFZdrjiudm">
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+</div>
+<div class="p-4">
+<h3 class="font-headline-md text-[16px] mb-2 leading-snug">AI 创业最现实的切入口是什么？</h3>
+<div class="flex flex-wrap gap-2 mb-3">
+<span class="bg-secondary-fixed/30 text-on-secondary-fixed-variant px-2 py-0.5 rounded text-[11px] font-semibold">AI</span>
+<span class="bg-secondary-fixed/30 text-on-secondary-fixed-variant px-2 py-0.5 rounded text-[11px] font-semibold">商业</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-label-en-sm font-label-en-sm text-outline">856 participants</span>
+<span class="material-symbols-outlined text-deep-purple text-[20px]" data-icon="add_circle">add_circle</span>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-3 text-deep-purple font-headline-md text-[15px] border border-deep-purple/10 rounded-xl hover:bg-deep-purple/5 transition-colors">
+                    查看更多
+                </button>
+</section>
+</main>
+<!-- Voice AI Orb Button -->
+<div class="fixed bottom-24 right-margin-mobile z-50">
+<div class="w-14 h-14 bg-gradient-to-br from-deep-purple to-[#818CF8] rounded-full flex items-center justify-center ai-orb-glow shadow-xl cursor-pointer active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-white text-[28px] font-variation-settings: 'FILL' 1;" data-icon="waves" style="font-variation-settings: 'FILL' 1;">waves</span>
+</div>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-glass-bg backdrop-blur-2xl border-t border-white/20 shadow-[0_-4px_20px_rgba(79,70,229,0.1)] flex justify-around items-center h-16 px-base pb-safe">
+<!-- Home (Active) -->
+<div class="flex flex-col items-center justify-center text-deep-purple relative after:content-[''] after:absolute after:-bottom-1 after:w-1 after:h-1 after:bg-deep-purple after:rounded-full cursor-pointer hover:opacity-100 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px]" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-en-sm text-label-en-sm mt-0.5">Home</span>
+</div>
+<!-- Chat -->
+<div class="flex flex-col items-center justify-center text-outline opacity-60 cursor-pointer hover:opacity-100 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px]" data-icon="chat_bubble">chat_bubble</span>
+<span class="font-label-en-sm text-label-en-sm mt-0.5">Chat</span>
+</div>
+<!-- Assets -->
+<div class="flex flex-col items-center justify-center text-outline opacity-60 cursor-pointer hover:opacity-100 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px]" data-icon="auto_awesome_motion">auto_awesome_motion</span>
+<span class="font-label-en-sm text-label-en-sm mt-0.5">Assets</span>
+</div>
+<!-- Crush -->
+<div class="flex flex-col items-center justify-center text-outline opacity-60 cursor-pointer hover:opacity-100 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px]" data-icon="favorite">favorite</span>
+<span class="font-label-en-sm text-label-en-sm mt-0.5">Crush</span>
+</div>
+<!-- Me -->
+<div class="flex flex-col items-center justify-center text-outline opacity-60 cursor-pointer hover:opacity-100 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[24px]" data-icon="person">person</span>
+<span class="font-label-en-sm text-label-en-sm mt-0.5">Me</span>
+</div>
+</nav>
+</div>
+<script>
+        // Simple micro-interactions
+        document.querySelectorAll('.active\\:scale-90').forEach(button => {
+            button.addEventListener('mousedown', () => button.classList.add('scale-90'));
+            button.addEventListener('mouseup', () => button.classList.remove('scale-90'));
+        });
+
+        // Toggle dark mode (optional check)
+        const toggleDarkMode = () => {
+            document.documentElement.classList.toggle('dark');
+        }
+    </script>
+
+
+</body></html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Privacy Center - AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-bright": "#f7f9fb",
+                      "primary": "#4648d4",
+                      "on-tertiary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "deep-purple": "#4F46E5",
+                      "surface-dim": "#d8dadc",
+                      "on-primary-container": "#fffbff",
+                      "surface-tint": "#494bd6",
+                      "soft-mint": "#D1FAE5",
+                      "surface-container-high": "#e6e8ea",
+                      "inverse-surface": "#2d3133",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "outline": "#767586",
+                      "on-tertiary-container": "#000703",
+                      "background": "#f7f9fb",
+                      "primary-fixed": "#e1e0ff",
+                      "surface": "#f7f9fb",
+                      "primary-container": "#6063ee",
+                      "on-primary": "#ffffff",
+                      "surface-container-highest": "#e0e3e5",
+                      "ai-gradient-end": "#E0E7FF",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-primary-fixed": "#07006c",
+                      "secondary-container": "#2170e4",
+                      "surface-container": "#eceef0",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary-fixed": "#001a42",
+                      "on-background": "#191c1e",
+                      "on-tertiary-fixed": "#002113",
+                      "surface-variant": "#e0e3e5",
+                      "on-surface-variant": "#464554",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "secondary-fixed": "#d8e2ff",
+                      "outline-variant": "#c7c4d7",
+                      "tertiary-container": "#00885d",
+                      "on-secondary-fixed-variant": "#004395",
+                      "on-secondary-container": "#fefcff",
+                      "ai-gradient-start": "#EEF2FF",
+                      "surface-container-low": "#f2f4f6",
+                      "error-container": "#ffdad6",
+                      "on-surface": "#191c1e",
+                      "inverse-primary": "#c0c1ff",
+                      "primary-fixed-dim": "#c0c1ff",
+                      "secondary": "#0058be",
+                      "glass-bg": "rgba(255, 255, 255, 0.7)",
+                      "on-error": "#ffffff",
+                      "tertiary": "#006c49",
+                      "on-primary-fixed-variant": "#2f2ebe",
+                      "on-error-container": "#93000a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "touch-target-min": "44px",
+                      "base": "4px",
+                      "stack-sm": "8px",
+                      "stack-lg": "32px",
+                      "stack-md": "16px",
+                      "gutter-md": "16px",
+                      "margin-mobile": "20px"
+              },
+              "fontFamily": {
+                      "label-zh-sm": ["Manrope"],
+                      "headline-md": ["Manrope"],
+                      "headline-lg": ["Manrope"],
+                      "body-md": ["Manrope"],
+                      "label-en-sm": ["Inter"],
+                      "headline-lg-mobile": ["Manrope"],
+                      "body-lg": ["Manrope"]
+              },
+              "fontSize": {
+                      "label-zh-sm": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg": ["30px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-en-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["26px", {"lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body {
+            background: linear-gradient(135deg, theme('colors.ai-gradient-start') 0%, theme('colors.ai-gradient-end') 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: theme('colors.glass-bg');
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.05);
+        }
+
+        .ambient-shadow {
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Custom Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: theme('colors.deep-purple');
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: theme('colors.deep-purple');
+        }
+        .toggle-checkbox:focus {
+            outline: none;
+            box-shadow: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface antialiased overflow-x-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:max-w-md md:mx-auto md:bg-surface-bright md:shadow-2xl md:min-h-screen">
+<!-- Top App Bar - Extracted from JSON with Subtitle logic merged -->
+<header class="bg-glass-bg dark:bg-inverse-surface/70 backdrop-blur-xl fixed top-0 w-full z-50 border-b border-white/10 dark:border-white/5 shadow-sm md:max-w-md transition-all duration-300" id="topAppBar">
+<div class="flex flex-col justify-center px-margin-mobile pt-4 pb-3">
+<div class="flex justify-between items-center h-touch-target-min">
+<button aria-label="Back" class="flex items-center justify-center w-touch-target-min h-touch-target-min -ml-2 text-deep-purple dark:text-primary-fixed-dim hover:opacity-80 transition-opacity scale-95 active:scale-90">
+<span class="material-symbols-outlined" style="font-variation-settings: 'wght' 400;">arrow_back_ios_new</span>
+</button>
+<div class="flex-1 text-center flex flex-col items-center">
+<h1 class="font-headline-md text-headline-md font-bold tracking-tight text-deep-purple dark:text-primary-fixed-dim">Privacy Center</h1>
+</div>
+<div class="w-touch-target-min"></div> <!-- Empty spacer for balance -->
+</div>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant text-center -mt-1 pb-1">Control your thoughts and data</p>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="px-margin-mobile pt-[110px] pb-stack-lg space-y-stack-lg relative z-10">
+<!-- 1. Data Overview Card -->
+<section class="glass-card rounded-xl p-[20px]">
+<div class="flex items-center gap-3 mb-stack-sm">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">data_usage</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Your Thought Footprint</h2>
+</div>
+<div class="grid grid-cols-3 gap-2 mb-stack-md">
+<div class="bg-surface/50 rounded-lg p-3 text-center">
+<span class="block font-headline-md text-headline-md text-deep-purple">28</span>
+<span class="block font-label-en-sm text-label-en-sm text-on-surface-variant mt-1">Assets</span>
+</div>
+<div class="bg-surface/50 rounded-lg p-3 text-center">
+<span class="block font-headline-md text-headline-md text-primary">12</span>
+<span class="block font-label-en-sm text-label-en-sm text-on-surface-variant mt-1">Frozen</span>
+</div>
+<div class="bg-surface/50 rounded-lg p-3 text-center">
+<span class="block font-headline-md text-headline-md text-outline">0</span>
+<span class="block font-label-en-sm text-label-en-sm text-on-surface-variant mt-1">Public</span>
+</div>
+</div>
+<div class="flex items-start gap-2 bg-secondary-fixed/30 rounded-lg p-3 border border-secondary-fixed-dim/20">
+<span class="material-symbols-outlined text-secondary-container mt-0.5 text-[20px]">shield</span>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">None of your private thoughts are shared with other users by default.</p>
+</div>
+</section>
+<!-- 2. AI & Personalization Settings -->
+<section class="space-y-stack-sm">
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider pl-2">AI Usage</h3>
+<div class="glass-card rounded-xl overflow-hidden divide-y divide-outline-variant/30">
+<!-- Toggle Row 1 -->
+<div class="p-[20px] flex items-start justify-between gap-4">
+<div class="flex-1">
+<h4 class="font-body-md text-body-md font-medium text-on-surface mb-1">Enable Personalized Learning</h4>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">Allow AI to analyze your assets to provide better grammar suggestions.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-surface-dim transition-transform duration-200 ease-in-out z-10 translate-x-6 border-deep-purple" id="toggle_ai_learning" name="toggle_ai_learning" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-dim cursor-pointer transition-colors duration-200 ease-in-out bg-deep-purple" for="toggle_ai_learning"></label>
+</div>
+</div>
+<!-- Toggle Row 2 -->
+<div class="p-[20px] flex items-start justify-between gap-4">
+<div class="flex-1">
+<h4 class="font-body-md text-body-md font-medium text-on-surface mb-1">Training Exclusion</h4>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">Do not use my thoughts to train general AI models.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-surface-dim transition-transform duration-200 ease-in-out z-10 translate-x-6 border-deep-purple" id="toggle_training_exclusion" name="toggle_training_exclusion" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-dim cursor-pointer transition-colors duration-200 ease-in-out bg-deep-purple" for="toggle_training_exclusion"></label>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Visibility & Matching -->
+<section class="space-y-stack-sm">
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider pl-2">Connect &amp; Matching</h3>
+<div class="glass-card rounded-xl overflow-hidden divide-y divide-outline-variant/30">
+<!-- Toggle Row 1 -->
+<div class="p-[20px] flex items-start justify-between gap-4">
+<div class="flex-1">
+<h4 class="font-body-md text-body-md font-medium text-on-surface mb-1">Enable Thought Matching</h4>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">Use my tags (not full text) to find like-minded people.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-surface-dim transition-transform duration-200 ease-in-out z-10 translate-x-6 border-deep-purple" id="toggle_thought_matching" name="toggle_thought_matching" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-dim cursor-pointer transition-colors duration-200 ease-in-out bg-deep-purple" for="toggle_thought_matching"></label>
+</div>
+</div>
+<!-- Toggle Row 2 -->
+<div class="p-[20px] flex items-start justify-between gap-4">
+<div class="flex-1">
+<h4 class="font-body-md text-body-md font-medium text-on-surface mb-1">Display Learning Level</h4>
+<p class="font-label-zh-sm text-label-zh-sm text-on-surface-variant">Show your CEFR level (e.g., B2) to others.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in mt-1">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-surface-dim transition-transform duration-200 ease-in-out z-10 translate-x-6 border-deep-purple" id="toggle_learning_level" name="toggle_learning_level" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-dim cursor-pointer transition-colors duration-200 ease-in-out bg-deep-purple" for="toggle_learning_level"></label>
+</div>
+</div>
+<!-- Action Button -->
+<div class="p-[20px]">
+<button class="w-full flex items-center justify-center gap-2 min-h-[44px] bg-primary/10 text-primary font-body-md text-body-md font-medium rounded-lg hover:bg-primary/20 active:scale-95 transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">sell</span>
+                        Manage Authorized Tags
+                    </button>
+</div>
+</div>
+</section>
+<!-- 4. Data Management -->
+<section class="space-y-stack-sm">
+<h3 class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider pl-2">Manage Data</h3>
+<div class="glass-card rounded-xl overflow-hidden divide-y divide-outline-variant/30">
+<button class="w-full flex items-center p-[20px] hover:bg-surface/50 active:bg-surface transition-colors text-left group">
+<div class="w-10 h-10 rounded-full bg-surface-variant/50 flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors mr-4">
+<span class="material-symbols-outlined">download</span>
+</div>
+<span class="flex-1 font-body-md text-body-md font-medium text-on-surface">Export My Thoughts</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<button class="w-full flex items-center p-[20px] hover:bg-surface/50 active:bg-surface transition-colors text-left group">
+<div class="w-10 h-10 rounded-full bg-surface-variant/50 flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors mr-4">
+<span class="material-symbols-outlined">lock</span>
+</div>
+<span class="flex-1 font-body-md text-body-md font-medium text-on-surface">Freeze All Assets</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<button class="w-full flex items-center p-[20px] hover:bg-error-container/30 active:bg-error-container/50 transition-colors text-left group">
+<div class="w-10 h-10 rounded-full bg-error-container/50 flex items-center justify-center text-error mr-4">
+<span class="material-symbols-outlined">delete_outline</span>
+</div>
+<span class="flex-1 font-body-md text-body-md font-medium text-error">Clear Chat History</span>
+</button>
+</div>
+</section>
+<!-- 5. Privacy Policy & Terms -->
+<section class="py-stack-md flex flex-col items-center gap-4">
+<div class="flex flex-wrap justify-center gap-x-6 gap-y-2">
+<a class="font-label-zh-sm text-label-zh-sm text-primary hover:text-deep-purple hover:underline underline-offset-4 transition-colors p-2 -m-2" href="#">Privacy Policy</a>
+<a class="font-label-zh-sm text-label-zh-sm text-primary hover:text-deep-purple hover:underline underline-offset-4 transition-colors p-2 -m-2" href="#">Terms of Service</a>
+</div>
+<a class="font-label-zh-sm text-label-zh-sm text-outline hover:text-on-surface-variant flex items-center gap-1 transition-colors p-2 -m-2" href="#">
+<span class="material-symbols-outlined text-[16px]">description</span>
+                Data Security Whitepaper
+            </a>
+</section>
+</main>
+<script>
+        // Simple script to handle toggle visual states if needed beyond CSS
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggles = document.querySelectorAll('.toggle-checkbox');
+            toggles.forEach(toggle => {
+                toggle.addEventListener('change', (e) => {
+                    const label = e.target.nextElementSibling;
+                    if(e.target.checked) {
+                        e.target.classList.remove('translate-x-0', 'border-surface-variant');
+                        e.target.classList.add('translate-x-6', 'border-deep-purple');
+                        label.classList.remove('bg-surface-variant');
+                        label.classList.add('bg-deep-purple');
+                    } else {
+                        e.target.classList.remove('translate-x-6', 'border-deep-purple');
+                        e.target.classList.add('translate-x-0', 'border-surface-variant');
+                        label.classList.remove('bg-deep-purple');
+                        label.classList.add('bg-surface-variant');
+                    }
+                });
+            });
+
+            // TopAppBar scroll effect
+            const topAppBar = document.getElementById('topAppBar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 10) {
+                    topAppBar.classList.add('shadow-md');
+                    topAppBar.classList.remove('shadow-sm');
+                } else {
+                    topAppBar.classList.remove('shadow-md');
+                    topAppBar.classList.add('shadow-sm');
+                }
+            });
+        });
+    </script>
+</body></html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Character Skill Tree - AinerWise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Lumina Effects */
+        .lumina-bg {
+            background: linear-gradient(135deg, theme('colors.ai-gradient-start'), theme('colors.ai-gradient-end'));
+        }
+        .glass-card {
+            background: theme('colors.glass-bg');
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .ambient-shadow {
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Skill Tree Specifics */
+        .tree-line {
+            position: absolute;
+            width: 2px;
+            background-color: theme('colors.primary-fixed');
+            z-index: 0;
+        }
+        .tree-line.active {
+            background-color: theme('colors.deep-purple');
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-variant": "#e0e3e5",
+                        "ai-gradient-end": "#E0E7FF",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#c0c1ff",
+                        "ai-gradient-start": "#EEF2FF",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-secondary-fixed-variant": "#004395",
+                        "outline": "#767586",
+                        "on-surface-variant": "#464554",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#00885d",
+                        "surface-tint": "#494bd6",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#000703",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "outline-variant": "#c7c4d7",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-container-low": "#f2f4f6",
+                        "on-background": "#191c1e",
+                        "surface-container": "#eceef0",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "tertiary": "#006c49",
+                        "on-secondary-fixed": "#001a42",
+                        "surface-container-high": "#e6e8ea",
+                        "on-tertiary-fixed": "#002113",
+                        "primary": "#4648d4",
+                        "surface-bright": "#f7f9fb",
+                        "secondary-container": "#2170e4",
+                        "primary-fixed": "#e1e0ff",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-primary-fixed": "#07006c",
+                        "deep-purple": "#4F46E5",
+                        "on-secondary-container": "#fefcff",
+                        "error": "#ba1a1a",
+                        "secondary": "#0058be",
+                        "on-surface": "#191c1e",
+                        "surface-dim": "#d8dadc",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "surface": "#f7f9fb",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                        "soft-mint": "#D1FAE5",
+                        "on-primary-container": "#fffbff",
+                        "inverse-surface": "#2d3133",
+                        "primary-container": "#6063ee",
+                        "background": "#f7f9fb"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "touch-target-min": "44px",
+                        "stack-sm": "8px",
+                        "margin-mobile": "20px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "base": "4px",
+                        "gutter-md": "16px"
+                    },
+                    fontFamily: {
+                        "label-en-sm": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "label-zh-sm": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "headline-md": ["Manrope"]
+                    },
+                    fontSize: {
+                        "label-en-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-lg": ["30px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-zh-sm": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="lumina-bg text-on-surface min-h-screen relative font-body-md text-body-md overflow-x-hidden antialiased">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-glass-bg backdrop-blur-xl dark:bg-glass-bg/20 shadow-sm border-b border-white/20 flex justify-between items-center px-margin-mobile h-touch-target-min transition-all duration-300">
+<button aria-label="Menu" class="text-primary dark:text-primary-fixed hover:opacity-80 transition-opacity active:scale-95 flex items-center justify-center w-touch-target-min h-touch-target-min -ml-2">
+<span class="material-symbols-outlined text-2xl">menu</span>
+</button>
+<div class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-deep-purple dark:text-primary-fixed tracking-tight">AinerWise</div>
+<div class="flex items-center gap-1 text-primary dark:text-primary-fixed font-headline-md text-headline-md">
+<span class="text-orange-500">🔥</span>
+<span>120</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-[80px] pb-[100px] px-margin-mobile max-w-lg mx-auto w-full flex flex-col gap-stack-lg">
+<!-- Header Module: Forge Persona -->
+<section class="glass-card rounded-xl p-[20px] flex items-center gap-stack-md ambient-shadow mt-4">
+<div class="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A close-up portrait of a sophisticated young professional man with short dark hair, wearing a casual but smart collared shirt. He is set against a clean, softly lit white background that perfectly matches the light-mode UI aesthetic. The lighting is high-key and flattering, conveying a sense of intellectual curiosity and modern empowerment. The image is rendered with a subtle, soft-focus quality to blend harmoniously with glassmorphic elements." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxK_7aEFK6HJu-gFSu_Rav9VeUXq4UEwz5sNOuHbXSi0i7A4aEPzI04leLVY2OO5N8hvcGjFpATvKIOnVbqhfd8JKekNZR6H6ihBXx70UkMTsWP8LpHZW-BpMaRmgXVb4XRAhT6xNosPTj-JOLifhomkDjvFG9Czz5Ci4Lx-7OPNVpQiya1ocNvXRDVSgS4L_l8t_QaQtRsAmbbXu-1n8xaWdgVPBP95UGksfphIf78fdAopf27psN2X7epwBkh1oZRqkSC5kkrM24"/>
+</div>
+<div class="flex-1">
+<h1 class="font-headline-md text-headline-md text-on-surface">Kevin</h1>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-en-sm text-label-en-sm text-deep-purple bg-primary-fixed px-2 py-1 rounded-full">Level 8</span>
+<span class="font-label-en-sm text-label-en-sm text-on-surface-variant">Sophisticated Practitioner</span>
+</div>
+</div>
+</section>
+<!-- Active Proficiencies Chips -->
+<section class="flex flex-col gap-stack-sm">
+<h2 class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider pl-1">Active Proficiencies</h2>
+<div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+<div class="flex-shrink-0 bg-glass-bg border border-white/60 rounded-full px-4 py-2 flex items-center gap-2 min-h-[44px] shadow-sm backdrop-blur-md">
+<span class="material-symbols-outlined text-deep-purple text-sm fill">psychology</span>
+<span class="font-body-md text-body-md text-on-surface">Persuasion <span class="text-deep-purple font-semibold">(Lvl 4)</span></span>
+</div>
+<div class="flex-shrink-0 bg-glass-bg border border-white/60 rounded-full px-4 py-2 flex items-center gap-2 min-h-[44px] shadow-sm backdrop-blur-md">
+<span class="material-symbols-outlined text-secondary text-sm fill">account_tree</span>
+<span class="font-body-md text-body-md text-on-surface">Analytical Thinking <span class="text-secondary font-semibold">(Lvl 3)</span></span>
+</div>
+</div>
+</section>
+<!-- Skill Tree Area -->
+<section class="glass-card rounded-xl p-[20px] ambient-shadow relative min-h-[350px] flex flex-col items-center justify-center overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-b from-transparent to-surface-variant/20 pointer-events-none rounded-xl"></div>
+<h2 class="font-label-en-sm text-label-en-sm text-on-surface-variant uppercase tracking-wider absolute top-4 left-4">Skill Path</h2>
+<!-- Structural Lines -->
+<div class="tree-line active h-16 w-0.5 top-20 left-1/2 -translate-x-1/2"></div>
+<div class="tree-line active h-16 w-0.5 top-44 left-1/2 -translate-x-1/2 origin-top -rotate-45"></div>
+<div class="tree-line h-16 w-0.5 top-44 left-1/2 -translate-x-1/2 origin-top rotate-45"></div>
+<div class="tree-line h-16 w-0.5 top-[250px] left-[20%] origin-top"></div>
+<!-- Nodes -->
+<!-- Root: Scholar (Active) -->
+<button aria-label="Scholar Skill" class="absolute top-12 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-deep-purple shadow-[0_0_20px_rgba(79,70,229,0.4)] flex items-center justify-center z-10 active:scale-95 transition-transform border-2 border-white">
+<span class="material-symbols-outlined text-white text-3xl fill">local_library</span>
+<span class="absolute -bottom-6 font-label-en-sm text-label-en-sm text-on-surface whitespace-nowrap font-semibold">Scholar</span>
+</button>
+<!-- Branch L: Negotiator (Active/Focus) -->
+<button aria-label="Negotiator Skill, Active" class="absolute top-40 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-glass-bg border-2 border-deep-purple shadow-[0_0_30px_rgba(79,70,229,0.3)] flex items-center justify-center z-10 active:scale-95 transition-transform backdrop-blur-xl">
+<div class="absolute inset-0 rounded-full bg-deep-purple/10 animate-pulse"></div>
+<span class="material-symbols-outlined text-deep-purple text-4xl fill relative z-10">handshake</span>
+<span class="absolute -bottom-8 font-label-en-sm text-label-en-sm text-deep-purple whitespace-nowrap font-bold bg-white/80 px-2 py-0.5 rounded-full shadow-sm backdrop-blur-md">Negotiator (Lvl 4)</span>
+</button>
+<!-- Branch R: Diplomat (Locked) -->
+<button aria-label="Diplomat Skill, Locked" class="absolute top-40 left-[80%] -translate-x-1/2 w-14 h-14 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center z-10 active:scale-95 transition-transform opacity-70">
+<span class="material-symbols-outlined text-outline text-2xl">public</span>
+<span class="material-symbols-outlined absolute -top-1 -right-1 text-on-surface-variant text-sm bg-surface rounded-full p-0.5 shadow-sm">lock</span>
+<span class="absolute -bottom-6 font-label-en-sm text-label-en-sm text-on-surface-variant whitespace-nowrap">Diplomat</span>
+</button>
+<!-- Sub-branch L: Warrior (Inactive) -->
+<button aria-label="Warrior Skill, Inactive" class="absolute top-[260px] left-[20%] -translate-x-1/2 w-14 h-14 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center z-10 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">swords</span>
+<span class="absolute -bottom-6 font-label-en-sm text-label-en-sm text-on-surface-variant whitespace-nowrap">Warrior</span>
+</button>
+</section>
+<!-- Skill Detail Card -->
+<section class="glass-card rounded-xl p-[20px] flex flex-col gap-stack-md ambient-shadow relative overflow-hidden">
+<!-- Decorative gradient blur -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-deep-purple/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-deep-purple fill">handshake</span>
+                        Persuasion
+                    </h3>
+<p class="font-label-en-sm text-label-en-sm text-on-surface-variant mt-1">Current Mastery: Level 4</p>
+</div>
+</div>
+<div class="bg-surface-bright/80 rounded-lg p-3 border border-white/50 backdrop-blur-sm">
+<h4 class="font-label-en-sm text-label-en-sm text-secondary font-semibold uppercase tracking-wide mb-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> Next Unlock: Lvl 5
+                </h4>
+<p class="font-body-md text-body-md text-on-surface font-medium">Advanced Conditional Phrasing</p>
+<p class="font-label-en-sm text-label-en-sm text-on-surface-variant mt-1">Master complex "if-then" hypothetical negotiations to influence high-stakes conversational outcomes.</p>
+</div>
+<button class="w-full bg-deep-purple text-white rounded-full min-h-[44px] font-body-md text-body-md font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-[0_4px_14px_rgba(79,70,229,0.3)] mt-2">
+<span>Upgrade Skill</span>
+<span class="bg-white/20 px-2 py-0.5 rounded-full text-sm backdrop-blur-md flex items-center gap-1">
+<span class="text-orange-300">🔥</span> 40 pts
+                </span>
+</button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-glass-bg backdrop-blur-xl dark:bg-glass-bg/20 shadow-[0_-4px_20px_rgba(99,102,241,0.1)] flex justify-around items-center h-[72px] px-2 pb-safe md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-outline-variant/60 hover:text-deep-purple transition-colors active:scale-90 duration-200 w-touch-target-min h-touch-target-min" href="#">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="font-label-en-sm text-label-en-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-outline-variant/60 hover:text-deep-purple transition-colors active:scale-90 duration-200 w-touch-target-min h-touch-target-min" href="#">
+<span class="material-symbols-outlined text-[24px]">chat_bubble</span>
+<span class="font-label-en-sm text-label-en-sm mt-1">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-outline-variant/60 hover:text-deep-purple transition-colors active:scale-90 duration-200 w-touch-target-min h-touch-target-min" href="#">
+<span class="material-symbols-outlined text-[24px]">auto_awesome_motion</span>
+<span class="font-label-en-sm text-label-en-sm mt-1">Assets</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 dark:text-outline-variant/60 hover:text-deep-purple transition-colors active:scale-90 duration-200 w-touch-target-min h-touch-target-min" href="#">
+<span class="material-symbols-outlined text-[24px]">things_to_do</span>
+<span class="font-label-en-sm text-label-en-sm mt-1">Crush</span>
+</a>
+<a class="flex flex-col items-center justify-center text-deep-purple dark:text-primary-fixed after:content-[''] after:w-1 after:h-1 after:bg-deep-purple after:rounded-full after:mt-1 hover:text-deep-purple transition-colors active:scale-90 duration-200 w-touch-target-min h-touch-target-min" href="#">
+<span class="material-symbols-outlined text-[24px] fill">person</span>
+<span class="font-label-en-sm text-label-en-sm mt-1 font-semibold">Me</span>
+</a>
+</nav>
+</body></html>
