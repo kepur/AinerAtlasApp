@@ -1,9 +1,31 @@
+"""Disk-persistent TTS audio cache.
+
+Stores synthesized audio as files under ``CACHE_DIR`` so repeat playback of the
+same text+voice+speed combination skips the TTS provider entirely.  Falls back
+to an in-memory dict when the filesystem is not writable.
+"""
+from __future__ import annotations
+
+import base64
 import hashlib
+import logging
+import os
+from pathlib import Path
 from typing import Optional
 
-from app.core.config import get_settings
+logger = logging.getLogger(__name__)
 
-_cache: dict[str, tuple[bytes, str]] = {}
+CACHE_DIR = Path(os.environ.get("TTS_CACHE_DIR", "/app/storage/tts_cache"))
+
+_mem_cache: dict[str, bytes] = {}
+
+
+def _ensure_dir() -> bool:
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        return True
+    except OSError:
+        return False
 
 
 def _cache_key(text: str, voice: str, speed: str) -> str:
@@ -11,26 +33,38 @@ def _cache_key(text: str, voice: str, speed: str) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def get_cached_tts(text: str, voice: str = "default", speed: str = "1.0") -> Optional[tuple[bytes, str]]:
-    settings = get_settings()
-    if not settings.tts_cache_enabled:
-        return None
+def get_cached_audio(text: str, voice: str = "default", speed: str = "1.0") -> Optional[bytes]:
     key = _cache_key(text, voice, speed)
-    return _cache.get(key)
+    path = CACHE_DIR / f"{key}.mp3"
+    try:
+        if path.exists():
+            data = path.read_bytes()
+            if data:
+                return data
+    except OSError:
+        pass
+    return _mem_cache.get(key)
 
 
-def set_cached_tts(text: str, audio_bytes: bytes, content_type: str, voice: str = "default", speed: str = "1.0") -> None:
-    settings = get_settings()
-    if not settings.tts_cache_enabled:
+def set_cached_audio(text: str, audio_bytes: bytes, voice: str = "default", speed: str = "1.0") -> None:
+    if not audio_bytes:
         return
     key = _cache_key(text, voice, speed)
-    if len(_cache) >= settings.tts_cache_max_entries:
-        for old_key in list(_cache.keys())[: max(1, settings.tts_cache_max_entries // 10)]:
-            _cache.pop(old_key, None)
-    _cache[key] = (audio_bytes, content_type)
+    _mem_cache[key] = audio_bytes
+    if _ensure_dir():
+        try:
+            (CACHE_DIR / f"{key}.mp3").write_bytes(audio_bytes)
+        except OSError as exc:
+            logger.warning("Failed to persist TTS cache file: %s", exc)
 
 
-def clear_tts_cache() -> int:
-    count = len(_cache)
-    _cache.clear()
-    return count
+def cache_hit_as_response(text: str, voice: str = "default", speed: str = "1.0") -> Optional[dict]:
+    audio = get_cached_audio(text, voice, speed)
+    if not audio:
+        return None
+    return {
+        "audio_base64": base64.b64encode(audio).decode("ascii"),
+        "audio_url": "",
+        "audio_mime": "audio/mpeg",
+        "provider": "cache",
+    }

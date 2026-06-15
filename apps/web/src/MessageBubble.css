@@ -1063,6 +1063,34 @@
   color: var(--text-muted);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-tts-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.auto-tts-toggle.on {
+  background: rgba(79, 70, 229, 0.15);
+  color: var(--accent, #4f46e5);
+}
+
+.auto-tts-toggle.off {
+  background: rgba(120, 120, 128, 0.12);
+  color: var(--text-muted, #999);
+}
+
 .header-streak {
   display: flex;
   align-items: center;

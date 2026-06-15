@@ -1,6 +1,6 @@
 import "../MessageBubble.css";
 import {
-  ArrowLeft, Loader, Send, Volume2, Lightbulb, GraduationCap,
+  ArrowLeft, Loader, Send, Volume2, VolumeX, Lightbulb, GraduationCap,
   MessageSquare, Flame, X, Mic, Sparkles, Pin,
 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -12,9 +12,13 @@ import TabBar from "../components/TabBar";
 import { useI18n } from "../i18n";
 import { useChatStore, type DialogueTurn, type HudData } from "../stores/chatStore";
 
-/* ─── TTS hook ─── */
+/* ─── TTS hook (debounced + session cache) ─── */
 function useTts() {
   const [cfg, setCfg] = useState({ voice: "Cherry", speed: 0.9, pitch: 1.1, provider: "browser" });
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pendingKeyRef = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const cacheRef = useRef(new Map<string, string>());
 
   useEffect(() => {
     fetch("/api/config/tts")
@@ -24,21 +28,55 @@ function useTts() {
   }, []);
 
   const speak = useCallback(async (text: string, lang?: string) => {
-    if (cfg.provider && cfg.provider !== "browser") {
+    if (!text) return;
+    const key = `${text}|${lang || ""}`;
+
+    // Same text already in flight → skip
+    if (pendingKeyRef.current === key) return;
+
+    // Stop current playback
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    window.speechSynthesis?.cancel();
+
+    // Cancel different in-flight request
+    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; pendingKeyRef.current = null; }
+
+    // Check session cache
+    let src = cacheRef.current.get(key);
+
+    if (!src && cfg.provider && cfg.provider !== "browser") {
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      pendingKeyRef.current = key;
       try {
         const resp = await fetch("/api/voice/tts", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text, voice: cfg.voice, speed: cfg.speed, language: lang || "" }),
+          signal: ctrl.signal,
         });
         if (resp.ok) {
           const d = await resp.json() as { audio_url?: string; audio_base64?: string };
-          const src = d.audio_url || (d.audio_base64 ? `data:audio/mpeg;base64,${d.audio_base64}` : "");
-          if (src) { new Audio(src).play(); return; }
+          src = d.audio_url || (d.audio_base64 ? `data:audio/mpeg;base64,${d.audio_base64}` : "");
+          if (src) cacheRef.current.set(key, src);
         }
-      } catch { /* fall through to browser */ }
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+      }
+      abortRef.current = null;
+      pendingKeyRef.current = null;
     }
+
+    if (src) {
+      const audio = new Audio(src);
+      audioRef.current = audio;
+      audio.onended = () => { if (audioRef.current === audio) audioRef.current = null; };
+      audio.onerror = () => { if (audioRef.current === audio) audioRef.current = null; };
+      audio.play().catch(() => {});
+      return;
+    }
+
+    // Browser TTS fallback
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang || (/[一-鿿]/.test(text) ? "zh-CN" : "en-US");
     u.rate = cfg.speed; u.pitch = cfg.pitch;
@@ -463,8 +501,25 @@ export default function ChatDetail() {
   const [freezeError, setFreezeError] = useState<string | null>(null);
   const [showFreeze, setShowFreeze] = useState(false);
   const [tokenSheet, setTokenSheet] = useState<{ token: string; context: string } | null>(null);
+  const [autoTts, setAutoTts] = useState(() => {
+    const v = localStorage.getItem("ainerspeak_auto_tts");
+    return v !== null ? v === "true" : true;
+  });
 
   const { speak } = useTts();
+
+  useEffect(() => { localStorage.setItem("ainerspeak_auto_tts", String(autoTts)); }, [autoTts]);
+
+  const prevSendingRef = useRef(false);
+  useEffect(() => {
+    if (prevSendingRef.current && !sending && autoTts) {
+      const latest = turns[turns.length - 1];
+      if (latest?.status === "ready" && latest.ai_reply) {
+        speak(latest.ai_reply, "en-US");
+      }
+    }
+    prevSendingRef.current = sending;
+  }, [sending, autoTts, turns, speak]);
 
   useEffect(() => { if (id) loadConversation(id); return () => clearCurrent(); }, [id, loadConversation, clearCurrent]);
 
@@ -508,7 +563,12 @@ export default function ChatDetail() {
             <div className="logo-text"><h1>Mind Dialogue</h1><p>Think in your language. Grow in another.</p></div>
           </div>
         </div>
-        <div className="header-streak"><Flame size={16} color="#f97316" fill="#f97316" /> <span>连续学习</span></div>
+        <div className="header-actions">
+          <button className={`auto-tts-toggle ${autoTts ? "on" : "off"}`} onClick={() => setAutoTts(v => !v)} title={autoTts ? "自动语音已开启" : "自动语音已关闭"}>
+            {autoTts ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </button>
+          <div className="header-streak"><Flame size={16} color="#f97316" fill="#f97316" /> <span>连续学习</span></div>
+        </div>
       </header>
 
       {/* Turn selector */}

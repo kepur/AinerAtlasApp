@@ -196,16 +196,24 @@ async def synthesize_routed(
     Returns the provider's synthesize() dict, or ``None`` when routing could not
     pick a usable provider (caller should fall back to its default path).
     """
+    from app.services.tts_cache import cache_hit_as_response, set_cached_audio
+
     lang = (language or "").split("-")[0].lower() or detect_text_language(text)
     if lang not in {"zh", "en", "ja", "ko", "ru"}:
         lang = detect_text_language(text)
+
+    cache_voice_key = f"{lang}_{configured_default}"
+    cached = cache_hit_as_response(text, voice=cache_voice_key, speed=str(speed))
+    if cached:
+        cached["routed_language"] = lang
+        cached["routed_provider"] = "cache"
+        return cached
 
     base_default = configured_default if configured_default in PROVIDER_VOICE_CAPABILITIES else "openai"
     provider_name, voice = choose_provider(db, lang, base_default)
 
     api_key = _resolve_provider_key(db, provider_name)
     if not api_key and provider_name != "openai":
-        # No key for the routed provider — let the caller fall back.
         return None
 
     try:
@@ -215,6 +223,11 @@ async def synthesize_routed(
         result = await provider.synthesize(text, voice, speed)
         result.setdefault("routed_language", lang)
         result.setdefault("routed_provider", provider_name)
+
+        audio_bytes = _segment_audio_bytes(result)
+        if audio_bytes:
+            set_cached_audio(text, audio_bytes, voice=cache_voice_key, speed=str(speed))
+
         return result
     except Exception as exc:  # noqa: BLE001
         logger.warning("TTS routing failed for provider %s (%s): %s", provider_name, lang, exc)
