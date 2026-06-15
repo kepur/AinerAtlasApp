@@ -20,10 +20,30 @@ async def explain_token(
     current_user: CurrentUser,
     db: DBSession,
 ) -> TokenExplainResponse:
-    """Explain a single word/phrase for the TokenExplainSheet (meaning/usage/example)."""
+    """Explain a single word/phrase. Caches result in VocabularyItem so repeat lookups skip LLM."""
     token = payload.token.strip()
     if not token:
         raise HTTPException(status_code=400, detail="token is required")
+
+    cached = db.scalar(
+        select(VocabularyItem).where(
+            VocabularyItem.user_id == current_user.id,
+            VocabularyItem.word == token,
+            VocabularyItem.language_code == payload.target_language,
+        )
+    )
+    if cached and cached.meaning:
+        extra = cached.examples[0] if cached.examples and isinstance(cached.examples[0], dict) else {}
+        cached.last_seen_at = utc_now()
+        db.commit()
+        return TokenExplainResponse(
+            token=token,
+            meaning=cached.meaning,
+            usage=str(extra.get("usage", "")),
+            example=str(extra.get("example", "")),
+            part_of_speech=str(extra.get("part_of_speech", "")),
+        )
+
     try:
         provider = require_llm_provider(resolve_default_llm_provider(db), db=db)
         data = await provider.explain_token(
@@ -36,12 +56,31 @@ async def explain_token(
         raise HTTPException(status_code=503, detail=exc.message) from exc
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=503, detail=f"LLM 调用失败：{exc}") from exc
+
+    meaning = str(data.get("meaning", ""))
+    usage = str(data.get("usage", ""))
+    example = str(data.get("example", ""))
+    pos = str(data.get("part_of_speech", ""))
+
+    if cached:
+        cached.meaning = meaning
+        cached.examples = [{"usage": usage, "example": example, "part_of_speech": pos}]
+        cached.last_seen_at = utc_now()
+    else:
+        db.add(VocabularyItem(
+            user_id=current_user.id,
+            word=token,
+            meaning=meaning,
+            language_code=payload.target_language,
+            examples=[{"usage": usage, "example": example, "part_of_speech": pos}],
+            mastery_status="seen",
+            priority=3,
+        ))
+    db.commit()
+
     return TokenExplainResponse(
         token=data.get("token", token),
-        meaning=str(data.get("meaning", "")),
-        usage=str(data.get("usage", "")),
-        example=str(data.get("example", "")),
-        part_of_speech=str(data.get("part_of_speech", "")),
+        meaning=meaning, usage=usage, example=example, part_of_speech=pos,
     )
 
 _MASTERY_LEVELS = ["seen", "understood", "usable", "mastered"]

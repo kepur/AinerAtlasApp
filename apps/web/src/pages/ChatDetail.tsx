@@ -56,7 +56,6 @@ function LearningHUD({ hud, streamPhase, speak, onTokenClick }: {
   onTokenClick: (token: string, context: string) => void;
 }) {
   const [variantTab, setVariantTab] = useState("natural_spoken");
-  const [crushAdded, setCrushAdded] = useState<Set<string>>(new Set());
 
   if (streamPhase === "analyzing") {
     return (
@@ -89,11 +88,6 @@ function LearningHUD({ hud, streamPhase, speak, onTokenClick }: {
   const patternsV2: ChatV2PatternItem[] = Array.isArray(hud.patterns_v2) ? hud.patterns_v2 : [];
   const agents: ChatV2AgentItem[] = Array.isArray(hud.agents) ? hud.agents : [];
   const nextQ: ChatV2NextQuestion | undefined = hud.next_question;
-
-  const handleCrush = async (pattern: string, example: string) => {
-    if (crushAdded.has(pattern)) return;
-    try { await addCrushCandidate(pattern, example); setCrushAdded(s => new Set(s).add(pattern)); } catch { /* ignore */ }
-  };
 
   return (
     <div className="learning-hud">
@@ -144,10 +138,10 @@ function LearningHUD({ hud, streamPhase, speak, onTokenClick }: {
               {patternsV2.map((p, i) => (
                 <span
                   key={`p-${i}`}
-                  className={`pill pill-crush ${crushAdded.has(p.pattern) ? "added" : ""}`}
-                  onClick={() => handleCrush(p.pattern, p.example)}
+                  className="pill pill-crush"
+                  onClick={() => onTokenClick(p.pattern, p.example || mainExpr)}
                 >
-                  <Flame size={10} /> {p.pattern} {crushAdded.has(p.pattern) ? "✓" : ""}
+                  <Flame size={10} /> {p.pattern}
                 </span>
               ))}
             </div>
