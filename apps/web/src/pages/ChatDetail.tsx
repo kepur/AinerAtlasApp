@@ -306,15 +306,16 @@ function ConversationFeed({ messages, turns, activeTurnId, sending, streamPhase,
             <div className="conv-row assistant">
               <div className="conv-avatar"><MessageSquare size={12} /></div>
               <div>
-                <div className="conv-bubble assistant">
-                  <span>{assistant.content || ""}</span>
-                  {assistant.content && (
-                    <button className="conv-speak" onClick={e => { e.stopPropagation(); speak(assistant.content, "en-US"); }}><Volume2 size={14} /></button>
-                  )}
+                <div className={`conv-bubble assistant${!assistant.content && turn.status === "replying" ? " typing" : ""}`}>
+                  {assistant.content ? (
+                    <>
+                      <span>{assistant.content}</span>
+                      <button className="conv-speak" onClick={e => { e.stopPropagation(); speak(assistant.content, "en-US"); }}><Volume2 size={14} /></button>
+                    </>
+                  ) : (turn.status === "replying" || turn.status === "pending") ? (
+                    <div className="thinking-dots"><i /><i /><i /></div>
+                  ) : null}
                 </div>
-                {turn.status === "replying" && !assistant.content && (
-                  <div className="conv-bubble assistant typing"><div className="thinking-dots"><i /><i /><i /></div></div>
-                )}
                 <span className="conv-time">
                   {turn.status === "analyzing" && <span className="learning-badge analyzing"><Loader size={10} className="spin" /> 分析中</span>}
                   {turn.status === "ready" && turn.focusCount > 0 && (
@@ -325,7 +326,7 @@ function ConversationFeed({ messages, turns, activeTurnId, sending, streamPhase,
                 </span>
               </div>
             </div>
-          ) : turn.status === "pending" || turn.status === "replying" ? (
+          ) : (turn.status === "pending" || turn.status === "replying") ? (
             <div className="conv-row assistant">
               <div className="conv-avatar"><MessageSquare size={12} /></div>
               <div className="conv-bubble assistant typing"><div className="thinking-dots"><i /><i /><i /></div></div>
@@ -354,15 +355,6 @@ function ConversationFeed({ messages, turns, activeTurnId, sending, streamPhase,
       }
       i++;
     }
-  }
-
-  if (sending && streamPhase === null && (messages.length === 0 || messages[messages.length - 1].role === "user")) {
-    rendered.push(
-      <div key="sending-indicator" className="conv-row assistant">
-        <div className="conv-avatar"><MessageSquare size={12} /></div>
-        <div className="conv-bubble assistant typing"><div className="thinking-dots"><i /><i /><i /></div></div>
-      </div>,
-    );
   }
 
   return (
