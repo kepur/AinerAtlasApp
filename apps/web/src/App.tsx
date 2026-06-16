@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import PrivateRoute from "./components/PrivateRoute";
 import TabBar from "./components/TabBar";
 import Assets from "./pages/Assets";
@@ -8,6 +9,12 @@ import Chat from "./pages/Chat";
 import ChatDetail from "./pages/ChatDetail";
 import GameHome from "./pages/game/GameHome";
 import GameTemplateDetail from "./pages/game/GameTemplateDetail";
+import TurtleSoupDetail from "./pages/game/TurtleSoupDetail";
+import RoleplayHome from "./pages/game/RoleplayHome";
+import RoleplayChat from "./pages/game/RoleplayChat";
+import RoleplayCharacterList from "./pages/game/RoleplayCharacterList";
+import RoleplayCharacterDetail from "./pages/game/RoleplayCharacterDetail";
+import GeneratedStorySettings from "./pages/game/GeneratedStorySettings";
 import RoleplaySetup from "./pages/game/RoleplaySetup";
 import UniversalGameChat from "./pages/game/UniversalGameChat";
 import UnifiedGameChat from "./pages/game/UnifiedGameChat";
@@ -56,13 +63,21 @@ import SoulmateQuestionnaire from "./pages/SoulmateQuestionnaire";
 import FollowRead from "./pages/FollowRead";
 
 function AppLayout() {
+  const location = useLocation();
   return (
     <div className="app-layout">
-      <div className="app-content">
-        <Routes>
+      <div className="app-content relative">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
           <Route path="/home" element={<Home />} />
           <Route path="/game" element={<GameHome />} />
           <Route path="/game/template/:id" element={<GameTemplateDetail />} />
+          <Route path="/game/turtle-soup/detail/:id" element={<TurtleSoupDetail />} />
+          <Route path="/game/roleplay/home" element={<RoleplayHome />} />
+          <Route path="/game/roleplay/characters" element={<RoleplayCharacterList />} />
+          <Route path="/game/roleplay/character/:id" element={<RoleplayCharacterDetail />} />
+          <Route path="/game/roleplay/chat" element={<RoleplayChat />} />
+          <Route path="/game/roleplay/generated-setting" element={<GeneratedStorySettings />} />
           <Route path="/game/setup/:id" element={<RoleplaySetup />} />
           <Route path="/game/universal/:id" element={<UniversalGameChat />} />
           <Route path="/game/play/:mode/:id" element={<UnifiedGameChat />} />
@@ -104,7 +119,8 @@ function AppLayout() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
-        </Routes>
+          </Routes>
+        </AnimatePresence>
       </div>
       <TabBar />
     </div>

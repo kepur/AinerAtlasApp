@@ -28,6 +28,7 @@ def _ensure_engines_loaded() -> None:
     import app.services.turtle_soup_engine  # noqa: F401
     import app.services.roleplay_engine  # noqa: F401
     import app.services.detective_engine  # noqa: F401
+    import app.services.romance_engine  # noqa: F401
 
 
 class GameTypeEngine:

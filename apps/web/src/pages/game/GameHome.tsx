@@ -4,10 +4,11 @@ import { Play, Brain, Drama, Search, Heart, Dices, RotateCcw, Users, Bell, Searc
 import { useGameStore, GameTemplate } from "../../stores/gameStore";
 
 const GAME_TYPE_PATHS: Record<string, (slug: string) => string> = {
-  turtle_soup: (slug) => `/game/play/turtle_soup/${slug}`,
-  roleplay: (slug) => `/game/play/roleplay/${slug}`,
-  detective: (slug) => `/game/play/detective/${slug}`,
+  turtle_soup: (slug) => `/game/turtle-soup/detail/${slug}`,
+  roleplay: () => `/game/roleplay/home`,
+  detective: (slug) => `/game/detective-board/${slug}`,
   social_logic: () => `/game/social-logic/new`,
+  romance: (slug) => `/game/romance-social/${slug}`,
 };
 
 const GAME_TYPE_LABEL: Record<string, string> = {
@@ -145,6 +146,10 @@ export default function GameHome() {
                   const t = templates.find((t) => t.game_type === cat.id);
                   if (t) navigate(templatePath(t));
                   else if (cat.id === "social_logic") navigate("/game/social-logic/new");
+                  else if (cat.id === "romance") navigate("/game/romance-social");
+                  else if (cat.id === "detective") navigate("/game/detective-board/new");
+                  else if (cat.id === "roleplay") navigate("/game/roleplay/home");
+                  else if (cat.id === "turtle_soup") navigate("/game/turtle-soup/detail/passenger");
                 }}
                 className={`flex flex-col items-center justify-center p-2 rounded-2xl ${cat.bg} border border-white shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-md transition-shadow`}
               >

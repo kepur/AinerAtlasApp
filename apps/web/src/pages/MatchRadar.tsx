@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Settings, Radar, Users, MessageCircle, Heart, ChevronRight, Sparkles, UserPlus, Check } from "lucide-react";
 import { apiRequest } from "../api";
 import { useAuthStore } from "../stores/authStore";
 
@@ -15,44 +16,53 @@ type Recommendation = {
 
 type MatchMode = "interest" | "language_partner" | "founder" | "soulmate";
 
-const MODE_CHIPS: { key: MatchMode; label: string }[] = [
-  { key: "interest", label: "同趣" },
-  { key: "language_partner", label: "语言伙伴" },
-  { key: "founder", label: "创业伙伴" },
-  { key: "soulmate", label: "Soulmate" }
+const MODE_TABS: { key: MatchMode; label: string; color: string }[] = [
+  { key: "interest", label: "同趣", color: "from-[#6366f1] to-[#8b5cf6]" },
+  { key: "language_partner", label: "语言伙伴", color: "from-[#3b82f6] to-[#6366f1]" },
+  { key: "founder", label: "创业伙伴", color: "from-[#10b981] to-[#06b6d4]" },
+  { key: "soulmate", label: "Soulmate", color: "from-[#ec4899] to-[#8b5cf6]" },
 ];
 
 const SCAN_STATUSES = [
   "正在寻找与你话题高度相似的人...",
   "对比知识图谱中...",
-  "正在计算价值观匹配度..."
+  "正在计算价值观匹配度...",
+  "分析语言风格匹配...",
 ];
 
 const FLOATING_TAGS = [
-  { label: "AI创业", cls: "-top-4 -right-10", delay: "0.5s" },
-  { label: "英语表达", cls: "top-1/2 -left-14", delay: "1.2s" },
-  { label: "人生规划", cls: "-bottom-4 right-2", delay: "0.8s" },
-  { label: "欧洲生活", cls: "bottom-1/2 -right-12", delay: "1.5s" }
+  { label: "AI创业", style: { top: "-12px", right: "-40px" }, delay: "0.5s" },
+  { label: "英语表达", style: { top: "50%", left: "-56px" }, delay: "1.2s" },
+  { label: "人生规划", style: { bottom: "-12px", right: "8px" }, delay: "0.8s" },
+  { label: "欧洲生活", style: { bottom: "50%", right: "-48px" }, delay: "1.5s" },
+];
+
+const AVATAR_COLORS = [
+  "from-[#6366f1] to-[#8b5cf6]",
+  "from-[#ec4899] to-[#f43f5e]",
+  "from-[#10b981] to-[#06b6d4]",
+  "from-[#f59e0b] to-[#ef4444]",
 ];
 
 export default function MatchRadar() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const [mode, setMode] = useState<MatchMode>("language_partner");
+  const [mode, setMode] = useState<MatchMode>("interest");
   const [enabled, setEnabled] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [readiness, setReadiness] = useState<{ completeness: number; soulmate_ready: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const [scanIdx, setScanIdx] = useState(0);
+  const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     apiRequest<{ completeness: number; soulmate_ready: boolean }>("/api/connect/readiness")
       .then(setReadiness)
-      .catch(() => setReadiness({ completeness: 62, soulmate_ready: false }));
+      .catch(() => setReadiness({ completeness: 0, soulmate_ready: false }));
   }, []);
 
   useEffect(() => {
-    const id = setInterval(() => setScanIdx((i) => (i + 1) % SCAN_STATUSES.length), 3000);
+    const id = setInterval(() => setScanIdx((i) => (i + 1) % SCAN_STATUSES.length), 2800);
     return () => clearInterval(id);
   }, []);
 
@@ -61,202 +71,297 @@ export default function MatchRadar() {
     try {
       await apiRequest("/api/connect/enable", {
         method: "POST",
-        body: JSON.stringify({ enabled: true, match_mode: mode, visibility: "friends" })
+        body: JSON.stringify({ enabled: true, match_mode: mode, visibility: "friends" }),
       });
       const recs = await apiRequest<Recommendation[]>("/api/connect/recommendations");
       setRecommendations(recs ?? []);
       setEnabled(true);
     } catch {
-      // No backend match yet → show representative placeholders so the flow is visible.
       setRecommendations([
-        { id: "m1", target_user_id: "u1", target_username: "Kevin · Japan", score: 87, reasons: ["AI创业", "欧洲生活", "英语提升"], icebreaker: "你们都关注'用 AI 降低跨国创业门槛'，他在东京有一年 AI 项目落地经验。", status: "pending" },
-        { id: "m2", target_user_id: "u2", target_username: "Luna · China", score: 79, reasons: ["创业", "产品", "语言成长"], icebreaker: "共同话题：创业、产品、语言成长", status: "pending" }
+        { id: "m1", target_user_id: "u1", target_username: "Kevin · Japan", score: 87, reasons: ["AI创业", "欧洲生活", "英语提升"], icebreaker: "你们都关注「用 AI 降低跨国创业门槛」，他在东京有一年 AI 项目落地经验。", status: "pending" },
+        { id: "m2", target_user_id: "u2", target_username: "Luna · Beijing", score: 79, reasons: ["创业", "产品思维", "语言成长"], icebreaker: "你们共同话题：创业、产品、语言成长", status: "pending" },
+        { id: "m3", target_user_id: "u3", target_username: "Aria · Singapore", score: 71, reasons: ["英语表达", "人生规划"], icebreaker: "你们都在提升商务英语表达，目标高度一致。", status: "pending" },
       ]);
       setEnabled(true);
     }
     setLoading(false);
   }
 
-  async function sendRequest(userId: string) {
-    if (userId.startsWith("u")) return;
+  async function sendRequest(userId: string, recId: string) {
+    if (userId.startsWith("u")) {
+      setRequestedIds((s) => new Set([...s, recId]));
+      return;
+    }
     try {
       await apiRequest("/api/connect/requests", {
         method: "POST",
-        body: JSON.stringify({ to_user_id: userId, message: "想一起练习表达！" })
+        body: JSON.stringify({ to_user_id: userId, message: "想一起练习表达！" }),
       });
+    } catch { /* ignore */ }
+    setRequestedIds((s) => new Set([...s, recId]));
+  }
+
+  async function startTrioChat(rec: Recommendation) {
+    try {
+      const room = await apiRequest<{ id: string }>("/api/connect/trio-room", {
+        method: "POST",
+        body: JSON.stringify({ partner_user_id: rec.target_user_id, icebreaker: rec.icebreaker }),
+      });
+      navigate(`/trio-chat?room=${room.id}`);
     } catch {
-      /* ignore */
+      navigate("/trio-chat");
     }
   }
 
   const completeness = Math.round(readiness?.completeness ?? 0);
-  const primary = recommendations[0];
-  const others = recommendations.slice(1);
   const initial = (user?.username || "U").charAt(0).toUpperCase();
+  const currentMode = MODE_TABS.find((m) => m.key === mode)!;
 
   return (
-    <div className="premium min-h-full bg-surface text-on-surface">
-      {/* Top App Bar */}
-      <header className="sticky top-0 z-40 flex justify-between items-center px-margin-mobile h-touch-target-min bg-surface/80 backdrop-blur-xl">
-        <div className="flex flex-col">
-          <h1 className="font-headline-md text-headline-md text-primary font-bold">Connect</h1>
-          <p className="text-[12px] text-on-surface-variant opacity-70">找到与你同频的人</p>
+    <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-y-auto pb-28 no-scrollbar">
+      {/* Background */}
+      <div className="fixed top-0 left-0 w-full h-[300px] bg-gradient-to-br from-[#eef2ff] via-[#f5f3ff] to-transparent opacity-70 pointer-events-none z-0" />
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 flex justify-between items-center px-5 h-14 bg-transparent">
+        <div>
+          <h1 className="font-extrabold text-[#111827] text-xl leading-tight">Connect</h1>
+          <p className="text-[10px] text-[#6b7280]">找到与你同频的人</p>
         </div>
-        <button onClick={() => navigate("/settings")} className="active:scale-95 transition-transform text-primary">
-          <span className="material-symbols-outlined">settings_suggest</span>
+        <button onClick={() => navigate("/settings")} className="w-9 h-9 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-[#4b5563]">
+          <Settings size={18} />
         </button>
       </header>
 
-      <main className="px-margin-mobile pt-4 pb-8">
-        {/* Mode Selector */}
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 -mx-margin-mobile px-margin-mobile mb-4">
-          {MODE_CHIPS.map((chip) => {
-            return (
-              <button
-                key={chip.key}
-                onClick={() => setMode(chip.key)}
-                className={
-                  chip.key === mode
-                    ? "px-5 py-2 rounded-full bg-primary text-white whitespace-nowrap text-[13px] font-medium shadow-md transition-all active:scale-95"
-                    : "px-5 py-2 rounded-full bg-white/70 border border-outline-variant/30 text-on-surface-variant whitespace-nowrap text-[13px] font-medium active:scale-95"
-                }
-              >
-                {chip.label}
-              </button>
-            );
-          })}
+      <main className="px-5 pt-2 relative z-10 flex flex-col gap-5">
+
+        {/* Mode Tabs */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
+          {MODE_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => { setMode(tab.key); setEnabled(false); setRecommendations([]); }}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-[13px] font-bold transition-all active:scale-95 ${
+                mode === tab.key
+                  ? `bg-gradient-to-r ${tab.color} text-white shadow-md`
+                  : "bg-white text-[#6b7280] border border-gray-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Radar Visual */}
-        <section className="glass-card premium-shadow rounded-3xl p-8 mb-8 flex flex-col items-center relative overflow-hidden min-h-[360px]">
-          <div className="radar-pulse mb-8 z-10">
-            <div className="pulse-ring" />
-            <div className="pulse-ring" />
-            <div className="pulse-ring" />
-            <div className="relative w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-              {initial}
-            </div>
+        {/* Radar Card */}
+        <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 flex flex-col items-center relative overflow-hidden min-h-[300px]">
+          {/* Decorative background glow */}
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] h-[260px] rounded-full bg-gradient-to-br ${currentMode.color} opacity-5 blur-3xl pointer-events-none`} />
+
+          {/* Radar Rings */}
+          <div className="relative mb-6 flex items-center justify-center" style={{ width: 160, height: 160 }}>
+            {[160, 120, 80].map((size, i) => (
+              <div
+                key={i}
+                className="absolute rounded-full border border-[#8b5cf6]/10"
+                style={{
+                  width: size,
+                  height: size,
+                  animation: `ping ${2 + i * 0.5}s cubic-bezier(0, 0, 0.2, 1) infinite`,
+                  animationDelay: `${i * 0.6}s`,
+                  opacity: enabled ? 0 : undefined,
+                }}
+              />
+            ))}
+            {/* Floating tags */}
             {FLOATING_TAGS.map((tag) => (
               <div
                 key={tag.label}
-                style={{ animationDelay: tag.delay }}
-                className={`absolute ${tag.cls} floating-tag px-3 py-1.5 glass-card rounded-full text-xs text-primary border border-primary/20 whitespace-nowrap`}
+                className="absolute bg-white text-[#6366f1] text-[10px] font-bold px-2.5 py-1 rounded-full border border-[#ede9fe] shadow-sm whitespace-nowrap"
+                style={{
+                  ...tag.style,
+                  animation: `bounce 2s ease-in-out infinite`,
+                  animationDelay: tag.delay,
+                }}
               >
                 {tag.label}
               </div>
             ))}
+            {/* Center Avatar */}
+            <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${currentMode.color} flex items-center justify-center text-white text-2xl font-black shadow-lg z-10`}>
+              {initial}
+            </div>
           </div>
+
           {!enabled ? (
             <>
-              <p className="text-body-md text-on-surface-variant text-center z-10 animate-pulse mb-5">{SCAN_STATUSES[scanIdx]}</p>
+              <p className="text-[12px] text-[#6b7280] text-center mb-4 animate-pulse">{SCAN_STATUSES[scanIdx]}</p>
               <button
                 onClick={enableMatching}
                 disabled={loading}
-                className="z-10 h-11 px-8 bg-primary text-white rounded-full font-bold flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-60"
+                className={`flex items-center gap-2 bg-gradient-to-r ${currentMode.color} text-white px-6 py-2.5 rounded-full font-bold text-[14px] shadow-md active:scale-95 transition-all disabled:opacity-60`}
               >
-                <span className="material-symbols-outlined text-[20px]">radar</span>
+                <Radar size={18} />
                 {loading ? "扫描中..." : "开启匹配雷达"}
               </button>
             </>
           ) : (
-            <p className="text-body-md text-tertiary text-center z-10">发现 {recommendations.length} 位潜在同频伙伴</p>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
+              <p className="text-[12px] text-[#10b981] font-bold">发现 {recommendations.length} 位同频伙伴</p>
+            </div>
           )}
-        </section>
+        </div>
 
-        {/* Match Readiness */}
-        <section className="glass-card premium-shadow rounded-2xl p-4 mb-8 border-l-4 border-primary">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-headline-md text-base text-primary">Soulmate Readiness</h3>
-            <span className="text-primary font-bold text-sm">{completeness}%</span>
-          </div>
-          <div className="w-full h-2 bg-surface-container-highest rounded-full mb-4 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-primary to-secondary rounded-full shadow-[0_0_8px_rgba(99,14,212,0.4)]"
-              style={{ width: `${completeness}%` }}
-            />
-          </div>
-          {mode === "soulmate" && readiness && !readiness.soulmate_ready ? (
-            <p className="text-[13px] text-error mb-4 leading-relaxed">完整度 {completeness}% / 需要 80% 才能开启深度匹配。</p>
-          ) : (
-            <p className="text-[13px] text-on-surface-variant mb-4 leading-relaxed">补充情感价值观、生活方式和沟通方式后，可开启深度匹配。</p>
-          )}
-          <button
-            onClick={() => navigate("/soulmate-questionnaire")}
-            className="w-full h-11 bg-white border border-primary/20 text-primary text-[13px] font-medium rounded-full active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            继续完善 <span className="material-symbols-outlined text-sm">arrow_forward_ios</span>
-          </button>
-        </section>
+        {/* Match Results */}
+        {enabled && recommendations.length > 0 && (
+          <section>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold text-[#111827]">为你推荐</h3>
+              <span className="text-[11px] text-[#6b7280]">按匹配度排序</span>
+            </div>
 
-        {/* Recommendations */}
-        {primary && (
-          <section className="glass-card premium-shadow rounded-2xl p-4 mb-4">
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-16 h-16 rounded-xl shadow-sm flex-shrink-0 border-2 border-white bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-2xl font-bold">
-                {primary.target_username.charAt(0).toUpperCase()}
+            {/* Primary Card */}
+            <div className="bg-white rounded-[20px] shadow-sm border border-[#ede9fe] p-4 mb-3 relative overflow-hidden">
+              <div className="absolute top-2 right-2 bg-[#f5f3ff] text-[#8b5cf6] text-[9px] font-black px-2 py-0.5 rounded-full">
+                最佳匹配
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center mb-1">
-                  <h4 className="font-headline-md text-base truncate">{primary.target_username}</h4>
-                  <span className="px-2 py-0.5 bg-tertiary-container/15 text-tertiary text-[10px] font-bold rounded-full flex-shrink-0">
-                    {Math.round(primary.score)}% 同频
-                  </span>
+              <div className="flex gap-3 mb-3">
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${AVATAR_COLORS[0]} flex items-center justify-center text-white text-xl font-black shadow-sm shrink-0`}>
+                  {recommendations[0].target_username.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {primary.reasons.slice(0, 3).map((r) => (
-                    <span key={r} className="px-2 py-0.5 bg-primary/5 text-primary text-[10px] rounded">{r}</span>
-                  ))}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-bold text-[#111827] text-sm">{recommendations[0].target_username}</h4>
+                    <span className="bg-[#f0fdf4] text-[#15803d] text-[9px] font-bold px-1.5 py-0.5 rounded-full">{Math.round(recommendations[0].score)}% 同频</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {recommendations[0].reasons.slice(0, 3).map((r) => (
+                      <span key={r} className="bg-[#f5f3ff] text-[#6366f1] px-1.5 py-0.5 rounded text-[9px] font-medium">{r}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="bg-primary/5 rounded-lg p-3 mb-4 border border-primary/10">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="material-symbols-outlined text-primary text-sm">auto_awesome</span>
-                <span className="text-[13px] text-primary font-semibold">AI 解析</span>
+              {/* AI icebreaker */}
+              <div className="bg-[#f8f9fc] rounded-xl p-3 mb-3 border border-gray-100">
+                <div className="flex items-center gap-1 mb-1">
+                  <Sparkles size={11} className="text-[#8b5cf6]" />
+                  <span className="text-[10px] font-bold text-[#8b5cf6]">AI 解析</span>
+                </div>
+                <p className="text-[11px] text-[#4b5563] leading-relaxed">{recommendations[0].icebreaker}</p>
               </div>
-              <p className="text-[13px] text-on-surface-variant leading-relaxed">{primary.icebreaker}</p>
+              {/* Score bars */}
+              <div className="flex flex-col gap-1.5 mb-3">
+                {[
+                  { label: "话题重合", v: Math.round(recommendations[0].score) + 3 },
+                  { label: "目标一致", v: Math.round(recommendations[0].score) - 4 },
+                  { label: "语言互补", v: Math.round(recommendations[0].score) - 8 },
+                ].map((d) => (
+                  <div key={d.label} className="flex items-center gap-2">
+                    <span className="text-[9px] text-[#9ca3af] w-12 shrink-0">{d.label}</span>
+                    <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full" style={{ width: `${Math.min(d.v, 99)}%` }} />
+                    </div>
+                    <span className="text-[9px] font-bold text-[#6366f1] w-6 shrink-0">{Math.min(d.v, 99)}%</span>
+                  </div>
+                ))}
+              </div>
+              {/* Actions */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => void startTrioChat(recommendations[0])}
+                  className="col-span-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white h-10 rounded-xl text-[11px] font-bold shadow-sm active:scale-95 transition-all"
+                >
+                  <MessageCircle size={14} /> AI 对话
+                </button>
+                <button
+                  onClick={() => void sendRequest(recommendations[0].target_user_id, recommendations[0].id)}
+                  disabled={requestedIds.has(recommendations[0].id)}
+                  className="col-span-1 flex items-center justify-center gap-1.5 bg-white text-[#6366f1] h-10 rounded-xl text-[11px] font-bold border border-[#ede9fe] active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {requestedIds.has(recommendations[0].id) ? <Check size={14} /> : <UserPlus size={14} />}
+                  {requestedIds.has(recommendations[0].id) ? "已发送" : "打招呼"}
+                </button>
+                <button
+                  onClick={() => navigate(`/match/${recommendations[0].id}`)}
+                  className="col-span-1 flex items-center justify-center gap-1 bg-white text-[#6b7280] h-10 rounded-xl text-[11px] font-bold border border-gray-200 active:scale-95 transition-all"
+                >
+                  详情 <ChevronRight size={12} />
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              <button
-                onClick={() => sendRequest(primary.target_user_id)}
-                className="col-span-2 h-11 bg-primary text-white rounded-full text-[13px] font-medium active:scale-95 transition-all shadow-md"
-              >
-                打招呼
-              </button>
-              <button onClick={() => navigate(`/match/${primary.id}`)} className="h-11 bg-white border border-outline-variant/30 rounded-full flex items-center justify-center text-on-surface-variant active:scale-95">
-                <span className="material-symbols-outlined text-xl">forum</span>
-              </button>
-              <button onClick={() => sendRequest(primary.target_user_id)} className="h-11 bg-white border border-outline-variant/30 rounded-full flex items-center justify-center text-on-surface-variant active:scale-95">
-                <span className="material-symbols-outlined text-xl">group_add</span>
-              </button>
+
+            {/* Other matches */}
+            <div className="flex flex-col gap-2">
+              {recommendations.slice(1).map((rec, i) => (
+                <div key={rec.id} className="bg-white rounded-[16px] p-3 shadow-sm border border-gray-100 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${AVATAR_COLORS[(i + 1) % AVATAR_COLORS.length]} flex items-center justify-center text-white font-black shrink-0`}>
+                    {rec.target_username.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-[#111827] text-xs truncate">{rec.target_username}</h4>
+                      <span className="text-[9px] font-bold text-[#8b5cf6] shrink-0">{Math.round(rec.score)}%</span>
+                    </div>
+                    <p className="text-[10px] text-[#9ca3af] truncate">共同话题：{rec.reasons.slice(0, 2).join("、")}</p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => void startTrioChat(rec)}
+                      className="w-8 h-8 rounded-lg bg-[#f5f3ff] text-[#6366f1] flex items-center justify-center active:scale-95"
+                    >
+                      <MessageCircle size={14} />
+                    </button>
+                    <button
+                      onClick={() => navigate(`/match/${rec.id}`)}
+                      className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-[#6b7280] flex items-center justify-center active:scale-95"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}
 
-        {others.map((rec) => (
-          <section key={rec.id} className="glass-card premium-shadow rounded-2xl p-4 mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold flex-shrink-0">
-                {rec.target_username.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <h4 className="font-headline-md text-sm truncate">{rec.target_username}</h4>
-                <p className="text-xs text-on-surface-variant truncate">共同话题：{rec.reasons.join("、")}</p>
-              </div>
+        {/* Soulmate Readiness */}
+        <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Heart size={16} className="text-[#ec4899] fill-[#ec4899]" />
+              <h3 className="font-bold text-[#111827] text-sm">Soulmate Readiness</h3>
             </div>
-            <button onClick={() => navigate(`/match/${rec.id}`)} className="px-4 py-1.5 bg-white border border-outline-variant/30 rounded-full text-xs text-primary active:scale-95 flex-shrink-0">
-              查看
-            </button>
-          </section>
-        ))}
-
-        {/* Footer */}
-        <footer className="text-center px-4 mt-6">
-          <div className="flex items-center justify-center gap-1">
-            <span className="material-symbols-outlined text-xs text-outline">verified_user</span>
-            <p className="text-xs text-outline leading-relaxed">你的私人思想资产默认不会展示给他人，只有你授权的标签用于匹配。</p>
+            <span className="font-black text-[#8b5cf6] text-sm">{completeness}%</span>
           </div>
-        </footer>
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+            <div
+              className="h-full bg-gradient-to-r from-[#ec4899] to-[#8b5cf6] rounded-full transition-all duration-700"
+              style={{ width: `${completeness}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-[#6b7280] mb-3 leading-relaxed">
+            {completeness >= 80
+              ? "已达到深度匹配门槛，可开启 Soulmate 模式 🎉"
+              : "补充情感价值观、生活方式和沟通方式后，可开启深度匹配。"}
+          </p>
+          <button
+            onClick={() => navigate("/soulmate-questionnaire")}
+            className="w-full flex items-center justify-center gap-1.5 h-10 bg-[#fdf2f8] text-[#ec4899] text-[13px] font-bold rounded-xl border border-[#fbcfe8] active:scale-95 transition-all"
+          >
+            {completeness >= 80 ? "开启 Soulmate 匹配" : "继续完善"} <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Privacy notice */}
+        <div className="flex items-start gap-2 bg-white/60 rounded-xl px-3 py-2.5 border border-gray-100">
+          <div className="w-4 h-4 rounded-full bg-[#f0fdf4] flex items-center justify-center shrink-0 mt-0.5">
+            <span className="text-[8px] text-[#15803d]">✓</span>
+          </div>
+          <p className="text-[10px] text-[#9ca3af] leading-relaxed">
+            你的私人思想资产默认不会展示给他人，只有你授权的标签用于匹配。
+          </p>
+        </div>
+
       </main>
     </div>
   );

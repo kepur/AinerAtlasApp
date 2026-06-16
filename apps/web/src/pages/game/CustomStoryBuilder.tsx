@@ -1,180 +1,98 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, HelpCircle, Plus, RefreshCcw } from "lucide-react";
+import { ChevronLeft, HelpCircle, Sparkles, Image as ImageIcon } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function CustomStoryBuilder() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<"input" | "generated">("input");
-  const [text, setText] = useState("我是青云宗大弟子，上一世被小师妹背叛，落得个魂飞魄散的下场。\n这一世重生归来，我要改变命运，守护所爱之人。");
-
-  const handleBack = () => {
-    if (step === "generated") {
-      setStep("input");
-    } else {
-      navigate(-1);
-    }
-  };
+  const [text, setText] = useState("");
 
   return (
-    <div className="w-full h-full bg-[#f8f9fc] flex flex-col relative overflow-hidden">
-      
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="premium w-full min-h-screen bg-[#fdf2f8] flex flex-col font-sans relative text-[#111827]"
+    >
       {/* Header */}
-      <header className="sticky top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 bg-white/90 backdrop-blur-md pt-[env(safe-area-inset-top,20px)] border-b border-gray-100 shrink-0">
-        <button onClick={handleBack} className="w-8 h-8 flex items-center justify-center text-[#111827] rounded-full hover:bg-gray-50 transition-colors border border-gray-200">
-          <ArrowLeft size={18} />
+      <header className="sticky top-0 left-0 w-full z-50 px-4 pt-[env(safe-area-inset-top,20px)] h-14 flex items-center justify-between bg-[#fdf2f8]/90 backdrop-blur-md">
+        <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center text-gray-700 active:scale-95 transition-transform">
+          <ChevronLeft size={24} />
         </button>
-        <div className="flex flex-col items-center">
-          <div className="font-extrabold text-[#111827] text-base">
-            {step === 'input' ? '自定义故事线' : 'AI 生成的故事设定'}
-          </div>
-          <div className="text-[10px] text-[#6b7280]">
-            {step === 'input' ? '输入你的故事设定，AI 帮你展开精彩剧情' : '请确认或修改以下设定'}
-          </div>
-        </div>
-        {step === 'input' ? (
-          <button className="w-8 h-8 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center hover:bg-[#ede9fe] transition-colors">
-            <HelpCircle size={16} />
-          </button>
-        ) : (
-           <button className="text-[#8b5cf6] text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform">
-            重新生成 <RefreshCcw size={12} />
-          </button>
-        )}
+        <h1 className="font-bold text-[16px] text-[#111827]">创建自定义故事线</h1>
+        <button className="w-8 h-8 flex items-center justify-center text-gray-400">
+          <HelpCircle size={20} />
+        </button>
       </header>
 
-      <main className="flex-1 w-full overflow-y-auto pb-32 px-4 pt-4 flex flex-col gap-6 no-scrollbar">
-        {step === 'input' ? (
-          <>
-            {/* Input Section */}
-            <section className="flex flex-col gap-2">
-              <h3 className="font-bold text-[#111827] text-sm">输入你的故事设定</h3>
-              <div className="relative w-full">
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="请输入故事设定..."
-                  className="w-full h-40 rounded-2xl border border-gray-200 p-4 text-sm text-[#111827] resize-none focus:outline-none focus:border-[#8b5cf6] focus:ring-1 focus:ring-[#8b5cf6] shadow-sm leading-relaxed"
-                ></textarea>
-                <div className="absolute bottom-3 right-4 text-[10px] text-[#9ca3af]">
-                  {text.length}/500
-                </div>
-              </div>
-            </section>
+      <main className="flex-1 px-4 pt-4 flex flex-col gap-5 pb-32">
+        
+        {/* Helper Banner */}
+        <div className="bg-pink-50 border border-pink-100 rounded-2xl p-4 flex gap-3 shadow-sm relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 w-16 h-16 bg-pink-100 rounded-full blur-xl opacity-50"></div>
+          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 border border-pink-100 shadow-sm z-10">
+            <Sparkles size={14} className="text-pink-500" />
+          </div>
+          <div className="flex flex-col z-10">
+            <h3 className="font-bold text-[13px] text-[#111827] mb-1">不知道怎么写？</h3>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              只需输入一两句话，比如：“我是青云宗大弟子，前世被背叛，现在重生归来复仇。” AI 就会自动补全世界观和角色设定！
+            </p>
+          </div>
+        </div>
 
-            {/* Tags Section */}
-            <section className="flex flex-col gap-2">
-              <h3 className="font-bold text-[#111827] text-sm">添加设定 <span className="text-[#9ca3af] font-normal text-xs">(可选)</span></h3>
-              <div className="flex flex-wrap gap-2">
-                {['世界观', '主要角色', '核心冲突', '特殊设定'].map(tag => (
-                  <span key={tag} className="bg-white text-[#4b5563] px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                    {tag}
-                  </span>
-                ))}
-                <button className="bg-[#f5f3ff] text-[#8b5cf6] px-3 py-1.5 rounded-full text-xs font-bold border border-[#ede9fe] shadow-sm flex items-center gap-1 cursor-pointer hover:bg-[#ede9fe] transition-colors">
-                  <Plus size={14} /> 添加
-                </button>
-              </div>
-            </section>
-          </>
-        ) : (
-          <>
-            {/* Generated Card */}
-            <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4">
-              <div className="flex p-4 gap-4">
-                {/* Image */}
-                <div className="w-32 h-48 rounded-xl overflow-hidden relative shrink-0 shadow-sm">
-                  <div className="absolute top-2 left-2 bg-[#8b5cf6] text-white text-[9px] font-bold px-2 py-0.5 rounded-md backdrop-blur-sm bg-opacity-90">
-                    仙侠玄幻
-                  </div>
-                  <img src="https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?auto=format&fit=crop&q=80&w=300&h=450" alt="Cover" className="w-full h-full object-cover" />
-                </div>
-                
-                {/* Info List */}
-                <div className="flex-1 flex flex-col gap-3 justify-center">
-                  <div>
-                    <div className="text-[10px] text-[#9ca3af] font-bold mb-0.5">故事名</div>
-                    <div className="text-sm font-extrabold text-[#111827]">重生之青云逆天</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-[#9ca3af] font-bold mb-0.5">世界观</div>
-                    <div className="text-[11px] text-[#4b5563]">修仙世界 · 青云宗 · 门派纷争</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-[#9ca3af] font-bold mb-0.5">你的身份</div>
-                    <div className="text-[11px] text-[#8b5cf6] font-bold">青云宗大弟子 (重生者)</div>
-                  </div>
-                </div>
-              </div>
+        {/* Input Area */}
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-5 shadow-sm border border-white flex flex-col">
+          <h3 className="font-bold text-[14px] text-[#111827] mb-3">故事背景与设定</h3>
+          <textarea 
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="例如：我是青云宗大弟子，上一世被小师妹背叛..."
+            className="w-full h-40 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-[13px] leading-relaxed resize-none focus:outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-50 transition-all placeholder:text-gray-400"
+          ></textarea>
 
-              <div className="px-4 pb-4 flex flex-col gap-3">
-                {/* Characters */}
-                <div>
-                  <div className="text-[10px] text-[#9ca3af] font-bold mb-1.5">主要角色</div>
-                  <div className="flex gap-3 overflow-x-auto no-scrollbar">
-                    {[
-                      { name: '小师妹 (苏珺)', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC7H5IaItFs9IvhQ7dC66eIQTdsOgfBiW_TuNQKLgKAOarXopyy5IEohZ62o5FUkXDGr7l1JhCNVxadiO6FuzbGqOrenDZskk0WWMB-kWGiZCGbU9zEfERZnm6f2Jqbsz-8ZdkwgKSF8zMeGiuWOx3k5gT0g6q00ocL1D0pq55SUaTYn-HZcX2IwwPDWAsh_ku9NUi7ed50_3li5FMxlfdxsx0EXvU0VVuP40-BRkvl-WzD59R4BBYQfCnNjOfF98Aw8w0Qg0nN8Nzh' },
-                      { name: '师父 (玄清子)', img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=100&h=100' },
-                      { name: '师兄 (凌霄)', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100' }
-                    ].map((char, i) => (
-                      <div key={i} className="flex items-center gap-1.5 bg-gray-50 rounded-full pr-3 p-1 border border-gray-100 shrink-0">
-                        <img src={char.img} alt={char.name} className="w-5 h-5 rounded-full object-cover" />
-                        <span className="text-[10px] text-[#4b5563] font-medium">{char.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Conflict */}
-                <div>
-                  <div className="text-[10px] text-[#9ca3af] font-bold mb-0.5">核心冲突</div>
-                  <div className="text-[11px] text-[#4b5563] leading-relaxed">
-                    上一世被小师妹背叛，这一世你要改变命运，守护宗门与所爱之人。
-                  </div>
-                </div>
-
-                {/* Learning Focus */}
-                <div>
-                  <div className="text-[10px] text-[#9ca3af] font-bold mb-1.5">学习重点</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['对话表达', '情感表达', '修仙词汇', '逻辑反驳'].map(tag => (
-                      <span key={tag} className="bg-[#f5f3ff] text-[#8b5cf6] px-2 py-0.5 rounded text-[9px] font-bold border border-[#ede9fe]">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+          <div className="flex justify-between items-center mt-3">
+            <div className="flex gap-2">
+              <button className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full active:scale-95 transition-transform hover:bg-gray-100">
+                <ImageIcon size={12} /> 上传参考图
+              </button>
             </div>
-          </>
-        )}
+            <span className="text-[10px] font-medium text-gray-400">{text.length}/500</span>
+          </div>
+        </div>
+
+        {/* Quick Tags */}
+        <div className="flex flex-col gap-2 mt-2">
+          <h3 className="font-bold text-[13px] text-gray-600 px-1">灵感标签</h3>
+          <div className="flex flex-wrap gap-2">
+            {["修仙逆袭", "霸总文学", "星际探索", "赛博朋克", "末日生存", "宫斗权谋"].map((tag, i) => (
+              <button key={i} className="bg-white border border-pink-50 text-gray-600 px-4 py-2 rounded-full text-[12px] font-medium shadow-sm hover:border-pink-200 hover:text-pink-600 transition-colors">
+                {tag}
+              </button>
+            ))}
+          </div>
+        </div>
+
       </main>
 
-      {/* Bottom Bar */}
-      <div className="absolute bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 p-4 pb-[env(safe-area-inset-bottom,16px)] z-50">
-        {step === 'input' ? (
+      {/* Floating Action Bar */}
+      <motion.div 
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.1 }}
+        className="fixed bottom-[max(env(safe-area-inset-bottom,16px),16px)] left-0 w-full px-4 z-50 pointer-events-none"
+      >
+        <div className="max-w-md mx-auto pointer-events-auto">
           <button 
-            onClick={() => setStep('generated')}
-            className="w-full h-12 rounded-2xl bg-[#8b5cf6] text-white font-bold text-sm shadow-md hover:bg-[#7c3aed] transition-colors active:scale-95 flex items-center justify-center gap-2"
+            onClick={() => navigate("/game/roleplay/generated-setting")}
+            disabled={text.length < 5}
+            className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-pink-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none"
           >
-            下一步：AI 生成故事设定
+            <Sparkles size={16} className="fill-white" />
+            <span className="text-[16px]">AI 一键生成设定</span>
           </button>
-        ) : (
-          <div className="flex gap-3">
-             <button 
-              onClick={() => setStep('input')}
-              className="flex-1 h-12 rounded-2xl bg-white text-[#8b5cf6] font-bold text-sm shadow-sm border border-[#8b5cf6] hover:bg-[#f5f3ff] transition-colors active:scale-95"
-            >
-              修改设定
-            </button>
-            <button 
-              onClick={() => navigate('/game/play/roleplay/custom')}
-              className="flex-1 h-12 rounded-2xl bg-[#8b5cf6] text-white font-bold text-sm shadow-md hover:bg-[#7c3aed] transition-colors active:scale-95"
-            >
-              开始故事
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
