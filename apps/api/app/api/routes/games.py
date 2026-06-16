@@ -23,6 +23,18 @@ class CreateSessionRequest(BaseModel):
     config: dict | None = None
 
 
+class CreateTemplateRequest(BaseModel):
+    title: str
+    description: str
+    game_type: str
+    config: dict
+
+
+class GenerateStoryRequest(BaseModel):
+    prompt: str
+    game_type: str = "roleplay"
+
+
 class TurnRequest(BaseModel):
     action_type: str = "message"
     user_input: str = ""
@@ -44,6 +56,84 @@ def get_template(template_id: str, db: DBSession) -> dict:
         return engine.get_template(db, template_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/templates")
+def create_template(payload: CreateTemplateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.models import GameTemplate
+    import uuid
+    
+    t = GameTemplate(
+        slug=f"{payload.game_type}-{uuid.uuid4().hex[:8]}",
+        game_type=payload.game_type,
+        title=payload.title,
+        description=payload.description,
+        config=payload.config,
+    )
+    db.add(t)
+    db.commit()
+    db.refresh(t)
+    return {
+        "id": t.id,
+        "slug": t.slug,
+        "game_type": t.game_type,
+        "title": t.title,
+        "description": t.description,
+        "config": t.config,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Admin
+# ---------------------------------------------------------------------------
+
+@router.post("/admin/generate-story")
+async def generate_story(payload: GenerateStoryRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.services.llm import get_llm_provider_for_task
+    from app.services.runtime_config import resolve_default_llm_provider
+    import json
+    
+    provider = get_llm_provider_for_task("chat", resolve_default_llm_provider(db), db)
+    prompt = f"""You are an expert game designer for language learning RPGs.
+Generate a complete roleplay story setting based on this prompt: "{payload.prompt}"
+Return ONLY a valid JSON object matching this schema exactly:
+{{
+  "title": "Short title",
+  "subtitle": "Genre / Theme",
+  "description": "2-3 sentences description of the story hook",
+  "setting": "Description of the world setting",
+  "characters": [
+    {{
+      "name": "Character Name",
+      "name_en": "English Name",
+      "personality": "Short description",
+      "relationship": 50
+    }}
+  ],
+  "chapters": [
+    {{
+      "id": "ch1",
+      "title": "Chapter 1 Title",
+      "title_en": "Chapter 1 English Title",
+      "goal": "What the user needs to achieve"
+    }}
+  ],
+  "learning_focus": ["Tag1", "Tag2"],
+  "max_turns_per_chapter": 8
+}}
+"""
+    raw_response = await provider.generate_text(prompt)
+    try:
+        content_str = raw_response.strip()
+        if content_str.startswith("```json"):
+            content_str = content_str[7:-3]
+        elif content_str.startswith("```"):
+            content_str = content_str[3:-3]
+        data = json.loads(content_str)
+        return data
+    except Exception as e:
+        logger.error(f"Failed to generate story: {e}")
+        raise HTTPException(status_code=500, detail="Failed to parse AI story output.")
 
 
 # ---------------------------------------------------------------------------

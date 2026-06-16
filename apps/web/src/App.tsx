@@ -28,6 +28,7 @@ import PartyRoom from "./pages/game/PartyRoom";
 import RomanceSocial from "./pages/game/RomanceSocial";
 import GameSummaryScreen from "./pages/game/GameSummaryScreen";
 import RoleplayStorylineList from "./pages/game/RoleplayStorylineList";
+import StoryPublisher from "./pages/admin/StoryPublisher";
 import TurtleSoupSummary from "./pages/game/TurtleSoupSummary";
 import CircleRoom from "./pages/CircleRoom";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -77,6 +78,7 @@ function AppLayout() {
           <Route path="/game/roleplay/home" element={<RoleplayHome />} />
           <Route path="/game/roleplay/storylines" element={<RoleplayStorylineList />} />
           <Route path="/game/roleplay/characters" element={<RoleplayCharacterList />} />
+          <Route path="/admin/story-publisher" element={<StoryPublisher />} />
           <Route path="/game/roleplay/character/:id" element={<RoleplayCharacterDetail />} />
           <Route path="/game/roleplay/chat" element={<RoleplayChat />} />
           <Route path="/game/roleplay/generated-setting" element={<GeneratedStorySettings />} />
