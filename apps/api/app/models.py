@@ -982,3 +982,28 @@ class GameTurn(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     session: Mapped[GameSession] = relationship(back_populates="turns")
+
+
+class GameAsset(Base):
+    """Reusable visual assets (covers/backgrounds/character avatars) for games.
+
+    Taxonomy lets the admin and AI story generator pick fitting art by
+    era / gender / age / scene without hardcoding URLs in the frontend.
+    """
+    __tablename__ = "game_assets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    kind: Mapped[str] = mapped_column(String(20), index=True, default="cover")  # cover | background | avatar
+    title: Mapped[str] = mapped_column(String(120), default="")
+    url: Mapped[str] = mapped_column(String(600), default="")
+    era: Mapped[str] = mapped_column(String(30), index=True, default="modern")  # modern|ancient|cyberpunk|fantasy|other
+    gender: Mapped[str] = mapped_column(String(20), default="neutral")  # male|female|neutral
+    age: Mapped[str] = mapped_column(String(20), default="adult")  # child|teen|adult
+    scene: Mapped[str] = mapped_column(String(60), default="")  # free-form scene tag
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=100)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )

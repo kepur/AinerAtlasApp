@@ -311,15 +311,23 @@ class TurtleSoupEngine(GameTypeEngine):
 
     async def get_summary(self, db: Session, session: GameSession) -> dict:
         state = session.state or {}
+        case = state.get("case", {})
         patterns = []
         vocab = []
         expressions = []
+        key_questions: list[dict] = []
 
         for turn in session.turns:
             hud = turn.hud or {}
             expr = hud.get("main_expression", "")
             if expr:
                 expressions.append(expr)
+                ai = turn.ai_response or {}
+                if ai.get("answer") == "YES" and len(key_questions) < 6:
+                    key_questions.append({
+                        "text": expr,
+                        "meaning": hud.get("meaning_native", ""),
+                    })
             for p in (hud.get("patterns_v2") or []):
                 pat = p.get("pattern") if isinstance(p, dict) else str(p)
                 if pat and pat not in patterns:
@@ -328,17 +336,74 @@ class TurtleSoupEngine(GameTypeEngine):
                 if v and v not in vocab:
                     vocab.append(v)
 
+        # Fall back to any asked question if no YES-tagged key questions yet.
+        if not key_questions:
+            for q in (state.get("question_log") or [])[:6]:
+                key_questions.append({"text": q.get("question", ""), "meaning": ""})
+
+        duration_seconds = 0
+        if session.started_at and session.ended_at:
+            duration_seconds = int((session.ended_at - session.started_at).total_seconds())
+
+        agents = await self._generate_report(db, session, state, patterns)
+
         return {
             "solved": state.get("solved", False),
+            "title": case.get("title", session.title),
+            "surface": case.get("surface", ""),
+            "surface_en": case.get("surface_en", ""),
+            "truth": case.get("truth", ""),
+            "truth_en": case.get("truth_en", ""),
             "questions_asked": state.get("questions_asked", 0),
             "clues_found": len(state.get("found_clues", [])),
-            "total_clues": len(state.get("case", {}).get("clues", [])),
+            "total_clues": len(case.get("clues", [])),
+            "duration_seconds": duration_seconds,
+            "key_questions": key_questions,
             "score": session.score,
             "patterns": patterns,
             "vocabulary": vocab,
             "expressions": expressions,
+            "agents": agents,
             "summary": "恭喜破案！" if state.get("solved") else "游戏进行中",
         }
+
+    async def _generate_report(
+        self, db: Session, session: GameSession, state: dict, patterns: list,
+    ) -> list[dict]:
+        """One-shot multi-agent learning report for the summary screen."""
+        native = session.native_language
+        questions = [q.get("question", "") for q in (state.get("question_log") or [])]
+        fallback = [
+            {"agent": "Grammar Agent", "emoji": "🤖",
+             "result": "你在提问中正确使用了一般疑问句和过去时结构，语法准确。"},
+            {"agent": "Native Expression Agent", "emoji": "😊",
+             "result": "部分问法可以更地道，例如用 \"Did he...\" 开头更自然。"},
+            {"agent": "Thinking Coach", "emoji": "🧠",
+             "result": "你善于从人物关系和因果角度提问，推理逻辑清晰。"},
+        ]
+        if not questions:
+            return fallback
+        system = (
+            f"你是英语学习游戏的结算分析官。用{native}给出三个智能体的简短点评，"
+            "每条不超过35字，分别从语法、地道表达、推理思维角度评价玩家本局的提问表现。\n"
+            '返回JSON：{"agents":[{"agent":"Grammar Agent","result":"..."},'
+            '{"agent":"Native Expression Agent","result":"..."},'
+            '{"agent":"Thinking Coach","result":"..."}]}'
+        )
+        user_msg = "玩家本局的提问记录：\n" + "\n".join(f"- {q}" for q in questions[:12])
+        try:
+            provider = _provider_for("game_challenge_hud", db)
+            data = await provider.complete_json(system, user_msg, temperature=0.6, max_tokens=400)
+            agents = data.get("agents") or []
+            emojis = {"Grammar Agent": "🤖", "Native Expression Agent": "😊", "Thinking Coach": "🧠"}
+            out = []
+            for a in agents:
+                name = a.get("agent") or a.get("name") or ""
+                out.append({"agent": name, "emoji": emojis.get(name, "✨"), "result": a.get("result", "")})
+            return out or fallback
+        except Exception as exc:
+            logger.warning("turtle soup report failed: %s", exc)
+            return fallback
 
     def get_state_view(self, session: GameSession, user_id: str) -> dict:
         state = session.state or {}

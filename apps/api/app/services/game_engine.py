@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.models import GameSession, GameTemplate, GameTurn, new_id
 
@@ -197,6 +198,9 @@ async def handle_turn(
     db.add(turn)
 
     sess.state = result.get("state", sess.state)
+    # The `state` JSON column is not wrapped in MutableDict, so nested in-place
+    # mutations (e.g. marking a clue discovered) are not auto-detected. Force it.
+    flag_modified(sess, "state")
     if result.get("ended"):
         sess.status = "ended"
         sess.ended_at = datetime.now(UTC)

@@ -150,22 +150,44 @@ export const useGameStore = create<GameStore>((set, get) => ({
         config: config || null,
       }),
     });
-    set({ currentSession: data, feedItems: [], currentHud: null, summary: null });
+    
+    const feedItems: FeedItem[] = [];
+    let initialHud: Record<string, unknown> | null = null;
+
+    if (data.turns) {
+      for (const turn of data.turns) {
+        // Backend feed items already echo the user input, so we don't add it again.
+        feedItems.push(...(turn.feed_items || []));
+        if (turn.hud && Object.keys(turn.hud).length > 0) {
+          initialHud = turn.hud;
+        }
+      }
+    }
+
+    set({ currentSession: data, feedItems, currentHud: initialHud, summary: null });
     return data;
   },
 
   loadSession: async (sessionId) => {
-    const data = await apiRequest<GameSession>(`/api/games/sessions/${sessionId}`);
-    const feedItems: FeedItem[] = [];
-    if (data.turns) {
-      for (const turn of data.turns) {
-        if (turn.user_input && turn.action_type === "message") {
-          feedItems.push({ type: "user_action", text: turn.user_input });
+    try {
+      const data = await apiRequest<GameSession>(`/api/games/sessions/${sessionId}`);
+      const feedItems: FeedItem[] = [];
+      let initialHud: Record<string, unknown> | null = null;
+
+      if (data.turns) {
+        for (const turn of data.turns) {
+          // Backend feed items already echo the user input.
+          feedItems.push(...(turn.feed_items || []));
+          if (turn.hud && Object.keys(turn.hud).length > 0) {
+            initialHud = turn.hud;
+          }
         }
-        feedItems.push(...(turn.feed_items || []));
       }
+      set({ currentSession: data, feedItems, currentHud: initialHud });
+    } catch (e) {
+      console.warn("Session not found or error loading:", sessionId, e);
+      set({ currentSession: null, feedItems: [], currentHud: null });
     }
-    set({ currentSession: data, feedItems, currentHud: null });
   },
 
   sendTurn: async (sessionId, actionType, userInput = "", extra) => {
@@ -182,14 +204,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       const newFeedItems = result.turn.feed_items || [];
       const hud = result.turn.hud && Object.keys(result.turn.hud).length > 0 ? result.turn.hud : null;
-      
-      // Manually add the user's input to the feed items if it exists
-      const fullNewItems = userInput 
-        ? [{ type: "user_action", text: userInput }, ...newFeedItems]
-        : newFeedItems;
 
+      // Backend feed items already echo the user input — no manual prepend.
       set((s) => ({
-        feedItems: [...s.feedItems, ...fullNewItems],
+        feedItems: [...s.feedItems, ...newFeedItems],
         currentHud: hud || s.currentHud,
         currentSession: result.session,
       }));

@@ -26,7 +26,7 @@ export default function TurtleSoupDetail() {
         </div>
       </header>
 
-      <main className="flex-1 w-full px-4 pt-4 flex flex-col gap-5">
+      <main className="flex-1 w-full px-4 pt-4 pb-32 flex flex-col gap-5">
         
         {/* Banner Card */}
         <motion.div 
@@ -207,11 +207,11 @@ export default function TurtleSoupDetail() {
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.3 }}
-        className="fixed bottom-[max(env(safe-area-inset-bottom,16px),16px)] left-0 w-full px-4 z-50 pointer-events-none"
+        className="fixed bottom-[calc(max(env(safe-area-inset-bottom,16px),16px)+64px)] left-0 w-full px-4 z-50 pointer-events-none"
       >
         <div className="max-w-md mx-auto flex gap-3 pointer-events-auto">
           <button 
-            onClick={() => navigate("/game/puzzle-logic/" + (id || "passenger"))}
+            onClick={() => navigate("/game/play/turtle_soup/" + (id || "passenger"))}
             className="flex-[2] bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           >
             <span className="text-[16px]">开始游戏</span>

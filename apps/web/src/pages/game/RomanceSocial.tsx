@@ -1,290 +1,270 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Flame, Coffee, Heart, CalendarHeart, Shield, Volume2, Puzzle, MapPin, CheckCheck, Star, Mic, Send, Smile, ShieldAlert, Loader, HeartHandshake } from "lucide-react";
-import { useGameStore } from "../../stores/gameStore";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  ChevronLeft, Volume2, Heart, Coffee, Calendar, Shield, Leaf,
+  Lightbulb, Send, Mic, Flame, Loader2,
+} from "lucide-react";
+import { useGameStore, FeedItem } from "../../stores/gameStore";
+
+const TABS = [
+  { id: "warmup", icon: Coffee, label: "暖场", phase: "icebreaker" },
+  { id: "flirt", icon: Heart, label: "暧昧", phase: "flirting" },
+  { id: "date", icon: Calendar, label: "约会", phase: "dating" },
+  { id: "boundary", icon: Shield, label: "边界", phase: "couple" },
+];
+
+const PHASE_TO_TAB: Record<string, string> = {
+  icebreaker: "warmup", flirting: "flirt", dating: "date", couple: "boundary",
+};
+
+const ACTION_PRESETS: Record<string, string> = {
+  轻松回应: "Haha that's so true, I feel the same way!",
+  表达友好: "I really enjoy talking with you.",
+  幽默一点: "Careful, you might make me blush! 😄",
+  保持边界: "I think it's better for us to keep some distance.",
+};
+
+interface HintCard { title?: string; en?: string; zh?: string; breakdown?: string[] }
 
 export default function RomanceSocial() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { createSession, currentSession, sendTurn, feedItems, turnLoading } = useGameStore();
-  const [input, setInput] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const targetId = id && !/^[0-9a-fA-F-]{36}$/.test(id) ? id : "mia";
+
+  const {
+    currentSession, feedItems, currentHud, turnLoading,
+    createSession, loadSession, sendTurn, clearCurrent,
+  } = useGameStore();
+
+  const [inputText, setInputText] = useState("");
+  const [creating, setCreating] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    createSession("romance", undefined, { target_id: id || "mia" });
-  }, [id, createSession]);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const isUuid = id && /^[0-9a-fA-F-]{36}$/.test(id);
+    if (isUuid) {
+      if (!currentSession || currentSession.id !== id) loadSession(id);
+      return;
     }
+    (async () => {
+      if (creating) return;
+      setCreating(true);
+      try {
+        const sess = await createSession("romance", undefined, { target_id: targetId });
+        navigate(`/game/romance-social/${sess.id}`, { replace: true });
+      } finally {
+        setCreating(false);
+      }
+    })();
+    return () => { /* keep session in store */ };
+  }, [id]);
+
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [feedItems, turnLoading]);
 
-  const handleSend = async (actionType = "message") => {
-    if (!currentSession) return;
-    if (actionType === "message" && !input.trim()) return;
-
-    const userInput = input;
-    setInput("");
-    await sendTurn(currentSession.id, actionType, userInput, { action_type: actionType });
-  };
-
-  const target = currentSession?.view?.target as Record<string, any> || {};
-  const score = currentSession?.view?.relationship_score as number || 0;
+  const view = (currentSession?.view || {}) as Record<string, any>;
+  const target = view.target || { name: "Mia", age: 25, role: "咖啡店常客", initial_scene: "咖啡店初次见面" };
+  const score = (currentHud?.relationship_score as number) ?? view.relationship_score ?? 0;
   const phase = currentSession?.phase || "icebreaker";
+  const activeTab = PHASE_TO_TAB[phase] || "warmup";
 
-  const getPhaseStyles = (p: string) => {
-    const isActive = phase === p;
-    if (p === "icebreaker") return isActive ? "bg-white text-pink-500 font-bold shadow-sm" : "text-[#6b7280]";
-    if (p === "flirting") return isActive ? "bg-white text-pink-500 font-bold shadow-sm" : "text-[#6b7280]";
-    if (p === "dating") return isActive ? "bg-white text-pink-500 font-bold shadow-sm" : "text-[#6b7280]";
-    if (p === "couple") return isActive ? "border-b-2 border-pink-400 text-pink-500 font-bold" : "border-b-2 border-transparent text-gray-400";
-    return "text-[#6b7280]";
+  // Latest hint card for the learning HUD
+  const lastHint = [...feedItems].reverse().find((f) => f.type === "hint_card") as (FeedItem & HintCard) | undefined;
+  const lastChar = [...feedItems].reverse().find((f) => f.type === "char_msg");
+  const learningPoint = (lastChar?.learning_point || null) as { title?: string; desc?: string } | null;
+
+  const phraseEn = lastHint?.en || "You seem really easy to talk to.";
+  const phraseZh = lastHint?.zh || "你感觉很容易相处。";
+  const breakdown = lastHint?.breakdown || [];
+
+  const send = async (text: string) => {
+    if (!currentSession || !text.trim() || turnLoading) return;
+    setInputText("");
+    await sendTurn(currentSession.id, "user_action", text.trim());
   };
+
+  if (creating || !currentSession) {
+    return (
+      <div className="w-full h-screen bg-[#fdf2f8] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={32} className="animate-spin text-[#ec4899]" />
+          <span className="text-[#9d4d6e] text-sm">正在准备约会场景...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="premium w-full h-full bg-gradient-to-b from-[#fdf2f8] via-[#fff1f2] to-[#fce7f3] text-[#111827] flex flex-col relative overflow-hidden font-sans">
-      
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[300px] h-[300px] bg-pink-200/40 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[20%] left-[-20%] w-[400px] h-[400px] bg-rose-200/40 rounded-full blur-3xl"></div>
-      </div>
-
-      {/* Header */}
-      <header className="relative z-50 px-4 pt-[env(safe-area-inset-top,20px)] shrink-0 flex items-center justify-between h-14">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 flex items-center justify-center text-[#111827] rounded-full bg-white/60 backdrop-blur-sm shadow-sm hover:bg-white/80 transition-colors shrink-0">
-          <ArrowLeft size={20} />
-        </button>
-        
-        <div className="flex flex-col items-center flex-1">
-          <div className="font-serif font-extrabold text-[#111827] text-xl flex items-center gap-1">
-            {target.name || "Romance"}<Heart className="fill-pink-400 text-pink-400" size={14} />
+    <div className="w-full h-full bg-[#fdf2f8] flex flex-col max-w-[480px] mx-auto relative overflow-hidden">
+      {/* Sticky top */}
+      <div className="sticky top-0 z-40 bg-[#fdf2f8]">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top,16px)] h-14">
+          <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center text-gray-700 bg-white/60 rounded-full">
+            <ChevronLeft size={20} />
+          </button>
+          <div className="text-center">
+            <h1 className="font-bold text-[15px] text-[#be185d]">恋爱社交表达练习</h1>
+            <p className="text-[10px] text-[#9ca3af]">Romance Social</p>
           </div>
-          <div className="text-[10px] text-[#6b7280] font-medium tracking-wide">好感度 {score}/100</div>
-        </div>
+          <div className="flex items-center gap-1 bg-gradient-to-r from-pink-400 to-rose-400 text-white px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm">
+            <Flame size={12} /> {score}/100
+          </div>
+        </header>
 
-        <button className="flex items-center gap-1 bg-gradient-to-r from-orange-50 to-orange-100 px-2.5 py-1.5 rounded-full border border-orange-200 shadow-sm shrink-0">
-          <Flame className="fill-orange-500 text-orange-500" size={14} />
-          <span className="text-[10px] font-bold text-[#c2410c]">7 天连胜 &gt;</span>
-        </button>
-      </header>
-
-      {/* Tabs */}
-      <div className="relative z-50 px-4 mt-2 shrink-0">
-        <div className="flex justify-between items-center bg-white/40 backdrop-blur-md rounded-2xl p-1 shadow-sm border border-white/50">
-          <button className={`flex-1 flex items-center justify-center gap-1.5 text-[12px] py-2 rounded-xl relative ${getPhaseStyles("icebreaker")}`}>
-            <Coffee size={14} className={phase === "icebreaker" ? "text-pink-400" : ""} /> 暖场
-            {phase === "icebreaker" && <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-8 h-1 bg-pink-400 rounded-full"></div>}
-          </button>
-          <button className={`flex-1 flex items-center justify-center gap-1.5 text-[12px] py-2 rounded-xl relative ${getPhaseStyles("flirting")}`}>
-            <Heart size={14} className={phase === "flirting" ? "text-pink-400" : ""} /> 暧昧
-            {phase === "flirting" && <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-8 h-1 bg-pink-400 rounded-full"></div>}
-          </button>
-          <button className={`flex-1 flex items-center justify-center gap-1.5 text-[12px] py-2 rounded-xl relative ${getPhaseStyles("dating")}`}>
-            <CalendarHeart size={14} className={phase === "dating" ? "text-pink-400" : ""} /> 约会
-            {phase === "dating" && <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-8 h-1 bg-pink-400 rounded-full"></div>}
-          </button>
-          <button className={`flex-1 py-3 flex items-center justify-center gap-1.5 ${getPhaseStyles("couple")}`}>
-            <HeartHandshake size={16} /> <span>情侣</span>
-          </button>
+        {/* Tabs (phase indicators) */}
+        <div className="flex gap-2 px-4 pb-2">
+          {TABS.map((t) => {
+            const isActive = activeTab === t.id;
+            return (
+              <div key={t.id} className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-full text-[12px] font-bold ${
+                isActive ? "bg-gradient-to-r from-pink-400 to-rose-400 text-white shadow-sm" : "bg-white/70 text-[#be185d]"
+              }`}>
+                <t.icon size={12} /> {t.label}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <main ref={scrollRef} className="flex-1 w-full overflow-y-auto px-4 pt-4 pb-48 flex flex-col gap-4 no-scrollbar relative z-10">
-        
-        {!currentSession ? (
-           <div className="flex-1 flex items-center justify-center">
-             <Loader className="animate-spin text-pink-400" />
-           </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            
-            {/* Setting Intro */}
-            <div className="flex items-center gap-2 justify-center mt-2 mb-2">
-              <MapPin size={12} className="text-pink-400" />
-              <span className="text-[11px] font-medium text-pink-500 bg-pink-50 px-3 py-1 rounded-full border border-pink-100">
-                场景：{target.initial_scene}
-              </span>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pb-44 no-scrollbar">
+        {/* Learning HUD cards */}
+        <div className="px-4 pt-2 grid grid-cols-2 gap-3">
+          {/* 自然表达 */}
+          <div className="bg-white rounded-2xl border border-pink-100 p-3 shadow-sm">
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center"><Leaf size={12} className="text-pink-500" /></div>
+              <span className="text-[11px] font-bold text-[#be185d]">自然表达</span>
             </div>
-
-            <AnimatePresence>
-              {feedItems.map((item, idx) => {
-                if (item.type === "hint_card") {
-                  const breakdown = item.breakdown as string[] | undefined;
-                  return (
-                    <motion.div key={idx} initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
-                      <div className="w-[240px] shrink-0 bg-white/80 backdrop-blur-xl rounded-[24px] p-4 shadow-sm border border-white flex flex-col relative">
-                        <div className="flex items-center gap-1.5 text-pink-500 font-bold text-[11px] mb-3">
-                          <Star size={12} className="fill-pink-400" /> {(item.title as string) || "自然表达"}
-                        </div>
-                        <div className="flex justify-between items-start mb-2">
-                          <h2 className="font-serif font-bold text-[#111827] text-xl leading-tight pr-2">
-                            {(item.en as string) || item.text_en}
-                          </h2>
-                          <button className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 shrink-0 hover:bg-pink-200 transition-colors">
-                            <Volume2 size={16} />
-                          </button>
-                        </div>
-                        <p className="text-[13px] text-[#4b5563] mb-4">{(item.zh as string) || (item.text_zh as string)}</p>
-                      </div>
-                      
-                      {breakdown && breakdown.length > 0 && (
-                        <div className="w-[200px] shrink-0 bg-white/80 backdrop-blur-xl rounded-[24px] p-4 shadow-sm border border-white flex flex-col">
-                           <div className="flex items-center gap-1.5 text-pink-500 font-bold text-[11px] mb-4">
-                            <LightbulbIcon className="text-pink-400" /> 为什么这么说
-                          </div>
-                          <div className="flex flex-col gap-3">
-                            {breakdown.map((bd: string, i: number) => (
-                               <div key={i} className="flex items-start gap-2">
-                                <MenuIcon className="text-pink-400 mt-0.5" />
-                                <div className="text-[10px] text-[#4b5563] leading-snug">{bd}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  );
-                }
-
-                if (item.type === "user_msg") {
-                  return (
-                    <motion.div key={idx} initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} className="flex flex-col items-end w-full pl-12">
-                      <div className="bg-gradient-to-br from-purple-100 to-purple-50 text-[#111827] rounded-[24px] rounded-br-sm px-4 py-3 shadow-sm border border-purple-100 relative max-w-full">
-                        <p className="text-[14px] leading-relaxed break-words">{item.text}</p>
-                        <div className="flex justify-end mt-1.5 text-purple-400 text-[10px] font-medium items-center gap-1">
-                          <CheckCheck size={12} />
-                        </div>
-                        <div className="absolute -left-6 bottom-1 text-pink-300">
-                          <Heart size={14} className="fill-transparent" />
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                }
-
-                if (item.type === "char_msg") {
-                  const lp = item.learning_point as { title: string; desc: string } | undefined;
-                  return (
-                    <motion.div key={idx} initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} className="flex gap-2.5 w-full pr-12">
-                      <div className="w-9 h-9 rounded-full bg-pink-100 overflow-hidden shrink-0 shadow-sm border border-white mt-1">
-                        {item.speaker_avatar ? (
-                          <img src={item.speaker_avatar as string} className="w-full h-full object-cover" alt="avatar" />
-                        ) : (
-                          <div className="w-full h-full bg-pink-200"></div>
-                        )}
-                      </div>
-                      <div className="flex flex-col flex-1">
-                        <div className="bg-white/90 backdrop-blur-md rounded-[24px] rounded-tl-sm px-4 py-4 shadow-sm border border-pink-50 relative">
-                          <p className="text-[14px] leading-relaxed text-[#111827]">{(item.text_zh as string) || item.text}</p>
-                          <button className="absolute top-3 right-2 text-pink-400 w-7 h-7 rounded-full bg-pink-50 flex items-center justify-center hover:bg-pink-100 transition-colors">
-                            <Volume2 size={14} />
-                          </button>
-                          
-                          {lp && (
-                            <div className="mt-3 bg-[#fdf2f8] border border-pink-100 rounded-xl p-2 flex items-center justify-between text-[10px]">
-                              <div className="flex items-center gap-1.5 text-pink-600 font-bold">
-                                <div className="bg-pink-200/50 p-1 rounded-md flex items-center gap-0.5">
-                                  <Star size={10} className="fill-pink-500 text-pink-500" /> {lp.title}
-                                </div>
-                                <span className="text-[#6b7280] font-normal ml-1">{lp.desc}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                }
-
-                return null;
-              })}
-
-              {turnLoading && (
-                 <motion.div initial={{opacity:0}} animate={{opacity:1}} className="flex items-center gap-2 text-pink-400 text-[12px] pl-12 mt-2">
-                   <Loader size={14} className="animate-spin" /> {target.name} 正在回复...
-                 </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="text-[12px] font-extrabold text-[#1f2937] leading-snug">{phraseEn}</div>
+            <div className="text-[10px] text-[#9ca3af] mt-1">{phraseZh}</div>
+            <button onClick={() => setInputText(phraseEn)} className="mt-2 w-7 h-7 rounded-full bg-gradient-to-br from-pink-300 to-pink-500 flex items-center justify-center">
+              <Volume2 size={12} className="text-white" />
+            </button>
           </div>
-        )}
-      </main>
 
-      {/* Bottom Area */}
-      <div className="absolute bottom-0 w-full bg-white/90 backdrop-blur-xl border-t border-pink-100 pt-3 pb-[env(safe-area-inset-bottom,16px)] flex flex-col gap-3 z-50">
-        
-        {/* Action Chips */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar px-4">
-          <button onClick={() => handleSend("轻松回应")} disabled={turnLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-200 bg-purple-50 text-purple-600 text-[11px] font-medium shrink-0 shadow-sm active:scale-95 transition-transform disabled:opacity-50">
-            <MessageSquareIcon className="text-purple-500" /> 轻松回应
-          </button>
-          <button onClick={() => handleSend("表达好感")} disabled={turnLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-pink-200 bg-pink-50 text-pink-600 text-[11px] font-medium shrink-0 shadow-sm active:scale-95 transition-transform disabled:opacity-50">
-            <Heart size={12} className="fill-pink-500 text-pink-500" /> 表达好感
-          </button>
-          <button onClick={() => handleSend("幽默一点")} disabled={turnLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-orange-200 bg-orange-50 text-orange-600 text-[11px] font-medium shrink-0 shadow-sm active:scale-95 transition-transform disabled:opacity-50">
-            <Smile size={12} className="text-orange-500" /> 幽默一点
-          </button>
-          <button onClick={() => handleSend("增进感情")} disabled={turnLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-rose-200 bg-rose-50 text-rose-600 text-[11px] font-medium shrink-0 shadow-sm active:scale-95 transition-transform disabled:opacity-50">
-            <Flame size={12} className="text-rose-500" /> 增进感情
-          </button>
+          {/* 为什么这么说 */}
+          <div className="bg-white rounded-2xl border border-pink-100 p-3 shadow-sm">
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center"><Lightbulb size={12} className="text-amber-500" /></div>
+              <span className="text-[11px] font-bold text-[#b45309]">为什么这么说</span>
+            </div>
+            {breakdown.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {breakdown.slice(0, 3).map((b, i) => (
+                  <p key={i} className="text-[10px] text-[#4b5563] leading-snug">• {b}</p>
+                ))}
+              </div>
+            ) : learningPoint ? (
+              <div>
+                <p className="text-[11px] font-bold text-[#1f2937]">{learningPoint.title}</p>
+                <p className="text-[10px] text-[#6b7280] mt-0.5 leading-snug">{learningPoint.desc}</p>
+              </div>
+            ) : (
+              <p className="text-[10px] text-[#9ca3af]">开始对话，AI 会拆解你的表达技巧。</p>
+            )}
+          </div>
         </div>
 
-        {/* Input Box */}
-        <div className="flex items-center gap-3 px-4">
-          <button className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 shrink-0 hover:bg-gray-200 transition-colors">
-            <Mic size={20} />
-          </button>
-          <div className="flex-1 bg-white border border-gray-200 rounded-full h-10 flex items-center px-4 shadow-sm relative overflow-hidden">
-            <input 
-              type="text" 
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend("message")}
-              disabled={turnLoading}
-              placeholder="输入中文或英文，AI 帮你升级表达..." 
-              className="w-full h-full text-[12px] bg-transparent focus:outline-none text-[#111827] placeholder:text-gray-400 disabled:opacity-50" 
-            />
+        {/* Scene bar */}
+        <div className="mx-4 mt-3 bg-white/70 rounded-2xl border border-pink-100 px-3 py-2.5 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 flex items-center justify-center shrink-0">
+            <span className="text-white font-bold">{(target.name || "M").charAt(0)}</span>
           </div>
-          <button 
-            onClick={() => handleSend("message")}
-            disabled={turnLoading || !input.trim()}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-white shrink-0 shadow-md hover:opacity-90 transition-opacity active:scale-95 pl-0.5 disabled:opacity-50"
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-bold text-[#1f2937]">{target.name} · {target.age}岁 <span className="text-[#9ca3af] font-normal">{target.role}</span></p>
+            <p className="text-[10px] text-[#9ca3af] truncate">{target.initial_scene}</p>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-2 px-4 py-3">
+          <div className="flex-1 h-px bg-pink-100" />
+          <span className="text-[10px] text-pink-300 font-semibold">对话练习</span>
+          <div className="flex-1 h-px bg-pink-100" />
+        </div>
+
+        {/* Chat messages */}
+        <div className="px-3 flex flex-col gap-3">
+          {feedItems.filter((f) => f.type === "user_msg" || f.type === "char_msg").length === 0 && (
+            <div className="text-center text-[12px] text-[#c98bab] py-6">
+              和 {target.name} 打个招呼吧，用中文或英文都可以 💬
+            </div>
+          )}
+          {feedItems.map((msg, i) => {
+            if (msg.type === "user_msg") {
+              return (
+                <div key={i} className="flex justify-end">
+                  <div className="max-w-[75%] bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-[18px] rounded-tr-[4px] px-4 py-2.5 shadow-sm">
+                    <p className="text-[13px] leading-snug">{msg.text}</p>
+                  </div>
+                </div>
+              );
+            }
+            if (msg.type === "char_msg") {
+              return (
+                <div key={i} className="flex gap-2 items-end">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 flex items-center justify-center shrink-0">
+                    <span className="text-white text-xs font-bold">{((msg.speaker as string) || "M").charAt(0)}</span>
+                  </div>
+                  <div className="max-w-[75%]">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[11px] font-bold text-[#be185d]">{msg.speaker as string}</span>
+                      {msg.emotion ? <span className="text-[9px] text-[#c98bab]">({msg.emotion as string})</span> : null}
+                    </div>
+                    <div className="bg-white rounded-[18px] rounded-tl-[4px] px-4 py-2.5 shadow-sm border border-pink-50">
+                      <p className="text-[13px] text-[#1f2937] leading-snug">{msg.text}</p>
+                      {msg.text_zh ? <p className="text-[10px] text-[#9ca3af] mt-1">{msg.text_zh as string}</p> : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
+          {turnLoading && (
+            <div className="flex items-center gap-2 px-2">
+              <Loader2 size={14} className="animate-spin text-pink-400" />
+              <span className="text-[#c98bab] text-xs">{target.name} 正在回复...</span>
+            </div>
+          )}
+          <div ref={chatBottomRef} />
+        </div>
+      </div>
+
+      {/* Bottom: action chips + input */}
+      <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-[#fdf2f8]/95 backdrop-blur-md border-t border-pink-100 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,16px)+8px)] z-40">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+          {Object.keys(ACTION_PRESETS).map((label) => (
+            <button
+              key={label}
+              onClick={() => setInputText(ACTION_PRESETS[label])}
+              className="shrink-0 px-3 py-1.5 bg-white border border-pink-200 text-[#be185d] rounded-full text-[11px] font-bold shadow-sm active:scale-95"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 border border-pink-100 shadow-sm">
+          <button className="w-7 h-7 flex items-center justify-center text-pink-400"><Mic size={16} /></button>
+          <input
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send(inputText)}
+            placeholder="输入中文或英文，AI 帮你练习表达..."
+            className="flex-1 bg-transparent text-[13px] outline-none placeholder-[#c98bab] text-[#1f2937]"
+          />
+          <button
+            onClick={() => send(inputText)}
+            disabled={turnLoading || !inputText.trim()}
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center shadow-md shrink-0 disabled:opacity-40"
           >
-            <Send size={18} />
+            {turnLoading ? <Loader2 size={16} className="text-white animate-spin" /> : <Send size={16} className="text-white" />}
           </button>
         </div>
       </div>
     </div>
-  );
-}
-
-// Simple icons for the UI components
-function LightbulbIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 18h6" />
-      <path d="M10 22h4" />
-      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1.5.5 2.8 1.5 3.5.75.75 1.23 1.51 1.41 2.5" />
-    </svg>
-  );
-}
-
-function MenuIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" y1="6" x2="20" y2="6" />
-      <line x1="4" y1="12" x2="14" y2="12" />
-      <line x1="4" y1="18" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-function MessageSquareIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
   );
 }

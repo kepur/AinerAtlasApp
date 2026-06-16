@@ -419,13 +419,17 @@ class DetectiveEngine(GameTypeEngine):
 
     async def get_summary(self, db: Session, session: GameSession) -> dict:
         state = session.state or {}
+        case = state.get("case", {})
         patterns, vocab, expressions = [], [], []
+        top_lines: list[dict] = []
 
         for turn in session.turns:
             hud = turn.hud or {}
             expr = hud.get("main_expression", "")
             if expr:
                 expressions.append(expr)
+                if len(top_lines) < 5:
+                    top_lines.append({"en": expr, "zh": hud.get("meaning_native", "")})
             for p in (hud.get("patterns_v2") or []):
                 pat = p.get("pattern") if isinstance(p, dict) else str(p)
                 if pat and pat not in patterns:
@@ -434,13 +438,23 @@ class DetectiveEngine(GameTypeEngine):
                 if v and v not in vocab:
                     vocab.append(v)
 
+        duration_seconds = 0
+        if session.started_at and session.ended_at:
+            duration_seconds = int((session.ended_at - session.started_at).total_seconds())
+
         return {
-            "solved": session.status == "ended",
+            "solved": session.status == "ended" and session.score >= 60,
+            "title": session.title,
+            "truth": case.get("truth", ""),
+            "truth_en": case.get("truth_en", ""),
             "score": session.score,
+            "accuracy": session.score,
             "interrogations_used": state.get("interrogations_used", 0),
             "clues_found": len(state.get("discovered_clue_ids", [])),
             "total_clues": len(state.get("clues", [])),
             "deduction_attempts": state.get("deduction_attempts", 0),
+            "duration_seconds": duration_seconds,
+            "top_lines": top_lines,
             "patterns": patterns,
             "vocabulary": vocab,
             "expressions": expressions,
@@ -464,8 +478,20 @@ class DetectiveEngine(GameTypeEngine):
             })
 
         clues_view = []
+        all_clues_view = []
         for c in state.get("clues", []):
-            if c.get("discovered"):
+            discovered = c.get("discovered", False)
+            # All clues are listed so the board can show a 关键搜证 grid; the
+            # description stays locked until the clue is investigated.
+            all_clues_view.append({
+                "id": c["id"],
+                "title": c["title"],
+                "title_en": c.get("title_en", ""),
+                "discovered": discovered,
+                "desc": c["desc"] if discovered else "",
+                "desc_en": c.get("desc_en", "") if discovered else "",
+            })
+            if discovered:
                 clues_view.append({
                     "id": c["id"],
                     "title": c["title"],
@@ -479,6 +505,7 @@ class DetectiveEngine(GameTypeEngine):
             "scene_en": case.get("scene_en", ""),
             "suspects": suspects_view,
             "discovered_clues": clues_view,
+            "all_clues": all_clues_view,
             "total_clues": len(state.get("clues", [])),
             "interrogations_used": state.get("interrogations_used", 0),
             "max_interrogations": case.get("max_interrogations", 5),

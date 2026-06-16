@@ -257,6 +257,13 @@ def seed_defaults() -> None:
             logger.info("Seeded app settings")
 
         _seed_game_templates(db)
+        try:
+            from app.services.game_assets import seed_assets
+            n = seed_assets(db)
+            if n:
+                logger.info(f"Seeded {n} game assets")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Game asset seed skipped: {exc}")
         db.commit()
 
 

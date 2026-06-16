@@ -48,7 +48,7 @@ export default function RoleplayStorylineList() {
         {templatesLoading ? (
            <div className="flex justify-center my-10"><Loader2 className="animate-spin text-pink-400" /></div>
         ) : (
-          templates.map((tpl) => {
+          templates.filter(tpl => tpl.game_type === 'roleplay').map((tpl) => {
             const config = tpl.config || {};
             const subtitle = tpl.subtitle || config.subtitle || "未知题材";
             const tags = config.learning_focus || tpl.tags || [];
@@ -56,12 +56,21 @@ export default function RoleplayStorylineList() {
             return (
               <div 
                 key={tpl.id}
-                onClick={() => navigate(`/game/roleplay/chat?templateId=${tpl.id}`)} 
+                onClick={() => navigate(`/game/play/roleplay/${tpl.id}`)} 
                 className="bg-white/80 backdrop-blur-md rounded-[24px] p-4 shadow-sm border border-white flex flex-col relative cursor-pointer active:scale-[0.98] transition-transform"
               >
-                <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-3 shadow-inner border border-white">
-                  <BookOpen className="text-pink-500" size={24} />
-                </div>
+                {tpl.cover_url || config.cover_url ? (
+                  <div className="w-full h-32 rounded-xl mb-3 overflow-hidden shadow-inner border border-white relative">
+                    <img src={(tpl.cover_url || config.cover_url) as string} alt="Cover" className="w-full h-full object-cover" />
+                    <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                      <BookOpen className="text-pink-500" size={16} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-3 shadow-inner border border-white">
+                    <BookOpen className="text-pink-500" size={24} />
+                  </div>
+                )}
                 
                 <h3 className="font-bold text-[18px] text-[#111827] mb-1">{tpl.title as string}</h3>
                 <p className="text-[12px] font-medium text-pink-500 mb-2">{subtitle as string}</p>

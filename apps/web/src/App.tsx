@@ -11,7 +11,6 @@ import GameHome from "./pages/game/GameHome";
 import GameTemplateDetail from "./pages/game/GameTemplateDetail";
 import TurtleSoupDetail from "./pages/game/TurtleSoupDetail";
 import RoleplayHome from "./pages/game/RoleplayHome";
-import RoleplayChat from "./pages/game/RoleplayChat";
 import RoleplayCharacterList from "./pages/game/RoleplayCharacterList";
 import RoleplayCharacterDetail from "./pages/game/RoleplayCharacterDetail";
 import GeneratedStorySettings from "./pages/game/GeneratedStorySettings";
@@ -22,14 +21,17 @@ import SocialLogicGame from "./pages/game/SocialLogicGame";
 import PuzzleGame from "./pages/game/PuzzleGame";
 import GameDetail from "./pages/game/GameDetail";
 import CustomStoryBuilder from "./pages/game/CustomStoryBuilder";
-import DetectiveBoard from "./pages/game/DetectiveBoard";
 import InterrogationRoom from "./pages/game/InterrogationRoom";
 import PartyRoom from "./pages/game/PartyRoom";
-import RomanceSocial from "./pages/game/RomanceSocial";
 import GameSummaryScreen from "./pages/game/GameSummaryScreen";
 import RoleplayStorylineList from "./pages/game/RoleplayStorylineList";
 import StoryPublisher from "./pages/admin/StoryPublisher";
+import AssetLibrary from "./pages/admin/AssetLibrary";
 import TurtleSoupSummary from "./pages/game/TurtleSoupSummary";
+import RomanceSocial from "./pages/game/RomanceSocial";
+import DetectiveBoard from "./pages/game/DetectiveBoard";
+import DetectiveInterrogation from "./pages/game/DetectiveInterrogation";
+import GameSummaryDetective from "./pages/game/GameSummaryDetective";
 import CircleRoom from "./pages/CircleRoom";
 import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
@@ -79,8 +81,8 @@ function AppLayout() {
           <Route path="/game/roleplay/storylines" element={<RoleplayStorylineList />} />
           <Route path="/game/roleplay/characters" element={<RoleplayCharacterList />} />
           <Route path="/admin/story-publisher" element={<StoryPublisher />} />
+          <Route path="/admin/asset-library" element={<AssetLibrary />} />
           <Route path="/game/roleplay/character/:id" element={<RoleplayCharacterDetail />} />
-          <Route path="/game/roleplay/chat" element={<RoleplayChat />} />
           <Route path="/game/roleplay/generated-setting" element={<GeneratedStorySettings />} />
           <Route path="/game/setup/:id" element={<RoleplaySetup />} />
           <Route path="/game/universal/:id" element={<UniversalGameChat />} />
@@ -90,11 +92,13 @@ function AppLayout() {
           <Route path="/game/detail/:id" element={<GameDetail />} />
           <Route path="/game/roleplay-setup" element={<RoleplaySetup />} />
           <Route path="/game/custom-story-builder" element={<CustomStoryBuilder />} />
+          <Route path="/game/detective-board" element={<DetectiveBoard />} />
           <Route path="/game/detective-board/:id" element={<DetectiveBoard />} />
-          <Route path="/game/interrogation/:id" element={<InterrogationRoom />} />
-          <Route path="/game/party-room/:id" element={<PartyRoom />} />
-          <Route path="/game/romance-social/:id" element={<RomanceSocial />} />
+          <Route path="/game/detective/interrogation/:id" element={<DetectiveInterrogation />} />
           <Route path="/game/romance-social" element={<RomanceSocial />} />
+          <Route path="/game/romance-social/:id" element={<RomanceSocial />} />
+          <Route path="/game/detective/summary/:id" element={<GameSummaryDetective />} />
+          <Route path="/game/roleplay/chat" element={<Navigate to="/game/roleplay/home" />} />
           <Route path="/game/summary/:mode/:id" element={<GameSummaryScreen />} />
           <Route path="/game/summary/:id" element={<GameSummaryScreen />} />
           <Route path="/game/turtle-soup-summary/:id" element={<TurtleSoupSummary />} />

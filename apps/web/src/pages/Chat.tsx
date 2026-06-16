@@ -175,35 +175,35 @@ export default function Chat() {
 
         {/* Digital Mentor */}
         <section className="mb-8">
-          <h2 className="font-label-sm text-label-sm text-outline mb-4 uppercase tracking-widest">Digital Mentor</h2>
-          <div className="relative overflow-hidden rounded-3xl p-5 ai-glow glass-card border border-primary/10">
-            <div className="absolute -right-4 -top-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
-            <div className="flex items-start gap-4 relative z-10">
+          <h2 className="font-label-sm text-label-sm text-outline mb-3 uppercase tracking-widest">Digital Mentor</h2>
+          <div className="relative overflow-hidden rounded-[20px] p-4 ai-glow glass-card border border-primary/10">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl" />
+            <div className="flex items-start gap-3 relative z-10">
               <div className="relative">
-                <div className="w-14 h-14 rounded-2xl resonance-indicator flex items-center justify-center text-white shadow-lg">
-                  <span className="material-symbols-outlined fill text-[32px]">psychology</span>
+                <div className="w-12 h-12 rounded-xl resonance-indicator flex items-center justify-center text-white shadow-lg">
+                  <span className="material-symbols-outlined fill text-[24px]">psychology</span>
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-fixed-dim border-2 border-surface rounded-full" />
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-tertiary-fixed-dim border-2 border-surface rounded-full" />
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-1">
-                  <h3 className="font-headline-md text-headline-md text-on-surface">AinerWise Coach</h3>
-                  <span className="font-label-sm text-label-sm text-primary font-bold">LIVE</span>
+                  <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">AinerWise Coach</h3>
+                  <span className="font-label-sm text-[10px] text-primary font-bold">LIVE</span>
                 </div>
-                <p className="text-body-md text-on-surface-variant line-clamp-2">
+                <p className="text-[13px] text-on-surface-variant line-clamp-2 leading-relaxed">
                   "You've expressed new nuances today. Ready to refine your philosophical vocabulary?"
                 </p>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-outline-variant/30 flex gap-2">
+            <div className="mt-3 pt-3 border-t border-outline-variant/30 flex gap-2">
               <button
                 onClick={continueSession}
-                className="flex-1 h-10 bg-primary text-white rounded-xl font-label-sm text-label-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                className="flex-1 h-9 bg-primary text-white rounded-xl font-label-sm text-[13px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
               >
                 Continue Session
               </button>
-              <button onClick={() => navigate("/voice")} className="w-10 h-10 flex items-center justify-center text-primary bg-primary-fixed/30 rounded-xl active:scale-95 transition-transform">
-                <span className="material-symbols-outlined">settings_voice</span>
+              <button onClick={() => navigate("/voice")} className="w-9 h-9 flex items-center justify-center text-primary bg-primary-fixed/30 rounded-xl active:scale-95 transition-transform">
+                <span className="material-symbols-outlined text-[18px]">settings_voice</span>
               </button>
             </div>
           </div>
@@ -213,63 +213,66 @@ export default function Chat() {
         <section className="mb-8">
           <div className="flex justify-between items-end mb-4">
             <h2 className="font-label-sm text-label-sm text-outline uppercase tracking-widest">Active Circles</h2>
-            <button onClick={() => navigate("/topics")} className="text-primary font-label-sm text-label-sm font-bold">
+            <button onClick={() => navigate("/topics")} className="text-primary font-label-sm text-[12px] font-bold">
               View All
             </button>
           </div>
-          <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-margin-mobile px-margin-mobile">
+          <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-margin-mobile px-margin-mobile">
             {MOCK_CIRCLES.map((c) => (
-              <button key={c.id} onClick={() => navigate("/topics")} className="flex-shrink-0 w-24 flex flex-col items-center gap-2">
-                <div className="w-20 h-20 rounded-full p-1 border-2 border-primary-container relative">
+              <button key={c.id} onClick={() => navigate("/topics")} className="flex-shrink-0 w-16 flex flex-col items-center gap-1.5">
+                <div className="w-16 h-16 rounded-full p-[3px] border-2 border-primary-container relative">
                   <div className={`w-full h-full rounded-full bg-gradient-to-br ${c.tint}`} />
                   {c.count && (
-                    <div className="absolute -bottom-1 right-2 bg-on-primary-fixed-variant text-[10px] text-white px-2 py-0.5 rounded-full font-bold">
+                    <div className="absolute -bottom-1 -right-1 bg-on-primary-fixed-variant text-[9px] text-white px-1.5 py-0.5 rounded-full font-bold border border-white">
                       {c.count}
                     </div>
                   )}
                 </div>
-                <span className="font-label-sm text-label-sm text-on-surface truncate w-full text-center">{c.name}</span>
+                <span className="font-label-sm text-[11px] text-on-surface truncate w-full text-center">{c.name}</span>
               </button>
             ))}
-            <button onClick={() => navigate("/topics/new")} className="flex-shrink-0 w-24 flex flex-col items-center gap-2">
-              <div className="w-20 h-20 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center text-outline">
-                <span className="material-symbols-outlined text-[32px]">add</span>
+            <button onClick={() => navigate("/topics/new")} className="flex-shrink-0 w-16 flex flex-col items-center gap-1.5">
+              <div className="w-16 h-16 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center text-outline">
+                <span className="material-symbols-outlined text-[24px]">add</span>
               </div>
-              <span className="font-label-sm text-label-sm text-outline truncate w-full text-center">Create</span>
+              <span className="font-label-sm text-[11px] text-outline truncate w-full text-center">Create</span>
             </button>
           </div>
         </section>
 
         {/* Conversations — with tab switcher */}
         <section className="mb-4">
-          {/* Section header + tab pills */}
+          {/* Tab Switcher - Moved up and made bigger */}
+          <div className="flex bg-surface-container/60 p-1 rounded-2xl mb-5 w-full">
+            <button
+              onClick={() => setChatTab("ai")}
+              className={`flex-1 py-2.5 rounded-xl text-[14px] font-bold transition-all ${
+                chatTab === "ai"
+                  ? "bg-primary text-white shadow-md shadow-primary/20"
+                  : "text-on-surface-variant hover:bg-surface-variant/50"
+              }`}
+            >
+              AI 对话
+            </button>
+            <button
+              onClick={() => setChatTab("friends")}
+              className={`flex-1 py-2.5 rounded-xl text-[14px] font-bold transition-all flex items-center justify-center gap-1.5 ${
+                chatTab === "friends"
+                  ? "bg-primary text-white shadow-md shadow-primary/20"
+                  : "text-on-surface-variant hover:bg-surface-variant/50"
+              }`}
+            >
+              好友聊天
+              {friends.some((f) => (f.unread ?? 0) > 0) && chatTab !== "friends" && (
+                <span className="w-2 h-2 rounded-full bg-[#ec4899] shadow-sm" />
+              )}
+            </button>
+          </div>
+
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-label-sm text-label-sm text-outline uppercase tracking-widest">Recent Chats</h2>
-            <div className="flex bg-surface-container rounded-full p-0.5 gap-0.5">
-              <button
-                onClick={() => setChatTab("ai")}
-                className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
-                  chatTab === "ai"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-on-surface-variant"
-                }`}
-              >
-                AI 对话
-              </button>
-              <button
-                onClick={() => setChatTab("friends")}
-                className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all flex items-center gap-1 ${
-                  chatTab === "friends"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-on-surface-variant"
-                }`}
-              >
-                好友聊天
-                {friends.some((f) => (f.unread ?? 0) > 0) && chatTab !== "friends" && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#ec4899]" />
-                )}
-              </button>
-            </div>
+            <h2 className="font-label-sm text-label-sm text-outline uppercase tracking-widest">
+              {chatTab === "ai" ? "Recent Chats" : "Friends"}
+            </h2>
           </div>
 
           {/* AI conversations tab */}

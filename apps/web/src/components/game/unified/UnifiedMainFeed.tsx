@@ -9,9 +9,10 @@ interface Props {
   cluesFound?: number;
   totalClues?: number;
   hudSlot?: ReactNode;
+  characters?: any[];
 }
 
-export default function UnifiedMainFeed({ mode, feedItems = [], turnLoading, cluesFound = 0, totalClues = 6, hudSlot }: Props) {
+export default function UnifiedMainFeed({ mode, feedItems = [], turnLoading, cluesFound = 0, totalClues = 6, hudSlot, characters = [] }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -19,19 +20,12 @@ export default function UnifiedMainFeed({ mode, feedItems = [], turnLoading, clu
   }, [feedItems.length, turnLoading]);
 
   return (
-    <div className="flex-1 w-full px-4 pt-4 pb-48 overflow-y-auto no-scrollbar flex flex-col gap-4 relative">
-      {/* Background Watermark / Gradient */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-1/4 -right-20 w-96 h-96 bg-[#8b5cf6]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -left-20 w-96 h-96 bg-[#6366f1]/5 rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-white/70" />
-      </div>
-
+    <div className="flex-1 w-full px-4 pt-4 pb-48 overflow-y-auto no-scrollbar flex flex-col gap-4 relative z-10">
       <div className="relative z-10 flex flex-col gap-4 w-full">
         {hudSlot}
 
         {feedItems.map((item, idx) => (
-          <FeedCard key={idx} item={item} mode={mode} cluesFound={cluesFound} totalClues={totalClues} />
+          <FeedCard key={idx} item={item} mode={mode} cluesFound={cluesFound} totalClues={totalClues} characters={characters} />
         ))}
 
         {turnLoading && (
@@ -49,7 +43,7 @@ export default function UnifiedMainFeed({ mode, feedItems = [], turnLoading, clu
 
 /* ------------------------------------------------------------------ */
 
-function FeedCard({ item, mode, cluesFound = 0, totalClues = 6 }: { item: FeedItem; mode?: string; cluesFound?: number; totalClues?: number }) {
+function FeedCard({ item, mode, cluesFound = 0, totalClues = 6, characters = [] }: { item: FeedItem; mode?: string; cluesFound?: number; totalClues?: number; characters?: any[] }) {
   switch (item.type) {
     /* ============  Turtle‑soup: story card  ============ */
     case "story":
@@ -88,6 +82,7 @@ function FeedCard({ item, mode, cluesFound = 0, totalClues = 6 }: { item: FeedIt
 
     /* ============  Narrator  ============ */
     case "narrator":
+    case "narrative":
       return (
         <div className="w-full flex justify-center my-2 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/80 backdrop-blur-sm border border-gray-100 shadow-sm text-sm text-[#4b5563] italic max-w-[90%]">
@@ -95,7 +90,7 @@ function FeedCard({ item, mode, cluesFound = 0, totalClues = 6 }: { item: FeedIt
               <Sparkles size={12} />
             </div>
             <div>
-              <span>{item.text}</span>
+              <span>{(item.text_zh as string) || item.text}</span>
               {item.text_en && <span className="block text-[10px] text-[#9ca3af] mt-0.5">{item.text_en}</span>}
             </div>
           </div>
@@ -103,6 +98,7 @@ function FeedCard({ item, mode, cluesFound = 0, totalClues = 6 }: { item: FeedIt
       );
 
     /* ============  User messages  ============ */
+    case "user_action":
     case "user_question":
     case "user_solve":
     case "user_deduction":
@@ -160,27 +156,36 @@ function FeedCard({ item, mode, cluesFound = 0, totalClues = 6 }: { item: FeedIt
       );
 
     /* ============  Character dialogue (roleplay)  ============ */
-    case "character":
+    case "character": {
+      const charName = item.speaker as string;
+      const matchedChar = characters.find((c: any) => c.name === charName);
+      const avatarUrl = matchedChar?.avatar_url;
+
       return (
         <div className="w-full flex gap-3 animate-in fade-in slide-in-from-bottom-2">
           <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 shadow-sm border border-gray-100 bg-[#f5f3ff] flex items-center justify-center text-[#8b5cf6] font-bold text-sm">
-            {((item.speaker as string) || "?").charAt(0)}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={charName} className="w-full h-full object-cover" />
+            ) : (
+              (charName || "?").slice(0,2)
+            )}
           </div>
           <div className="flex flex-col max-w-[75%]">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold text-[#8b5cf6] ml-1">{item.speaker as string}</span>
+              <span className="text-[11px] font-bold text-[#8b5cf6] ml-1">{charName}</span>
               <button className="w-5 h-5 rounded-full bg-[#f5f3ff] flex items-center justify-center text-[#8b5cf6] hover:bg-[#ede9fe] transition-colors">
                 <Volume2 size={10} />
               </button>
               {item.emotion ? <span className="text-[9px] text-[#9ca3af]">({String(item.emotion)})</span> : null}
             </div>
-            <div className="bg-white rounded-[20px] rounded-tl-[4px] p-3.5 shadow-sm border border-gray-100">
+            <div className="bg-white/90 backdrop-blur-sm rounded-[20px] rounded-tl-[4px] p-3.5 shadow-sm border border-gray-100/50">
               <p className="text-sm text-[#111827] leading-relaxed">{item.text}</p>
               {item.text_en && <p className="text-xs text-[#6b7280] mt-1">{item.text_en}</p>}
             </div>
           </div>
         </div>
       );
+    }
 
     /* ============  Chapter markers  ============ */
     case "chapter_start":

@@ -5,7 +5,7 @@ export default function GameDetail() {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-y-auto pb-32">
+    <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-y-auto">
       {/* Header */}
       <header className="sticky top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-14 bg-white/90 backdrop-blur-md pt-[env(safe-area-inset-top,20px)] border-b border-gray-100">
         <button onClick={() => navigate('/game')} className="w-8 h-8 flex items-center justify-center text-[#111827] rounded-full hover:bg-gray-50 transition-colors">
@@ -19,7 +19,7 @@ export default function GameDetail() {
         </div>
       </header>
 
-      <main className="px-4 py-4 flex flex-col gap-5">
+      <main className="px-4 py-4 pb-32 flex flex-col gap-5">
         {/* Hero Banner */}
         <div className="w-full h-48 rounded-[24px] relative overflow-hidden shadow-md">
           <img 

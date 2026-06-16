@@ -33,6 +33,34 @@ class CreateTemplateRequest(BaseModel):
 class GenerateStoryRequest(BaseModel):
     prompt: str
     game_type: str = "roleplay"
+    length: str = "medium"  # short | medium | long
+    num_chapters: int = 3
+    num_endings: int = 2
+
+
+class AssetRequest(BaseModel):
+    kind: str = "cover"
+    title: str = ""
+    url: str
+    era: str = "modern"
+    gender: str = "neutral"
+    age: str = "adult"
+    scene: str = ""
+    tags: list[str] = []
+    sort_order: int = 100
+
+
+class AssetUpdateRequest(BaseModel):
+    kind: str | None = None
+    title: str | None = None
+    url: str | None = None
+    era: str | None = None
+    gender: str | None = None
+    age: str | None = None
+    scene: str | None = None
+    tags: list[str] | None = None
+    enabled: bool | None = None
+    sort_order: int | None = None
 
 
 class TurnRequest(BaseModel):
@@ -62,13 +90,24 @@ def get_template(template_id: str, db: DBSession) -> dict:
 def create_template(payload: CreateTemplateRequest, current_user: CurrentUser, db: DBSession) -> dict:
     from app.models import GameTemplate
     import uuid
-    
+
+    cfg = payload.config or {}
+    # Surface key presentation fields from the generated config onto the
+    # template columns so the story hall shows covers, tags and difficulty.
     t = GameTemplate(
         slug=f"{payload.game_type}-{uuid.uuid4().hex[:8]}",
         game_type=payload.game_type,
         title=payload.title,
+        subtitle=cfg.get("subtitle", ""),
         description=payload.description,
-        config=payload.config,
+        cover_url=cfg.get("cover_url", ""),
+        difficulty=cfg.get("difficulty", "B1"),
+        target_language=cfg.get("target_language", "en"),
+        native_language=cfg.get("native_language", "zh"),
+        estimated_minutes=cfg.get("estimated_minutes", 10),
+        learning_focus=cfg.get("learning_focus", []),
+        tags=cfg.get("tags", []),
+        config=cfg,
     )
     db.add(t)
     db.commit()
@@ -78,59 +117,134 @@ def create_template(payload: CreateTemplateRequest, current_user: CurrentUser, d
         "slug": t.slug,
         "game_type": t.game_type,
         "title": t.title,
+        "subtitle": t.subtitle,
         "description": t.description,
+        "cover_url": t.cover_url,
         "config": t.config,
     }
+
+
+# ---------------------------------------------------------------------------
+# Asset library
+# ---------------------------------------------------------------------------
+
+@router.get("/assets")
+def list_assets(
+    db: DBSession,
+    kind: str | None = None, era: str | None = None,
+    gender: str | None = None, enabled_only: bool = False,
+) -> list[dict]:
+    from app.services import game_assets
+    return game_assets.list_assets(db, kind, era, gender, enabled_only)
+
+
+@router.get("/assets/pick")
+def pick_asset(
+    db: DBSession, kind: str = "cover",
+    era: str | None = None, gender: str | None = None,
+) -> dict:
+    from app.services import game_assets
+    return {"url": game_assets.pick_asset(db, kind, era, gender)}
+
+
+@router.post("/assets")
+def create_asset(payload: AssetRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.services import game_assets
+    return game_assets.create_asset(db, payload.model_dump())
+
+
+@router.patch("/assets/{asset_id}")
+def update_asset(asset_id: str, payload: AssetUpdateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.services import game_assets
+    try:
+        return game_assets.update_asset(db, asset_id, payload.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.delete("/assets/{asset_id}")
+def delete_asset(asset_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.services import game_assets
+    game_assets.delete_asset(db, asset_id)
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
 # Admin
 # ---------------------------------------------------------------------------
 
+_LENGTH_SPEC = {
+    "short": {"label": "短篇（轻松，约15-20分钟）", "turns": 5},
+    "medium": {"label": "中篇（约25-35分钟）", "turns": 8},
+    "long": {"label": "长篇（史诗，约45分钟以上）", "turns": 12},
+}
+
+
 @router.post("/admin/generate-story")
 async def generate_story(payload: GenerateStoryRequest, current_user: CurrentUser, db: DBSession) -> dict:
     from app.services.llm import get_llm_provider_for_task
     from app.services.runtime_config import resolve_default_llm_provider
-    import json
-    
+    from app.services import game_assets
+
+    spec = _LENGTH_SPEC.get(payload.length, _LENGTH_SPEC["medium"])
+    chapters = max(1, min(8, payload.num_chapters))
+    endings = max(1, min(5, payload.num_endings))
+
     provider = get_llm_provider_for_task("chat", resolve_default_llm_provider(db), db)
-    prompt = f"""You are an expert game designer for language learning RPGs.
-Generate a complete roleplay story setting based on this prompt: "{payload.prompt}"
-Return ONLY a valid JSON object matching this schema exactly:
+    prompt = f"""You are an expert game designer for language-learning interactive fiction.
+Design a complete, branching roleplay story OUTLINE from this prompt: "{payload.prompt}"
+
+This is a concise STRUCTURE generated once and stored; the actual dialogue is
+generated live per turn during play. Keep each text field short (1-2 sentences).
+
+Requirements:
+- Scale: {spec['label']} → exactly {chapters} chapters, {spec['turns']} turns each.
+- Exactly {endings} distinct endings reachable by different player choices.
+- Each chapter offers meaningful choices so different answers lead to different results.
+
+Return ONLY a valid JSON object with this schema:
 {{
-  "title": "Short title",
+  "title": "Short title (中文)",
   "subtitle": "Genre / Theme",
-  "description": "2-3 sentences description of the story hook",
-  "setting": "Description of the world setting",
+  "description": "2-3 sentence hook (中文)",
+  "setting": "World setting description (中文)",
+  "era": "modern | ancient | cyberpunk | fantasy | other",
   "characters": [
-    {{
-      "name": "Character Name",
-      "name_en": "English Name",
-      "personality": "Short description",
-      "relationship": 50
-    }}
+    {{"name": "中文名", "name_en": "English Name", "gender": "male|female", "personality": "短描述", "relationship": 50}}
   ],
   "chapters": [
-    {{
-      "id": "ch1",
-      "title": "Chapter 1 Title",
-      "title_en": "Chapter 1 English Title",
-      "goal": "What the user needs to achieve"
-    }}
+    {{"id": "ch1", "title": "中文标题", "title_en": "English Title", "goal": "本章目标",
+      "branches": [{{"choice": "玩家可能的选择", "outcome": "导致的结果/走向"}}]}}
+  ],
+  "endings": [
+    {{"id": "e1", "title": "结局标题", "condition": "触发条件(基于玩家选择/关系值)", "summary": "结局描述"}}
   ],
   "learning_focus": ["Tag1", "Tag2"],
-  "max_turns_per_chapter": 8
+  "max_turns_per_chapter": {spec['turns']}
 }}
 """
     try:
         data = await provider.complete_json(
             system_prompt="You are an expert game designer for language learning RPGs. Return ONLY valid JSON.",
-            user_content=prompt
+            user_content=prompt,
+            max_tokens=2500,
         )
-        return data
+        if not isinstance(data, dict) or not data.get("title"):
+            raise ValueError("empty story")
     except Exception as e:
         logger.error(f"Failed to generate story: {e}")
-        raise HTTPException(status_code=500, detail="Failed to parse AI story output.")
+        raise HTTPException(status_code=500, detail="AI 生成失败，请重试或换一个设定。")
+
+    # Assign visuals from the managed asset library (not the frontend).
+    era = data.get("era") or game_assets.infer_era(f"{data.get('title','')} {data.get('description','')} {payload.prompt}")
+    data["era"] = era
+    data["cover_url"] = game_assets.pick_asset(db, "cover", era=era)
+    for c in data.get("characters", []):
+        gender = c.get("gender") or game_assets.infer_gender(f"{c.get('name','')} {c.get('personality','')}")
+        c["gender"] = gender
+        c["avatar_url"] = game_assets.pick_asset(db, "avatar", era=era, gender=gender)
+    data.setdefault("length", payload.length)
+    return data
 
 
 # ---------------------------------------------------------------------------

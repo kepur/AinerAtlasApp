@@ -88,53 +88,85 @@ export default function UnifiedLearningHUD({ mode, hud, sessionTitle, questionsA
             </div>
           </>
         ) : (
-          <>
-            {/* Left Column: Multi-Agent Analysis */}
-            <div className="flex-1 bg-white rounded-2xl p-3 border border-[#ede9fe] shadow-sm flex flex-col gap-3 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2 opacity-5"><MessageSquare size={40} /></div>
-              <div className="flex items-center gap-1.5 text-[#6366f1] font-bold text-xs mb-1">
-                <MessageSquare size={14} /> 多智能体解析
-              </div>
-              {agents.length > 0 ? agents.map((a, i) => {
-                const agentName = a.agent || a.name || `Agent ${i + 1}`;
-                const Icons = [MessageSquare, ShieldAlert, BookOpen];
-                const Icon = Icons[i % Icons.length];
-                return (
-                  <div key={i} className="flex gap-2 items-start">
-                    <div className="w-6 h-6 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center shrink-0"><Icon size={12} /></div>
-                    <div>
-                      <div className="text-[10px] font-bold text-[#8b5cf6]">{agentName}</div>
-                      <p className="text-[11px] text-[#4b5563] leading-snug mt-0.5">{a.result}</p>
-                    </div>
+          <div className="w-full flex gap-3 overflow-x-auto no-scrollbar pb-1">
+            {/* 1. 自然表达 */}
+            {mainExpr && (
+              <div className="min-w-[200px] flex-1 bg-white rounded-2xl p-3 border border-[#ede9fe] shadow-sm flex flex-col justify-between relative shrink-0">
+                <div>
+                  <div className="flex items-center gap-1.5 text-[#8b5cf6] font-bold text-xs mb-2">
+                    <Leaf size={14} /> 自然表达
                   </div>
-                );
-              }) : (
-                <p className="text-[11px] text-[#9ca3af] italic">等待AI分析...</p>
-              )}
-            </div>
+                  <h3 className="font-extrabold text-[#111827] text-sm leading-tight">{mainExpr}</h3>
+                  {meaningNative && <p className="text-[11px] text-[#6b7280] mt-1">{meaningNative}</p>}
+                </div>
+                <div className="flex justify-end mt-2">
+                  <button className="w-6 h-6 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center shrink-0">
+                    <Volume2 size={12} />
+                  </button>
+                </div>
+              </div>
+            )}
 
-            {/* Right Column: Sentence Crush */}
-            <div className="w-[140px] bg-gradient-to-br from-[#fff1f2] to-[#fce7f3] rounded-2xl p-3 border border-[#fbcfe8] shadow-sm flex flex-col shrink-0 relative overflow-hidden">
-              <div className="absolute bottom-0 right-0 p-2 opacity-5"><Flame size={40} /></div>
-              <div className="flex items-center gap-1.5 text-[#e11d48] font-bold text-xs mb-2">
-                <Flame size={14} /> 句型消消乐
-              </div>
-              <div className="flex flex-col gap-2">
-                {patterns.length > 0 ? patterns.slice(0, 3).map((p, i) => {
-                  const pat = typeof p === "string" ? p : p.pattern;
-                  const example = typeof p === "object" ? p.example : "";
-                  return (
-                    <div key={i} className="bg-white/80 rounded-lg p-2 shadow-sm border border-[#fce7f3]">
-                      <p className="text-xs font-bold text-[#111827] leading-tight">{pat}</p>
-                      {example && <p className="text-[9px] text-[#94a3b8] text-right mt-1">{example}</p>}
+            {/* 2. 为什么这么写 */}
+            {whyPoints.length > 0 && (
+              <div className="min-w-[200px] flex-1 bg-white rounded-2xl p-3 border border-[#ede9fe] shadow-sm flex flex-col shrink-0">
+                <div className="flex items-center gap-1.5 text-[#d97706] font-bold text-xs mb-2">
+                  <Lightbulb size={14} /> 为什么这么写
+                </div>
+                <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[80px] no-scrollbar">
+                  {whyPoints.map((wp, i) => (
+                    <div key={i} className="flex flex-col">
+                      <span className="font-bold text-[11px] text-[#111827]">{wp.point}</span>
+                      <span className="text-[10px] text-[#6b7280] leading-snug">{wp.explanation}</span>
                     </div>
-                  );
-                }) : (
-                  <p className="text-[10px] text-[#9ca3af] italic">等待学习...</p>
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
-          </>
+            )}
+
+            {/* 3. 本句重点 (Variants & Patterns) */}
+            {(variantChips.length > 0 || patterns.length > 0) && (
+              <div className="min-w-[180px] flex-1 bg-white rounded-2xl p-3 border border-[#ede9fe] shadow-sm flex flex-col shrink-0">
+                <div className="flex items-center gap-1.5 text-[#e11d48] font-bold text-xs mb-2">
+                  <Star size={14} /> 本句重点 {variantChips.length || patterns.length}个
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {variantChips.length > 0
+                    ? variantChips.map(([key, val]) => (
+                        <span key={key} className="bg-[#fff1f2] text-[#e11d48] px-2 py-1 rounded border border-[#ffe4e6] text-[10px] font-bold">{val}</span>
+                      ))
+                    : patterns.slice(0, 4).map((p, i) => (
+                        <span key={i} className="bg-[#fff1f2] text-[#e11d48] px-2 py-1 rounded border border-[#ffe4e6] text-[10px] font-bold">
+                          {typeof p === "string" ? p : p.pattern}
+                        </span>
+                      ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. Agent简析 (Multi-Agent) */}
+            {agents.length > 0 && (
+              <div className="min-w-[200px] flex-1 bg-white rounded-2xl p-3 border border-[#ede9fe] shadow-sm flex flex-col shrink-0">
+                <div className="flex items-center gap-1.5 text-[#6366f1] font-bold text-xs mb-2">
+                  <MessageSquare size={14} /> Agent 简析
+                </div>
+                <div className="flex flex-col gap-2 overflow-y-auto max-h-[80px] no-scrollbar">
+                  {agents.map((a, i) => {
+                    const agentName = a.agent || a.name || `Agent ${i + 1}`;
+                    return (
+                      <div key={i} className="flex gap-2 items-start">
+                        <div className="w-5 h-5 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center shrink-0"><BookOpen size={10} /></div>
+                        <div>
+                          <div className="text-[10px] font-bold text-[#8b5cf6]">{agentName}</div>
+                          <p className="text-[10px] text-[#4b5563] leading-snug">{a.result}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

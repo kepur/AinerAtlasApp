@@ -155,7 +155,10 @@ class RoleplayEngine(GameTypeEngine):
         state["total_turns"] = state.get("total_turns", 0) + 1
 
         result = await self._generate_narrative(db, session, state, "user_action", user_input)
-        feed = result.get("feed_items", [])
+        feed: list = []
+        if user_input:
+            feed.append({"type": "user_action", "text": user_input})
+        feed.extend(result.get("feed_items", []))
 
         for rc in result.get("relationship_changes", []):
             state.setdefault("relationship_changes", []).append(rc)
@@ -245,18 +248,31 @@ class RoleplayEngine(GameTypeEngine):
         for c in story.get("characters", []):
             char_lines.append(f"- {c['name']}({c.get('name_en','')}): {c['personality']}, 好感度={c.get('current_relationship', 50)}")
 
+        # Authored branches/endings steer "different answers → different results".
+        branch_lines = []
+        for b in (ch.get("branches") or []):
+            branch_lines.append(f"  · 若玩家{b.get('choice','')} → {b.get('outcome','')}")
+        ending_lines = []
+        for e in (story.get("endings") or []):
+            ending_lines.append(f"  · {e.get('title','')}（条件：{e.get('condition','')}）：{e.get('summary','')}")
+
         recent = state.get("narrative_log", [])[-6:]
         recent_text = "\n".join(f"[{e.get('type','')}] {e.get('speaker','')}: {e.get('text','')}" for e in recent)
 
         native = session.native_language
         target = session.target_language
 
+        branches_block = ("\n本章分支走向：\n" + "\n".join(branch_lines)) if branch_lines else ""
+        endings_block = ("\n可能的结局（依玩家选择导向其一）：\n" + "\n".join(ending_lines)) if ending_lines else ""
+
         system = (
             f"你是角色扮演游戏的AI叙述者和角色扮演者。\n\n"
             f"世界设定：{story['setting']}\n"
             f"当前章节：{ch.get('title', '')} - 目标：{ch.get('goal', '')}\n"
-            f"角色：\n{''.join(char_lines)}\n\n"
+            f"角色：\n{''.join(char_lines)}\n"
+            f"{branches_block}{endings_block}\n\n"
             "规则：\n"
+            "- 根据玩家的选择/回答，朝对应的分支与结局推进，让不同选择导向不同结果\n"
             "- narrator_text: 1-2句叙述推进剧情（中文）\n"
             "- narrator_text_en: 英文翻译\n"
             "- character_lines: 角色的对话（如果需要的话），每个角色最多1-2句\n"

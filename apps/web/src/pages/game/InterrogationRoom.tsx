@@ -19,7 +19,7 @@ export default function InterrogationRoom() {
     }
   }, [feedItems, turnLoading]);
 
-  if (!currentSession || !currentSession.state) {
+  if (!currentSession || !(currentSession as any).state) {
     return (
       <div className="w-full min-h-screen bg-[#f8f9fc] flex items-center justify-center">
         <Loader className="animate-spin text-indigo-500" />
@@ -27,7 +27,7 @@ export default function InterrogationRoom() {
     );
   }
 
-  const state = currentSession.state as any;
+  const state = (currentSession as any).state as any;
   const suspects = state.suspects || [];
   const clues = state.clues || [];
   const suspect = suspects.find((s: any) => s.id === suspectId) || suspects[0];

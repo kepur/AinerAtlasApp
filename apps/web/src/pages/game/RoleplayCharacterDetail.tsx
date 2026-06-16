@@ -1,9 +1,18 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, MoreHorizontal, Heart, MapPin, Check, Globe, Keyboard, Play } from "lucide-react";
 import { motion } from "framer-motion";
 
+// Map characters to the roleplay story template that best fits their scenario.
+const CHARACTER_TEMPLATE: Record<string, string> = {
+  mia: "cafe_encounter",
+  leo: "cafe_encounter",
+  xiaoshimei: "qingyun",
+};
+
 export default function RoleplayCharacterDetail() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const template = CHARACTER_TEMPLATE[id || ""] || "cafe_encounter";
 
   return (
     <motion.div 
@@ -130,8 +139,8 @@ export default function RoleplayCharacterDetail() {
         className="fixed bottom-[max(env(safe-area-inset-bottom,16px),16px)] left-0 w-full px-4 z-50 pointer-events-none"
       >
         <div className="max-w-md mx-auto pointer-events-auto">
-          <button 
-            onClick={() => navigate("/game/roleplay/chat")}
+          <button
+            onClick={() => navigate(`/game/play/roleplay/${template}`)}
             className="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-pink-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           >
             <span className="text-[16px]">开始对话</span>

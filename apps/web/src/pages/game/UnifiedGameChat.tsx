@@ -19,29 +19,30 @@ export default function UnifiedGameChat() {
   const [input, setInput] = useState("");
   const [creating, setCreating] = useState(false);
   const [solveMode, setSolveMode] = useState(false);
-  const initRef = useRef(false);
-
-  useEffect(() => {
-    return () => { clearCurrent(); };
-  }, []);
 
   useEffect(() => {
     if (!id || !mode) return;
-    if (initRef.current) return;
-    initRef.current = true;
-    const isUuid = /^[0-9a-f-]{36}$/.test(id);
+    
+    const isUuid = /^[0-9a-fA-F-]{36}$/.test(id);
     if (isUuid) {
       loadSession(id);
     } else {
       initGame(mode, id);
     }
-  }, [mode, id]);
+
+    return () => clearCurrent();
+  }, [id, mode]);
 
   const initGame = async (gameType: string, slug: string) => {
+    if (creating) return;
     setCreating(true);
     try {
       const sess = await createSession(gameType, slug, { case_id: slug, story_id: slug });
-      await sendTurn(sess.id, "start");
+      
+      if (!sess.turns || sess.turns.length === 0) {
+        try { await sendTurn(sess.id, "start"); } catch(e) {}
+      }
+      navigate(`/game/play/${gameType}/${sess.id}`, { replace: true });
     } finally {
       setCreating(false);
     }
@@ -65,7 +66,8 @@ export default function UnifiedGameChat() {
       setSolveMode(true);
       return;
     }
-    await sendTurn(currentSession.id, action, input.trim() || undefined);
+    // Roleplay choices pass their label text — send it as the player's action.
+    await sendTurn(currentSession.id, "message", action);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -99,21 +101,35 @@ export default function UnifiedGameChat() {
     );
   }
 
-  /* ---- Main layout: original 5-component composition ---- */
+  /* ---- Main layout ---- */
+  const coverUrl = (currentSession as any)?.config?.cover_url || (currentSession as any)?.cover_url;
+
   return (
     <div className="w-full h-screen bg-[#f8f9fc] flex flex-col relative overflow-hidden">
-      <UnifiedHeader
-        mode={mode}
-        title={currentSession?.title}
-        phase={phase}
-        turnCount={currentSession?.turn_count || 0}
-      />
+      {/* Dynamic Background Image */}
+      {coverUrl && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <img src={coverUrl} alt="Background" className="w-full h-full object-cover opacity-[0.15]" />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#fdf2f8]/80 via-[#fdf2f8]/60 to-[#fdfdfd] z-0" />
+        </>
+      )}
 
-      <UnifiedTurnSelector
-        mode={mode}
-        feedItems={feedItems}
-        phase={phase}
-      />
+      <div className="relative z-10 shrink-0">
+        <UnifiedHeader
+          mode={mode}
+          title={currentSession?.title}
+          phase={phase}
+          turnCount={currentSession?.turn_count || 0}
+        />
+
+        <UnifiedTurnSelector
+          mode={mode}
+          feedItems={feedItems}
+          phase={phase}
+        />
+      </div>
 
       <UnifiedMainFeed
         mode={mode}
@@ -121,6 +137,7 @@ export default function UnifiedGameChat() {
         turnLoading={turnLoading}
         cluesFound={cluesFound}
         totalClues={totalClues}
+        characters={(currentSession as any)?.config?.characters || []}
         hudSlot={
           <UnifiedLearningHUD
             mode={mode}
@@ -149,11 +166,17 @@ export default function UnifiedGameChat() {
         />
       )}
 
-      {/* Game ended → show summary button */}
+      {/* Game ended → go to the rich, design-matched summary screen */}
       {currentSession?.status === "ended" && !summary && (
         <div className="w-full bg-white/90 backdrop-blur-xl border-t border-gray-100 px-4 py-4 z-50 flex justify-center">
           <button
-            onClick={() => currentSession && loadSummary(currentSession.id)}
+            onClick={() => {
+              if (!currentSession) return;
+              const sid = currentSession.id;
+              if (mode === "turtle_soup") navigate(`/game/turtle-soup-summary/${sid}`);
+              else if (mode === "detective") navigate(`/game/detective/summary/${sid}`);
+              else loadSummary(sid);
+            }}
             className="px-6 py-3 bg-[#8b5cf6] text-white rounded-full font-bold active:scale-95 transition-transform shadow-md"
           >
             查看结算
@@ -161,7 +184,7 @@ export default function UnifiedGameChat() {
         </div>
       )}
 
-      {/* Summary overlay — white theme */}
+      {/* Summary overlay — fallback for game types without a dedicated screen */}
       {summary && (
         <div className="absolute inset-0 bg-white/95 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-6">
           <div className="w-16 h-16 rounded-full bg-[#10b981] flex items-center justify-center mb-4 shadow-lg">

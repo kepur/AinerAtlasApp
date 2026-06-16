@@ -55,7 +55,7 @@ export default function AdaptiveActionPanel({
                 return (
                   <button
                     key={i}
-                    onClick={() => onChoice?.(c.action || c.label)}
+                    onClick={() => onChoice?.(c.label)}
                     disabled={turnLoading || disabled}
                     className={`flex-1 py-2 px-1 border rounded-xl text-[11px] font-bold shadow-sm flex items-center justify-center gap-1 transition-colors disabled:opacity-40 ${styles[i % styles.length]}`}
                   >

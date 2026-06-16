@@ -40,6 +40,16 @@ function templatePath(t: GameTemplate): string {
   return fn ? fn(t.slug) : `/game/play/${t.game_type}/${t.slug}`;
 }
 
+// Resume an in-progress session on the correct screen for its game type.
+function sessionPath(gameType: string, id: string): string {
+  switch (gameType) {
+    case "detective": return `/game/detective-board/${id}`;
+    case "romance": return `/game/romance-social/${id}`;
+    case "social_logic": return `/game/social-logic/${id}`;
+    default: return `/game/play/${gameType}/${id}`;
+  }
+}
+
 export default function GameHome() {
   const navigate = useNavigate();
   const { templates, templatesLoading, sessions, loadTemplates, loadSessions } = useGameStore();
@@ -87,7 +97,7 @@ export default function GameHome() {
         {/* Continue Last Game Banner — image background + real data */}
         {lastSession && (
           <div
-            onClick={() => navigate(`/game/play/${lastSession.game_type}/${lastSession.id}`)}
+            onClick={() => navigate(sessionPath(lastSession.game_type, lastSession.id))}
             className="w-full h-[180px] rounded-[24px] relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.08)] cursor-pointer group"
           >
             <img
@@ -146,7 +156,7 @@ export default function GameHome() {
                   if (cat.id === "roleplay") navigate("/game/roleplay/home");
                   else if (cat.id === "social_logic") navigate("/game/social-logic/new");
                   else if (cat.id === "romance") navigate("/game/romance-social");
-                  else if (cat.id === "detective") navigate("/game/detective-board/new");
+                  else if (cat.id === "detective") navigate("/game/detective-board");
                   else if (cat.id === "turtle_soup") navigate("/game/turtle-soup/detail/passenger");
                   else {
                     const t = templates.find((t) => t.game_type === cat.id);
@@ -251,7 +261,7 @@ export default function GameHome() {
 
             <button
               onClick={() => {
-                if (lastSession) navigate(`/game/play/${lastSession.game_type}/${lastSession.id}`);
+                if (lastSession) navigate(sessionPath(lastSession.game_type, lastSession.id));
               }}
               className="flex items-center gap-3 bg-gradient-to-br from-[#f5f3ff] to-[#ede9fe] border border-[#c4b5fd]/30 p-3 rounded-[20px] shadow-sm shrink-0 w-[160px] active:scale-95 transition-transform text-left"
             >
