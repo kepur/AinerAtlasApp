@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Flame, Coffee, Heart, CalendarHeart, Shield, Volume2, Puzzle, MapPin, CheckCheck, Star, Mic, Send, Smile, ShieldAlert, Loader } from "lucide-react";
+import { ArrowLeft, Flame, Coffee, Heart, CalendarHeart, Shield, Volume2, Puzzle, MapPin, CheckCheck, Star, Mic, Send, Smile, ShieldAlert, Loader, HeartHandshake } from "lucide-react";
 import { useGameStore } from "../../stores/gameStore";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -87,7 +87,7 @@ export default function RomanceSocial() {
             {phase === "dating" && <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-8 h-1 bg-pink-400 rounded-full"></div>}
           </button>
           <button className={`flex-1 py-3 flex items-center justify-center gap-1.5 ${getPhaseStyles("couple")}`}>
-            <Shield size={16} /> <span>情侣</span>
+            <HeartHandshake size={16} /> <span>情侣</span>
           </button>
         </div>
       </div>

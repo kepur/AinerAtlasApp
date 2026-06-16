@@ -122,14 +122,11 @@ Return ONLY a valid JSON object matching this schema exactly:
   "max_turns_per_chapter": 8
 }}
 """
-    raw_response = await provider.generate_text(prompt)
     try:
-        content_str = raw_response.strip()
-        if content_str.startswith("```json"):
-            content_str = content_str[7:-3]
-        elif content_str.startswith("```"):
-            content_str = content_str[3:-3]
-        data = json.loads(content_str)
+        data = await provider.complete_json(
+            system_prompt="You are an expert game designer for language learning RPGs. Return ONLY valid JSON.",
+            user_content=prompt
+        )
         return data
     except Exception as e:
         logger.error(f"Failed to generate story: {e}")

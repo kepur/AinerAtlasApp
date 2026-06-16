@@ -7,7 +7,7 @@ export default function RoleplayHome() {
   return (
     <div className="premium w-full h-full bg-[#fdf2f8] flex flex-col font-sans relative overflow-hidden text-[#111827]">
       {/* Background illustration */}
-      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-pink-200 to-[#fdf2f8] opacity-50 z-0">
+      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-pink-200 to-[#fdf2f8] opacity-50 pointer-events-none z-0">
         <img src="https://images.unsplash.com/photo-1544626154-1ea1a60cc849?auto=format&fit=crop&q=80&w=600&h=400" className="w-full h-full object-cover mix-blend-overlay opacity-60" alt="Mountain" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#fdf2f8]"></div>
       </div>

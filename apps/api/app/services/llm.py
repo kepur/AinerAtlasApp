@@ -382,6 +382,32 @@ class MockLLMProvider(LLMProvider):
             },
         )
 
+    async def complete_json(
+        self,
+        system_prompt: str,
+        user_content: str,
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 1400,
+    ) -> dict:
+        return {
+            "character_reply": "This is a mock romance reply from MockLLMProvider.",
+            "emotion": "happy",
+            "relationship_change": 5,
+            "learning_point": "Use 'mock' to simulate.",
+            # For detective:
+            "ai_response": "Mock detective ai_response.",
+            # For roleplay:
+            "story": {},
+            "feed_items": [{"type": "narrator", "text": "Mock narrator text"}]
+        }
+
+    async def analyze_user_profile(
+        self,
+        user_data: str,
+    ) -> dict:
+        return {"summary": "Mock profile analysis"}
+
 
 class FallbackLLMProvider(LLMProvider):
     """Wraps multiple providers and tries them in order until one succeeds."""

@@ -82,19 +82,14 @@ class RomanceEngine(GameTypeEngine):
 
         prompt = self._build_prompt(state, user_input, extra)
         provider = _provider_for("chat", db)
-        raw_response = await provider.generate_text(prompt)
-
+        
         try:
-            # We expect a JSON response from the LLM
-            content_str = raw_response.strip()
-            if content_str.startswith("```json"):
-                content_str = content_str[7:-3]
-            elif content_str.startswith("```"):
-                content_str = content_str[3:-3]
-            
-            parsed = json.loads(content_str)
+            parsed = await provider.complete_json(
+                system_prompt="You are a romance social game engine. Generate the next turn state as JSON.",
+                user_content=prompt
+            )
         except Exception as e:
-            logger.error(f"Failed to parse LLM JSON response: {e}\nRaw: {raw_response}")
+            logger.error(f"Failed to get or parse LLM JSON response: {e}")
             # Fallback
             parsed = {
                 "character_reply": "Haha, that's interesting...",
@@ -132,9 +127,10 @@ class RomanceEngine(GameTypeEngine):
         # The character's reply
         character_feed = {
             "type": "char_msg",
-            "speaker_name": target["name"],
-            "speaker_avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100" if target_id == "mia" else "",
-            "text": parsed.get("character_reply", ""),
+            "speaker": target["name"],
+            "speaker_en": target["name_en"],
+            "speaker_avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100" if target.get("id") == "mia" else "",
+            "text": parsed.get("character_reply", "Haha, that's interesting..."),
             "text_zh": parsed.get("character_reply_zh", ""),
             "emotion": parsed.get("emotion", ""),
             "created_at": datetime.now(UTC).isoformat(),

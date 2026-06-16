@@ -41,6 +41,21 @@ export default function TabBar() {
   const navigate = useNavigate();
   const { t } = useI18n();
 
+  const hidePaths = [
+    "/game/roleplay/chat",
+    "/game/romance-social",
+    "/game/detective-board",
+    "/game/interrogation",
+    "/game/party-room",
+    "/game/social-logic",
+    "/game/puzzle-logic",
+    "/game/universal",
+    "/game/play"
+  ];
+  if (hidePaths.some(p => pathname.startsWith(p))) {
+    return null;
+  }
+
   return (
     <nav className="premium absolute bottom-0 left-0 w-full z-[100] flex justify-around items-center px-4 h-16 bg-surface/90 backdrop-blur-xl rounded-t-xl shadow-[0_-8px_20px_rgba(124,58,237,0.12)] border-t border-surface-variant/40 [padding-bottom:env(safe-area-inset-bottom)]">
       {tabs.map((item) => {

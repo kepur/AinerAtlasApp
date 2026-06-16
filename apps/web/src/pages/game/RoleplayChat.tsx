@@ -25,9 +25,9 @@ export default function RoleplayChat() {
     feedEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [feedItems, turnLoading, currentHud]);
 
-  const handleSend = async (actionType = "user_action", payload: any = undefined) => {
+  const handleSend = async (actionType = "message", payload: any = undefined) => {
     if (!currentSession) return;
-    if (actionType === "user_action" && !payload && !input.trim()) return;
+    if (actionType === "message" && !payload && !input.trim()) return;
 
     const userInput = payload || input;
     if (!payload) setInput("");

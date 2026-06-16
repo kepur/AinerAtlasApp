@@ -159,6 +159,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const feedItems: FeedItem[] = [];
     if (data.turns) {
       for (const turn of data.turns) {
+        if (turn.user_input && turn.action_type === "message") {
+          feedItems.push({ type: "user_action", text: turn.user_input });
+        }
         feedItems.push(...(turn.feed_items || []));
       }
     }
@@ -179,9 +182,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       const newFeedItems = result.turn.feed_items || [];
       const hud = result.turn.hud && Object.keys(result.turn.hud).length > 0 ? result.turn.hud : null;
+      
+      // Manually add the user's input to the feed items if it exists
+      const fullNewItems = userInput 
+        ? [{ type: "user_action", text: userInput }, ...newFeedItems]
+        : newFeedItems;
 
       set((s) => ({
-        feedItems: [...s.feedItems, ...newFeedItems],
+        feedItems: [...s.feedItems, ...fullNewItems],
         currentHud: hud || s.currentHud,
         currentSession: result.session,
       }));

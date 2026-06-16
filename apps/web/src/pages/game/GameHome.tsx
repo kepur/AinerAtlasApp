@@ -143,13 +143,15 @@ export default function GameHome() {
               <button
                 key={cat.id}
                 onClick={() => {
-                  const t = templates.find((t) => t.game_type === cat.id);
-                  if (t) navigate(templatePath(t));
+                  if (cat.id === "roleplay") navigate("/game/roleplay/home");
                   else if (cat.id === "social_logic") navigate("/game/social-logic/new");
                   else if (cat.id === "romance") navigate("/game/romance-social");
                   else if (cat.id === "detective") navigate("/game/detective-board/new");
-                  else if (cat.id === "roleplay") navigate("/game/roleplay/home");
                   else if (cat.id === "turtle_soup") navigate("/game/turtle-soup/detail/passenger");
+                  else {
+                    const t = templates.find((t) => t.game_type === cat.id);
+                    if (t) navigate(templatePath(t));
+                  }
                 }}
                 className={`flex flex-col items-center justify-center p-2 rounded-2xl ${cat.bg} border border-white shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-md transition-shadow`}
               >
