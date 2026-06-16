@@ -15,12 +15,11 @@ import SocialLogicGame from "./pages/game/SocialLogicGame";
 import PuzzleGame from "./pages/game/PuzzleGame";
 import GameDetail from "./pages/game/GameDetail";
 import CustomStoryBuilder from "./pages/game/CustomStoryBuilder";
-import DetectiveBoardDark from "./pages/game/DetectiveBoardDark";
+import DetectiveBoard from "./pages/game/DetectiveBoard";
 import InterrogationRoom from "./pages/game/InterrogationRoom";
 import PartyRoom from "./pages/game/PartyRoom";
 import RomanceSocial from "./pages/game/RomanceSocial";
 import GameSummaryScreen from "./pages/game/GameSummaryScreen";
-import GameSummaryDark from "./pages/game/GameSummaryDark";
 import TurtleSoupSummary from "./pages/game/TurtleSoupSummary";
 import CircleRoom from "./pages/CircleRoom";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -72,11 +71,13 @@ function AppLayout() {
           <Route path="/game/detail/:id" element={<GameDetail />} />
           <Route path="/game/roleplay-setup" element={<RoleplaySetup />} />
           <Route path="/game/custom-story-builder" element={<CustomStoryBuilder />} />
-          <Route path="/game/detective-board/:id" element={<DetectiveBoardDark />} />
+          <Route path="/game/detective-board/:id" element={<DetectiveBoard />} />
           <Route path="/game/interrogation/:id" element={<InterrogationRoom />} />
           <Route path="/game/party-room/:id" element={<PartyRoom />} />
+          <Route path="/game/romance-social/:id" element={<RomanceSocial />} />
           <Route path="/game/romance-social" element={<RomanceSocial />} />
-          <Route path="/game/summary/:id" element={<GameSummaryDark />} />
+          <Route path="/game/summary/:mode/:id" element={<GameSummaryScreen />} />
+          <Route path="/game/summary/:id" element={<GameSummaryScreen />} />
           <Route path="/game/turtle-soup-summary/:id" element={<TurtleSoupSummary />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:id" element={<ChatDetail />} />

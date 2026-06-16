@@ -215,7 +215,7 @@ export default function PuzzleGame() {
           </div>
         )}
 
-        {phase === "solve" && view.solved && (
+        {phase === "solve" && (view.solved as boolean) && (
           <div className="flex-1 flex flex-col items-center justify-center p-5 relative">
             <div className="absolute inset-0 bg-black/60 z-0"></div>
             <div className="z-10 bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-3xl w-[90%] flex flex-col items-center text-center">
@@ -295,11 +295,11 @@ function FeedItemRenderer({ item }: { item: FeedItem }) {
           <div className={`px-6 py-3 rounded-2xl text-center border shadow-md ${colorMap[answer] || colorMap.IRRELEVANT}`}>
             <span className="font-extrabold text-2xl tracking-widest uppercase">{answer}</span>
           </div>
-          {(item.comment || item.comment_en) && (
+          {(item.comment || item.comment_en) ? (
             <p className="text-white/40 text-[10px] text-center max-w-[80%]">
-              {item.comment as string}{item.comment_en ? ` — ${item.comment_en}` : ""}
+              {String(item.comment || "")}{item.comment_en ? ` — ${String(item.comment_en)}` : ""}
             </p>
-          )}
+          ) : null}
         </div>
       );
     }
@@ -341,9 +341,9 @@ function FeedItemRenderer({ item }: { item: FeedItem }) {
               {v === "CORRECT" ? "正确！" : v === "PARTIAL" ? "部分正确" : "不正确"}
             </span>
           </div>
-          {item.explanation && (
-            <p className="text-white/60 text-xs text-center max-w-[85%]">{item.explanation as string}</p>
-          )}
+          {item.explanation ? (
+            <p className="text-white/60 text-xs text-center max-w-[85%]">{String(item.explanation)}</p>
+          ) : null}
         </div>
       );
     }
