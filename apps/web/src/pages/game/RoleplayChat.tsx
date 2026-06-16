@@ -11,15 +11,17 @@ export default function RoleplayChat() {
   
   const { createSession, currentSession, sendTurn, feedItems, currentHud, turnLoading } = useGameStore();
   const searchParams = new URLSearchParams(window.location.search);
-  const storyId = searchParams.get('story') || 'qingyun';
+  const storyId = searchParams.get('story');
+  const templateId = searchParams.get('templateId') || undefined;
 
   // We rely on createSession if we don't have an ID, or loadSession if we do.
   // For simplicity, we just create a new session if one isn't loaded.
   useEffect(() => {
     if (!currentSession || currentSession.game_type !== "roleplay") {
-      createSession("roleplay", undefined, { story_id: storyId });
+      const config = storyId ? { story_id: storyId } : undefined;
+      createSession("roleplay", templateId, config);
     }
-  }, [storyId, createSession, currentSession]);
+  }, [storyId, templateId, createSession, currentSession]);
 
   useEffect(() => {
     feedEndRef.current?.scrollIntoView({ behavior: "smooth" });

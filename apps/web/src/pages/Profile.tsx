@@ -85,8 +85,18 @@ export default function Profile() {
     }
   ];
 
+  const adminMenu: MenuRow[] = [
+    {
+      icon: "admin_panel_settings",
+      label: "Admin Panel",
+      iconBg: "bg-error-container",
+      iconColor: "text-error",
+      onClick: () => navigate("/admin/story-publisher")
+    }
+  ];
+
   return (
-    <div className="premium min-h-full bg-surface text-on-surface">
+    <div className="premium min-h-full bg-surface text-on-surface pb-32">
       {/* Top AppBar */}
       <nav className="sticky top-0 z-40 flex items-center justify-between px-margin-mobile h-touch-target-min bg-surface/80 backdrop-blur-xl">
         <h1 className="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerWise</h1>
@@ -184,6 +194,20 @@ export default function Profile() {
               ))}
             </div>
           </div>
+
+          {user?.role === "super_admin" && (
+            <div className="space-y-2">
+              <h4 className="font-label-sm text-outline px-2">ADMINISTRATION</h4>
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
+                {adminMenu.map((row, i) => (
+                  <div key={row.label}>
+                    <MenuButton row={row} />
+                    {i < adminMenu.length - 1 && <div className="h-px bg-surface-container-high mx-4" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={handleLogout}

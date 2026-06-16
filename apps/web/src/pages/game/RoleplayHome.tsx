@@ -70,7 +70,7 @@ export default function RoleplayHome() {
         </div>
 
         {/* Card 3: AI Storytelling */}
-        <div onClick={() => navigate("/game/roleplay/chat")} className="bg-white/70 backdrop-blur-md border border-white shadow-sm rounded-3xl p-4 flex gap-4 cursor-pointer">
+        <div onClick={() => navigate("/game/roleplay/storylines")} className="bg-white/70 backdrop-blur-md border border-white shadow-sm rounded-3xl p-4 flex gap-4 cursor-pointer">
           <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center shrink-0 shadow-inner border border-white">
             <MessageSquareText className="text-blue-400" size={28} />
           </div>
