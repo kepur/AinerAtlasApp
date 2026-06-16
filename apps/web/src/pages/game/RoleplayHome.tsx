@@ -32,7 +32,7 @@ export default function RoleplayHome() {
       <main className="relative z-10 flex-1 overflow-y-auto px-4 pb-24 flex flex-col gap-4 no-scrollbar">
         
         {/* Card 1: System Storyline */}
-        <div onClick={() => navigate("/game")} className="bg-white/70 backdrop-blur-md border border-white shadow-sm rounded-3xl p-4 flex gap-4 cursor-pointer">
+        <div onClick={() => navigate("/game/roleplay/storylines")} className="bg-white/70 backdrop-blur-md border border-white shadow-sm rounded-3xl p-4 flex gap-4 cursor-pointer">
           <div className="w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center shrink-0 shadow-inner border border-white">
             <BookOpen className="text-orange-400" size={28} />
           </div>

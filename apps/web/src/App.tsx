@@ -27,6 +27,7 @@ import InterrogationRoom from "./pages/game/InterrogationRoom";
 import PartyRoom from "./pages/game/PartyRoom";
 import RomanceSocial from "./pages/game/RomanceSocial";
 import GameSummaryScreen from "./pages/game/GameSummaryScreen";
+import RoleplayStorylineList from "./pages/game/RoleplayStorylineList";
 import TurtleSoupSummary from "./pages/game/TurtleSoupSummary";
 import CircleRoom from "./pages/CircleRoom";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -74,6 +75,7 @@ function AppLayout() {
           <Route path="/game/template/:id" element={<GameTemplateDetail />} />
           <Route path="/game/turtle-soup/detail/:id" element={<TurtleSoupDetail />} />
           <Route path="/game/roleplay/home" element={<RoleplayHome />} />
+          <Route path="/game/roleplay/storylines" element={<RoleplayStorylineList />} />
           <Route path="/game/roleplay/characters" element={<RoleplayCharacterList />} />
           <Route path="/game/roleplay/character/:id" element={<RoleplayCharacterDetail />} />
           <Route path="/game/roleplay/chat" element={<RoleplayChat />} />
