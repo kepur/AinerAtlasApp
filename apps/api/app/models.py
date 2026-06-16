@@ -902,4 +902,83 @@ XP_REWARDS = {
     "publish_topic": 25,
     "daily_login": 10,
     "streak_bonus": 5,
+    "game_turn": 8,
+    "game_complete": 40,
 }
+
+
+# ---------------------------------------------------------------------------
+# Story Game Forge — Unified Game Models
+# ---------------------------------------------------------------------------
+
+class GameTemplate(Base):
+    __tablename__ = "game_templates"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    slug: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    game_type: Mapped[str] = mapped_column(String(40), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    subtitle: Mapped[str] = mapped_column(String(255), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+    cover_url: Mapped[str] = mapped_column(String(500), default="")
+    difficulty: Mapped[str] = mapped_column(String(20), default="B1")
+    target_language: Mapped[str] = mapped_column(String(20), default="en")
+    native_language: Mapped[str] = mapped_column(String(20), default="zh")
+    estimated_minutes: Mapped[int] = mapped_column(Integer, default=10)
+    learning_focus: Mapped[list[str]] = mapped_column(JSON, default=list)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    config: Mapped[dict] = mapped_column(JSON, default=dict)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=100)
+    play_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class GameSession(Base):
+    __tablename__ = "game_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    template_id: Mapped[str | None] = mapped_column(ForeignKey("game_templates.id"), nullable=True)
+    game_type: Mapped[str] = mapped_column(String(40), index=True)
+    title: Mapped[str] = mapped_column(String(255), default="")
+    target_language: Mapped[str] = mapped_column(String(20), default="en")
+    native_language: Mapped[str] = mapped_column(String(20), default="zh")
+    difficulty: Mapped[str] = mapped_column(String(20), default="B1")
+    phase: Mapped[str] = mapped_column(String(40), default="lobby")
+    state: Mapped[dict] = mapped_column(JSON, default=dict)
+    turn_count: Mapped[int] = mapped_column(Integer, default=0)
+    score: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(40), default="active")
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    turns: Mapped[list["GameTurn"]] = relationship(
+        back_populates="session", cascade="all, delete-orphan",
+        order_by="GameTurn.created_at",
+    )
+
+
+class GameTurn(Base):
+    __tablename__ = "game_turns"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    session_id: Mapped[str] = mapped_column(ForeignKey("game_sessions.id"), index=True)
+    turn_number: Mapped[int] = mapped_column(Integer, default=0)
+    actor: Mapped[str] = mapped_column(String(40), default="user")
+    action_type: Mapped[str] = mapped_column(String(60), default="message")
+    user_input: Mapped[str] = mapped_column(Text, default="")
+    ai_response: Mapped[dict] = mapped_column(JSON, default=dict)
+    hud: Mapped[dict] = mapped_column(JSON, default=dict)
+    feed_items: Mapped[list] = mapped_column(JSON, default=list)
+    phase_after: Mapped[str] = mapped_column(String(40), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    session: Mapped[GameSession] = relationship(back_populates="turns")

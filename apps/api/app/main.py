@@ -13,7 +13,7 @@ from app.core.logging import ErrorHandlingMiddleware, RequestLoggerMiddleware, s
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.security import decrypt_api_key, encrypt_api_key, hash_password
 from app.db.session import Base, SessionLocal, engine
-from app.models import AIProvider, AppSettings, AuthSettings, MembershipPlan, PromptTemplate, User, UserProfile
+from app.models import AIProvider, AppSettings, AuthSettings, GameTemplate, MembershipPlan, PromptTemplate, User, UserProfile
 from app.services.demo_user import sync_demo_user_from_settings
 from app.services.seed_aliyun import seed_aliyun_providers
 from app.tasks.scheduler import start_scheduler, stop_scheduler
@@ -255,7 +255,79 @@ def seed_defaults() -> None:
         if not app_settings:
             db.add(AppSettings(id="default"))
             logger.info("Seeded app settings")
+
+        _seed_game_templates(db)
         db.commit()
+
+
+def _seed_game_templates(db) -> None:
+    existing = db.scalar(select(GameTemplate).limit(1))
+    if existing:
+        return
+    templates = [
+        GameTemplate(
+            slug="passenger", game_type="turtle_soup",
+            title="消失的乘客", subtitle="海龟汤 · Situation Puzzle",
+            description="一名男子上了火车，在旅途中神秘消失。没人看到他下车。发生了什么？",
+            difficulty="B1", estimated_minutes=10,
+            learning_focus=["提问句", "推理表达", "过去时", "Yes/No Questions"],
+            tags=["solo", "推理", "悬疑"],
+            config={"case_id": "passenger"},
+            sort_order=10,
+        ),
+        GameTemplate(
+            slug="turtle_soup_classic", game_type="turtle_soup",
+            title="经典海龟汤", subtitle="海龟汤 · 经典",
+            description="一个男人走进餐厅，点了一碗海龟汤，喝了一口后突然崩溃自杀。为什么？",
+            difficulty="B1", estimated_minutes=10,
+            learning_focus=["提问句", "因果推理", "过去时"],
+            tags=["solo", "推理", "经典"],
+            config={"case_id": "turtle_soup_classic"},
+            sort_order=11,
+        ),
+        GameTemplate(
+            slug="qingyun", game_type="roleplay",
+            title="青云重生", subtitle="仙侠 · 角色扮演",
+            description="你在青云门修炼多年，一次意外让你重生回到入门之初。面对熟悉的师兄弟和未知的命运...",
+            difficulty="B1", estimated_minutes=20,
+            learning_focus=["情绪表达", "保持距离", "委婉拒绝", "描述感受"],
+            tags=["solo", "仙侠", "角色扮演"],
+            config={"story_id": "qingyun"},
+            sort_order=20,
+        ),
+        GameTemplate(
+            slug="cafe_encounter", game_type="roleplay",
+            title="咖啡馆奇遇", subtitle="现代 · 日常社交",
+            description="你在一家咖啡馆遇到一个有趣的陌生人。一段意想不到的对话即将展开...",
+            difficulty="A2", estimated_minutes=15,
+            learning_focus=["自我介绍", "提问技巧", "表达兴趣", "礼貌用语"],
+            tags=["solo", "社交", "日常"],
+            config={"story_id": "cafe_encounter"},
+            sort_order=21,
+        ),
+        GameTemplate(
+            slug="cafe_lie", game_type="detective",
+            title="咖啡馆的谎言", subtitle="AI侦探 · 谋杀案",
+            description="咖啡馆老板被杀，4名嫌疑人各有说辞。谁在说谎？",
+            difficulty="B2", estimated_minutes=15,
+            learning_focus=["审问技巧", "推理表达", "因果分析", "质疑句型"],
+            tags=["solo", "推理", "侦探"],
+            config={"case_id": "cafe_lie"},
+            sort_order=30,
+        ),
+        GameTemplate(
+            slug="werewolf_easy", game_type="social_logic",
+            title="狼人杀 Lite", subtitle="阵营推理 · 社交推理",
+            description="天黑请闭眼...体验完整的狼人杀对决流程。",
+            difficulty="B2", estimated_minutes=12,
+            learning_focus=["辩论表达", "质疑句型", "逻辑推理", "社交用语"],
+            tags=["solo", "推理", "社交"],
+            config={"difficulty": "easy"},
+            sort_order=40,
+        ),
+    ]
+    db.add_all(templates)
+    logger.info("Seeded {} game templates", len(templates))
 
 
 def _repair_provider_api_keys(db, settings) -> None:

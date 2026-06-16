@@ -1,0 +1,488 @@
+"""Detective Case (AI侦探) game engine.
+
+Phases: lobby → briefing → investigating → interrogation → deduction → summary
+Player investigates a crime scene, interrogates suspects, collects clues, and submits deduction.
+"""
+from __future__ import annotations
+
+import logging
+
+from sqlalchemy.orm import Session
+
+from app.models import GameSession
+from app.services.game_engine import GameTypeEngine, register_engine
+from app.services.llm import get_llm_provider_for_task
+from app.services.runtime_config import resolve_default_llm_provider
+
+logger = logging.getLogger(__name__)
+
+_BUILTIN_CASES = {
+    "cafe_lie": {
+        "title": "咖啡馆的谎言",
+        "subtitle": "推理 · 谋杀案",
+        "description": "咖啡馆老板被杀，4名嫌疑人各有说辞。谁在说谎？",
+        "scene": "昨晚9:00左右，魔咖馆老板在店内后门被发现死亡。死因：头部重击。凶器不在现场。当晚店内共有4人。",
+        "scene_en": "Around 9 PM last night, the owner of Magic Café was found dead near the back door. Cause of death: blunt force trauma. The murder weapon is missing. Four people were in the shop that evening.",
+        "suspects": [
+            {
+                "id": "anna", "name": "Anna", "name_en": "Anna",
+                "role": "服务员",
+                "personality": "紧张易怒，说话时经常眼神飘忽",
+                "alibi": "一直在吧台工作，大概9点看到老板从办公室出来",
+                "alibi_en": "Was working at the bar the whole time, saw the boss come out of office around 9",
+                "secret": "她和老板有债务纠纷，老板欠她三个月工资",
+                "is_culprit": False,
+                "trust": 50,
+            },
+            {
+                "id": "mark", "name": "Mark", "name_en": "Mark",
+                "role": "合伙人",
+                "personality": "镇定自若，逻辑清晰但过于冷静",
+                "alibi": "在办公室处理账目，听到声响后出来查看",
+                "alibi_en": "Was handling accounts in the office, came out after hearing a noise",
+                "secret": "他发现老板在挪用合伙资金，正在准备起诉",
+                "is_culprit": True,
+                "trust": 60,
+            },
+            {
+                "id": "leo", "name": "Leo", "name_en": "Leo",
+                "role": "常客",
+                "personality": "热心但神经质，说话前后矛盾",
+                "alibi": "在角落喝咖啡看书，什么都没注意到",
+                "alibi_en": "Was reading in the corner, didn't notice anything",
+                "secret": "他其实是老板的前女友的弟弟，来监视老板",
+                "is_culprit": False,
+                "trust": 40,
+            },
+            {
+                "id": "tom", "name": "Tom", "name_en": "Tom",
+                "role": "外卖员",
+                "personality": "匆忙急躁，极力想证明自己清白",
+                "alibi": "8:50送完外卖就离开了，9:10才回来取忘记的头盔",
+                "alibi_en": "Left after delivery at 8:50, came back at 9:10 for forgotten helmet",
+                "secret": "他偷偷从后门溜进来拿外卖小费箱里的钱",
+                "is_culprit": False,
+                "trust": 35,
+            },
+        ],
+        "clues": [
+            {"id": "wet_umbrella", "title": "湿伞", "title_en": "Wet umbrella", "desc": "这把伞是湿的，但当天没有下雨。", "desc_en": "The umbrella is wet, but it didn't rain.", "points_to": "mark"},
+            {"id": "three_cups", "title": "三个杯子", "title_en": "Three cups", "desc": "桌上有三个杯子，但只有两人喝了咖啡。", "desc_en": "Three cups on the table, but only two people drank coffee.", "points_to": "leo"},
+            {"id": "torn_note", "title": "撕碎的纸条", "title_en": "Torn note", "desc": "垃圾桶里有一张被撕碎的纸条。", "desc_en": "A torn note was found in the trash.", "points_to": "mark"},
+            {"id": "back_key", "title": "后门钥匙", "title_en": "Back door key", "desc": "钥匙上的指纹不属于老板。", "desc_en": "The fingerprints on the key don't belong to the owner.", "points_to": "mark"},
+            {"id": "cctv_gap", "title": "监控盲区", "title_en": "CCTV gap", "desc": "案发时间段，监控刚好有3分钟中断。", "desc_en": "CCTV had a 3-minute gap during the incident.", "points_to": "mark"},
+            {"id": "blood_trail", "title": "血迹拖痕", "title_en": "Blood trail", "desc": "地上有一小段血迹拖痕，通向储物间。", "desc_en": "A small blood trail leads to the storage room.", "points_to": "mark"},
+        ],
+        "culprit": "mark",
+        "truth": "Mark发现老板挪用合伙资金后，在办公室与老板发生争执。他用办公室的文件夹砸了老板的头，然后把凶器藏在储物间。他利用自己对监控系统的了解，制造了3分钟的盲区。湿伞是他用来冲洗血迹的工具。",
+        "truth_en": "Mark discovered the owner was embezzling partnership funds. They argued in the office. He struck the owner with a heavy binder, then hid the weapon in storage. He exploited his knowledge of the CCTV system to create a 3-minute gap. The wet umbrella was used to wash away blood.",
+        "max_interrogations": 5,
+    },
+}
+
+
+def _provider_for(task_type: str, db: Session):
+    return get_llm_provider_for_task(task_type, resolve_default_llm_provider(db), db)
+
+
+class DetectiveEngine(GameTypeEngine):
+    game_type = "detective"
+
+    async def init_session(self, session: GameSession, config: dict) -> dict:
+        case_id = config.get("case_id", "cafe_lie")
+        case = _BUILTIN_CASES.get(case_id)
+        if not case:
+            case = _BUILTIN_CASES["cafe_lie"]
+
+        session.title = case.get("title", "AI侦探")
+        session.phase = "lobby"
+
+        suspects = []
+        for s in case["suspects"]:
+            suspects.append({
+                "id": s["id"], "name": s["name"], "name_en": s.get("name_en", s["name"]),
+                "role": s["role"], "personality": s["personality"],
+                "alibi": s["alibi"], "alibi_en": s.get("alibi_en", ""),
+                "secret": s["secret"], "is_culprit": s["is_culprit"],
+                "trust": s.get("trust", 50),
+                "interrogated": False, "statements": [],
+            })
+
+        return {
+            "case": {
+                "scene": case["scene"],
+                "scene_en": case.get("scene_en", ""),
+                "culprit": case["culprit"],
+                "truth": case["truth"],
+                "truth_en": case.get("truth_en", ""),
+                "max_interrogations": case.get("max_interrogations", 5),
+            },
+            "suspects": suspects,
+            "clues": [
+                {**c, "discovered": False}
+                for c in case.get("clues", [])
+            ],
+            "interrogations_used": 0,
+            "discovered_clue_ids": [],
+            "deduction_attempts": 0,
+        }
+
+    async def handle_turn(
+        self, db: Session, session: GameSession, action_type: str,
+        user_input: str, extra: dict,
+    ) -> dict:
+        state = dict(session.state)
+
+        if action_type == "start":
+            return self._start_case(session, state)
+
+        if action_type == "investigate":
+            return self._investigate_clue(session, state, extra.get("clue_id", ""))
+
+        if action_type in ("interrogate", "message"):
+            return await self._interrogate(db, session, state, extra.get("suspect_id", ""), user_input)
+
+        if action_type == "deduce":
+            return await self._submit_deduction(db, session, state, user_input, extra)
+
+        raise ValueError(f"Unknown action: {action_type}")
+
+    def _start_case(self, session: GameSession, state: dict) -> dict:
+        session.phase = "briefing"
+        case = state["case"]
+        suspects = state["suspects"]
+
+        feed = [
+            {
+                "type": "narrator",
+                "text": "你是一名侦探，被派来调查这起案件。",
+                "text_en": "You are a detective assigned to investigate this case.",
+            },
+            {
+                "type": "case_briefing",
+                "text": case["scene"],
+                "text_en": case.get("scene_en", ""),
+            },
+            {
+                "type": "suspects_intro",
+                "suspects": [
+                    {"id": s["id"], "name": s["name"], "name_en": s.get("name_en", ""), "role": s["role"]}
+                    for s in suspects
+                ],
+            },
+        ]
+
+        session.phase = "investigating"
+        return {
+            "state": state,
+            "feed_items": feed,
+            "ai_response": {"phase": "investigating"},
+            "hud": {},
+        }
+
+    def _investigate_clue(self, session: GameSession, state: dict, clue_id: str) -> dict:
+        clue = None
+        for c in state.get("clues", []):
+            if c["id"] == clue_id:
+                clue = c
+                break
+
+        if not clue:
+            raise ValueError("Clue not found")
+
+        clue["discovered"] = True
+        if clue_id not in state.get("discovered_clue_ids", []):
+            state.setdefault("discovered_clue_ids", []).append(clue_id)
+
+        feed = [
+            {
+                "type": "clue_discovered",
+                "clue_id": clue["id"],
+                "title": clue["title"],
+                "title_en": clue.get("title_en", ""),
+                "desc": clue["desc"],
+                "desc_en": clue.get("desc_en", ""),
+                "total_discovered": len(state.get("discovered_clue_ids", [])),
+                "total_clues": len(state.get("clues", [])),
+            },
+        ]
+
+        return {
+            "state": state,
+            "feed_items": feed,
+            "ai_response": {"clue": clue["title"]},
+            "hud": {},
+        }
+
+    async def _interrogate(
+        self, db: Session, session: GameSession, state: dict,
+        suspect_id: str, question: str,
+    ) -> dict:
+        suspect = None
+        for s in state.get("suspects", []):
+            if s["id"] == suspect_id:
+                suspect = s
+                break
+        if not suspect:
+            raise ValueError("Suspect not found")
+
+        state["interrogations_used"] = state.get("interrogations_used", 0) + 1
+        suspect["interrogated"] = True
+        session.phase = "interrogation"
+
+        discovered = [c for c in state.get("clues", []) if c.get("discovered")]
+        clue_text = "\n".join(f"- {c['title']}: {c['desc']}" for c in discovered)
+
+        native = session.native_language
+
+        system = (
+            f"你在扮演侦探案件中的嫌疑人 {suspect['name']}。\n\n"
+            f"你的身份：{suspect['role']}\n"
+            f"你的性格：{suspect['personality']}\n"
+            f"你的不在场证明：{suspect['alibi']}\n"
+            f"你的秘密：{suspect['secret']}\n"
+            f"你是否是凶手：{'是' if suspect['is_culprit'] else '否'}\n\n"
+            "规则：\n"
+            f"- 如果你是凶手：巧妙回避关键问题，偶尔说谎但要自圆其说\n"
+            f"- 如果你不是凶手：诚实回答，但可能对自己的秘密有所隐瞒\n"
+            "- 回答用1-3句英文，体现你的性格\n"
+            "- 附中文翻译\n\n"
+            "返回JSON：\n"
+            '{"answer":"英文回答","answer_native":"中文翻译",'
+            '"emotion":"suspicious/nervous/calm/angry/defensive",'
+            '"lie_detected":true/false,"trust_change":-5到5}'
+        )
+        user_msg = (
+            f"侦探的问题：{question}\n"
+            f"已知线索：\n{clue_text if clue_text else '暂无'}\n"
+            f"之前的陈述：{suspect.get('statements', [])[-3:]}"
+        )
+
+        try:
+            provider = _provider_for("game_ai_answer", db)
+            data = await provider.complete_json(system, user_msg, temperature=0.8, max_tokens=600)
+        except Exception as exc:
+            logger.warning("interrogation failed: %s", exc)
+            data = {
+                "answer": "I... I don't know what you're talking about.",
+                "answer_native": "我...我不知道你在说什么。",
+                "emotion": "nervous",
+            }
+
+        answer_text = (data.get("answer") or "").strip()
+        suspect.setdefault("statements", []).append({
+            "question": question,
+            "answer": answer_text,
+        })
+
+        trust_delta = data.get("trust_change", 0)
+        if isinstance(trust_delta, (int, float)):
+            suspect["trust"] = max(0, min(100, suspect.get("trust", 50) + trust_delta))
+
+        feed = [
+            {"type": "user_question", "text": question, "target": suspect["name"]},
+            {
+                "type": "suspect_answer",
+                "suspect_id": suspect["id"],
+                "suspect_name": suspect["name"],
+                "text": answer_text,
+                "text_native": (data.get("answer_native") or "").strip(),
+                "emotion": data.get("emotion", "calm"),
+            },
+        ]
+
+        hud = await self._generate_hud(db, session, question, answer_text)
+
+        remaining = state["case"].get("max_interrogations", 5) - state["interrogations_used"]
+        if remaining <= 0:
+            session.phase = "deduction"
+            feed.append({
+                "type": "narrator",
+                "text": "审问机会用完了。是时候提交你的推理了。",
+                "text_en": "No more interrogation chances. Time to submit your deduction.",
+            })
+        else:
+            session.phase = "investigating"
+
+        return {
+            "state": state,
+            "feed_items": feed,
+            "ai_response": data,
+            "hud": hud,
+        }
+
+    async def _submit_deduction(
+        self, db: Session, session: GameSession, state: dict,
+        user_input: str, extra: dict,
+    ) -> dict:
+        accused_id = extra.get("accused_id", "")
+        case = state["case"]
+        state["deduction_attempts"] = state.get("deduction_attempts", 0) + 1
+
+        correct_culprit = accused_id == case["culprit"]
+
+        system = (
+            "你是侦探游戏裁判。评判玩家的推理是否合理。\n\n"
+            f"真相：{case['truth']}\n"
+            f"真凶：{case['culprit']}\n"
+            f"玩家指控的嫌疑人ID：{accused_id}\n\n"
+            "评判标准：\n"
+            "- 指控对象是否正确\n"
+            "- 推理逻辑是否合理\n"
+            "- 是否引用了关键证据\n\n"
+            '返回JSON：{"correct":true/false,"reasoning_score":0-100,'
+            '"feedback":"中文评价","feedback_en":"English feedback"}'
+        )
+        user_msg = f"玩家的推理：{user_input}"
+
+        try:
+            provider = _provider_for("game_reasoning", db)
+            data = await provider.complete_json(system, user_msg, temperature=0.3, max_tokens=500)
+        except Exception as exc:
+            logger.warning("deduction judge failed: %s", exc)
+            data = {"correct": correct_culprit, "reasoning_score": 50 if correct_culprit else 20}
+
+        session.phase = "summary"
+        score = data.get("reasoning_score", 0)
+        if correct_culprit:
+            score = max(score, 60)
+
+        session.score = score
+
+        feed = [
+            {"type": "user_deduction", "text": user_input, "accused": accused_id},
+            {
+                "type": "verdict",
+                "correct": correct_culprit,
+                "feedback": data.get("feedback", ""),
+                "feedback_en": data.get("feedback_en", ""),
+                "score": score,
+            },
+            {
+                "type": "truth_reveal",
+                "text": case["truth"],
+                "text_en": case.get("truth_en", ""),
+                "culprit": case["culprit"],
+            },
+        ]
+
+        return {
+            "state": state,
+            "feed_items": feed,
+            "ai_response": data,
+            "hud": {},
+            "ended": True,
+            "score": score,
+        }
+
+    async def _generate_hud(
+        self, db: Session, session: GameSession,
+        question: str, answer: str,
+    ) -> dict:
+        native = session.native_language
+        target = session.target_language
+
+        system = (
+            f"你是英语表达教练。用户在侦探游戏中审问嫌疑人。"
+            f"生成学习HUD帮助用户学习审问相关的{target}表达。\n\n"
+            "返回JSON：\n"
+            '{"main_expression":"用户问题的标准英文表达，1句不超18词",'
+            f'"meaning_native":"{native}翻译",'
+            '"variants":{{"direct":"直接质问","subtle":"委婉探问","professional":"专业审问","confrontational":"对峙式"}},'
+            f'"why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],'
+            '"patterns_v2":[{"pattern":"句型","example":"例句","add_to_crush":true}],'
+            '"vocabulary":["词1","词2","词3"],'
+            f'"agents":[{{"agent":"Detective Coach","result":"{native}审问技巧点评"}},{{"agent":"Language Coach","result":"{native}表达点评"}},{{"agent":"Logic Coach","result":"{native}推理逻辑建议"}}]'
+            "}"
+        )
+        user_msg = f"审问问题：{question}\n嫌疑人回答：{answer}"
+
+        try:
+            provider = _provider_for("game_challenge_hud", db)
+            hud = await provider.complete_json(system, user_msg, temperature=0.7, max_tokens=900)
+        except Exception as exc:
+            logger.warning("detective HUD failed: %s", exc)
+            hud = {}
+
+        for a in (hud.get("agents") or []):
+            if "name" in a and "agent" not in a:
+                a["agent"] = a.pop("name")
+
+        if "main_expression" not in hud:
+            hud["main_expression"] = hud.pop("main_reply_target", hud.pop("expression", ""))
+        if "meaning_native" not in hud:
+            hud["meaning_native"] = hud.pop("main_reply_native", hud.pop("meaning", ""))
+
+        hud["v2"] = True
+        hud["detected_intent"] = "expression_learning"
+        return hud
+
+    async def get_summary(self, db: Session, session: GameSession) -> dict:
+        state = session.state or {}
+        patterns, vocab, expressions = [], [], []
+
+        for turn in session.turns:
+            hud = turn.hud or {}
+            expr = hud.get("main_expression", "")
+            if expr:
+                expressions.append(expr)
+            for p in (hud.get("patterns_v2") or []):
+                pat = p.get("pattern") if isinstance(p, dict) else str(p)
+                if pat and pat not in patterns:
+                    patterns.append(pat)
+            for v in (hud.get("vocabulary") or []):
+                if v and v not in vocab:
+                    vocab.append(v)
+
+        return {
+            "solved": session.status == "ended",
+            "score": session.score,
+            "interrogations_used": state.get("interrogations_used", 0),
+            "clues_found": len(state.get("discovered_clue_ids", [])),
+            "total_clues": len(state.get("clues", [])),
+            "deduction_attempts": state.get("deduction_attempts", 0),
+            "patterns": patterns,
+            "vocabulary": vocab,
+            "expressions": expressions,
+            "summary": f"案件已结案，得分 {session.score}" if session.status == "ended" else "调查进行中",
+        }
+
+    def get_state_view(self, session: GameSession, user_id: str) -> dict:
+        state = session.state or {}
+        case = state.get("case", {})
+
+        suspects_view = []
+        for s in state.get("suspects", []):
+            suspects_view.append({
+                "id": s["id"],
+                "name": s["name"],
+                "name_en": s.get("name_en", ""),
+                "role": s["role"],
+                "trust": s.get("trust", 50),
+                "interrogated": s.get("interrogated", False),
+                "statement_count": len(s.get("statements", [])),
+            })
+
+        clues_view = []
+        for c in state.get("clues", []):
+            if c.get("discovered"):
+                clues_view.append({
+                    "id": c["id"],
+                    "title": c["title"],
+                    "title_en": c.get("title_en", ""),
+                    "desc": c["desc"],
+                    "desc_en": c.get("desc_en", ""),
+                })
+
+        return {
+            "scene": case.get("scene", ""),
+            "scene_en": case.get("scene_en", ""),
+            "suspects": suspects_view,
+            "discovered_clues": clues_view,
+            "total_clues": len(state.get("clues", [])),
+            "interrogations_used": state.get("interrogations_used", 0),
+            "max_interrogations": case.get("max_interrogations", 5),
+        }
+
+
+register_engine(DetectiveEngine())

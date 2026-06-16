@@ -9,6 +9,7 @@ from app.api.routes import (
     config,
     conversations,
     gamification,
+    games,
     grammar,
     matching,
     privacy,
@@ -39,4 +40,5 @@ api_router.include_router(matching.router)
 api_router.include_router(privacy.router)
 api_router.include_router(reports.router)
 api_router.include_router(gamification.router)
+api_router.include_router(games.router)
 api_router.include_router(social_logic.router)
