@@ -11,6 +11,7 @@ type TabItem = {
 const tabs: TabItem[] = [
   { key: "home", path: "/home", labelKey: "nav.home", icon: "home" },
   { key: "chat", path: "/chat", labelKey: "nav.chat", icon: "forum" },
+  { key: "game", path: "/game", labelKey: "nav.game", icon: "sports_esports" },
   { key: "assets", path: "/assets", labelKey: "nav.assets", icon: "psychology" },
   { key: "connect", path: "/match", labelKey: "nav.connect", icon: "hub" },
   { key: "profile", path: "/profile", labelKey: "nav.profile", icon: "person" }
@@ -22,6 +23,9 @@ function isTabActive(tab: TabItem, pathname: string): boolean {
   }
   if (tab.key === "chat") {
     return pathname === "/chat" || pathname.startsWith("/chat/") || pathname.startsWith("/trio-chat");
+  }
+  if (tab.key === "game") {
+    return pathname === "/game" || pathname.startsWith("/game/");
   }
   if (tab.key === "assets") {
     return pathname.startsWith("/assets") || pathname.startsWith("/thoughts");

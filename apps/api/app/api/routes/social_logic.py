@@ -35,9 +35,31 @@ async def create_game(payload: CreateGameRequest, current_user: CurrentUser, db:
             db, current_user.id, payload.difficulty,
             payload.target_language, payload.native_language,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception("create social-logic game failed")
         raise HTTPException(status_code=503, detail=f"创建游戏失败：{exc}") from exc
+
+
+@router.post("/{game_id}/deal")
+async def deal_cards(game_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+    try:
+        return await engine.deal_cards(db, game_id, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("deal cards failed")
+        raise HTTPException(status_code=503, detail=f"发牌失败：{exc}") from exc
+
+
+@router.post("/{game_id}/start")
+async def start_game(game_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+    try:
+        return await engine.start_game(db, game_id, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("start game failed")
+        raise HTTPException(status_code=503, detail=f"开始游戏失败：{exc}") from exc
 
 
 @router.get("/{game_id}")
@@ -56,7 +78,7 @@ async def question(game_id: str, payload: QuestionRequest, current_user: Current
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception("social-logic question failed")
         raise HTTPException(status_code=503, detail=f"提问失败：{exc}") from exc
 
@@ -69,7 +91,7 @@ async def vote(game_id: str, payload: VoteRequest, current_user: CurrentUser, db
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception("social-logic vote failed")
         raise HTTPException(status_code=503, detail=f"投票失败：{exc}") from exc
 

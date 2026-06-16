@@ -4,6 +4,7 @@ export default {
     chat: "对话",
     assets: "资产",
     crush: "消消乐",
+    game: "游戏",
     connect: "连接",
     profile: "我的"
   },

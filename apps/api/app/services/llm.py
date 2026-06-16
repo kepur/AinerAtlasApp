@@ -695,6 +695,14 @@ TASK_MODEL_HINTS = {
     "match_explanation": {"prefer": "quality", "fallback": "cheap"},
     "group_summary": {"prefer": "quality", "fallback": "cheap"},
     "safety_check": {"prefer": "cheap", "fallback": "quality"},
+    # Social Logic game tasks
+    "game_ai_speech": {"prefer": "quality", "fallback": "cheap"},
+    "game_ai_answer": {"prefer": "quality", "fallback": "cheap"},
+    "game_challenge_hud": {"prefer": "quality", "fallback": "cheap"},
+    "game_reasoning": {"prefer": "quality", "fallback": "cheap"},
+    "game_summary": {"prefer": "quality", "fallback": "cheap"},
+    "game_translate": {"prefer": "cheap", "fallback": "quality"},
+    "game_vote_reason": {"prefer": "cheap", "fallback": "quality"},
 }
 
 

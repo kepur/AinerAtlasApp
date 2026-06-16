@@ -8,7 +8,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { Asset, Message, ChatV2WhyItem, ChatV2PatternItem, ChatV2AgentItem, ChatV2NextQuestion, TokenExplain } from "../api";
 import { freezeConversation, explainToken, addCrushCandidate } from "../api";
 import FreezeResult from "../components/FreezeResult";
-import TabBar from "../components/TabBar";
 import { useI18n } from "../i18n";
 import { useChatStore, type DialogueTurn, type HudData } from "../stores/chatStore";
 
@@ -593,8 +592,6 @@ export default function ChatDetail() {
 
       {showFreeze && <FreezeResult asset={freezeAsset} loading={freezing} error={freezeError} onClose={() => { setShowFreeze(false); setFreezeAsset(null); setFreezeError(null); }} />}
       {tokenSheet && <TokenExplainSheet token={tokenSheet.token} context={tokenSheet.context} onClose={() => setTokenSheet(null)} speak={speak} />}
-
-      <TabBar />
     </div>
   );
 }

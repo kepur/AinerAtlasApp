@@ -6,6 +6,22 @@ import Assets from "./pages/Assets";
 import AssetDetail from "./pages/AssetDetail";
 import Chat from "./pages/Chat";
 import ChatDetail from "./pages/ChatDetail";
+import GameHome from "./pages/game/GameHome";
+import GameTemplateDetail from "./pages/game/GameTemplateDetail";
+import RoleplaySetup from "./pages/game/RoleplaySetup";
+import UniversalGameChat from "./pages/game/UniversalGameChat";
+import UnifiedGameChat from "./pages/game/UnifiedGameChat";
+import SocialLogicGame from "./pages/game/SocialLogicGame";
+import PuzzleGame from "./pages/game/PuzzleGame";
+import GameDetail from "./pages/game/GameDetail";
+import CustomStoryBuilder from "./pages/game/CustomStoryBuilder";
+import DetectiveBoardDark from "./pages/game/DetectiveBoardDark";
+import InterrogationRoom from "./pages/game/InterrogationRoom";
+import PartyRoom from "./pages/game/PartyRoom";
+import RomanceSocial from "./pages/game/RomanceSocial";
+import GameSummaryScreen from "./pages/game/GameSummaryScreen";
+import GameSummaryDark from "./pages/game/GameSummaryDark";
+import TurtleSoupSummary from "./pages/game/TurtleSoupSummary";
 import CircleRoom from "./pages/CircleRoom";
 import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
@@ -46,6 +62,22 @@ function AppLayout() {
       <div className="app-content">
         <Routes>
           <Route path="/home" element={<Home />} />
+          <Route path="/game" element={<GameHome />} />
+          <Route path="/game/template/:id" element={<GameTemplateDetail />} />
+          <Route path="/game/setup/:id" element={<RoleplaySetup />} />
+          <Route path="/game/universal/:id" element={<UniversalGameChat />} />
+          <Route path="/game/play/:mode/:id" element={<UnifiedGameChat />} />
+          <Route path="/game/social-logic/:id" element={<SocialLogicGame />} />
+          <Route path="/game/puzzle-logic/:id" element={<PuzzleGame />} />
+          <Route path="/game/detail/:id" element={<GameDetail />} />
+          <Route path="/game/roleplay-setup" element={<RoleplaySetup />} />
+          <Route path="/game/custom-story-builder" element={<CustomStoryBuilder />} />
+          <Route path="/game/detective-board/:id" element={<DetectiveBoardDark />} />
+          <Route path="/game/interrogation/:id" element={<InterrogationRoom />} />
+          <Route path="/game/party-room/:id" element={<PartyRoom />} />
+          <Route path="/game/romance-social" element={<RomanceSocial />} />
+          <Route path="/game/summary/:id" element={<GameSummaryDark />} />
+          <Route path="/game/turtle-soup-summary/:id" element={<TurtleSoupSummary />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/chat/:id" element={<ChatDetail />} />
           <Route path="/trio-chat" element={<AiTrioChat />} />

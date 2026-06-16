@@ -99,7 +99,7 @@ button, input, select, textarea {
   overflow-y: auto;
 }
 
-.app-content:has(.chat-detail) {
+.app-content:has(.chat-detail-layout) {
   padding-bottom: 0;
   overflow: hidden;
   display: flex;

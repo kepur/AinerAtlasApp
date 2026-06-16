@@ -2,6 +2,7 @@ export default {
   nav: {
     home: "Home",
     chat: "Chat",
+    game: "Game",
     assets: "Assets",
     crush: "Crush",
     connect: "Connect",
