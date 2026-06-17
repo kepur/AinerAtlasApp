@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useGameStore } from "../../stores/gameStore";
+import { saveGameToAssets, addPatternsToCrush } from "../../lib/gameLearning";
 import UnifiedHeader from "../../components/game/unified/UnifiedHeader";
 import UnifiedTurnSelector from "../../components/game/unified/UnifiedTurnSelector";
 import UnifiedLearningHUD from "../../components/game/unified/UnifiedLearningHUD";
@@ -20,6 +21,8 @@ export default function UnifiedGameChat() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [solveMode, setSolveMode] = useState(false);
+  const [savedAssets, setSavedAssets] = useState(false);
+  const [savingAssets, setSavingAssets] = useState(false);
 
   useEffect(() => {
     if (!id || !mode) return;
@@ -238,12 +241,33 @@ export default function UnifiedGameChat() {
             </div>
           )}
 
-          <button
-            onClick={() => { clearCurrent(); navigate("/game"); }}
-            className="mt-4 px-8 py-3 bg-[#8b5cf6] text-white rounded-full font-bold active:scale-95 transition-transform shadow-md"
-          >
-            返回游戏大厅
-          </button>
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={async () => {
+                if (savedAssets || savingAssets) return;
+                setSavingAssets(true);
+                await addPatternsToCrush(summary.patterns || []);
+                const ok = await saveGameToAssets(
+                  currentSession?.title || "游戏学习收获",
+                  [...(summary.expressions || []), ...(summary.patterns || [])],
+                  currentSession?.target_language || "en",
+                );
+                setSavedAssets(ok);
+                setSavingAssets(false);
+              }}
+              disabled={savingAssets}
+              className="px-6 py-3 bg-white text-[#8b5cf6] border border-[#8b5cf6] rounded-full font-bold active:scale-95 transition-transform shadow-sm disabled:opacity-60 flex items-center gap-2"
+            >
+              {savingAssets ? <Loader2 size={16} className="animate-spin" /> : null}
+              {savedAssets ? "已保存✓" : savingAssets ? "保存中" : "保存到 Assets"}
+            </button>
+            <button
+              onClick={() => { clearCurrent(); navigate("/game"); }}
+              className="px-6 py-3 bg-[#8b5cf6] text-white rounded-full font-bold active:scale-95 transition-transform shadow-md"
+            >
+              返回游戏大厅
+            </button>
+          </div>
         </div>
       )}
     </div>

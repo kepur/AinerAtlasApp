@@ -3,19 +3,52 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ChevronLeft, Volume2, Heart, Coffee, Sparkles, HeartHandshake, Leaf,
   Lightbulb, Send, Mic, Flame, Loader2,
+  Handshake, TrendingUp, Scale, FileText,
+  Plane, Hotel, Map, Compass,
+  MapPin, Home, Users, CheckCircle,
 } from "lucide-react";
 import { useGameStore, FeedItem } from "../../stores/gameStore";
 import TTSButton from "../../components/TTSButton";
 
-const TABS = [
-  { id: "warmup", icon: Coffee, label: "暖场", phase: "icebreaker" },
-  { id: "flirt", icon: Heart, label: "暧昧", phase: "flirting" },
-  { id: "date", icon: Sparkles, label: "约会", phase: "dating" },
-  { id: "couple", icon: HeartHandshake, label: "心动·情侣", phase: "couple" },
-];
+const getCategoryTabs = (category: string) => {
+  if (category === "商务谈判") {
+    return [
+      { id: "intro", icon: Handshake, label: "接触", phase: "icebreaker" },
+      { id: "pitch", icon: TrendingUp, label: "报价", phase: "flirting" },
+      { id: "negotiate", icon: Scale, label: "谈判", phase: "dating" },
+      { id: "sign", icon: FileText, label: "签约", phase: "couple" },
+    ];
+  }
+  if (category === "移民生活") {
+    return [
+      { id: "arrival", icon: MapPin, label: "入境", phase: "icebreaker" },
+      { id: "settle", icon: Home, label: "安置", phase: "flirting" },
+      { id: "integrate", icon: Users, label: "融入", phase: "dating" },
+      { id: "settled", icon: CheckCircle, label: "定居", phase: "couple" },
+    ];
+  }
+  if (category === "旅游出差" || category === "生活日常" || category === "日常生活" || category === "校园大学") {
+    return [
+      { id: "depart", icon: Plane, label: "启程", phase: "icebreaker" },
+      { id: "lodging", icon: Hotel, label: "入住", phase: "flirting" },
+      { id: "explore", icon: Map, label: "探索", phase: "dating" },
+      { id: "joy", icon: Compass, label: "尽兴", phase: "couple" },
+    ];
+  }
+  // Default: 恋爱社交
+  return [
+    { id: "warmup", icon: Coffee, label: "暖场", phase: "icebreaker" },
+    { id: "flirt", icon: Heart, label: "暧昧", phase: "flirting" },
+    { id: "date", icon: Sparkles, label: "约会", phase: "dating" },
+    { id: "couple", icon: HeartHandshake, label: "心动·情侣", phase: "couple" },
+  ];
+};
 
-const PHASE_TO_TAB: Record<string, string> = {
-  icebreaker: "warmup", flirting: "flirt", dating: "date", couple: "couple",
+const PHASE_TO_INDEX: Record<string, number> = {
+  icebreaker: 0,
+  flirting: 1,
+  dating: 2,
+  couple: 3,
 };
 
 const ACTION_PRESETS: Record<string, string> = {
@@ -71,6 +104,13 @@ const getTheme = (category: string) => {
       glowColorHalf: "rgba(37, 99, 235, 0.1)",
       glowColorBig: "rgba(37, 99, 235, 0.6)",
       glowColorBigHalf: "rgba(37, 99, 235, 0.15)",
+      nodeShape: "rounded-xl",
+      nodeRotate: "",
+      iconRotate: "",
+      iconRotateClass: "",
+      activeIcon: Handshake,
+      progressTooltipPrefix: "🤝 达成率",
+      tooltipArrowClass: "after:border-t-blue-500",
     };
   }
   if (c === "移民生活") {
@@ -115,6 +155,13 @@ const getTheme = (category: string) => {
       glowColorHalf: "rgba(13, 148, 136, 0.1)",
       glowColorBig: "rgba(13, 148, 136, 0.6)",
       glowColorBigHalf: "rgba(13, 148, 136, 0.15)",
+      nodeShape: "rounded-[14px_4px_14px_4px]",
+      nodeRotate: "",
+      iconRotate: "",
+      iconRotateClass: "",
+      activeIcon: Home,
+      progressTooltipPrefix: "🏡 融入度",
+      tooltipArrowClass: "after:border-t-teal-500",
     };
   }
   if (c === "旅游出差" || c === "生活日常" || c === "日常生活" || c === "校园大学") {
@@ -159,6 +206,13 @@ const getTheme = (category: string) => {
       glowColorHalf: "rgba(139, 92, 246, 0.1)",
       glowColorBig: "rgba(139, 92, 246, 0.6)",
       glowColorBigHalf: "rgba(139, 92, 246, 0.15)",
+      nodeShape: "rotate-45 rounded-xl",
+      nodeRotate: "rotate(45deg)",
+      iconRotate: "-rotate-45",
+      iconRotateClass: "rotate(-45deg)",
+      activeIcon: Compass,
+      progressTooltipPrefix: "✈️ 顺利度",
+      tooltipArrowClass: "after:border-t-violet-500",
     };
   }
   // Default: 恋爱社交
@@ -203,6 +257,13 @@ const getTheme = (category: string) => {
     glowColorHalf: "rgba(244, 63, 94, 0.1)",
     glowColorBig: "rgba(244, 63, 94, 0.6)",
     glowColorBigHalf: "rgba(244, 63, 94, 0.15)",
+    nodeShape: "rounded-full",
+    nodeRotate: "",
+    iconRotate: "",
+    iconRotateClass: "",
+    activeIcon: Heart,
+    progressTooltipPrefix: "💖 满意度",
+    tooltipArrowClass: "after:border-t-pink-500",
   };
 };
 
@@ -253,7 +314,6 @@ export default function RomanceSocial() {
   const target = view.target || { name: "Mia", age: 25, role: "咖啡店常客", initial_scene: "咖啡店初次见面" };
   const score = (currentHud?.relationship_score as number) ?? view.relationship_score ?? 0;
   const phase = currentSession?.phase || "icebreaker";
-  const activeTab = PHASE_TO_TAB[phase] || "warmup";
 
   // Latest hint card for the learning HUD
   const lastHint = [...feedItems].reverse().find((f) => f.type === "hint_card") as (FeedItem & HintCard) | undefined;
@@ -272,6 +332,8 @@ export default function RomanceSocial() {
 
   const category = target.category || "恋爱社交";
   const th = getTheme(category);
+  const categoryTabs = getCategoryTabs(category);
+  const currentIndex = PHASE_TO_INDEX[phase] ?? 0;
 
   if (creating || !currentSession) {
     return (
@@ -312,12 +374,12 @@ export default function RomanceSocial() {
         {/* Style block for animations */}
         <style>{`
           @keyframes ${th.glowAnimation} {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 8px ${th.glowColor}, 0 0 0 4px ${th.glowColorHalf}; }
-            50% { transform: scale(1.05); box-shadow: 0 0 16px ${th.glowColorBig}, 0 0 0 8px ${th.glowColorBigHalf}; }
+            0%, 100% { transform: scale(1) ${th.nodeRotate || ""}; box-shadow: 0 0 8px ${th.glowColor}, 0 0 0 4px ${th.glowColorHalf}; }
+            50% { transform: scale(1.05) ${th.nodeRotate || ""}; box-shadow: 0 0 16px ${th.glowColorBig}, 0 0 0 8px ${th.glowColorBigHalf}; }
           }
-          @keyframes heart-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
+          @keyframes active-icon-pulse {
+            0%, 100% { transform: scale(1) ${th.iconRotateClass || ""}; }
+            50% { transform: scale(1.18) ${th.iconRotateClass || ""}; }
           }
           .active-node {
             animation: ${th.glowAnimation} 2s infinite ease-in-out;
@@ -333,30 +395,22 @@ export default function RomanceSocial() {
           <div 
             className={`absolute left-[44px] top-[48px] h-1 bg-gradient-to-r ${th.gradient} rounded-full z-0 transition-all duration-700 ease-out`}
             style={{ 
-              width: `calc(${
-                activeTab === "warmup" ? "0%" :
-                activeTab === "flirt" ? "33%" :
-                activeTab === "date" ? "66%" :
-                "100%"
-              })`
+              width: `${(currentIndex / 3) * 100}%`
             }}
           />
 
           {/* Nodes */}
-          {TABS.map((t, idx) => {
-            const tabIndices: Record<string, number> = { warmup: 0, flirt: 1, date: 2, couple: 3 };
-            const currentIndex = tabIndices[activeTab] ?? 0;
-            const nodeIndex = idx;
-            
-            const isCompleted = nodeIndex < currentIndex;
-            const isActive = nodeIndex === currentIndex;
-            const isLocked = nodeIndex > currentIndex;
+          {categoryTabs.map((t, idx) => {
+            const isCompleted = idx < currentIndex;
+            const isActive = idx === currentIndex;
+            const isLocked = idx > currentIndex;
+            const ActiveIcon = th.activeIcon;
 
             return (
               <div key={t.id} className="flex flex-col items-center z-10 relative">
                 {/* Node icon area */}
                 <div 
-                  className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-500 ${
+                  className={`w-10 h-10 flex items-center justify-center border transition-all duration-500 ${th.nodeShape} ${
                     isActive 
                       ? `bg-gradient-to-br ${th.gradient} border-transparent text-white active-node shadow-lg`
                       : isCompleted 
@@ -365,9 +419,9 @@ export default function RomanceSocial() {
                   }`}
                 >
                   {isActive ? (
-                    <Heart size={16} className="fill-white" style={{ animation: "heart-pulse 1.2s infinite ease-in-out" }} />
+                    <ActiveIcon size={16} className={`${th.iconRotate} text-white`} style={{ animation: "active-icon-pulse 1.2s infinite ease-in-out" }} />
                   ) : (
-                    <t.icon size={15} />
+                    <t.icon size={15} className={th.iconRotate} />
                   )}
                 </div>
                 
@@ -386,8 +440,8 @@ export default function RomanceSocial() {
 
                 {/* Pulsing satisfaction hint badge above the active stage */}
                 {isActive && (
-                  <div className={`absolute -top-7.5 whitespace-nowrap bg-gradient-to-r ${th.gradient} text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-md ${th.shadowBtn} after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-pink-400`}>
-                    💖 满意度 {score}%
+                  <div className={`absolute -top-7.5 whitespace-nowrap bg-gradient-to-r ${th.gradient} text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-md ${th.shadowBtn} after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent ${th.tooltipArrowClass}`}>
+                    {th.progressTooltipPrefix} {score}%
                   </div>
                 )}
               </div>

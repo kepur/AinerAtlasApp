@@ -1,10 +1,31 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Flame, Globe, BarChart2, Clock, Leaf, Keyboard, Mic, HelpCircle, Brain, History, CheckCircle2, MessageSquare, Search, Lightbulb, User, Users, Play, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
+import { useGameStore, GameTemplate } from "../../stores/gameStore";
 
 export default function TurtleSoupDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { loadTemplate } = useGameStore();
+  const [tpl, setTpl] = useState<GameTemplate | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    loadTemplate(id).then(setTpl).catch(() => setTpl(null));
+  }, [id]);
+
+  // Real template data with sensible fallbacks (keeps the page if API misses).
+  const title = tpl?.title || "消失的乘客";
+  const subtitle = tpl?.subtitle || "海龟汤 · Situation Puzzle";
+  const description = tpl?.description || "一名男子上了火车，在旅途中神秘消失。没人看到他下车，也没有人知道他去了哪里。发生了什么？";
+  const coverUrl = tpl?.cover_url || "https://images.unsplash.com/photo-1555581290-955aee470762?auto=format&fit=crop&q=80&w=800&h=400";
+  const difficulty = tpl?.difficulty || "B1";
+  const minutes = tpl?.estimated_minutes || 10;
+  const targetLang = (tpl?.target_language === "en" || !tpl) ? "English" : (tpl?.target_language || "English");
+  const learningFocus = (tpl?.learning_focus && tpl.learning_focus.length > 0)
+    ? tpl.learning_focus
+    : ["提问句", "推理表达", "过去时", "Yes/No Questions"];
 
   return (
     <motion.div 
@@ -35,7 +56,7 @@ export default function TurtleSoupDetail() {
           transition={{ delay: 0.1, duration: 0.4 }}
           className="w-full h-48 rounded-[24px] overflow-hidden relative shadow-lg shadow-indigo-900/10"
         >
-          <img src="https://images.unsplash.com/photo-1555581290-955aee470762?auto=format&fit=crop&q=80&w=800&h=400" alt="Train Station" className="w-full h-full object-cover" />
+          <img src={coverUrl} alt={title} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1e1b4b] via-[#312e81]/80 to-transparent"></div>
           
           <div className="absolute top-4 right-4 w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white cursor-pointer active:scale-95 transition-transform">
@@ -43,9 +64,9 @@ export default function TurtleSoupDetail() {
           </div>
 
           <div className="absolute bottom-5 left-5 flex flex-col gap-2">
-            <h2 className="text-2xl font-bold text-white tracking-wide shadow-black/50 drop-shadow-md">消失的乘客</h2>
+            <h2 className="text-2xl font-bold text-white tracking-wide shadow-black/50 drop-shadow-md">{title}</h2>
             <div className="flex items-center gap-2 text-indigo-200 text-[11px] font-medium tracking-wide">
-              <span>海龟汤 · Situation Puzzle</span>
+              <span>{subtitle}</span>
             </div>
             <div className="mt-1 flex items-center gap-1 bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full w-max text-[10px] text-white border border-white/20">
               Solo / Party
@@ -63,17 +84,17 @@ export default function TurtleSoupDetail() {
           <div className="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-center gap-1 shadow-sm border border-gray-50">
             <Globe size={18} className="text-indigo-500" />
             <div className="text-[10px] text-gray-400">目标语言</div>
-            <div className="text-[11px] font-bold text-[#111827]">English</div>
+            <div className="text-[11px] font-bold text-[#111827]">{targetLang}</div>
           </div>
           <div className="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-center gap-1 shadow-sm border border-gray-50">
             <BarChart2 size={18} className="text-indigo-500" />
             <div className="text-[10px] text-gray-400">难度</div>
-            <div className="text-[11px] font-bold text-[#111827]">B1</div>
+            <div className="text-[11px] font-bold text-[#111827]">{difficulty}</div>
           </div>
           <div className="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-center gap-1 shadow-sm border border-gray-50">
             <Clock size={18} className="text-indigo-500" />
             <div className="text-[10px] text-gray-400">预计时长</div>
-            <div className="text-[11px] font-bold text-[#111827]">8-12 分钟</div>
+            <div className="text-[11px] font-bold text-[#111827]">{minutes} 分钟</div>
           </div>
           <div className="bg-white rounded-2xl p-2.5 flex flex-col items-center justify-center gap-1 shadow-sm border border-gray-50">
             <Leaf size={18} className="text-emerald-500" />
@@ -114,10 +135,12 @@ export default function TurtleSoupDetail() {
             <h3 className="font-bold text-[15px] text-[#111827]">学习重点</h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm px-3 py-1.5 rounded-full text-[11px] font-medium text-gray-700"><HelpCircle size={12} className="text-indigo-500"/> 提问句</span>
-            <span className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm px-3 py-1.5 rounded-full text-[11px] font-medium text-gray-700"><Brain size={12} className="text-indigo-500"/> 推理表达</span>
-            <span className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm px-3 py-1.5 rounded-full text-[11px] font-medium text-gray-700"><History size={12} className="text-indigo-500"/> 过去时</span>
-            <span className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm px-3 py-1.5 rounded-full text-[11px] font-medium text-gray-700"><CheckCircle2 size={12} className="text-indigo-500"/> Yes/No Questions</span>
+            {learningFocus.map((f, i) => {
+              const Icon = [HelpCircle, Brain, History, CheckCircle2][i % 4];
+              return (
+                <span key={i} className="flex items-center gap-1 bg-white border border-gray-100 shadow-sm px-3 py-1.5 rounded-full text-[11px] font-medium text-gray-700"><Icon size={12} className="text-indigo-500" /> {f}</span>
+              );
+            })}
           </div>
         </motion.section>
 
@@ -128,7 +151,7 @@ export default function TurtleSoupDetail() {
             <h3 className="font-bold text-[15px] text-[#111827]">故事背景</h3>
           </div>
           <p className="text-[13px] text-gray-600 leading-relaxed bg-white p-4 rounded-2xl shadow-sm border border-gray-50">
-            一名男子上了火车，在旅途中神秘消失。没人看到他下车，也没有人知道他去了哪里。发生了什么？
+            {description}
           </p>
         </motion.section>
 
@@ -191,7 +214,7 @@ export default function TurtleSoupDetail() {
                 <span className="bg-indigo-100 text-indigo-600 text-[8px] font-bold px-1 rounded uppercase tracking-wider">AI</span>
               </div>
               <p className="text-[11px] text-indigo-800 leading-relaxed pr-8">
-                欢迎来到《消失的乘客》，我是你的 AI Host。请记住：你可以问任何“是/否”或“相关性”的问题来揭开真相。
+                欢迎来到《{title}》，我是你的 AI Host。请记住：你可以问任何“是/否”或“相关性”的问题来揭开真相。
               </p>
             </div>
             <button className="absolute top-1/2 -translate-y-1/2 right-4 w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-md active:scale-95 transition-transform">
