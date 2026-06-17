@@ -263,6 +263,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
             base_url=base_url.rstrip("/"),
             timeout=timeout,
         )
+        self._stream_json_result: dict | None = None
 
     # ------------------------------------------------------------------
     # Usage tracking helpers
@@ -657,6 +658,64 @@ class OpenAICompatibleLLMProvider(LLMProvider):
         except Exception:
             self._record_usage(latency_ms=int((time.perf_counter() - started) * 1000), status="error")
             raise
+
+    # ------------------------------------------------------------------
+    # complete_json_stream — stream JSON tokens, yield chunks + final dict
+    # ------------------------------------------------------------------
+    async def complete_json_stream(
+        self,
+        system_prompt: str,
+        user_content: str,
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 1400,
+    ):
+        """Stream JSON from the LLM chunk by chunk, yield text tokens.
+
+        Yields:
+            str — each text token from the stream
+        At the end, the accumulated JSON dict is set as ``self._stream_json_result``,
+        and a final marker ``___STREAM_JSON_DONE___`` is yielded so callers know
+        parsing is complete.
+        """
+        started = time.perf_counter()
+        buffer = ""
+        try:
+            response = await self._client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": _ensure_json_instruction(system_prompt)},
+                    {"role": "user", "content": user_content},
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                response_format={"type": "json_object"},
+                stream=True,
+            )
+            usage = None
+            async for chunk in response:
+                # Streaming chunks may have an empty choices list (e.g. the final
+                # usage-only chunk), so guard before indexing.
+                if not getattr(chunk, "choices", None):
+                    usage = getattr(chunk, "usage", None) or usage
+                    continue
+                token = chunk.choices[0].delta.content or ""
+                if token:
+                    buffer += token
+                    yield token
+            self._record_usage(
+                tokens_input=usage.prompt_tokens if usage else 0,
+                tokens_output=usage.completion_tokens if usage else 0,
+                latency_ms=int((time.perf_counter() - started) * 1000),
+            )
+        except Exception as exc:
+            self._record_usage(latency_ms=int((time.perf_counter() - started) * 1000), status="error")
+            logger.error("LLM streaming JSON error: %s", exc)
+            raise
+
+        # Store the parsed result for the caller to retrieve
+        self._stream_json_result = _parse_json(buffer)
+        yield "___STREAM_JSON_DONE___"
 
     # ------------------------------------------------------------------
     # generate_expression_asset

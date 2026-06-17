@@ -147,6 +147,36 @@ def delete_asset(db: Session, asset_id: str) -> None:
         db.commit()
 
 
+# ---------------------------------------------------------------------------
+# Voice presets — admins bind characters to a TTS voice; play-time TTS uses it.
+# ---------------------------------------------------------------------------
+VOICE_PRESETS = [
+    {"id": "female_warm", "name": "温柔女声", "gender": "female", "provider_voice": "nova"},
+    {"id": "female_lively", "name": "活泼女声", "gender": "female", "provider_voice": "shimmer"},
+    {"id": "male_calm", "name": "沉稳男声", "gender": "male", "provider_voice": "onyx"},
+    {"id": "male_warm", "name": "温暖男声", "gender": "male", "provider_voice": "echo"},
+    {"id": "neutral_narrator", "name": "中性旁白", "gender": "neutral", "provider_voice": "alloy"},
+]
+
+_VOICE_BY_ID = {v["id"]: v for v in VOICE_PRESETS}
+
+
+def list_voices() -> list[dict]:
+    return VOICE_PRESETS
+
+
+def pick_voice(gender: str | None) -> str:
+    if gender == "female":
+        return "female_warm"
+    if gender == "male":
+        return "male_calm"
+    return "neutral_narrator"
+
+
+def provider_voice_for(voice_id: str | None) -> str:
+    return _VOICE_BY_ID.get(voice_id or "", {}).get("provider_voice", "alloy")
+
+
 def infer_era(text: str) -> str:
     low = (text or "").lower()
     if any(k in low for k in ["修仙", "仙侠", "古代", "武侠", "仙尊", "师尊", "宫廷", "江湖"]):

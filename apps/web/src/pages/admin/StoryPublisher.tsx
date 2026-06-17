@@ -95,9 +95,12 @@ export default function StoryPublisher() {
           <ChevronLeft size={24} />
         </button>
         <h1 className="font-bold text-[16px] text-[#111827]">AI 故事发布系统</h1>
-        <button onClick={() => navigate("/admin/asset-library")} className="text-[11px] text-indigo-600 font-bold flex items-center gap-1">
-          <Images size={14} /> 素材库
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/admin/templates")} className="text-[11px] text-slate-500 font-bold">内容管理</button>
+          <button onClick={() => navigate("/admin/asset-library")} className="text-[11px] text-indigo-600 font-bold flex items-center gap-1">
+            <Images size={14} /> 素材库
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 px-4 pt-6 flex flex-col gap-6 max-w-md mx-auto w-full">

@@ -3,6 +3,7 @@ import { Volume2, ShieldAlert, Bookmark } from "lucide-react";
 type SpeechCardProps = {
   playerName: string;
   avatarChar: string;
+  avatarUrl?: string;
   englishText: string;
   chineseGloss?: string;
   isHost?: boolean;
@@ -14,6 +15,7 @@ type SpeechCardProps = {
 export default function PlayerSpeechCard({
   playerName,
   avatarChar,
+  avatarUrl,
   englishText,
   chineseGloss,
   isHost,
@@ -34,8 +36,8 @@ export default function PlayerSpeechCard({
   return (
     <div className="flex gap-3 mb-4 max-w-[90%]">
       {/* Avatar */}
-      <div className="w-8 h-8 rounded-full bg-[#1a1140] flex items-center justify-center border border-white/10 flex-shrink-0 mt-1 text-xs text-white/70">
-        {avatarChar}
+      <div className="w-8 h-8 rounded-full bg-[#1a1140] flex items-center justify-center border border-white/10 flex-shrink-0 mt-1 text-xs text-white/70 overflow-hidden">
+        {avatarUrl ? <img src={avatarUrl} alt={playerName} className="w-full h-full object-cover" /> : avatarChar}
       </div>
       
       {/* Bubble */}

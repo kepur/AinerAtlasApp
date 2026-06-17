@@ -127,6 +127,25 @@ class LLMProvider(ABC):
         """Generic structured JSON completion. Default: not supported."""
         raise NotImplementedError("complete_json not supported by this provider")
 
+    async def complete_json_stream(
+        self,
+        system_prompt: str,
+        user_content: str,
+        *,
+        temperature: float = 0.7,
+        max_tokens: int = 1400,
+    ):
+        """Streaming JSON completion. Yields text chunks, stores final dict.
+
+        Default implementation falls back to single-shot complete_json.
+        """
+        result = await self.complete_json(
+            system_prompt, user_content,
+            temperature=temperature, max_tokens=max_tokens,
+        )
+        self._stream_json_result = result
+        yield "___STREAM_JSON_DONE___"
+
     @property
     def last_usage(self) -> dict:
         return {}
@@ -436,6 +455,27 @@ class FallbackLLMProvider(LLMProvider):
 
     async def complete_json(self, *args, **kwargs) -> dict:
         return await self._try_all("complete_json", *args, **kwargs)
+
+    async def complete_json_stream(self, *args, **kwargs):
+        last_exc: Exception | None = None
+        for provider in self._providers:
+            try:
+                self._active = provider
+                gen = provider.complete_json_stream(*args, **kwargs)
+                async for chunk in gen:
+                    yield chunk
+                # Ensure _stream_json_result is propagated
+                if hasattr(provider, "_stream_json_result"):
+                    self._stream_json_result = provider._stream_json_result
+                return
+            except Exception as exc:  # noqa: BLE001
+                pname = type(provider).__name__
+                logger.warning("Provider %s failed for complete_json_stream: %s", pname, exc)
+                last_exc = exc
+                continue
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("No LLM providers available")
 
     async def analyze_user_profile(self, *args, **kwargs) -> dict:
         return await self._try_all("analyze_user_profile", *args, **kwargs)

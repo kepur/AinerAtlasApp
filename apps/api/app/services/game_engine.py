@@ -69,13 +69,15 @@ def get_engine(game_type: str) -> GameTypeEngine:
 # Template operations
 # ---------------------------------------------------------------------------
 
-def list_templates(db: Session, game_type: str | None = None) -> list[dict]:
-    q = select(GameTemplate).where(GameTemplate.enabled.is_(True))
+def list_templates(db: Session, game_type: str | None = None, include_disabled: bool = False) -> list[dict]:
+    q = select(GameTemplate)
+    if not include_disabled:
+        q = q.where(GameTemplate.enabled.is_(True))
     if game_type:
         q = q.where(GameTemplate.game_type == game_type)
     q = q.order_by(GameTemplate.sort_order, GameTemplate.created_at.desc())
     rows = db.execute(q).scalars().all()
-    return [_template_dict(t) for t in rows]
+    return [{**_template_dict(t), "enabled": t.enabled, "sort_order": t.sort_order} for t in rows]
 
 
 def get_template(db: Session, template_id: str) -> dict:

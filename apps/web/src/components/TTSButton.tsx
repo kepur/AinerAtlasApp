@@ -11,9 +11,36 @@ type TTSState = "idle" | "loading" | "playing" | "paused" | "failed";
 type TTSButtonProps = {
   text: string;
   lang?: string;
+  /** Provider/preset voice id to read this line in (per-character voice). */
+  voice?: string;
   size?: number;
   className?: string;
 };
+
+/** Browser speechSynthesis fallback so 朗读 always produces audio, even when
+ *  no server-side TTS provider/key is configured. */
+function browserSpeak(text: string, lang: string, voice: string, onEnd: () => void): boolean {
+  if (typeof window === "undefined" || !window.speechSynthesis) return false;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang?.startsWith("zh") ? "zh-CN" : "en-US";
+    // Pick a female/male browser voice to roughly match the bound voice.
+    const voices = window.speechSynthesis.getVoices();
+    const wantFemale = /female|warm|lively|nova|shimmer|cherry/i.test(voice);
+    const match = voices.find((v) =>
+      v.lang.startsWith(u.lang.slice(0, 2)) &&
+      (wantFemale ? /female|woman|samantha|tingting|mei|nova/i.test(v.name) : true)
+    ) || voices.find((v) => v.lang.startsWith(u.lang.slice(0, 2)));
+    if (match) u.voice = match;
+    u.onend = onEnd;
+    u.onerror = onEnd;
+    window.speechSynthesis.speak(u);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -22,6 +49,7 @@ type TTSButtonProps = {
 export default function TTSButton({
   text,
   lang,
+  voice = "auto",
   size = 16,
   className = "",
 }: TTSButtonProps) {
@@ -53,7 +81,7 @@ export default function TTSButton({
     // idle | failed → load & play
     setState("loading");
     try {
-      const url = await useAudioCacheStore.getState().getOrFetch(text, lang);
+      const url = await useAudioCacheStore.getState().getOrFetch(text, lang, voice);
 
       // Create or reuse Audio element
       if (audioRef.current) {
@@ -69,9 +97,11 @@ export default function TTSButton({
       await audio.play();
       setState("playing");
     } catch {
-      setState("failed");
+      // Server TTS unavailable → fall back to the browser's speech synthesis.
+      const ok = browserSpeak(text, lang || "en", voice, () => setState("idle"));
+      setState(ok ? "playing" : "failed");
     }
-  }, [state, text, lang]);
+  }, [state, text, lang, voice]);
 
   // ----- Icon selection -----
   let icon: React.ReactNode;

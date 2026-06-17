@@ -1,4 +1,5 @@
-import { MessageSquare, ShieldAlert, BookOpen, Flame, Leaf, Lightbulb, Volume2, Star } from "lucide-react";
+import { MessageSquare, BookOpen, Leaf, Lightbulb, Volume2, Star } from "lucide-react";
+import TTSButton from "../../TTSButton";
 
 interface HudAgent { agent?: string; name?: string; result: string }
 interface HudPattern { pattern: string; example?: string }
@@ -43,9 +44,7 @@ export default function UnifiedLearningHUD({ mode, hud, sessionTitle, questionsA
                 <div className="flex justify-between items-start">
                   <h3 className="font-extrabold text-[#111827] text-lg leading-tight">{mainExpr || "等待提问..."}</h3>
                   {mainExpr && (
-                    <button className="w-6 h-6 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center shrink-0">
-                      <Volume2 size={12} />
-                    </button>
+                    <TTSButton text={mainExpr} lang="en" voice="neutral_narrator" size={12} className="w-6 h-6 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center shrink-0" />
                   )}
                 </div>
                 {meaningNative && <p className="text-xs text-[#6b7280] mt-1">{meaningNative}</p>}
@@ -100,9 +99,7 @@ export default function UnifiedLearningHUD({ mode, hud, sessionTitle, questionsA
                   {meaningNative && <p className="text-[11px] text-[#6b7280] mt-1">{meaningNative}</p>}
                 </div>
                 <div className="flex justify-end mt-2">
-                  <button className="w-6 h-6 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center shrink-0">
-                    <Volume2 size={12} />
-                  </button>
+                  <TTSButton text={mainExpr} lang="en" voice="neutral_narrator" size={12} className="w-6 h-6 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center shrink-0" />
                 </div>
               </div>
             )}

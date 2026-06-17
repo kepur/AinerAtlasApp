@@ -16,6 +16,7 @@ import ActionPanel from "../../components/game/ActionPanel";
 import VotePanel from "../../components/game/VotePanel";
 import GameSummary from "../../components/game/GameSummary";
 import { apiRequest } from "../../api";
+import { useAudioCacheStore } from "../../stores/audioCacheStore";
 
 type UIPhase = "lobby" | "reveal" | "night" | "day" | "vote" | "summary";
 
@@ -98,6 +99,23 @@ export default function SocialLogicGame() {
     if (data.state) setGame(data.state);
     if (data.hud) setLearningHud(data.hud);
     setActionMode("default");
+  };
+
+  const speak = async (text: string, speakerName?: string) => {
+    if (!text) return;
+    const sp = players.find((p: any) => p.name === speakerName);
+    const voice = sp?.voice || "neutral_narrator";
+    try {
+      const url = await useAudioCacheStore.getState().getOrFetch(text, "en", voice);
+      await new Audio(url).play();
+    } catch {
+      if (window.speechSynthesis) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "en-US";
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      }
+    }
   };
 
   const handleVote = async (targetId: string, reason: string) => {
@@ -185,13 +203,19 @@ export default function SocialLogicGame() {
                   isHuman: p.is_user, isAlive: p.alive, isSpeaking: false, suspicionLevel: p.suspicion,
                   roleKnown: p.role ? (ROLE_CN[p.role]?.name) : undefined,
                 }))}
-                onPlayerClick={(id: string) => { setSelectedPlayerId(id); setActionMode("question"); }}
+                onPlayerClick={(id: string) => {
+                  const p = players.find((x: any) => x.id === id);
+                  if (!p || p.is_user || !p.alive) return; // can only question living AI players
+                  setSelectedPlayerId(id);
+                  setActionMode("question");
+                }}
               />
 
               <SpeechFeed>
                 {(game.feed || []).map((f: any, i: number) => {
                   if (f.type === "speech") {
-                    return <PlayerSpeechCard key={i} playerName={f.speaker} avatarChar={(f.speaker || "?").slice(-1)} englishText={f.text} chineseGloss={f.text_native} />;
+                    const sp = players.find((p: any) => p.name === f.speaker);
+                    return <PlayerSpeechCard key={i} playerName={f.speaker} avatarChar={(f.speaker || "?").slice(-1)} avatarUrl={sp?.avatar_url} englishText={f.text} chineseGloss={f.text_native} onSpeak={() => speak(f.text, f.speaker)} onChallenge={() => { setSelectedPlayerId(sp?.id); setActionMode("question"); }} />;
                   }
                   if (f.type === "user_question") {
                     return <UserSpeechCard key={i} englishText={f.text} chineseGloss={f.text_native} onShowLearningPoints={() => learningHud && setActionMode("default")} />;

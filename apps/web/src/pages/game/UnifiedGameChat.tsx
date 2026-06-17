@@ -88,6 +88,7 @@ export default function UnifiedGameChat() {
   const choices = (lastChoices?.choices as Array<{ label: string; action: string }>) || [];
   const isActive = currentSession?.status === "active";
   const showInput = phase !== "summary" && phase !== "lobby" && isActive;
+  const characters = (Array.isArray(view.characters) ? view.characters : []) as any[];
 
   /* ---- Loading state ---- */
   if (creating) {
@@ -102,7 +103,7 @@ export default function UnifiedGameChat() {
   }
 
   /* ---- Main layout ---- */
-  const coverUrl = (currentSession as any)?.config?.cover_url || (currentSession as any)?.cover_url;
+  const coverUrl = (view.cover_url as string) || (currentSession as any)?.config?.cover_url || "";
 
   return (
     <div className="w-full h-screen bg-[#f8f9fc] flex flex-col relative overflow-hidden">
@@ -137,7 +138,7 @@ export default function UnifiedGameChat() {
         turnLoading={turnLoading}
         cluesFound={cluesFound}
         totalClues={totalClues}
-        characters={(currentSession as any)?.config?.characters || []}
+        characters={characters}
         hudSlot={
           <UnifiedLearningHUD
             mode={mode}

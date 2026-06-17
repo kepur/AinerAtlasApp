@@ -264,6 +264,13 @@ def seed_defaults() -> None:
                 logger.info(f"Seeded {n} game assets")
         except Exception as exc:  # noqa: BLE001
             logger.warning(f"Game asset seed skipped: {exc}")
+        try:
+            from app.services.game_prompts import seed_game_prompts
+            n = seed_game_prompts(db)
+            if n:
+                logger.info(f"Seeded {n} game prompt slots")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Game prompt seed skipped: {exc}")
         db.commit()
 
 

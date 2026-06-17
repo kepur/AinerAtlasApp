@@ -5,6 +5,7 @@ import {
   Heart, AlertTriangle, Link, Clock, ChevronRight, HelpCircle, Lightbulb, Loader2
 } from "lucide-react";
 import { useGameStore } from "../../stores/gameStore";
+import TTSButton from "../../components/TTSButton";
 
 const EMOTION_LABELS: Record<string, { label: string; emoji: string }> = {
   nervous: { label: "紧张", emoji: "😬" },
@@ -180,9 +181,7 @@ export default function DetectiveInterrogation() {
           <div className="px-3 pb-3 flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className="text-[15px] font-bold text-[#111827]">{hintEn}</span>
-              <button className="w-6 h-6 rounded-full bg-purple-200 flex items-center justify-center shrink-0">
-                <Volume2 size={12} className="text-purple-600" />
-              </button>
+              <TTSButton text={hintEn} lang="en" voice="neutral_narrator" size={12} className="w-6 h-6 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 shrink-0" />
             </div>
             <span className="text-[12px] text-[#6b7280]">{hintZh}</span>
             <div className="flex items-center gap-2 flex-wrap">
@@ -221,24 +220,20 @@ export default function DetectiveInterrogation() {
             </div>
           ) : (
             <div key={i} className="flex items-end gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c4b5fd] to-[#a78bfa] flex items-center justify-center shrink-0 shadow-sm">
-                <span className="text-white font-bold text-sm">{((msg.suspect_name as string) || suspect.name || "?").charAt(0)}</span>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c4b5fd] to-[#a78bfa] flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                {suspect.avatar_url
+                  ? <img src={suspect.avatar_url} alt={suspect.name} className="w-full h-full object-cover" />
+                  : <span className="text-white font-bold text-sm">{((msg.suspect_name as string) || suspect.name || "?").charAt(0)}</span>}
               </div>
               <div className="flex flex-col max-w-[72%]">
-                <span className="text-[11px] font-bold text-[#7c3aed] ml-1 mb-0.5">
+                <span className="text-[11px] font-bold text-[#7c3aed] ml-1 mb-0.5 inline-flex items-center gap-1">
                   {(msg.suspect_name as string) || suspect.name}
+                  <TTSButton text={String(msg.text || "")} lang="en" voice={suspect.voice || "neutral_narrator"} size={10} className="w-5 h-5 rounded-full bg-purple-50 flex items-center justify-center text-purple-500" />
                   {msg.emotion ? <span className="text-[#9ca3af] font-normal ml-1">{EMOTION_LABELS[msg.emotion as string]?.emoji} {EMOTION_LABELS[msg.emotion as string]?.label}</span> : null}
                 </span>
                 <div className="bg-white rounded-[18px] rounded-tl-[4px] px-4 py-3 shadow-sm border border-purple-50">
                   <p className="text-sm text-[#111827] leading-relaxed">{msg.text}</p>
-                  {msg.text_native ? (
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-[10px] text-[#9ca3af]">{msg.text_native as string}</p>
-                      <button className="w-5 h-5 rounded-full bg-purple-50 flex items-center justify-center ml-2 shrink-0">
-                        <Volume2 size={10} className="text-purple-400" />
-                      </button>
-                    </div>
-                  ) : null}
+                  {msg.text_native ? <p className="text-[10px] text-[#9ca3af] mt-1">{msg.text_native as string}</p> : null}
                 </div>
               </div>
             </div>

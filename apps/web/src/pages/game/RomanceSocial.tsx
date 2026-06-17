@@ -1,27 +1,28 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  ChevronLeft, Volume2, Heart, Coffee, Calendar, Shield, Leaf,
+  ChevronLeft, Volume2, Heart, Coffee, Sparkles, HeartHandshake, Leaf,
   Lightbulb, Send, Mic, Flame, Loader2,
 } from "lucide-react";
 import { useGameStore, FeedItem } from "../../stores/gameStore";
+import TTSButton from "../../components/TTSButton";
 
 const TABS = [
   { id: "warmup", icon: Coffee, label: "暖场", phase: "icebreaker" },
   { id: "flirt", icon: Heart, label: "暧昧", phase: "flirting" },
-  { id: "date", icon: Calendar, label: "约会", phase: "dating" },
-  { id: "boundary", icon: Shield, label: "边界", phase: "couple" },
+  { id: "date", icon: Sparkles, label: "约会", phase: "dating" },
+  { id: "couple", icon: HeartHandshake, label: "心动·情侣", phase: "couple" },
 ];
 
 const PHASE_TO_TAB: Record<string, string> = {
-  icebreaker: "warmup", flirting: "flirt", dating: "date", couple: "boundary",
+  icebreaker: "warmup", flirting: "flirt", dating: "date", couple: "couple",
 };
 
 const ACTION_PRESETS: Record<string, string> = {
   轻松回应: "Haha that's so true, I feel the same way!",
-  表达友好: "I really enjoy talking with you.",
+  表达好感: "I really enjoy spending time with you.",
   幽默一点: "Careful, you might make me blush! 😄",
-  保持边界: "I think it's better for us to keep some distance.",
+  更进一步: "I've really started to fall for you. Want to be more than friends?",
 };
 
 interface HintCard { title?: string; en?: string; zh?: string; breakdown?: string[] }
@@ -97,8 +98,15 @@ export default function RomanceSocial() {
 
   return (
     <div className="w-full h-full bg-[#fdf2f8] flex flex-col max-w-[480px] mx-auto relative overflow-hidden">
+      {/* Background board (faint scene) for immersion */}
+      {target.cover_url && (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <img src={target.cover_url} alt="" className="w-full h-full object-cover opacity-[0.12]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#fdf2f8]/70 via-[#fdf2f8]/60 to-[#fdf2f8]" />
+        </div>
+      )}
       {/* Sticky top */}
-      <div className="sticky top-0 z-40 bg-[#fdf2f8]">
+      <div className="sticky top-0 z-40 bg-[#fdf2f8]/80 backdrop-blur-sm">
         {/* Header */}
         <header className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top,16px)] h-14">
           <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center text-gray-700 bg-white/60 rounded-full">
@@ -129,7 +137,7 @@ export default function RomanceSocial() {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-44 no-scrollbar">
+      <div className="flex-1 overflow-y-auto pb-44 no-scrollbar relative z-10">
         {/* Learning HUD cards */}
         <div className="px-4 pt-2 grid grid-cols-2 gap-3">
           {/* 自然表达 */}
@@ -140,9 +148,8 @@ export default function RomanceSocial() {
             </div>
             <div className="text-[12px] font-extrabold text-[#1f2937] leading-snug">{phraseEn}</div>
             <div className="text-[10px] text-[#9ca3af] mt-1">{phraseZh}</div>
-            <button onClick={() => setInputText(phraseEn)} className="mt-2 w-7 h-7 rounded-full bg-gradient-to-br from-pink-300 to-pink-500 flex items-center justify-center">
-              <Volume2 size={12} className="text-white" />
-            </button>
+            <TTSButton text={phraseEn} lang="en" voice="neutral_narrator" size={12} className="mt-2 w-7 h-7 rounded-full bg-gradient-to-br from-pink-300 to-pink-500 flex items-center justify-center text-white" />
+            <button onClick={() => setInputText(phraseEn)} className="mt-2 ml-2 text-[10px] text-pink-500 font-bold">套用</button>
           </div>
 
           {/* 为什么这么说 */}
@@ -170,8 +177,10 @@ export default function RomanceSocial() {
 
         {/* Scene bar */}
         <div className="mx-4 mt-3 bg-white/70 rounded-2xl border border-pink-100 px-3 py-2.5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 flex items-center justify-center shrink-0">
-            <span className="text-white font-bold">{(target.name || "M").charAt(0)}</span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 flex items-center justify-center shrink-0 overflow-hidden">
+            {target.avatar_url
+              ? <img src={target.avatar_url} alt={target.name} className="w-full h-full object-cover" />
+              : <span className="text-white font-bold">{(target.name || "M").charAt(0)}</span>}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-bold text-[#1f2937]">{target.name} · {target.age}岁 <span className="text-[#9ca3af] font-normal">{target.role}</span></p>
@@ -206,12 +215,15 @@ export default function RomanceSocial() {
             if (msg.type === "char_msg") {
               return (
                 <div key={i} className="flex gap-2 items-end">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 flex items-center justify-center shrink-0">
-                    <span className="text-white text-xs font-bold">{((msg.speaker as string) || "M").charAt(0)}</span>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 flex items-center justify-center shrink-0 overflow-hidden">
+                    {target.avatar_url
+                      ? <img src={target.avatar_url} alt={target.name} className="w-full h-full object-cover" />
+                      : <span className="text-white text-xs font-bold">{((msg.speaker as string) || "M").charAt(0)}</span>}
                   </div>
                   <div className="max-w-[75%]">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-[11px] font-bold text-[#be185d]">{msg.speaker as string}</span>
+                      <TTSButton text={String(msg.text || "")} lang="en" voice={target.voice || "female_warm"} size={10} className="w-5 h-5 rounded-full bg-pink-50 flex items-center justify-center text-pink-500" />
                       {msg.emotion ? <span className="text-[9px] text-[#c98bab]">({msg.emotion as string})</span> : null}
                     </div>
                     <div className="bg-white rounded-[18px] rounded-tl-[4px] px-4 py-2.5 shadow-sm border border-pink-50">

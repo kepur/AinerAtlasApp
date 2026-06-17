@@ -62,10 +62,13 @@ class TurtleSoupEngine(GameTypeEngine):
     game_type = "turtle_soup"
 
     async def init_session(self, session: GameSession, config: dict) -> dict:
-        case_id = config.get("case_id", "passenger")
-        case = _BUILTIN_CASES.get(case_id)
-        if not case and config.get("surface"):
+        # A full published case (with its own surface/truth) takes priority over
+        # the builtin lookup, so admin-authored puzzles aren't shadowed.
+        case = None
+        if config.get("surface") and config.get("truth"):
             case = config
+        if not case:
+            case = _BUILTIN_CASES.get(config.get("case_id", "passenger"))
         if not case:
             case = _BUILTIN_CASES["passenger"]
 
@@ -133,7 +136,8 @@ class TurtleSoupEngine(GameTypeEngine):
         case = state["case"]
         state["questions_asked"] = state.get("questions_asked", 0) + 1
 
-        system = (
+        from app.services.game_prompts import get_game_prompt
+        default_system = (
             "你是海龟汤游戏的裁判。玩家会根据汤面故事提出是非问题，你根据汤底真相判断。\n\n"
             f"汤面：{case['surface']}\n\n"
             f"汤底（真相）：{case['truth']}\n\n"
@@ -148,6 +152,10 @@ class TurtleSoupEngine(GameTypeEngine):
             '"clue_hint_en":"English hint",'
             '"comment":"简短评价这个问题的质量（中文）",'
             '"comment_en":"Brief comment on question quality in English"}'
+        )
+        system = get_game_prompt(
+            db, "turtle_soup.judge", default_system,
+            surface=case["surface"], truth=case["truth"],
         )
         user_msg = (
             f"玩家的问题（可能是中文或英文）：{user_input}\n\n"
@@ -291,6 +299,8 @@ class TurtleSoupEngine(GameTypeEngine):
 
         try:
             provider = _provider_for("game_challenge_hud", db)
+            from app.services.game_prompts import get_game_prompt
+            system = get_game_prompt(db, "turtle_soup.hud", system)
             hud = await provider.complete_json(system, user_msg, temperature=0.7, max_tokens=900)
         except Exception as exc:
             logger.warning("turtle soup HUD failed: %s", exc)

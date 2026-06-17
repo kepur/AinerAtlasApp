@@ -27,6 +27,7 @@ import GameSummaryScreen from "./pages/game/GameSummaryScreen";
 import RoleplayStorylineList from "./pages/game/RoleplayStorylineList";
 import StoryPublisher from "./pages/admin/StoryPublisher";
 import AssetLibrary from "./pages/admin/AssetLibrary";
+import TemplateManager from "./pages/admin/TemplateManager";
 import TurtleSoupSummary from "./pages/game/TurtleSoupSummary";
 import RomanceSocial from "./pages/game/RomanceSocial";
 import DetectiveBoard from "./pages/game/DetectiveBoard";
@@ -82,6 +83,7 @@ function AppLayout() {
           <Route path="/game/roleplay/characters" element={<RoleplayCharacterList />} />
           <Route path="/admin/story-publisher" element={<StoryPublisher />} />
           <Route path="/admin/asset-library" element={<AssetLibrary />} />
+          <Route path="/admin/templates" element={<TemplateManager />} />
           <Route path="/game/roleplay/character/:id" element={<RoleplayCharacterDetail />} />
           <Route path="/game/roleplay/generated-setting" element={<GeneratedStorySettings />} />
           <Route path="/game/setup/:id" element={<RoleplaySetup />} />

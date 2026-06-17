@@ -27,6 +27,7 @@ _BUILTIN_CASES = {
             {
                 "id": "anna", "name": "Anna", "name_en": "Anna",
                 "role": "服务员",
+                "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150",
                 "personality": "紧张易怒，说话时经常眼神飘忽",
                 "alibi": "一直在吧台工作，大概9点看到老板从办公室出来",
                 "alibi_en": "Was working at the bar the whole time, saw the boss come out of office around 9",
@@ -37,6 +38,7 @@ _BUILTIN_CASES = {
             {
                 "id": "mark", "name": "Mark", "name_en": "Mark",
                 "role": "合伙人",
+                "avatar_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150",
                 "personality": "镇定自若，逻辑清晰但过于冷静",
                 "alibi": "在办公室处理账目，听到声响后出来查看",
                 "alibi_en": "Was handling accounts in the office, came out after hearing a noise",
@@ -47,6 +49,7 @@ _BUILTIN_CASES = {
             {
                 "id": "leo", "name": "Leo", "name_en": "Leo",
                 "role": "常客",
+                "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150",
                 "personality": "热心但神经质，说话前后矛盾",
                 "alibi": "在角落喝咖啡看书，什么都没注意到",
                 "alibi_en": "Was reading in the corner, didn't notice anything",
@@ -57,6 +60,7 @@ _BUILTIN_CASES = {
             {
                 "id": "tom", "name": "Tom", "name_en": "Tom",
                 "role": "外卖员",
+                "avatar_url": "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&q=80&w=150",
                 "personality": "匆忙急躁，极力想证明自己清白",
                 "alibi": "8:50送完外卖就离开了，9:10才回来取忘记的头盔",
                 "alibi_en": "Left after delivery at 8:50, came back at 9:10 for forgotten helmet",
@@ -66,12 +70,12 @@ _BUILTIN_CASES = {
             },
         ],
         "clues": [
-            {"id": "wet_umbrella", "title": "湿伞", "title_en": "Wet umbrella", "desc": "这把伞是湿的，但当天没有下雨。", "desc_en": "The umbrella is wet, but it didn't rain.", "points_to": "mark"},
-            {"id": "three_cups", "title": "三个杯子", "title_en": "Three cups", "desc": "桌上有三个杯子，但只有两人喝了咖啡。", "desc_en": "Three cups on the table, but only two people drank coffee.", "points_to": "leo"},
-            {"id": "torn_note", "title": "撕碎的纸条", "title_en": "Torn note", "desc": "垃圾桶里有一张被撕碎的纸条。", "desc_en": "A torn note was found in the trash.", "points_to": "mark"},
-            {"id": "back_key", "title": "后门钥匙", "title_en": "Back door key", "desc": "钥匙上的指纹不属于老板。", "desc_en": "The fingerprints on the key don't belong to the owner.", "points_to": "mark"},
-            {"id": "cctv_gap", "title": "监控盲区", "title_en": "CCTV gap", "desc": "案发时间段，监控刚好有3分钟中断。", "desc_en": "CCTV had a 3-minute gap during the incident.", "points_to": "mark"},
-            {"id": "blood_trail", "title": "血迹拖痕", "title_en": "Blood trail", "desc": "地上有一小段血迹拖痕，通向储物间。", "desc_en": "A small blood trail leads to the storage room.", "points_to": "mark"},
+            {"id": "wet_umbrella", "title": "湿伞", "title_en": "Wet umbrella", "image_url": "https://images.unsplash.com/photo-1534113414509-0eec2bfb493f?auto=format&fit=crop&q=80&w=300", "desc": "这把伞是湿的，但当天没有下雨。", "desc_en": "The umbrella is wet, but it didn't rain.", "points_to": "mark"},
+            {"id": "three_cups", "title": "三个杯子", "title_en": "Three cups", "image_url": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=300", "desc": "桌上有三个杯子，但只有两人喝了咖啡。", "desc_en": "Three cups on the table, but only two people drank coffee.", "points_to": "leo"},
+            {"id": "torn_note", "title": "撕碎的纸条", "title_en": "Torn note", "image_url": "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=300", "desc": "垃圾桶里有一张被撕碎的纸条。", "desc_en": "A torn note was found in the trash.", "points_to": "mark"},
+            {"id": "back_key", "title": "后门钥匙", "title_en": "Back door key", "image_url": "https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&q=80&w=300", "desc": "钥匙上的指纹不属于老板。", "desc_en": "The fingerprints on the key don't belong to the owner.", "points_to": "mark"},
+            {"id": "cctv_gap", "title": "监控盲区", "title_en": "CCTV gap", "image_url": "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=300", "desc": "案发时间段，监控刚好有3分钟中断。", "desc_en": "CCTV had a 3-minute gap during the incident.", "points_to": "mark"},
+            {"id": "blood_trail", "title": "血迹拖痕", "title_en": "Blood trail", "image_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=300", "desc": "地上有一小段血迹拖痕，通向储物间。", "desc_en": "A small blood trail leads to the storage room.", "points_to": "mark"},
         ],
         "culprit": "mark",
         "truth": "Mark发现老板挪用合伙资金后，在办公室与老板发生争执。他用办公室的文件夹砸了老板的头，然后把凶器藏在储物间。他利用自己对监控系统的了解，制造了3分钟的盲区。湿伞是他用来冲洗血迹的工具。",
@@ -89,8 +93,13 @@ class DetectiveEngine(GameTypeEngine):
     game_type = "detective"
 
     async def init_session(self, session: GameSession, config: dict) -> dict:
-        case_id = config.get("case_id", "cafe_lie")
-        case = _BUILTIN_CASES.get(case_id)
+        # Admin-published cases (full object in config) take priority over the
+        # builtin lookup so they aren't shadowed by the default case_id.
+        case = None
+        if config.get("scene") and config.get("suspects"):
+            case = config
+        if not case:
+            case = _BUILTIN_CASES.get(config.get("case_id", "cafe_lie"))
         if not case:
             case = _BUILTIN_CASES["cafe_lie"]
 
@@ -102,6 +111,7 @@ class DetectiveEngine(GameTypeEngine):
             suspects.append({
                 "id": s["id"], "name": s["name"], "name_en": s.get("name_en", s["name"]),
                 "role": s["role"], "personality": s["personality"],
+                "avatar_url": s.get("avatar_url", ""),
                 "alibi": s["alibi"], "alibi_en": s.get("alibi_en", ""),
                 "secret": s["secret"], "is_culprit": s["is_culprit"],
                 "trust": s.get("trust", 50),
@@ -235,7 +245,8 @@ class DetectiveEngine(GameTypeEngine):
 
         native = session.native_language
 
-        system = (
+        from app.services.game_prompts import get_game_prompt
+        default_system = (
             f"你在扮演侦探案件中的嫌疑人 {suspect['name']}。\n\n"
             f"你的身份：{suspect['role']}\n"
             f"你的性格：{suspect['personality']}\n"
@@ -252,6 +263,7 @@ class DetectiveEngine(GameTypeEngine):
             '"emotion":"suspicious/nervous/calm/angry/defensive",'
             '"lie_detected":true/false,"trust_change":-5到5}'
         )
+        system = get_game_prompt(db, "detective.interrogate", default_system)
         user_msg = (
             f"侦探的问题：{question}\n"
             f"已知线索：\n{clue_text if clue_text else '暂无'}\n"
@@ -399,6 +411,8 @@ class DetectiveEngine(GameTypeEngine):
 
         try:
             provider = _provider_for("game_challenge_hud", db)
+            from app.services.game_prompts import get_game_prompt
+            system = get_game_prompt(db, "detective.hud", system)
             hud = await provider.complete_json(system, user_msg, temperature=0.7, max_tokens=900)
         except Exception as exc:
             logger.warning("detective HUD failed: %s", exc)
@@ -472,6 +486,8 @@ class DetectiveEngine(GameTypeEngine):
                 "name": s["name"],
                 "name_en": s.get("name_en", ""),
                 "role": s["role"],
+                "avatar_url": s.get("avatar_url", ""),
+                "voice": s.get("voice", ""),
                 "trust": s.get("trust", 50),
                 "interrogated": s.get("interrogated", False),
                 "statement_count": len(s.get("statements", [])),
@@ -487,6 +503,7 @@ class DetectiveEngine(GameTypeEngine):
                 "id": c["id"],
                 "title": c["title"],
                 "title_en": c.get("title_en", ""),
+                "image_url": c.get("image_url", ""),
                 "discovered": discovered,
                 "desc": c["desc"] if discovered else "",
                 "desc_en": c.get("desc_en", "") if discovered else "",

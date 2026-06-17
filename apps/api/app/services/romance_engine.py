@@ -25,6 +25,9 @@ _BUILTIN_TARGETS = {
         "name_en": "Mia",
         "age": 25,
         "role": "咖啡店常客",
+        "gender": "female",
+        "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150",
+        "cover_url": "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&q=80&w=600",
         "personality": "轻松外向，说话温柔，喜欢旅行和摄影，容易害羞",
         "initial_scene": "咖啡店初次见面，你走近常去喝咖啡的店，发现她正坐在窗边看书...",
         "tags": ["恋爱社交", "轻松", "B1-B2"],
@@ -34,6 +37,8 @@ _BUILTIN_TARGETS = {
         "name_en": "Leo",
         "age": 32,
         "role": "欧洲客户",
+        "gender": "male",
+        "avatar_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150",
         "personality": "直接、谨慎、喜欢砍价，但私下里幽默且体贴",
         "initial_scene": "项目商务谈判后的酒会，你们恰好在吧台碰面...",
         "tags": ["恋爱社交", "正式", "B2-C1"],
@@ -43,6 +48,8 @@ _BUILTIN_TARGETS = {
         "name_en": "Junior Sister",
         "age": 19,
         "role": "青云宗弟子",
+        "gender": "female",
+        "avatar_url": "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&q=80&w=150",
         "personality": "温柔、善良、试探心意，一直暗恋你",
         "initial_scene": "后山重逢，你离开宗门多年后第一次回来，她正在那里练剑...",
         "tags": ["仙侠剧情", "情感", "B1"],
@@ -57,7 +64,12 @@ class RomanceEngine(GameTypeEngine):
 
     async def init_session(self, session: GameSession, config: dict) -> dict:
         target_id = config.get("target_id", "mia")
-        target = _BUILTIN_TARGETS.get(target_id, _BUILTIN_TARGETS["mia"])
+        target = _BUILTIN_TARGETS.get(target_id)
+        # Admin-published romance characters pass a full target object in config.
+        if not target and config.get("personality") and config.get("name"):
+            target = config
+        if not target:
+            target = _BUILTIN_TARGETS["mia"]
 
         session.title = f"与 {target['name']} 的约会"
         session.phase = "icebreaker" # icebreaker -> flirting -> dating -> couple
@@ -80,7 +92,8 @@ class RomanceEngine(GameTypeEngine):
 
         state["total_turns"] = state.get("total_turns", 0) + 1
 
-        prompt = self._build_prompt(state, user_input, extra)
+        from app.services.game_prompts import get_game_prompt
+        prompt = get_game_prompt(db, "romance.turn", self._build_prompt(state, user_input, extra))
         provider = _provider_for("chat", db)
         
         try:

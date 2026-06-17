@@ -207,7 +207,7 @@ export default function TurtleSoupDetail() {
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.3 }}
-        className="fixed bottom-[calc(max(env(safe-area-inset-bottom,16px),16px)+64px)] left-0 w-full px-4 z-50 pointer-events-none"
+        className="fixed bottom-[max(env(safe-area-inset-bottom,16px),16px)] left-0 w-full px-4 z-50 pointer-events-none"
       >
         <div className="max-w-md mx-auto flex gap-3 pointer-events-auto">
           <button 

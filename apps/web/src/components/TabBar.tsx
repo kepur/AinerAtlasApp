@@ -41,18 +41,22 @@ export default function TabBar() {
   const navigate = useNavigate();
   const { t } = useI18n();
 
-  const hidePaths = [
-    "/game/roleplay/chat",
-    "/game/romance-social",
-    "/game/detective-board",
-    "/game/interrogation",
-    "/game/party-room",
-    "/game/social-logic",
-    "/game/puzzle-logic",
-    "/game/universal",
-    "/game/play"
+  const showPaths = [
+    "/",
+    "/home",
+    "/chat",
+    "/game",
+    "/game/roleplay/home",
+    "/game/roleplay/storylines",
+    "/game/roleplay/characters",
+    "/assets",
+    "/thoughts",
+    "/match",
+    "/profile",
+    "/topics"
   ];
-  if (hidePaths.some(p => pathname.startsWith(p))) {
+
+  if (!showPaths.includes(pathname)) {
     return null;
   }
 

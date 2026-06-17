@@ -89,6 +89,14 @@ def list_voice_sessions(current_user: CurrentUser, db: DBSession) -> list[VoiceS
 
 @router.post("/tts")
 async def synthesize(payload: TTSRequest, db: DBSession) -> dict:
+    # Map a game voice-preset id (e.g. "female_warm") to a provider voice.
+    try:
+        from app.services.game_assets import _VOICE_BY_ID, provider_voice_for
+        if payload.voice in _VOICE_BY_ID:
+            payload.voice = provider_voice_for(payload.voice)
+    except Exception:  # noqa: BLE001
+        pass
+
     def get_key(keys, platform):
         if isinstance(keys, list):
             for e in keys:

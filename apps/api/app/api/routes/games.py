@@ -1,9 +1,13 @@
 """Unified games API — Story Game Forge."""
 from __future__ import annotations
 
+import json
 import logging
+from datetime import UTC, datetime
+from typing import AsyncGenerator
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.api.deps import CurrentUser, DBSession
@@ -74,8 +78,8 @@ class TurnRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/templates")
-def list_templates(db: DBSession, game_type: str | None = None) -> list[dict]:
-    return engine.list_templates(db, game_type)
+def list_templates(db: DBSession, game_type: str | None = None, include_disabled: bool = False) -> list[dict]:
+    return engine.list_templates(db, game_type, include_disabled)
 
 
 @router.get("/templates/{template_id}")
@@ -124,6 +128,45 @@ def create_template(payload: CreateTemplateRequest, current_user: CurrentUser, d
     }
 
 
+class TemplateUpdateRequest(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    cover_url: str | None = None
+    enabled: bool | None = None
+    sort_order: int | None = None
+    difficulty: str | None = None
+
+
+@router.patch("/templates/{template_id}")
+def update_template(template_id: str, payload: TemplateUpdateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.models import GameTemplate
+    t = db.get(GameTemplate, template_id)
+    if not t:
+        raise HTTPException(status_code=404, detail="Template not found")
+    for field in ("title", "description", "cover_url", "enabled", "sort_order", "difficulty"):
+        val = getattr(payload, field)
+        if val is not None:
+            setattr(t, field, val)
+    db.commit()
+    db.refresh(t)
+    return engine._template_dict(t)
+
+
+@router.delete("/templates/{template_id}")
+def delete_template(template_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.models import GameTemplate, GameSession
+    from sqlalchemy import update
+    t = db.get(GameTemplate, template_id)
+    if t:
+        # Detach any sessions that reference this template to avoid FK violations.
+        db.execute(
+            update(GameSession).where(GameSession.template_id == template_id).values(template_id=None)
+        )
+        db.delete(t)
+        db.commit()
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------------------
 # Asset library
 # ---------------------------------------------------------------------------
@@ -145,6 +188,13 @@ def pick_asset(
 ) -> dict:
     from app.services import game_assets
     return {"url": game_assets.pick_asset(db, kind, era, gender)}
+
+
+@router.get("/voices")
+def list_voices() -> list[dict]:
+    """Available TTS voice presets for binding to characters."""
+    from app.services import game_assets
+    return game_assets.list_voices()
 
 
 @router.post("/assets")
@@ -243,6 +293,7 @@ Return ONLY a valid JSON object with this schema:
         gender = c.get("gender") or game_assets.infer_gender(f"{c.get('name','')} {c.get('personality','')}")
         c["gender"] = gender
         c["avatar_url"] = game_assets.pick_asset(db, "avatar", era=era, gender=gender)
+        c["voice"] = c.get("voice") or game_assets.pick_voice(gender)
     data.setdefault("length", payload.length)
     return data
 
@@ -297,6 +348,120 @@ async def send_turn(
     except Exception as exc:
         logger.exception("game turn failed")
         raise HTTPException(status_code=503, detail=f"游戏操作失败：{exc}") from exc
+
+
+@router.post("/sessions/{session_id}/turns/stream")
+async def send_turn_stream(
+    session_id: str, payload: TurnRequest,
+    current_user: CurrentUser, db: DBSession,
+):
+    """Streaming turn endpoint for roleplay games (SSE)."""
+    from app.services import game_engine as eg
+    from app.models import GameSession
+    from sqlalchemy import select
+
+    sess = db.scalar(
+        select(GameSession).where(
+            GameSession.id == session_id,
+            GameSession.user_id == current_user.id,
+        )
+    )
+    if not sess or sess.status != "active":
+        raise HTTPException(status_code=400, detail="Game session not found or not active")
+
+    # Only roleplay games support streaming for now
+    if sess.game_type != "roleplay":
+        # Fall back to non-streaming
+        try:
+            result = await engine.handle_turn(
+                db, session_id, current_user.id,
+                payload.action_type, payload.user_input, payload.extra,
+            )
+            async def single_event() -> AsyncGenerator[str, None]:
+                yield f"event: complete\ndata: {json.dumps(result, ensure_ascii=False, default=str)}\n\n"
+            return StreamingResponse(single_event(), media_type="text/event-stream")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception("game turn failed")
+            raise HTTPException(status_code=503, detail=f"游戏操作失败：{exc}") from exc
+
+    # --- Streaming path for roleplay ---
+    from app.services.roleplay_engine import RoleplayEngine
+
+    eng = engine.get_engine("roleplay")
+    if not isinstance(eng, RoleplayEngine):
+        raise HTTPException(status_code=500, detail="Roleplay engine not found")
+
+    async def sse_generator() -> AsyncGenerator[str, None]:
+        try:
+            async for event in eng.handle_turn_stream(
+                db, sess, payload.action_type, payload.user_input, payload.extra or {},
+            ):
+                if event["type"] == "partial_feed":
+                    yield f"event: feed\ndata: {json.dumps(event['data'], ensure_ascii=False, default=str)}\n\n"
+                elif event["type"] == "complete":
+                    from sqlalchemy.orm.attributes import flag_modified
+                    from app.models import GameTurn
+                    from app.models import new_id
+
+                    data = event["data"]
+
+                    # Persist the turn + session state
+                    sess.turn_count += 1
+                    turn = GameTurn(
+                        id=new_id(),
+                        session_id=sess.id,
+                        turn_number=sess.turn_count,
+                        actor="user",
+                        action_type=payload.action_type,
+                        user_input=payload.user_input,
+                        ai_response=data.get("ai_response", {}),
+                        hud=data.get("hud", {}),
+                        feed_items=data.get("feed_items", []),
+                        phase_after=sess.phase,
+                    )
+                    db.add(turn)
+
+                    sess.state = data.get("state", sess.state)
+                    flag_modified(sess, "state")
+                    if data.get("ended"):
+                        sess.status = "ended"
+                        sess.ended_at = datetime.now(UTC)
+                        sess.score = data.get("score", sess.score)
+
+                    db.commit()
+                    db.refresh(turn)
+
+                    final = {
+                        "turn": {
+                            "id": turn.id,
+                            "turn_number": turn.turn_number,
+                            "actor": turn.actor,
+                            "action_type": turn.action_type,
+                            "user_input": turn.user_input,
+                            "ai_response": turn.ai_response,
+                            "hud": turn.hud,
+                            "feed_items": turn.feed_items,
+                            "phase_after": turn.phase_after,
+                        },
+                        "session": {
+                            "id": sess.id,
+                            "game_type": sess.game_type,
+                            "title": sess.title,
+                            "phase": sess.phase,
+                            "turn_count": sess.turn_count,
+                            "score": sess.score,
+                            "status": sess.status,
+                            "view": {},
+                        },
+                    }
+                    yield f"event: complete\ndata: {json.dumps(final, ensure_ascii=False, default=str)}\n\n"
+        except Exception as exc:
+            logger.exception("roleplay streaming turn failed")
+            yield f"event: error\ndata: {json.dumps({'detail': str(exc)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(sse_generator(), media_type="text/event-stream")
 
 
 @router.get("/sessions/{session_id}/summary")

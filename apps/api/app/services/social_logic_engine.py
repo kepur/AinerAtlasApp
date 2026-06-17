@@ -20,12 +20,12 @@ logger = logging.getLogger(__name__)
 _GAMES: dict[str, dict] = {}
 
 _ROSTER = [
-    {"name": "Alex", "code": "A", "personality": "cautious, speaks conservatively"},
-    {"name": "Blake", "code": "B", "personality": "assertive, quick to push back"},
-    {"name": "Chris", "code": "C", "personality": "logical, points out contradictions"},
-    {"name": "Dana", "code": "D", "personality": "nervous, may leak details"},
-    {"name": "Evan", "code": "E", "personality": "social, likes to lead the rhythm"},
-    {"name": "Finn", "code": "F", "personality": "calm, hard to read"},
+    {"name": "Alex", "code": "A", "personality": "cautious, speaks conservatively", "gender": "male", "avatar_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150", "voice": "male_calm"},
+    {"name": "Blake", "code": "B", "personality": "assertive, quick to push back", "gender": "male", "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150", "voice": "male_warm"},
+    {"name": "Chris", "code": "C", "personality": "logical, points out contradictions", "gender": "male", "avatar_url": "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&q=80&w=150", "voice": "male_calm"},
+    {"name": "Dana", "code": "D", "personality": "nervous, may leak details", "gender": "female", "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150", "voice": "female_warm"},
+    {"name": "Evan", "code": "E", "personality": "social, likes to lead the rhythm", "gender": "female", "avatar_url": "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150", "voice": "female_lively"},
+    {"name": "Finn", "code": "F", "personality": "calm, hard to read", "gender": "male", "avatar_url": "https://images.unsplash.com/photo-1504257432389-52343af06ae3?auto=format&fit=crop&q=80&w=150", "voice": "male_warm"},
 ]
 
 _DIFFICULTY = {
@@ -52,6 +52,7 @@ def _public_view(game: dict) -> dict:
             "is_user": p["is_user"], "alive": p["alive"],
             "suspicion": p["suspicion"],
             "public_claim": p.get("public_claim", ""),
+            "avatar_url": p.get("avatar_url", ""), "voice": p.get("voice", ""),
             "role": p["role"] if show_role else None,
         })
     return {
@@ -111,6 +112,7 @@ async def create_game(
             "personality": r["personality"], "is_user": False, "alive": True,
             "role": "villager", "public_claim": "", "suspicion": random.randint(10, 35),
             "revealed": False,
+            "avatar_url": r.get("avatar_url", ""), "voice": r.get("voice", ""),
         })
 
     user_pid = "you"
@@ -317,7 +319,9 @@ async def question_player(
         f"你之前说过：{target.get('public_claim', '无')}"
     )
     try:
+        from app.services.game_prompts import get_game_prompt
         provider = _provider_for("game_ai_answer", db)
+        ans_system = get_game_prompt(db, "social_logic.answer", ans_system)
         answer = await provider.complete_json(ans_system, ans_user, temperature=0.85, max_tokens=400)
         if not isinstance(answer, dict):
             answer = {}
@@ -342,6 +346,7 @@ async def question_player(
     hud_user = f"用户的质疑：{content}\n目标玩家：{target['name']}（{target.get('public_claim', '')}）"
     try:
         provider = _provider_for("game_challenge_hud", db)
+        hud_system = get_game_prompt(db, "social_logic.hud", hud_system)
         hud = await provider.complete_json(hud_system, hud_user, temperature=0.7, max_tokens=900)
         if not isinstance(hud, dict):
             hud = {}
@@ -368,6 +373,15 @@ async def question_player(
         if "name" in a and "agent" not in a:
             a["agent"] = a.pop("name")
 
+    # Guarantee the learning card always has content even if the model was terse.
+    if not hud.get("main_expression"):
+        hud["main_expression"] = hud.get("expression") or content
+    hud.setdefault("meaning_native", "")
+    if not hud.get("agents"):
+        hud["agents"] = [
+            {"agent": "Logic Agent", "result": "质疑要有逻辑：先指出矛盾，再要求对方解释。"},
+            {"agent": "Language Coach", "result": "可用 \"Why were you...\" / \"That doesn't add up.\" 等句型。"},
+        ]
     hud["v2"] = True
     hud["detected_intent"] = "expression_learning"
     game["learning_turns"].append(hud)

@@ -172,18 +172,24 @@ export default function DetectiveBoard() {
               <button
                 key={c.id}
                 onClick={() => handleExamine(c.id, c.discovered)}
-                className={`text-left rounded-2xl p-3 border shadow-sm transition-all active:scale-95 ${
+                className={`text-left rounded-2xl overflow-hidden border shadow-sm transition-all active:scale-95 ${
                   c.discovered ? "bg-white border-purple-100" : "bg-purple-50/40 border-dashed border-purple-200"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-2xl">{CLUE_ICONS[i % CLUE_ICONS.length]}</span>
-                  {c.discovered ? <Unlock size={14} className="text-[#7c3aed]" /> : <Lock size={14} className="text-purple-300" />}
+                <div className="relative h-20 bg-purple-100/50 overflow-hidden">
+                  {c.image_url
+                    ? <img src={c.image_url} alt={c.title} className={`w-full h-full object-cover ${c.discovered ? "" : "blur-[2px] opacity-60"}`} />
+                    : <span className="absolute inset-0 flex items-center justify-center text-2xl">{CLUE_ICONS[i % CLUE_ICONS.length]}</span>}
+                  <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/80 flex items-center justify-center">
+                    {c.discovered ? <Unlock size={12} className="text-[#7c3aed]" /> : <Lock size={12} className="text-purple-400" />}
+                  </div>
                 </div>
-                <p className="font-bold text-[13px] text-[#111827]">{c.title}</p>
-                <p className="text-[11px] text-[#6b7280] mt-1 leading-snug min-h-[28px]">
-                  {c.discovered ? c.desc : "点击搜证以解锁线索"}
-                </p>
+                <div className="p-2.5">
+                  <p className="font-bold text-[13px] text-[#111827]">{c.title}</p>
+                  <p className="text-[11px] text-[#6b7280] mt-0.5 leading-snug min-h-[28px]">
+                    {c.discovered ? c.desc : "点击搜证以解锁线索"}
+                  </p>
+                </div>
               </button>
             ))}
           </div>
@@ -199,8 +205,10 @@ export default function DetectiveBoard() {
                   onClick={() => handleInterrogate(s.id)}
                   className="text-left bg-white rounded-2xl p-3 border border-purple-100 shadow-sm flex items-center gap-3 active:scale-[0.98] transition-all"
                 >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-b from-[#c4b5fd] to-[#a78bfa] flex items-center justify-center shrink-0">
-                    <span className="text-white font-extrabold text-xl">{(s.name || "?").charAt(0)}</span>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-b from-[#c4b5fd] to-[#a78bfa] flex items-center justify-center shrink-0 overflow-hidden">
+                    {s.avatar_url
+                      ? <img src={s.avatar_url} alt={s.name} className="w-full h-full object-cover" />
+                      : <span className="text-white font-extrabold text-xl">{(s.name || "?").charAt(0)}</span>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
