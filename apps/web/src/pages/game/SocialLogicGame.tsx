@@ -116,19 +116,33 @@ export default function SocialLogicGame() {
     setUiPhase("night");
   };
 
+  // Enter day discussion with the input immediately usable: pre-select the
+  // first living AI so the user can speak right away (no "locked input" dead end).
+  const enterDay = (data: any) => {
+    const firstAI = (data?.players || []).find((p: any) => !p.is_user && p.alive);
+    setSelectedPlayerId(firstAI?.id);
+    setActionMode(firstAI ? "question" : "default");
+    setUiPhase("day");
+  };
+
   const handleNightDone = async () => {
     if (!gid) return;
     const data = await call(`/${gid}/start`);
     setGame(data);
-    setUiPhase("day");
+    enterDay(data);
   };
 
   const handleQuestion = async (text: string) => {
-    if (!gid || !selectedPlayerId || !text.trim()) return;
-    const data = await call(`/${gid}/question`, { target_player_id: selectedPlayerId, content: text.trim() });
+    if (!gid || !text.trim()) return;
+    // Fall back to the first living AI if no target is explicitly selected.
+    const targetId = selectedPlayerId
+      || (players.find((p: any) => !p.is_user && p.alive)?.id);
+    if (!targetId) return;
+    const data = await call(`/${gid}/question`, { target_player_id: targetId, content: text.trim() });
     if (data.state) setGame(data.state);
     if (data.hud) setLearningHud(data.hud);
-    setActionMode("default");
+    // Stay in question mode so the user can keep speaking this round.
+    setActionMode("question");
   };
 
   const speak = async (text: string, speakerName?: string) => {
@@ -157,7 +171,7 @@ export default function SocialLogicGame() {
       setSummary(s);
       setUiPhase("summary");
     } else {
-      setUiPhase("day");
+      enterDay(data);
     }
   };
 
