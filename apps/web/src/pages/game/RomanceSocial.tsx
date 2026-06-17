@@ -60,6 +60,22 @@ const ACTION_PRESETS: Record<string, string> = {
 
 interface HintCard { title?: string; en?: string; zh?: string; breakdown?: string[] }
 
+// Fallback emotion → emoji when the model didn't return emotion_emoji.
+function emotionEmoji(emotion?: string): string {
+  if (!emotion) return "";
+  const e = emotion;
+  if (/开心|高兴|愉快|喜悦|happy/i.test(e)) return "😊";
+  if (/害羞|羞涩|脸红|shy/i.test(e)) return "😳";
+  if (/心动|喜欢|爱|love/i.test(e)) return "🥰";
+  if (/疑惑|困惑|好奇|谨慎|犹豫/i.test(e)) return "🤔";
+  if (/生气|愤怒|不满|angry/i.test(e)) return "💢";
+  if (/紧张|不安|nervous/i.test(e)) return "😬";
+  if (/感动|温暖|moved/i.test(e)) return "🥹";
+  if (/冷淡|无聊|失望|敷衍/i.test(e)) return "😐";
+  if (/惊讶|意外/i.test(e)) return "😮";
+  return "💬";
+}
+
 const getTheme = (category: string) => {
   const c = category || "恋爱社交";
   if (c === "商务谈判") {
@@ -332,6 +348,7 @@ export default function RomanceSocial() {
   };
 
   const category = target.category || "恋爱社交";
+  const dimension = (view.progress_dimension as string) || "好感度";
   const th = getTheme(category);
   const categoryTabs = getCategoryTabs(category);
   const currentIndex = PHASE_TO_INDEX[phase] ?? 0;
@@ -368,7 +385,7 @@ export default function RomanceSocial() {
             <p className="text-[10px] text-[#9ca3af]">{th.subtitle}</p>
           </div>
           <div className={`flex items-center gap-1 bg-gradient-to-r ${th.gradient} text-white px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm`}>
-            <Flame size={12} /> {score}/100
+            <Flame size={12} /> {dimension} {score}/100
           </div>
         </header>
 
@@ -543,24 +560,58 @@ export default function RomanceSocial() {
               );
             }
             if (msg.type === "char_msg") {
+              const emoji = (msg.emotion_emoji as string) || emotionEmoji(msg.emotion as string);
+              const delta = Number(msg.relationship_change ?? 0);
+              const lp = msg.learning_point as { title?: string; desc?: string } | undefined;
               return (
-                <div key={i} className="flex gap-2 items-end">
-                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${th.avatarGradient} flex items-center justify-center shrink-0 overflow-hidden`}>
-                    {target.avatar_url
-                      ? <img src={target.avatar_url} alt={target.name} className="w-full h-full object-cover" />
-                      : <span className="text-white text-xs font-bold">{((msg.speaker as string) || "M").charAt(0)}</span>}
-                  </div>
-                  <div className="max-w-[75%]">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className={`text-[11px] font-bold ${th.accent}`}>{msg.speaker as string}</span>
-                      <TTSButton text={String(msg.text || "")} lang="en" voice={target.voice || "female_warm"} size={10} className={`w-5 h-5 rounded-full ${th.ttsBg} flex items-center justify-center ${th.bubbleText}`} />
-                      {msg.emotion ? <span className="text-[9px] text-[#c98bab]">({msg.emotion as string})</span> : null}
+                <div key={i} className="flex flex-col gap-1.5">
+                  <div className="flex gap-2 items-end">
+                    <div className="relative shrink-0">
+                      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${th.avatarGradient} flex items-center justify-center overflow-hidden`}>
+                        {target.avatar_url
+                          ? <img src={target.avatar_url} alt={target.name} className="w-full h-full object-cover" />
+                          : <span className="text-white text-xs font-bold">{((msg.speaker as string) || "M").charAt(0)}</span>}
+                      </div>
+                      {emoji && (
+                        <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white shadow-sm border border-pink-100 flex items-center justify-center text-[11px] leading-none">{emoji}</span>
+                      )}
                     </div>
-                    <div className={`bg-white rounded-[18px] rounded-tl-[4px] px-4 py-2.5 shadow-sm border ${th.accentBorderLight}`}>
-                      <p className="text-[13px] text-[#1f2937] leading-snug">{msg.text}</p>
-                      {msg.text_zh ? <p className="text-[10px] text-[#9ca3af] mt-1">{msg.text_zh as string}</p> : null}
+                    <div className="max-w-[75%]">
+                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                        <span className={`text-[11px] font-bold ${th.accent}`}>{msg.speaker as string}</span>
+                        {msg.emotion ? <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${th.tagBgLight}`}>{emoji} {msg.emotion as string}</span> : null}
+                        {delta !== 0 && (
+                          <span className={`text-[9px] font-bold ${delta > 0 ? "text-rose-500" : "text-slate-400"}`}>{delta > 0 ? `+${delta} ${dimension}` : `${delta} ${dimension}`}</span>
+                        )}
+                        <TTSButton text={String(msg.text || "")} lang="en" voice={target.voice || "female_warm"} size={10} className={`w-5 h-5 rounded-full ${th.ttsBg} flex items-center justify-center ${th.bubbleText}`} />
+                      </div>
+                      <div className={`bg-white rounded-[18px] rounded-tl-[4px] px-4 py-2.5 shadow-sm border ${th.accentBorderLight}`}>
+                        <p className="text-[13px] text-[#1f2937] leading-snug">{msg.text}</p>
+                        {msg.text_zh ? <p className="text-[10px] text-[#9ca3af] mt-1">{msg.text_zh as string}</p> : null}
+                      </div>
                     </div>
                   </div>
+                  {lp?.title && (
+                    <div className={`ml-11 max-w-[80%] rounded-xl px-3 py-2 ${th.tagBgLight}`}>
+                      <p className="text-[10px] font-bold flex items-center gap-1"><Lightbulb size={10} /> 本轮要点 · {lp.title}</p>
+                      {lp.desc ? <p className="text-[10px] text-[#6b7280] mt-0.5 leading-snug">{lp.desc}</p> : null}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            if (msg.type === "hint_card") {
+              const h = msg as unknown as HintCard;
+              return (
+                <div key={i} className={`ml-11 max-w-[82%] rounded-xl px-3 py-2 bg-white border ${th.accentBorderLight} shadow-sm`}>
+                  <p className={`text-[10px] font-bold flex items-center gap-1 ${th.accent}`}><Leaf size={10} /> {h.title || "自然表达"}</p>
+                  {h.en ? <p className="text-[12px] font-bold text-[#1f2937] mt-1">{h.en}</p> : null}
+                  {h.zh ? <p className="text-[10px] text-[#9ca3af]">{h.zh}</p> : null}
+                  {Array.isArray(h.breakdown) && h.breakdown.length > 0 && (
+                    <ul className="mt-1 flex flex-col gap-0.5">
+                      {h.breakdown.slice(0, 3).map((b, j) => <li key={j} className="text-[10px] text-[#6b7280]">• {b}</li>)}
+                    </ul>
+                  )}
                 </div>
               );
             }

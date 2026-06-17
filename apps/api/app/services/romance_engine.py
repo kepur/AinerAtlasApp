@@ -95,6 +95,42 @@ def list_builtin_targets() -> list[dict[str, Any]]:
 def _provider_for(task_type: str, db: Session):
     return get_llm_provider_for_task(task_type, resolve_default_llm_provider(db), db)
 
+
+# Each social category tracks a different progress dimension + conversational goal,
+# so the same engine drives 恋爱 / 商务谈判 / 旅游 / 移民 with distinct framing.
+_CATEGORY = {
+    "恋爱社交": {
+        "dimension": "好感度", "goal": "自然地建立浪漫好感，逐步拉近彼此关系",
+        "phases": [(0, "暖场"), (20, "暧昧"), (50, "约会"), (80, "心动·情侣")],
+    },
+    "商务谈判": {
+        "dimension": "成交意向", "goal": "建立专业信任、厘清需求、推进合作直至达成成交",
+        "phases": [(0, "破冰"), (20, "需求挖掘"), (50, "议价磋商"), (80, "达成合作")],
+    },
+    "旅游出差": {
+        "dimension": "熟络度", "goal": "自然交流、解决出行需求、结识当地朋友",
+        "phases": [(0, "问询"), (20, "闲聊"), (50, "结伴"), (80, "深聊")],
+    },
+    "移民生活": {
+        "dimension": "融入度", "goal": "融入当地生活、处理日常事务、建立本地社交",
+        "phases": [(0, "寒暄"), (20, "求助"), (50, "交流"), (80, "熟识")],
+    },
+}
+
+
+def _category_of(target: dict) -> dict:
+    cat = target.get("category") or "恋爱社交"
+    return _CATEGORY.get(cat, _CATEGORY["恋爱社交"])
+
+
+def _phase_label(category_cfg: dict, score: int) -> str:
+    label = category_cfg["phases"][0][1]
+    for threshold, name in category_cfg["phases"]:
+        if score >= threshold:
+            label = name
+    return label
+
+
 class RomanceEngine(GameTypeEngine):
     game_type = "romance"
 
@@ -182,6 +218,8 @@ class RomanceEngine(GameTypeEngine):
             "text": parsed.get("character_reply", "Haha, that's interesting..."),
             "text_zh": parsed.get("character_reply_zh", ""),
             "emotion": parsed.get("emotion", ""),
+            "emotion_emoji": parsed.get("emotion_emoji", ""),
+            "relationship_change": parsed.get("relationship_change", 0),
             "created_at": datetime.now(UTC).isoformat(),
             "learning_point": parsed.get("learning_point"),
         }
@@ -220,23 +258,31 @@ class RomanceEngine(GameTypeEngine):
         }
 
     def get_state_view(self, session: GameSession, user_id: str) -> dict:
+        target = session.state.get("target") or {}
+        score = session.state.get("relationship_score", 0)
+        cat_cfg = _category_of(target)
         return {
-            "target": session.state.get("target"),
-            "relationship_score": session.state.get("relationship_score", 0),
-            "feed": session.state.get("feed", [])
+            "target": target,
+            "relationship_score": score,
+            "category": target.get("category", "恋爱社交"),
+            "progress_dimension": cat_cfg["dimension"],
+            "phase_label": _phase_label(cat_cfg, score),
+            "phases": [name for _, name in cat_cfg["phases"]],
+            "feed": session.state.get("feed", []),
         }
 
     def _build_prompt(self, state: dict, user_input: str, extra: dict) -> str:
         target = state.get("target", {})
         score = state.get("relationship_score", 0)
-        
-        return f"""You are playing the role of {target.get('name')} in a romance/social simulation game.
+        cat_cfg = _category_of(target)
+
+        return f"""You are playing the role of {target.get('name')} in a social-practice simulation game.
+Category: {target.get('category', '恋爱社交')} — your goal in this conversation: {cat_cfg['goal']}.
 Setting: {target.get('initial_scene')}
 Your personality: {target.get('personality')}
 Your chat style: {target.get('chat_style', '')}
 Your identity/background: {target.get('identity_background', '')}
-Current relationship score with the user: {score}/100.
-Category: {target.get('category', '恋爱社交')}
+Current {cat_cfg['dimension']} with the user: {score}/100 (raise it only when the user communicates well toward the goal above).
 
 The user says: "{user_input}"
 Action intent (if chosen by user): {extra.get('action_type', 'normal')}
@@ -246,8 +292,9 @@ Respond IN JSON ONLY, using this exact schema:
 {{
   "character_reply": "Your response in English",
   "character_reply_zh": "Your response translated to Chinese",
-  "emotion": "Short description of your emotion (e.g. 开心, 害羞, 疑惑)",
-  "relationship_change": integer (-5 to +5 based on how good the user's response was),
+  "emotion": "中文情绪词（开心/害羞/疑惑/生气/感动/冷淡/心动 等）",
+  "emotion_emoji": "一个最贴切的 emoji（如 😊 😳 🤔 💢 🥰 😐 💕）",
+  "relationship_change": integer (-5 to +5 based on how well the user advanced the {cat_cfg['dimension']} goal),
   "learning_point": {{
     "title": "Short title of what they did well/poorly",
     "desc": "Brief explanation of conversational skill used"
