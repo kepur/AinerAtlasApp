@@ -18,6 +18,7 @@ export default function UnifiedGameChat() {
 
   const [input, setInput] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [solveMode, setSolveMode] = useState(false);
 
   useEffect(() => {
@@ -36,13 +37,20 @@ export default function UnifiedGameChat() {
   const initGame = async (gameType: string, slug: string) => {
     if (creating) return;
     setCreating(true);
+    setCreateError(null);
     try {
       const sess = await createSession(gameType, slug, { case_id: slug, story_id: slug });
-      
+
       if (!sess.turns || sess.turns.length === 0) {
-        try { await sendTurn(sess.id, "start"); } catch(e) {}
+        try {
+          await sendTurn(sess.id, "start");
+        } catch {
+          /* first turn may fail if LLM unavailable */
+        }
       }
       navigate(`/game/play/${gameType}/${sess.id}`, { replace: true });
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : "创建游戏失败，请检查 LLM 配置。");
     } finally {
       setCreating(false);
     }
@@ -89,6 +97,22 @@ export default function UnifiedGameChat() {
   const isActive = currentSession?.status === "active";
   const showInput = phase !== "summary" && phase !== "lobby" && isActive;
   const characters = (Array.isArray(view.characters) ? view.characters : []) as any[];
+
+  /* ---- Create error ---- */
+  if (createError) {
+    return (
+      <div className="w-full h-screen bg-[#f8f9fc] flex flex-col items-center justify-center px-6 text-center gap-4">
+        <p className="text-red-600 text-sm leading-relaxed max-w-sm">{createError}</p>
+        <button
+          type="button"
+          onClick={() => navigate("/game")}
+          className="px-6 py-2.5 rounded-xl bg-[#8b5cf6] text-white text-sm font-bold"
+        >
+          返回游戏主页
+        </button>
+      </div>
+    );
+  }
 
   /* ---- Loading state ---- */
   if (creating) {

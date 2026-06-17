@@ -79,6 +79,20 @@ export interface GameSummary {
   [key: string]: unknown;
 }
 
+export interface GeneratedStoryOutline {
+  title: string;
+  subtitle?: string;
+  description?: string;
+  setting?: string;
+  era?: string;
+  characters?: Array<Record<string, unknown>>;
+  chapters?: Array<Record<string, unknown>>;
+  endings?: Array<Record<string, unknown>>;
+  learning_focus?: string[];
+  cover_url?: string;
+  [key: string]: unknown;
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -102,6 +116,13 @@ interface GameStore {
   sendTurn: (sessionId: string, actionType: string, userInput?: string, extra?: Record<string, unknown>) => Promise<TurnResult>;
   sendTurnStream: (sessionId: string, actionType: string, userInput?: string, extra?: Record<string, unknown>) => Promise<TurnResult>;
   loadSummary: (sessionId: string) => Promise<GameSummary>;
+  generateStoryOutline: (prompt: string, length?: string) => Promise<GeneratedStoryOutline>;
+  createGameTemplate: (payload: {
+    title: string;
+    description: string;
+    game_type: string;
+    config: Record<string, unknown>;
+  }) => Promise<{ id: string; slug: string }>;
   clearCurrent: () => void;
 }
 
@@ -338,6 +359,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const data = await apiRequest<GameSummary>(`/api/games/sessions/${sessionId}/summary`);
     set({ summary: data });
     return data;
+  },
+
+  generateStoryOutline: async (prompt, length = "medium") => {
+    return apiRequest<GeneratedStoryOutline>("/api/games/generate-story", {
+      method: "POST",
+      body: JSON.stringify({
+        prompt,
+        game_type: "roleplay",
+        length,
+        num_chapters: 3,
+        num_endings: 2,
+      }),
+    });
+  },
+
+  createGameTemplate: async (payload) => {
+    return apiRequest<{ id: string; slug: string }>("/api/games/templates", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   },
 
   clearCurrent: () => {

@@ -10,7 +10,6 @@ import ChatDetail from "./pages/ChatDetail";
 import GameHome from "./pages/game/GameHome";
 import GameTemplateDetail from "./pages/game/GameTemplateDetail";
 import TurtleSoupDetail from "./pages/game/TurtleSoupDetail";
-import RoleplayHome from "./pages/game/RoleplayHome";
 import RoleplayCharacterList from "./pages/game/RoleplayCharacterList";
 import RoleplayCharacterDetail from "./pages/game/RoleplayCharacterDetail";
 import GeneratedStorySettings from "./pages/game/GeneratedStorySettings";
@@ -78,7 +77,8 @@ function AppLayout() {
           <Route path="/game" element={<GameHome />} />
           <Route path="/game/template/:id" element={<GameTemplateDetail />} />
           <Route path="/game/turtle-soup/detail/:id" element={<TurtleSoupDetail />} />
-          <Route path="/game/roleplay/home" element={<RoleplayHome />} />
+          <Route path="/game/roleplay/home" element={<Navigate to="/game/roleplay/characters" replace />} />
+          <Route path="/game/roleplay" element={<Navigate to="/game/roleplay/characters" replace />} />
           <Route path="/game/roleplay/storylines" element={<RoleplayStorylineList />} />
           <Route path="/game/roleplay/characters" element={<RoleplayCharacterList />} />
           <Route path="/admin/story-publisher" element={<StoryPublisher />} />
@@ -100,7 +100,7 @@ function AppLayout() {
           <Route path="/game/romance-social" element={<RomanceSocial />} />
           <Route path="/game/romance-social/:id" element={<RomanceSocial />} />
           <Route path="/game/detective/summary/:id" element={<GameSummaryDetective />} />
-          <Route path="/game/roleplay/chat" element={<Navigate to="/game/roleplay/home" />} />
+          <Route path="/game/roleplay/chat" element={<Navigate to="/game/roleplay/characters" replace />} />
           <Route path="/game/summary/:mode/:id" element={<GameSummaryScreen />} />
           <Route path="/game/summary/:id" element={<GameSummaryScreen />} />
           <Route path="/game/turtle-soup-summary/:id" element={<TurtleSoupSummary />} />

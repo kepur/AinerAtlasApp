@@ -56,7 +56,7 @@ export default function RoleplayStorylineList() {
             return (
               <div 
                 key={tpl.id}
-                onClick={() => navigate(`/game/play/roleplay/${tpl.id}`)} 
+                onClick={() => navigate(`/game/play/roleplay/${tpl.slug}`)} 
                 className="bg-white/80 backdrop-blur-md rounded-[24px] p-4 shadow-sm border border-white flex flex-col relative cursor-pointer active:scale-[0.98] transition-transform"
               >
                 {tpl.cover_url || config.cover_url ? (

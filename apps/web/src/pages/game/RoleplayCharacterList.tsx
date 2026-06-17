@@ -14,7 +14,7 @@ export default function RoleplayCharacterList() {
     >
       {/* Header */}
       <header className="sticky top-0 left-0 w-full z-50 px-4 pt-[env(safe-area-inset-top,20px)] h-14 flex items-center justify-between bg-[#fdf2f8]/90 backdrop-blur-md">
-        <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center text-gray-700 active:scale-95 transition-transform">
+        <button onClick={() => navigate("/game")} className="w-8 h-8 flex items-center justify-center text-gray-700 active:scale-95 transition-transform">
           <ChevronLeft size={24} />
         </button>
         <h1 className="font-bold text-[16px] text-[#111827]">选择角色</h1>

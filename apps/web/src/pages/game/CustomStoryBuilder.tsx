@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, HelpCircle, Sparkles, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function CustomStoryBuilder() {
   const navigate = useNavigate();
-  const [text, setText] = useState("");
+  const location = useLocation();
+  const initialPrompt = (location.state as { prompt?: string } | null)?.prompt || "";
+  const [text, setText] = useState(initialPrompt);
 
   return (
     <motion.div 
@@ -84,7 +86,7 @@ export default function CustomStoryBuilder() {
       >
         <div className="max-w-md mx-auto pointer-events-auto">
           <button 
-            onClick={() => navigate("/game/roleplay/generated-setting")}
+            onClick={() => navigate("/game/roleplay/generated-setting", { state: { prompt: text } })}
             disabled={text.length < 5}
             className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-pink-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none"
           >

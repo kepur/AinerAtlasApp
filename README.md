@@ -47,11 +47,10 @@ npm run dev
 | Service | URL / Host |
 |---------|------------|
 | API | http://localhost:7070 |
-| H5 (Web) | http://localhost:7071 |
+| H5 (Web) | http://localhost:7075 |
 | Admin | http://localhost:7072 |
 | Postgres | localhost:7073 |
 | Redis | localhost:7074 |
-| Web Vite dev | http://localhost:7075 |
 | Admin Vite dev | http://localhost:7076 |
 
 ```bash
@@ -67,7 +66,7 @@ docker compose up -d
 | `DATABASE_URL` | `sqlite:///./ainerspeak.db` | Database connection string |
 | `REDIS_URL` | `redis://localhost:7074/0` | Redis URL (optional in dev) |
 | `JWT_SECRET` | `change-me-in-production` | JWT signing secret — **must change in production** |
-| `CORS_ORIGINS` | `http://localhost:7071,...` | Comma-separated allowed origins |
+| `CORS_ORIGINS` | `http://localhost:7075,...` | Comma-separated allowed origins |
 | `ENCRYPTION_KEY` | (auto-generated) | Fernet key for API key encryption. Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
 | `DEFAULT_LLM_PROVIDER` | `mock` | Default LLM provider name |
 | `DEFAULT_VOICE_PROVIDER` | `mock` | Default voice provider name |
@@ -108,7 +107,7 @@ External AI providers are represented behind adapters. The default adapter is de
 | Role | Email | Password | URL |
 |------|-------|----------|-----|
 | Admin | `admin@ainerspeak.com` | `ChangeMe123!` | http://localhost:7072 (Docker) / http://localhost:7076 (Vite dev) |
-| Demo (H5) | `demo@ainerspeak.com` | `Demo123!` | http://localhost:7071/login (Docker) / http://localhost:7075/login (Vite dev) |
+| Demo (H5) | `demo@ainerspeak.com` | `Demo123!` | http://localhost:7075/login |
 
 ## Demo Mode (H5)
 

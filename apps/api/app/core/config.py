@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 60 * 24
     jwt_refresh_token_expire_days: int = 30
     jwt_reset_token_expire_minutes: int = 30
-    cors_origins: str = "http://localhost:7071,http://localhost:7072,http://localhost:7075,http://localhost:7076"
+    cors_origins: str = "http://localhost:7075,http://localhost:7072,http://localhost:7076"
     default_llm_provider: str = "auto"
     default_voice_provider: str = "auto"
     dashscope_api_key: str = ""

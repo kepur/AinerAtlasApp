@@ -230,8 +230,18 @@ _LENGTH_SPEC = {
 }
 
 
+@router.post("/generate-story")
+async def generate_story_for_user(payload: GenerateStoryRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    """Generate a custom roleplay outline for the H5 story builder."""
+    return await _generate_story_outline(payload, db)
+
+
 @router.post("/admin/generate-story")
 async def generate_story(payload: GenerateStoryRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    return await _generate_story_outline(payload, db)
+
+
+async def _generate_story_outline(payload: GenerateStoryRequest, db: DBSession) -> dict:
     from app.services.llm import get_llm_provider_for_task
     from app.services.runtime_config import resolve_default_llm_provider
     from app.services import game_assets

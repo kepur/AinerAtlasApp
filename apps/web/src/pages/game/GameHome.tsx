@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Play, Brain, Drama, Search, Heart, Dices, RotateCcw, Users, Bell, Search as SearchIcon, Loader2 } from "lucide-react";
+import { Play, Brain, Drama, Search, Heart, Dices, RotateCcw, Users, Bell, Search as SearchIcon, Loader2, BookOpen, PlusSquare } from "lucide-react";
 import { useGameStore, GameTemplate } from "../../stores/gameStore";
 
 const GAME_TYPE_PATHS: Record<string, (slug: string) => string> = {
   turtle_soup: (slug) => `/game/turtle-soup/detail/${slug}`,
-  roleplay: () => `/game/roleplay/home`,
+  roleplay: (slug) => `/game/play/roleplay/${slug}`,
   detective: (slug) => `/game/detective-board/${slug}`,
   social_logic: () => `/game/social-logic/new`,
   romance: (slug) => `/game/romance-social/${slug}`,
@@ -46,6 +46,7 @@ function sessionPath(gameType: string, id: string): string {
     case "detective": return `/game/detective-board/${id}`;
     case "romance": return `/game/romance-social/${id}`;
     case "social_logic": return `/game/social-logic/${id}`;
+    case "roleplay": return `/game/play/roleplay/${id}`;
     default: return `/game/play/${gameType}/${id}`;
   }
 }
@@ -60,6 +61,8 @@ export default function GameHome() {
   }, []);
 
   const lastSession = sessions[0];
+  const roleplayTemplates = templates.filter((t) => t.game_type === "roleplay");
+  const otherTemplates = templates.filter((t) => t.game_type !== "roleplay");
 
   return (
     <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-y-auto pb-32 relative">
@@ -153,7 +156,7 @@ export default function GameHome() {
               <button
                 key={cat.id}
                 onClick={() => {
-                  if (cat.id === "roleplay") navigate("/game/roleplay/home");
+                  if (cat.id === "roleplay") navigate("/game/roleplay/characters");
                   else if (cat.id === "social_logic") navigate("/game/social-logic/new");
                   else if (cat.id === "romance") navigate("/game/romance-social");
                   else if (cat.id === "detective") navigate("/game/detective-board");
@@ -174,7 +177,68 @@ export default function GameHome() {
           </div>
         </section>
 
-        {/* Recommended Games — backend templates with image fallbacks */}
+        {/* System storylines — built-in roleplay games */}
+        <section>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-bold text-[#111827]">系统故事线</h3>
+            <button
+              type="button"
+              className="text-xs text-[#6b7280]"
+              onClick={() => navigate("/game/roleplay/storylines")}
+            >
+              全部故事 &gt;
+            </button>
+          </div>
+          {templatesLoading ? (
+            <div className="flex justify-center py-6"><Loader2 size={18} className="animate-spin text-[#8b5cf6]" /></div>
+          ) : roleplayTemplates.length === 0 ? (
+            <p className="text-sm text-[#9ca3af] py-4 text-center">暂无系统故事，请检查 API 连接</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {roleplayTemplates.slice(0, 4).map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => navigate(`/game/play/roleplay/${t.slug}`)}
+                  className="bg-gradient-to-r from-[#fdf2f8] to-white p-3 rounded-[20px] flex gap-3 shadow-sm border border-pink-100/60 cursor-pointer active:scale-[0.99] transition-transform"
+                >
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-pink-100 flex items-center justify-center">
+                    {t.cover_url ? (
+                      <img src={t.cover_url} alt={t.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <BookOpen size={22} className="text-pink-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-sm text-[#111827] truncate">{t.title}</h4>
+                    <p className="text-[10px] text-pink-500 font-medium mt-0.5">{t.subtitle || "官方剧情"}</p>
+                    <p className="text-[10px] text-[#9ca3af] line-clamp-2 mt-1">{t.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Custom storyline entry */}
+        <section>
+          <div
+            onClick={() => navigate("/game/custom-story-builder")}
+            className="bg-gradient-to-br from-[#fdf4ff] to-[#fce7f3] border border-pink-200/50 p-4 rounded-[20px] flex gap-4 shadow-sm cursor-pointer active:scale-[0.99] transition-transform"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-inner border border-pink-100">
+              <PlusSquare size={24} className="text-pink-500" />
+            </div>
+            <div className="flex flex-col flex-1">
+              <h3 className="font-bold text-[15px] text-[#111827]">自定义故事线</h3>
+              <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed">
+                输入一两句设定，AI 生成完整世界观与分支剧情，然后开始互动故事。
+              </p>
+              <span className="text-[11px] font-bold text-pink-500 mt-2">创建故事 →</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Recommended Games — non-roleplay templates */}
         <section>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-[#111827]">推荐游戏</h3>
@@ -186,7 +250,7 @@ export default function GameHome() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {templates.map((t) => (
+            {otherTemplates.map((t) => (
               <div
                 key={t.id}
                 onClick={() => navigate(templatePath(t))}
@@ -225,7 +289,7 @@ export default function GameHome() {
               </div>
             ))}
 
-            {!templatesLoading && templates.length === 0 && (
+            {!templatesLoading && otherTemplates.length === 0 && roleplayTemplates.length === 0 && (
               <div className="text-center text-[#9ca3af] text-sm py-8">
                 暂无游戏模板，请检查后端连接
               </div>
