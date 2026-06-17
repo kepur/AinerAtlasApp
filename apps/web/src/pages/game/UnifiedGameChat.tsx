@@ -101,7 +101,7 @@ export default function UnifiedGameChat() {
   /* ---- Create error ---- */
   if (createError) {
     return (
-      <div className="w-full h-screen bg-[#f8f9fc] flex flex-col items-center justify-center px-6 text-center gap-4">
+      <div className="premium w-full h-full bg-[#f8f9fc] flex flex-col items-center justify-center px-6 text-center gap-4 font-sans">
         <p className="text-red-600 text-sm leading-relaxed max-w-sm">{createError}</p>
         <button
           type="button"
@@ -117,7 +117,7 @@ export default function UnifiedGameChat() {
   /* ---- Loading state ---- */
   if (creating) {
     return (
-      <div className="w-full h-screen bg-[#f8f9fc] flex items-center justify-center">
+      <div className="premium w-full h-full bg-[#f8f9fc] flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-3">
           <Loader2 size={32} className="animate-spin text-[#8b5cf6]" />
           <span className="text-[#6b7280] text-sm">正在创建游戏...</span>
@@ -130,7 +130,7 @@ export default function UnifiedGameChat() {
   const coverUrl = (view.cover_url as string) || (currentSession as any)?.config?.cover_url || "";
 
   return (
-    <div className="w-full h-screen bg-[#f8f9fc] flex flex-col relative overflow-hidden">
+    <div className="premium w-full h-full bg-[#f8f9fc] flex flex-col relative overflow-hidden font-sans text-[#111827]">
       {/* Dynamic Background Image */}
       {coverUrl && (
         <>

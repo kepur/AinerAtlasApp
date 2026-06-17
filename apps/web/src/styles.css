@@ -72,6 +72,8 @@ button, input, select, textarea {
   border-radius: 36px;
   background: #ffffff;
   box-shadow: 0 8px 20px rgba(124, 58, 237, 0.12);
+  /* Contain position:fixed descendants to the phone mockup, not the viewport */
+  transform: translateZ(0);
 }
 
 @media (max-width: 520px) {

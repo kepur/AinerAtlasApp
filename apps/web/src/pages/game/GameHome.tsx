@@ -65,9 +65,9 @@ export default function GameHome() {
   const otherTemplates = templates.filter((t) => t.game_type !== "roleplay");
 
   return (
-    <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-y-auto pb-32 relative">
+    <div className="premium w-full h-full bg-[#f8f9fc] flex flex-col overflow-y-auto pb-32 relative font-sans text-[#111827]">
       {/* Background Gradients */}
-      <div className="fixed top-0 left-0 w-full h-[400px] bg-gradient-to-br from-[#eef2ff] via-[#f5f3ff] to-transparent opacity-80 pointer-events-none z-0" />
+      <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-br from-[#eef2ff] via-[#f5f3ff] to-transparent opacity-80 pointer-events-none z-0" />
 
       {/* TopAppBar */}
       <header className="sticky top-0 left-0 w-full z-50 flex justify-between items-center px-5 h-16 pt-2 bg-transparent">

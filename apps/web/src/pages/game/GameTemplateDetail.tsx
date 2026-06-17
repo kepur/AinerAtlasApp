@@ -5,7 +5,7 @@ export default function GameTemplateDetail() {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full min-h-screen bg-[#f7f9fb] flex flex-col text-[#191c1e] relative pb-32">
+    <div className="premium w-full min-h-full bg-[#f7f9fb] flex flex-col text-[#191c1e] relative pb-32 font-sans">
       {/* Top Navigation */}
       <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-5 h-16 pt-[env(safe-area-inset-top,20px)]">
         <button 
