@@ -129,6 +129,10 @@ function activeHud(turns: DialogueTurn[], activeTurnId: string | null): HudData 
   return turn?.hud ?? null;
 }
 
+// In-flight stream controller — lets a new message abort a previous turn's
+// still-running analysis (HUD) phase so the user can keep chatting immediately.
+let currentStreamAbort: AbortController | null = null;
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -275,6 +279,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   streamMessage: async (conversationId, content, persona) => {
+    // Abort any previous turn's in-flight (analysis) stream so this new message
+    // can proceed without racing the old one's HUD/result updates.
+    currentStreamAbort?.abort();
+    const abortController = new AbortController();
+    currentStreamAbort = abortController;
     set({ sending: true, streamPhase: null, error: null });
 
     const currentConv = get().currentConversation;
@@ -365,7 +374,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
@@ -414,7 +424,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           } else if (ev.event === "reply_done") {
             // conversational reply fully streamed
           } else if (ev.event === "analyzing") {
-            set({ streamPhase: "analyzing" });
+            // Reply is fully streamed — release the composer so the user can keep
+            // chatting while the learning HUD analysis finishes in the background.
+            set({ streamPhase: "analyzing", sending: false });
             set((s) => ({
               turns: s.turns.map(t =>
                 t.turn_id === newTurnId ? { ...t, status: "analyzing" } : t
@@ -484,8 +496,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }
         }
       }
+      if (currentStreamAbort === abortController) currentStreamAbort = null;
       set({ sending: false, streamPhase: null });
     } catch (e) {
+      // A newer message aborted this stream — leave its turn as-is, stay quiet.
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      if (abortController.signal.aborted) return;
       set({
         sending: false,
         streamPhase: null,
