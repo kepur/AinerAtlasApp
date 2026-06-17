@@ -9,6 +9,8 @@ export default function TurtleSoupDetail() {
   const { id } = useParams<{ id: string }>();
   const { loadTemplate } = useGameStore();
   const [tpl, setTpl] = useState<GameTemplate | null>(null);
+  const [party, setParty] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -111,18 +113,18 @@ export default function TurtleSoupDetail() {
           className="flex flex-col gap-3"
         >
           <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-50">
-            <button className="flex-1 py-2.5 bg-indigo-50 rounded-xl text-indigo-600 font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors">
+            <button onClick={() => setParty(false)} className={`flex-1 py-2.5 rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors ${!party ? "bg-indigo-50 text-indigo-600" : "text-gray-400 hover:text-gray-700"}`}>
               <User size={16} /> Solo
             </button>
-            <button className="flex-1 py-2.5 text-gray-400 font-medium text-[13px] flex items-center justify-center gap-1.5 hover:text-gray-700 transition-colors">
-              <Users size={16} /> Party
+            <button onClick={() => setParty(true)} title="多人模式开发中" className={`flex-1 py-2.5 rounded-xl font-medium text-[13px] flex items-center justify-center gap-1.5 transition-colors ${party ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-400 hover:text-gray-700"}`}>
+              <Users size={16} /> Party{party ? " · 敬请期待" : ""}
             </button>
           </div>
           <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-50">
-            <button className="flex-1 py-2.5 bg-indigo-50 rounded-xl text-indigo-600 font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors">
+            <button onClick={() => setVoiceMode(false)} className={`flex-1 py-2.5 rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors ${!voiceMode ? "bg-indigo-50 text-indigo-600" : "text-gray-400 hover:text-gray-700"}`}>
               <Keyboard size={16} /> 文字模式
             </button>
-            <button className="flex-1 py-2.5 text-gray-400 font-medium text-[13px] flex items-center justify-center gap-1.5 hover:text-gray-700 transition-colors">
+            <button onClick={() => setVoiceMode(true)} className={`flex-1 py-2.5 rounded-xl font-medium text-[13px] flex items-center justify-center gap-1.5 transition-colors ${voiceMode ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-400 hover:text-gray-700"}`}>
               <Mic size={16} /> 语音模式
             </button>
           </div>
@@ -234,7 +236,7 @@ export default function TurtleSoupDetail() {
       >
         <div className="max-w-md mx-auto flex gap-3 pointer-events-auto">
           <button 
-            onClick={() => navigate("/game/play/turtle_soup/" + (id || "passenger"))}
+            onClick={() => navigate("/game/play/turtle_soup/" + (id || "passenger") + (voiceMode ? "?voice=1" : ""))}
             className="flex-[2] bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           >
             <span className="text-[16px]">开始游戏</span>

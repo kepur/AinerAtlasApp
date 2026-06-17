@@ -52,11 +52,12 @@ roleplay 角色 / romance 对象 / detective 嫌疑人(审讯+主板) / social_l
 - ✅ **恋爱/社交对话丰富化**：每轮"本轮要点"色块 + hint_card 历史可追溯；情绪 emoji 贴头像 + 情绪标签 + 好感±变化；分类化进度维度(恋爱好感度/商务成交意向/旅游熟络度/移民融入度)，prompt 按分类目标驱动。
 - ✅ **StoryPublisher + RomanceCharacterManager 角色音色下拉**：手动绑定角色音色(`/api/games/voices`)，play 时按角色朗读。
 - ✅ **game.* Prompt 后台可编辑**：admin 应用 Prompts 页已列出并可编辑全部 `game.*`（分组美化为可选 polish）。
-- ⬜ 仍待做（涉及 UI，需确认解冻局部）：
-  - **AI侦探主板 推理关系图(05.png)**：节点图(线索↔嫌疑人)，已发现才连线。
-  - **侦探时间线**：审讯陈述聚合成事件时间线。
-  - **Roleplay Setup(06.png)** 三入口 + 自定义剧情页接通。
-  - 详情页模式切换(Solo/Party、文字/语音)落地。
+- ✅ **AI侦探推理关系图(05.png)**：「推理关系」tab 放射节点图(案件中心+嫌疑人，连线按嫌疑度=100-trust着色，不剧透)。
+- ✅ **侦探时间线**：聚合已发现线索 + 审讯事件。
+- ✅ **Roleplay Setup(06.png) 三入口路由**：system→故事线 / custom·ai_story→自定义生成 / free_chat→选角色；自定义剧情页(GeneratedStorySettings)已接通(生成→预览→开始故事创建模板开玩)。
+- ✅ **海龟汤详情页模式切换**：Solo/Party(Party 敬请期待) + 文字/语音(语音模式 `?voice=1` 透传)可交互。
+
+> P1 已基本完成。剩余偏运营/打磨：多人 PartyRoom 真后端、social_logic 持久化、策划词汇/句型包、难度曲线 UI、admin Prompt `game.*` 分组美化（功能已可编辑）。
 
 ### P2 — 新玩法 / 基础设施
 8. **多人剧本杀 Party Room(02.png 屏8)**：需真实多人后端(房间/WS/座位/角色分发)。当前 `PartyRoom.tsx` 未注册路由。较大工程。

@@ -10,11 +10,14 @@ export default function RoleplaySetup() {
   const [language, setLanguage] = useState("english");
 
   const handleNext = () => {
-    if (gameMode === "custom") {
-      navigate('/game/custom-story-builder');
+    // Route to the right entry by chosen mode (instead of always custom builder).
+    if (gameMode === "custom" || gameMode === "ai_story") {
+      navigate("/game/custom-story-builder", { state: { genre: storyGenre, difficulty, language } });
+    } else if (gameMode === "free_chat") {
+      navigate("/game/roleplay/characters");
     } else {
-      // For now, navigate to custom-story-builder anyway for demo purposes
-      navigate('/game/custom-story-builder');
+      // system official storylines
+      navigate("/game/roleplay/storylines", { state: { genre: storyGenre } });
     }
   };
 
