@@ -36,6 +36,24 @@ _BUILTIN_STORIES = {
         ],
         "learning_focus": ["情绪表达", "保持距离", "委婉拒绝", "描述感受"],
         "max_turns_per_chapter": 8,
+        "opening": {
+            "feed_items": [
+                {"type": "narrator",
+                 "text": "你睁开眼，发现自己回到了青云门入门第一年的清晨。木床、青衫、窗外此起彼伏的练剑声——你真的重生了。",
+                 "text_en": "You open your eyes, back to the first morning of your first year at Qingyun Sect. The wooden bed, the blue robe, the sound of sword practice outside — you have truly been reborn."},
+                {"type": "character", "speaker": "小师妹", "emotion": "开心",
+                 "text": "师兄！你终于醒了！今天师父要亲自考校新弟子的功课呢，快起来呀！",
+                 "text_en": "Senior Brother! You're finally awake! Master will personally test the new disciples today — get up quickly!"},
+                {"type": "character", "speaker": "大师兄", "emotion": "严肃",
+                 "text": "师弟，今日早课不可缺席，师父已在正堂等候。",
+                 "text_en": "Junior Brother, you must not miss morning class today. Master is already waiting in the main hall."},
+                {"type": "choices", "input_mode": "mixed", "choices": [
+                    {"label": "向小师妹微笑，询问近况 (Smile at Junior Sister and ask how she's been)", "action": "A"},
+                    {"label": "迅速起身整理衣冠 (Quickly get up and tidy your robes)", "action": "B"},
+                    {"label": "环顾四周，确认自己真的重生了 (Look around to confirm you are truly reborn)", "action": "C"},
+                ]},
+            ],
+        },
     },
     "cafe_encounter": {
         "title": "咖啡馆奇遇",
@@ -53,6 +71,21 @@ _BUILTIN_STORIES = {
         ],
         "learning_focus": ["自我介绍", "提问技巧", "表达兴趣", "礼貌用语"],
         "max_turns_per_chapter": 8,
+        "opening": {
+            "feed_items": [
+                {"type": "narrator",
+                 "text": "午后的咖啡馆很安静，阳光斜照在木桌上。你端着咖啡，注意到窗边坐着一位正在看书的陌生人。",
+                 "text_en": "The café is quiet in the afternoon, sunlight slanting across the wooden tables. Coffee in hand, you notice a stranger reading by the window."},
+                {"type": "character", "speaker": "陌生人", "emotion": "温和",
+                 "text": "(抬头微笑) Oh, hi. I don't think I've seen you here before — is this seat taken?",
+                 "text_en": "(looks up with a smile) Oh, hi. I don't think I've seen you here before — is this seat taken?"},
+                {"type": "choices", "input_mode": "mixed", "choices": [
+                    {"label": "微笑回应并坐下 (Smile back and take the seat)", "action": "A"},
+                    {"label": "问对方在看什么书 (Ask what they're reading)", "action": "B"},
+                    {"label": "礼貌地先点头致意 (Give a polite nod first)", "action": "C"},
+                ]},
+            ],
+        },
     },
 }
 
@@ -88,6 +121,7 @@ class RoleplayEngine(GameTypeEngine):
                 "learning_focus": story.get("learning_focus", []),
                 "max_turns_per_chapter": story.get("max_turns_per_chapter", 8),
                 "cover_url": story.get("cover_url", ""),
+                "opening": story.get("opening"),
             },
             "current_chapter": 0,
             "chapter_turn": 0,
@@ -242,9 +276,18 @@ class RoleplayEngine(GameTypeEngine):
             },
         ]
 
-        intro = await self._generate_narrative(db, session, state, "story_opening", "")
-        if intro:
-            feed.extend(intro.get("feed_items", []))
+        # Prefer a pre-authored opening (instant entry, no LLM round-trip). Only
+        # call the model when a story has no cached opening (e.g. older templates).
+        opening = story.get("opening")
+        if opening and opening.get("feed_items"):
+            feed.extend(opening["feed_items"])
+            for item in opening["feed_items"]:
+                if item.get("type") in ("narrator", "character"):
+                    state.setdefault("narrative_log", []).append(item)
+        else:
+            intro = await self._generate_narrative(db, session, state, "story_opening", "")
+            if intro:
+                feed.extend(intro.get("feed_items", []))
 
         session.phase = "playing"
         return {

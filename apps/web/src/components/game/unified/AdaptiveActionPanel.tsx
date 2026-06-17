@@ -95,12 +95,12 @@ export default function AdaptiveActionPanel({
       {/* ============  Turtle Soup  ============ */}
       {mode === "turtle_soup" && (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between bg-[#f5f3ff] rounded-full px-4 py-2 border border-[#ede9fe]">
+          <div className="flex items-center justify-between bg-[#f5f3ff] rounded-full px-4 py-2.5 border border-[#ede9fe]">
             <div className="flex items-center gap-2">
               <div className="text-[#8b5cf6]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
               </div>
-              <div className="text-[11px] text-[#4b5563]">
+              <div className="text-[11px] text-[#4b5563] font-medium">
                 <span className="font-bold text-[#8b5cf6] mr-2">当前模式：提问推理</span>
                 <span className="text-gray-300 mr-2">|</span>
                 输入中文 → AI 生成英文问题
@@ -124,11 +124,11 @@ export default function AdaptiveActionPanel({
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#4b5563] border border-gray-200 shrink-0 shadow-sm active:scale-95 transition-transform hover:text-[#8b5cf6]">
               <Mic size={20} />
             </button>
-            <div className="flex-1 h-12 bg-white border border-gray-200 rounded-full flex items-center px-5 shadow-sm focus-within:border-[#8b5cf6] focus-within:ring-2 focus-within:ring-[#ede9fe] transition-all">
+            <div className="flex-1 h-12 bg-white border border-gray-200/80 rounded-full flex items-center px-5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#8b5cf6] focus-within:ring-2 focus-within:ring-[#ede9fe] transition-all">
               <input
                 type="text"
                 value={input}
@@ -136,15 +136,16 @@ export default function AdaptiveActionPanel({
                 onKeyDown={onKeyDown}
                 placeholder={ph}
                 disabled={disabled}
-                className="flex-1 bg-transparent border-none outline-none text-xs text-[#111827] placeholder:text-[#9ca3af]"
+                className="flex-1 bg-transparent border-none outline-none text-sm text-[#111827] placeholder:text-[#9ca3af]"
+                style={{ border: "none", outline: "none", boxShadow: "none" }}
               />
             </div>
             <button
               onClick={onSend}
               disabled={turnLoading || disabled || !input.trim()}
-              className="w-12 h-12 rounded-full bg-[#8b5cf6] text-white flex items-center justify-center shrink-0 shadow-md active:scale-95 transition-transform hover:bg-[#7c3aed] disabled:opacity-40"
+              className="w-12 h-12 rounded-full bg-gradient-to-r from-[#8b5cf6] to-[#7c3aed] text-white flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(139,92,246,0.3)] active:scale-95 transition-transform disabled:opacity-40"
             >
-              {turnLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} className="ml-0.5" />}
+              {turnLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={16} className="ml-0.5" />}
             </button>
           </div>
 
@@ -152,7 +153,7 @@ export default function AdaptiveActionPanel({
             <button
               onClick={onSolve}
               disabled={turnLoading || disabled}
-              className="w-full py-2 bg-[#f5f3ff] text-[#8b5cf6] rounded-xl text-xs font-bold border border-[#ede9fe] hover:bg-[#ede9fe] active:scale-[0.98] transition-all disabled:opacity-40"
+              className="w-full py-2.5 bg-[#f5f3ff] text-[#8b5cf6] rounded-2xl text-xs font-bold border border-[#ede9fe] hover:bg-[#ede9fe] active:scale-[0.98] transition-all disabled:opacity-40"
             >
               💡 我知道答案了！提交推理
             </button>
@@ -162,15 +163,15 @@ export default function AdaptiveActionPanel({
 
       {/* ============  Detective  ============ */}
       {mode === "detective" && (
-        <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => onChoice?.("interrogate")} disabled={turnLoading || disabled} className="py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-[#4b5563] shadow-sm hover:border-[#eab308] hover:text-[#eab308] disabled:opacity-40">询问嫌疑人</button>
-            <button onClick={() => onChoice?.("examine")} disabled={turnLoading || disabled} className="py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-[#4b5563] shadow-sm hover:border-[#eab308] hover:text-[#eab308] disabled:opacity-40">查看线索</button>
-            <button onClick={() => onChoice?.("challenge")} disabled={turnLoading || disabled} className="py-3 bg-white border border-gray-200 rounded-xl text-sm font-bold text-[#4b5563] shadow-sm hover:border-[#eab308] hover:text-[#eab308] disabled:opacity-40">指出矛盾</button>
-            <button onClick={() => onChoice?.("deduce")} disabled={turnLoading || disabled} className="py-3 bg-[#fef08a] border border-[#fde047] rounded-xl text-sm font-bold text-[#854d0e] shadow-sm disabled:opacity-40">提交推理</button>
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
+            <button onClick={() => onChoice?.("interrogate")} disabled={turnLoading || disabled} className="py-3.5 bg-[#fefce8] border border-[#fef08a] rounded-2xl text-sm font-bold text-[#854d0e] shadow-sm hover:bg-[#fef9c3] active:scale-95 transition-transform disabled:opacity-40">询问嫌疑人</button>
+            <button onClick={() => onChoice?.("examine")} disabled={turnLoading || disabled} className="py-3.5 bg-[#eff6ff] border border-[#bfdbfe] rounded-2xl text-sm font-bold text-[#1d4ed8] shadow-sm hover:bg-[#dbeafe] active:scale-95 transition-transform disabled:opacity-40">查看线索</button>
+            <button onClick={() => onChoice?.("challenge")} disabled={turnLoading || disabled} className="py-3.5 bg-[#fff7ed] border border-[#ffedd5] rounded-2xl text-sm font-bold text-[#c2410c] shadow-sm hover:bg-[#ffedd5]/80 active:scale-95 transition-transform disabled:opacity-40">指出矛盾</button>
+            <button onClick={() => onChoice?.("deduce")} disabled={turnLoading || disabled} className="py-3.5 bg-gradient-to-r from-[#eab308] to-[#ca8a04] border border-transparent rounded-2xl text-sm font-bold text-white shadow-[0_4px_12px_rgba(234,179,8,0.25)] hover:opacity-95 active:scale-95 transition-transform disabled:opacity-40">提交推理</button>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <div className="flex-1 h-10 bg-gray-50 border border-gray-200 rounded-full flex items-center px-4 shadow-inner focus-within:border-[#eab308] focus-within:ring-1 focus-within:ring-[#eab308] transition-all">
+          <div className="flex items-center gap-2.5 mt-1">
+            <div className="flex-1 h-12 bg-[#f9fafb] border border-gray-200/80 rounded-full flex items-center px-5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#eab308] focus-within:ring-2 focus-within:ring-[#fef9c3] transition-all">
               <input
                 type="text"
                 value={input}
@@ -178,15 +179,16 @@ export default function AdaptiveActionPanel({
                 onKeyDown={onKeyDown}
                 placeholder={ph}
                 disabled={disabled}
-                className="flex-1 bg-transparent border-none outline-none text-xs text-[#111827] placeholder:text-[#9ca3af]"
+                className="flex-1 bg-transparent border-none outline-none text-sm text-[#111827] placeholder:text-[#9ca3af]"
+                style={{ border: "none", outline: "none", boxShadow: "none" }}
               />
             </div>
             <button
               onClick={onSend}
               disabled={turnLoading || disabled || !input.trim()}
-              className="w-10 h-10 rounded-full bg-[#eab308] text-white flex items-center justify-center shrink-0 shadow-md active:scale-95 transition-transform disabled:opacity-40"
+              className="w-12 h-12 rounded-full bg-gradient-to-r from-[#eab308] to-[#ca8a04] text-white flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(234,179,8,0.25)] active:scale-95 transition-transform disabled:opacity-40"
             >
-              {turnLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className="ml-0.5" />}
+              {turnLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={16} className="ml-0.5" />}
             </button>
           </div>
         </div>
