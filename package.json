@@ -10,6 +10,9 @@
   "scripts": {
     "dev:web": "npm --workspace apps/web run dev",
     "dev:admin": "npm --workspace apps/admin run dev",
+    "docker:up": "docker compose up -d --build",
+    "docker:rebuild": "docker compose build --no-cache api web admin && docker compose up -d --force-recreate",
+    "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
     "build": "npm --workspaces --if-present run build",
     "lint": "npm --workspaces --if-present run lint"
   },

@@ -17,6 +17,9 @@ services:
         condition: service_healthy
     volumes:
       - ./storage:/app/storage
+      # 开发：挂载源码，改代码后 uvicorn --reload 自动生效
+      - ./apps/api/app:/app/app
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 10s
@@ -57,13 +60,20 @@ services:
   web:
     build:
       context: ./apps/web
+      dockerfile: Dockerfile.dev
     depends_on:
       api:
         condition: service_healthy
+    environment:
+      VITE_API_PROXY: http://api:8000
+    volumes:
+      # 开发：挂载源码，Vite HMR 即时反映前端改动
+      - ./apps/web:/app
+      - web_node_modules:/app/node_modules
     ports:
-      - "7075:80"
+      - "7075:7075"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:7075/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -87,3 +97,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  web_node_modules:

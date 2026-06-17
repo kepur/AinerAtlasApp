@@ -1,0 +1,17 @@
+# 生产/预览：Nginx 静态打包（改代码后需 docker compose -f docker-compose.yml -f docker-compose.prod.yml build web）
+services:
+  api:
+    volumes:
+      - ./storage:/app/storage
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    environment: {}
+    volumes: !reset []
+    ports:
+      - "7075:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]

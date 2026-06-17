@@ -53,6 +53,12 @@ npm run dev
 | Redis | localhost:7074 |
 | Admin Vite dev | http://localhost:7076 |
 
+**开发模式（默认）**：`docker compose up -d` 会挂载本地源码——API 自动 `--reload`，Web 跑 Vite HMR（7075），改代码后刷新即可，无需 rebuild。
+
+**生产静态打包**：`npm run docker:prod`
+
+**强制全量重建镜像**：`npm run docker:rebuild`
+
 ```bash
 docker compose up -d
 ```
