@@ -74,6 +74,7 @@ class RomanceCharacterCreateRequest(BaseModel):
     role: str = ""
     age: int = 24
     gender: str = "neutral"
+    voice: str = ""
     avatar_url: str = ""
     cover_url: str = ""
     category: str = "恋爱社交"
@@ -100,6 +101,7 @@ class RomanceCharacterUpdateRequest(BaseModel):
     role: str | None = None
     age: int | None = None
     gender: str | None = None
+    voice: str | None = None
     avatar_url: str | None = None
     cover_url: str | None = None
     category: str | None = None
@@ -285,6 +287,7 @@ def _romance_character_from_template(t) -> dict:
         "age": cfg.get("age", 24),
         "role": cfg.get("role", ""),
         "gender": cfg.get("gender", "neutral"),
+        "voice": cfg.get("voice", ""),
         "avatar_url": cfg.get("avatar_url") or t.cover_url,
         "cover_url": cfg.get("cover_url") or t.cover_url,
         "category": cfg.get("category", "恋爱社交"),
@@ -368,6 +371,7 @@ def create_romance_character(payload: RomanceCharacterCreateRequest, current_use
         "age": payload.age,
         "role": payload.role,
         "gender": payload.gender,
+        "voice": payload.voice,
         "avatar_url": payload.avatar_url,
         "cover_url": payload.cover_url,
         "category": payload.category,
@@ -416,7 +420,7 @@ def update_romance_character(template_id: str, payload: RomanceCharacterUpdateRe
     data = payload.model_dump(exclude_none=True)
 
     mapping = {
-        "name", "name_en", "age", "role", "gender", "avatar_url", "cover_url",
+        "name", "name_en", "age", "role", "gender", "voice", "avatar_url", "cover_url",
         "category", "personality", "chat_style", "identity_background",
         "initial_scene", "prompt_override", "tags",
     }
@@ -452,6 +456,18 @@ def update_romance_character(template_id: str, payload: RomanceCharacterUpdateRe
     db.commit()
     db.refresh(t)
     return _romance_character_from_template(t)
+
+
+@router.delete("/admin/romance-characters/{template_id}")
+def delete_romance_character(template_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.models import GameTemplate, GameSession
+    from sqlalchemy import update
+    t = db.get(GameTemplate, template_id)
+    if t and t.game_type == "romance":
+        db.execute(update(GameSession).where(GameSession.template_id == template_id).values(template_id=None))
+        db.delete(t)
+        db.commit()
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------

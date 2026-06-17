@@ -32,9 +32,12 @@ const EMPTY_FORM = {
   initial_scene: "",
   prompt_override: "",
   avatar_url: "",
+  voice: "",
   tags: "",
   difficulty: "B1",
 };
+
+type VoicePreset = { id: string; name: string; gender: string };
 
 export default function RomanceCharacterManager() {
   const navigate = useNavigate();
@@ -42,6 +45,11 @@ export default function RomanceCharacterManager() {
   const [saving, setSaving] = useState(false);
   const [characters, setCharacters] = useState<RomanceCharacter[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [voices, setVoices] = useState<VoicePreset[]>([]);
+
+  useEffect(() => {
+    apiRequest<VoicePreset[]>("/api/games/voices").then(setVoices).catch(() => setVoices([]));
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -94,6 +102,10 @@ export default function RomanceCharacterManager() {
           <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="身份（如 欧洲客户）" value={form.role} onChange={(e) => setForm((s) => ({ ...s, role: e.target.value }))} />
           <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="分类（恋爱社交/旅游出差/商务谈判/移民生活）" value={form.category} onChange={(e) => setForm((s) => ({ ...s, category: e.target.value }))} />
           <input className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="头像 URL" value={form.avatar_url} onChange={(e) => setForm((s) => ({ ...s, avatar_url: e.target.value }))} />
+          <select className="rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white" value={form.voice} onChange={(e) => setForm((s) => ({ ...s, voice: e.target.value }))}>
+            <option value="">音色（默认按性别自动）</option>
+            {voices.map((v) => <option key={v.id} value={v.id}>{v.name}（{v.gender}）</option>)}
+          </select>
           <textarea className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="人格" value={form.personality} onChange={(e) => setForm((s) => ({ ...s, personality: e.target.value }))} />
           <textarea className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="聊天方式" value={form.chat_style} onChange={(e) => setForm((s) => ({ ...s, chat_style: e.target.value }))} />
           <textarea className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="身份背景" value={form.identity_background} onChange={(e) => setForm((s) => ({ ...s, identity_background: e.target.value }))} />
