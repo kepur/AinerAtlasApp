@@ -35,17 +35,28 @@ class QwenTTSProvider(VoiceProvider):
 
         use_voice = voice or self.default_voice
         started = time.perf_counter()
-        response = dashscope.MultiModalConversation.call(
-            model=self.model,
-            api_key=self.api_key,
-            text=text,
-            voice=use_voice,
-        )
 
-        latency_ms = int((time.perf_counter() - started) * 1000)
-        if response.status_code == 200:
-            audio_url = response.output.audio.url if response.output and response.output.audio else ""
-            if audio_url:
+        def _err_detail(resp) -> str:
+            """Surface the real DashScope error (not just 'Unknown')."""
+            msg = getattr(resp, "message", "") or ""
+            code = getattr(resp, "code", "") or ""
+            if "FreeTierOnly" in str(msg) or "free tier" in str(msg).lower():
+                return "阿里云 DashScope 免费额度已用尽：请在控制台关闭“仅用免费额度”模式或开通付费后重试。"
+            return str(msg) or str(code) or "TTS 合成失败"
+
+        # Try the configured model, then the alternate qwen-tts model (separate quota).
+        models = [self.model] + [m for m in QWEN_TTS_MODELS if m != self.model]
+        last_resp = None
+        for model in models:
+            response = dashscope.MultiModalConversation.call(
+                model=model, api_key=self.api_key, text=text, voice=use_voice,
+            )
+            last_resp = response
+            if response.status_code == 200:
+                latency_ms = int((time.perf_counter() - started) * 1000)
+                audio_url = response.output.audio.url if response.output and response.output.audio else ""
+                if not audio_url:
+                    return {"audio_base64": "", "audio_url": "", "provider": "qwentts", "error": "no audio URL returned"}
                 import httpx
                 async with httpx.AsyncClient(timeout=30) as client:
                     resp = await client.get(audio_url)
@@ -58,12 +69,12 @@ class QwenTTSProvider(VoiceProvider):
                     "audio_url": f"data:audio/mpeg;base64,{encoded}",
                     "provider": "qwentts",
                     "voice": use_voice,
+                    "model": model,
                     "speed": speed,
                     "text": text,
                     "latency_ms": latency_ms,
                 }
-            return {"audio_base64": "", "audio_url": "", "provider": "qwentts", "error": "no audio URL returned"}
-        return {"audio_base64": "", "audio_url": "", "provider": "qwentts", "error": str(response.code)}
+        return {"audio_base64": "", "audio_url": "", "provider": "qwentts", "error": _err_detail(last_resp)}
 
     async def realtime_session(self, config: dict) -> dict:
         return {"provider": "qwentts", "mode": "not-supported"}

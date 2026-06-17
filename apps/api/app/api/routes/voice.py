@@ -89,44 +89,31 @@ def list_voice_sessions(current_user: CurrentUser, db: DBSession) -> list[VoiceS
 
 @router.post("/tts")
 async def synthesize(payload: TTSRequest, db: DBSession) -> dict:
-    # Map a game voice-preset id (e.g. "female_warm") to a provider voice.
+    # ── Game voice-preset path ───────────────────────────────────────────
+    # When the frontend sends a game preset id (e.g. "female_warm") we resolve
+    # it to a provider-specific voice and synthesise with the *configured*
+    # default provider — NOT with the language router, which would override the
+    # chosen provider and produce the wrong voice (e.g. cosyvoice ignoring
+    # an OpenAI voice name like "nova").
     try:
         from app.services.game_assets import _VOICE_BY_ID, provider_voice_for
         if payload.voice in _VOICE_BY_ID:
-            payload.voice = provider_voice_for(payload.voice)
+            preset = _VOICE_BY_ID[payload.voice]
+            app = db.get(AppSettings, "default")
+            tts = getattr(app, "tts_provider", "browser") or "browser" if app else "browser"
+            voice_name = provider_voice_for(preset["id"], tts)
+            return await _synthesize_with_provider(
+                db, tts, payload.text, voice_name, payload.speed, app,
+            )
     except Exception:  # noqa: BLE001
         pass
 
-    def get_key(keys, platform):
-        if isinstance(keys, list):
-            for e in keys:
-                if isinstance(e, dict) and e.get("platform") == platform:
-                    return e.get("api_key", "")
-        elif isinstance(keys, dict):
-            return keys.get(f"{platform}_api_key", "")
-        return ""
-    
-    def find_provider_key(provider_name):
-        row = db.scalar(select(AIProvider).where(AIProvider.provider_name == provider_name, AIProvider.enabled == True).limit(1))
-        if row:
-            try:
-                k = decrypt_api_key(row.api_key_encrypted)
-                if k: return k
-            except: pass
-        return ""
-    
-    from app.services.voice_cosyvoice import CosyVoiceProvider
-    from app.services.voice_qwentts import QwenTTSProvider
-    from app.core.security import decrypt_api_key
-
+    # ── General path (language-aware routing) ──────────────────────────────
     app = db.get(AppSettings, "default")
-    tts = getattr(app, 'tts_provider', 'browser') or 'browser' if app else 'browser'
-    global_keys = getattr(app, 'global_api_keys', []) or [] if app else []
+    tts = getattr(app, "tts_provider", "browser") or "browser" if app else "browser"
+    global_keys = getattr(app, "global_api_keys", []) or [] if app else []
 
-    # --- TTS language router: pick the best provider for the text's language ---
-    # (e.g. read English with OpenAI even if the default provider is a Chinese
-    # specialist). Only takes over when it can confidently route; otherwise we
-    # fall through to the configured-provider logic below.
+    # TTS language router: pick the best provider for the text's language.
     from app.services.tts_router import synthesize_routed
     routed = await synthesize_routed(
         db,
@@ -138,24 +125,63 @@ async def synthesize(payload: TTSRequest, db: DBSession) -> dict:
     if routed and (routed.get("audio_url") or routed.get("audio_base64")):
         return routed
 
-    if tts == "cosyvoice":
-        voice = getattr(app, 'tts_voice', 'longanhuan') or 'longanhuan' if app else 'longanhuan'
+    # Fallback to configured provider without language routing
+    return await _synthesize_with_provider(
+        db, tts, payload.text, payload.voice, payload.speed, app,
+    )
+
+
+async def _synthesize_with_provider(
+    db, provider_name: str, text: str, voice: str, speed: float, app,
+) -> dict:
+    """Build the correct provider instance and call synthesize."""
+    from app.core.security import decrypt_api_key
+    from app.services.dashscope_client import resolve_dashscope_api_key
+    from app.services.voice_cosyvoice import CosyVoiceProvider
+    from app.services.voice_qwentts import QwenTTSProvider
+
+    app = app or db.get(AppSettings, "default")
+    global_keys = getattr(app, "global_api_keys", []) or [] if app else []
+
+    def get_key(keys, platform):
+        if isinstance(keys, list):
+            for e in keys:
+                if isinstance(e, dict) and e.get("platform") == platform:
+                    return e.get("api_key", "")
+        elif isinstance(keys, dict):
+            return keys.get(f"{platform}_api_key", "")
+        return ""
+
+    def find_provider_key(pname):
+        row = db.scalar(select(AIProvider).where(AIProvider.provider_name == pname, AIProvider.enabled == True).limit(1))
+        if row:
+            try:
+                k = decrypt_api_key(row.api_key_encrypted)
+                if k: return k
+            except: pass
+        return ""
+
+    if provider_name == "cosyvoice":
+        default_voice = getattr(app, "tts_voice", "longanhuan") or "longanhuan" if app else "longanhuan"
         api_key = get_key(global_keys, "dashscope") or find_provider_key("cosyvoice") or find_provider_key("dashscope") or resolve_dashscope_api_key(db) or ""
         if not api_key:
-            return {"audio_url": "", "audio_base64": "", "provider": "cosyvoice", "error": "请在 Global API Keys 中添加 dashscope 平台的 API Key 或设置 DASHSCOPE_API_KEY 环境变量"}
-        provider = CosyVoiceProvider(api_key=api_key, voice=voice)
-        return await provider.synthesize(payload.text, voice, payload.speed)
+            return {"audio_url": "", "audio_base64": "", "provider": "cosyvoice", "error": "请在 Global API Keys 中添加 dashscope 平台的 API Key"}
+        provider = CosyVoiceProvider(api_key=api_key, voice=voice or default_voice)
+        return await provider.synthesize(text, voice or default_voice, speed)
 
-    if tts == "qwentts":
-        voice = getattr(app, 'tts_voice', 'Cherry') or 'Cherry' if app else 'Cherry'
+    if provider_name == "qwentts":
+        default_voice = getattr(app, "tts_voice", "Cherry") or "Cherry" if app else "Cherry"
         api_key = get_key(global_keys, "dashscope") or find_provider_key("qwentts") or find_provider_key("dashscope") or resolve_dashscope_api_key(db) or ""
         if not api_key:
-            return {"audio_url": "", "audio_base64": "", "provider": "qwentts", "error": "请在 Global API Keys 中添加 dashscope 平台的 API Key 或设置 DASHSCOPE_API_KEY 环境变量"}
-        provider = QwenTTSProvider(api_key=api_key, voice=voice)
-        return await provider.synthesize(payload.text, voice, payload.speed)
-    
+            return {"audio_url": "", "audio_base64": "", "provider": "qwentts", "error": "请在 Global API Keys 中添加 dashscope 平台的 API Key"}
+        provider = QwenTTSProvider(api_key=api_key, voice=voice or default_voice)
+        return await provider.synthesize(text, voice or default_voice, speed)
+
+    # openai / mock / other
+    from app.services.voice import get_voice_provider
+    from app.services.runtime_config import resolve_default_voice_provider
     provider = get_voice_provider(resolve_default_voice_provider(db), db)
-    return await provider.synthesize(payload.text, payload.voice, payload.speed)
+    return await provider.synthesize(text, voice, speed)
 
 
 @router.post("/tts-mixed")

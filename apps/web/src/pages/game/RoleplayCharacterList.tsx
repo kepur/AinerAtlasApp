@@ -61,18 +61,7 @@ const getListTheme = (category: string) => {
       filterBorder: "border-violet-100",
     };
   }
-  if (c === "校园大学") {
-    return {
-      bg: "bg-[#fffaf0]",
-      bgHeader: "bg-[#fffaf0]/90",
-      textActive: "text-amber-600",
-      badgeHot: "bg-amber-100 text-amber-600",
-      heart: "text-amber-500 fill-amber-500",
-      cta: "text-amber-600",
-      tagCategory: "bg-amber-50 text-amber-600 border border-amber-100",
-      filterBorder: "border-amber-100",
-    };
-  }
+
   return {
     bg: "bg-[#fdf2f8]",
     bgHeader: "bg-[#fdf2f8]/90",
@@ -112,7 +101,7 @@ export default function RoleplayCharacterList() {
     if (c.category === "商务谈判") return "开始谈判";
     if (c.category === "移民生活") return "开始对话";
     if (c.category === "旅游出差") return "开始对话";
-    if (c.category === "校园大学") return "进入剧情";
+
     return "进入对话";
   };
 

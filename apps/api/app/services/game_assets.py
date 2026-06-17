@@ -151,11 +151,47 @@ def delete_asset(db: Session, asset_id: str) -> None:
 # Voice presets — admins bind characters to a TTS voice; play-time TTS uses it.
 # ---------------------------------------------------------------------------
 VOICE_PRESETS = [
-    {"id": "female_warm", "name": "温柔女声", "gender": "female", "provider_voice": "nova"},
-    {"id": "female_lively", "name": "活泼女声", "gender": "female", "provider_voice": "shimmer"},
-    {"id": "male_calm", "name": "沉稳男声", "gender": "male", "provider_voice": "onyx"},
-    {"id": "male_warm", "name": "温暖男声", "gender": "male", "provider_voice": "echo"},
-    {"id": "neutral_narrator", "name": "中性旁白", "gender": "neutral", "provider_voice": "alloy"},
+    {
+        "id": "female_warm", "name": "温柔女声", "gender": "female",
+        # Per-provider voice names: use whichever matches the active TTS provider.
+        "provider_voice": {
+            "openai": "nova",
+            "cosyvoice": "longanhuan",
+            "qwentts": "Cherry",
+        },
+    },
+    {
+        "id": "female_lively", "name": "活泼女声", "gender": "female",
+        "provider_voice": {
+            "openai": "shimmer",
+            "cosyvoice": "longaxiang",
+            "qwentts": "Stella",
+        },
+    },
+    {
+        "id": "male_calm", "name": "沉稳男声", "gender": "male",
+        "provider_voice": {
+            "openai": "onyx",
+            "cosyvoice": "longaxing",
+            "qwentts": "Ethan",
+        },
+    },
+    {
+        "id": "male_warm", "name": "温暖男声", "gender": "male",
+        "provider_voice": {
+            "openai": "echo",
+            "cosyvoice": "longafang",
+            "qwentts": "Ethan",
+        },
+    },
+    {
+        "id": "neutral_narrator", "name": "中性旁白", "gender": "neutral",
+        "provider_voice": {
+            "openai": "alloy",
+            "cosyvoice": "longanhuan",
+            "qwentts": "Cherry",
+        },
+    },
 ]
 
 _VOICE_BY_ID = {v["id"]: v for v in VOICE_PRESETS}
@@ -173,8 +209,20 @@ def pick_voice(gender: str | None) -> str:
     return "neutral_narrator"
 
 
-def provider_voice_for(voice_id: str | None) -> str:
-    return _VOICE_BY_ID.get(voice_id or "", {}).get("provider_voice", "alloy")
+def provider_voice_for(voice_id: str | None, provider_name: str = "openai") -> str:
+    """Resolve a game voice-preset id to a concrete provider-specific voice name.
+
+    ``provider_name`` should be one of ``openai``, ``cosyvoice``, ``qwentts``.
+    Falls back to ``alloy`` (openai) when the preset or provider mapping is missing.
+    """
+    preset = _VOICE_BY_ID.get(voice_id or "")
+    if not preset:
+        return "alloy"
+    voices = preset.get("provider_voice", {})
+    if isinstance(voices, dict):
+        return voices.get(provider_name, voices.get("openai", "alloy"))
+    # Legacy: old format was a bare string (= openai voice name)
+    return str(voices) if voices else "alloy"
 
 
 def infer_era(text: str) -> str:

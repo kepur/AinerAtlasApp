@@ -27,7 +27,7 @@ const getCategoryTabs = (category: string) => {
       { id: "settled", icon: CheckCircle, label: "定居", phase: "couple" },
     ];
   }
-  if (category === "旅游出差" || category === "生活日常" || category === "日常生活" || category === "校园大学") {
+  if (category === "旅游出差") {
     return [
       { id: "depart", icon: Plane, label: "启程", phase: "icebreaker" },
       { id: "lodging", icon: Hotel, label: "入住", phase: "flirting" },
@@ -164,7 +164,7 @@ const getTheme = (category: string) => {
       tooltipArrowClass: "after:border-t-teal-500",
     };
   }
-  if (c === "旅游出差" || c === "生活日常" || c === "日常生活" || c === "校园大学") {
+  if (c === "旅游出差") {
     return {
       bg: "bg-[#faf5ff]",
       bgStyle: { backgroundColor: "#faf5ff" },
@@ -183,8 +183,8 @@ const getTheme = (category: string) => {
       nodeTextActive: "text-violet-700",
       nodeTextCompleted: "text-violet-600",
       nodeTextLocked: "text-violet-300",
-      title: c === "旅游出差" ? "旅游出差表达练习" : "生活日常表达练习",
-      subtitle: c === "旅游出差" ? "Travel & Business Trip" : "Daily Life Practice",
+      title: "旅游出差表达练习",
+      subtitle: "Travel & Business Trip",
       tagBg: "bg-violet-50 text-violet-600 border border-violet-100",
       tagBgLight: "bg-violet-50/70 text-violet-500 border border-violet-100/50",
       btnPreset: "text-violet-700 border-violet-200 hover:bg-white",
@@ -324,10 +324,11 @@ export default function RomanceSocial() {
   const phraseZh = lastHint?.zh || "你感觉很容易相处。";
   const breakdown = lastHint?.breakdown || [];
 
-  const send = async (text: string) => {
-    if (!currentSession || !text.trim() || turnLoading) return;
+  const send = (text: string) => {
+    if (!currentSession || !text.trim()) return;
     setInputText("");
-    await sendTurn(currentSession.id, "user_action", text.trim());
+    // Fire-and-forget: don't await so the user can keep chatting
+    sendTurn(currentSession.id, "user_action", text.trim()).catch(console.error);
   };
 
   const category = target.category || "恋爱社交";
@@ -457,7 +458,7 @@ export default function RomanceSocial() {
           {/* 自然表达 */}
           <div className={`bg-white rounded-2xl border ${th.accentBorder} p-3 shadow-sm`}>
             <div className="flex items-center gap-1.5 mb-2">
-              <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${category === "商务谈判" ? "from-blue-100 to-blue-200" : category === "移民生活" ? "from-teal-100 to-teal-200" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "from-violet-100 to-violet-200" : "from-pink-100 to-pink-200"} flex items-center justify-center`}><Leaf size={12} className={category === "商务谈判" ? "text-blue-500" : category === "移民生活" ? "text-teal-500" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "text-violet-500" : "text-pink-500"} /></div>
+              <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${category === "商务谈判" ? "from-blue-100 to-blue-200" : category === "移民生活" ? "from-teal-100 to-teal-200" : category === "旅游出差" ? "from-violet-100 to-violet-200" : "from-pink-100 to-pink-200"} flex items-center justify-center`}><Leaf size={12} className={category === "商务谈判" ? "text-blue-500" : category === "移民生活" ? "text-teal-500" : category === "旅游出差" ? "text-violet-500" : "text-pink-500"} /></div>
               <span className={`text-[11px] font-bold ${th.accent}`}>自然表达</span>
             </div>
             <div className="text-[12px] font-extrabold text-[#1f2937] leading-snug">{phraseEn}</div>
@@ -472,10 +473,10 @@ export default function RomanceSocial() {
               />
               <button 
                 onClick={() => setInputText(phraseEn)} 
-                className={`px-2.5 py-1 bg-${category === "商务谈判" ? "blue" : category === "移民生活" ? "teal" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "violet" : "pink"}-500/10 hover:bg-${category === "商务谈判" ? "blue" : category === "移民生活" ? "teal" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "violet" : "pink"}-500/15 ${th.bubbleText} rounded-full text-[10px] font-bold backdrop-blur-md active:scale-95 transition-all flex items-center gap-1`}
-                style={{ border: `1px solid ${category === "商务谈判" ? "rgba(59, 130, 246, 0.2)" : category === "移民生活" ? "rgba(20, 184, 166, 0.2)" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "rgba(139, 92, 246, 0.2)" : "rgba(236, 72, 153, 0.2)"}` }}
+                className={`px-2.5 py-1 bg-${category === "商务谈判" ? "blue" : category === "移民生活" ? "teal" : category === "旅游出差" ? "violet" : "pink"}-500/10 hover:bg-${category === "商务谈判" ? "blue" : category === "移民生活" ? "teal" : category === "旅游出差" ? "violet" : "pink"}-500/15 ${th.bubbleText} rounded-full text-[10px] font-bold backdrop-blur-md active:scale-95 transition-all flex items-center gap-1`}
+                style={{ border: `1px solid ${category === "商务谈判" ? "rgba(59, 130, 246, 0.2)" : category === "移民生活" ? "rgba(20, 184, 166, 0.2)" : category === "旅游出差" ? "rgba(139, 92, 246, 0.2)" : "rgba(236, 72, 153, 0.2)"}` }}
               >
-                <Sparkles size={10} className={category === "商务谈判" ? "text-blue-500" : category === "移民生活" ? "text-teal-500" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "text-violet-500" : "text-pink-500"} />
+                <Sparkles size={10} className={category === "商务谈判" ? "text-blue-500" : category === "移民生活" ? "text-teal-500" : category === "旅游出差" ? "text-violet-500" : "text-pink-500"} />
                 <span>套用</span>
               </button>
             </div>
@@ -602,7 +603,7 @@ export default function RomanceSocial() {
           />
           <button
             onClick={() => send(inputText)}
-            disabled={turnLoading || !inputText.trim()}
+            disabled={!inputText.trim()}
             className={`w-10 h-10 rounded-xl bg-gradient-to-br ${th.sendGradient} flex items-center justify-center shadow-lg ${th.shadowBtn} shrink-0 disabled:opacity-40 active:scale-95 transition-transform`}
           >
             {turnLoading ? <Loader2 size={18} className="text-white animate-spin" /> : <Send size={16} className="text-white fill-white ml-0.5" />}
