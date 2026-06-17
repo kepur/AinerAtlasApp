@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 _BUILTIN_TARGETS = {
     "mia": {
+        "id": "mia",
         "name": "Mia",
         "name_en": "Mia",
         "age": 25,
@@ -29,10 +30,15 @@ _BUILTIN_TARGETS = {
         "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150",
         "cover_url": "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&q=80&w=600",
         "personality": "轻松外向，说话温柔，喜欢旅行和摄影，容易害羞",
+        "chat_style": "温柔、自然、带一点幽默，适合B1-B2学习者",
+        "identity_background": "在咖啡店附近做自由摄影师，常来这里看书、修片和观察人群。",
         "initial_scene": "咖啡店初次见面，你走近常去喝咖啡的店，发现她正坐在窗边看书...",
+        "prompt_override": "",
+        "category": "恋爱社交",
         "tags": ["恋爱社交", "轻松", "B1-B2"],
     },
     "leo": {
+        "id": "leo",
         "name": "Leo",
         "name_en": "Leo",
         "age": 32,
@@ -40,10 +46,15 @@ _BUILTIN_TARGETS = {
         "gender": "male",
         "avatar_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150",
         "personality": "直接、谨慎、喜欢砍价，但私下里幽默且体贴",
+        "chat_style": "偏正式、节奏快、讲结果导向，适合商务谈判训练",
+        "identity_background": "跨境项目采购负责人，长期和亚洲团队沟通，重视价值和风险控制。",
         "initial_scene": "项目商务谈判后的酒会，你们恰好在吧台碰面...",
-        "tags": ["恋爱社交", "正式", "B2-C1"],
+        "prompt_override": "",
+        "category": "商务谈判",
+        "tags": ["商务谈判", "正式", "B2-C1"],
     },
     "junior_sister": {
+        "id": "junior_sister",
         "name": "小师妹",
         "name_en": "Junior Sister",
         "age": 19,
@@ -51,10 +62,35 @@ _BUILTIN_TARGETS = {
         "gender": "female",
         "avatar_url": "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&q=80&w=150",
         "personality": "温柔、善良、试探心意，一直暗恋你",
+        "chat_style": "含蓄、细腻、古风表达，重情绪和关系边界",
+        "identity_background": "青云宗内门弟子，自幼修行，与你有旧日同门羁绊。",
         "initial_scene": "后山重逢，你离开宗门多年后第一次回来，她正在那里练剑...",
-        "tags": ["仙侠剧情", "情感", "B1"],
+        "prompt_override": "",
+        "category": "旅游出差",
+        "tags": ["旅游出差", "情感", "B1"],
+    },
+    "amy": {
+        "id": "amy",
+        "name": "Amy",
+        "name_en": "Amy",
+        "age": 28,
+        "role": "移民顾问同伴",
+        "gender": "female",
+        "avatar_url": "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=150",
+        "cover_url": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&q=80&w=600",
+        "personality": "理性耐心，擅长解释流程，也会照顾对方情绪",
+        "chat_style": "清晰分步骤，偏实用，适合移民生活场景",
+        "identity_background": "刚完成技术移民申请，熟悉材料、租房、求职和文化适应。",
+        "initial_scene": "社区中心的新移民分享会后，你们在门口继续交流经历...",
+        "prompt_override": "",
+        "category": "移民生活",
+        "tags": ["移民生活", "实用", "B1-B2"],
     }
 }
+
+
+def list_builtin_targets() -> list[dict[str, Any]]:
+    return [dict(v) for v in _BUILTIN_TARGETS.values()]
 
 def _provider_for(task_type: str, db: Session):
     return get_llm_provider_for_task(task_type, resolve_default_llm_provider(db), db)
@@ -142,7 +178,7 @@ class RomanceEngine(GameTypeEngine):
             "type": "char_msg",
             "speaker": target["name"],
             "speaker_en": target["name_en"],
-            "speaker_avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100" if target.get("id") == "mia" else "",
+            "speaker_avatar": target.get("avatar_url", ""),
             "text": parsed.get("character_reply", "Haha, that's interesting..."),
             "text_zh": parsed.get("character_reply_zh", ""),
             "emotion": parsed.get("emotion", ""),
@@ -197,10 +233,14 @@ class RomanceEngine(GameTypeEngine):
         return f"""You are playing the role of {target.get('name')} in a romance/social simulation game.
 Setting: {target.get('initial_scene')}
 Your personality: {target.get('personality')}
+Your chat style: {target.get('chat_style', '')}
+Your identity/background: {target.get('identity_background', '')}
 Current relationship score with the user: {score}/100.
+Category: {target.get('category', '恋爱社交')}
 
 The user says: "{user_input}"
 Action intent (if chosen by user): {extra.get('action_type', 'normal')}
+Prompt constraints from admin: {target.get('prompt_override', '')}
 
 Respond IN JSON ONLY, using this exact schema:
 {{

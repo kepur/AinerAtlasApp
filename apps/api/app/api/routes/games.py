@@ -67,6 +67,59 @@ class AssetUpdateRequest(BaseModel):
     sort_order: int | None = None
 
 
+class RomanceCharacterCreateRequest(BaseModel):
+    slug: str
+    name: str
+    name_en: str = ""
+    role: str = ""
+    age: int = 24
+    gender: str = "neutral"
+    avatar_url: str = ""
+    cover_url: str = ""
+    category: str = "恋爱社交"
+    personality: str = ""
+    chat_style: str = ""
+    identity_background: str = ""
+    initial_scene: str = ""
+    prompt_override: str = ""
+    tags: list[str] = []
+    difficulty: str = "B1"
+    target_language: str = "en"
+    native_language: str = "zh"
+    estimated_minutes: int = 12
+    title: str | None = None
+    subtitle: str | None = None
+    description: str | None = None
+    enabled: bool = True
+    sort_order: int = 100
+
+
+class RomanceCharacterUpdateRequest(BaseModel):
+    name: str | None = None
+    name_en: str | None = None
+    role: str | None = None
+    age: int | None = None
+    gender: str | None = None
+    avatar_url: str | None = None
+    cover_url: str | None = None
+    category: str | None = None
+    personality: str | None = None
+    chat_style: str | None = None
+    identity_background: str | None = None
+    initial_scene: str | None = None
+    prompt_override: str | None = None
+    tags: list[str] | None = None
+    difficulty: str | None = None
+    target_language: str | None = None
+    native_language: str | None = None
+    estimated_minutes: int | None = None
+    title: str | None = None
+    subtitle: str | None = None
+    description: str | None = None
+    enabled: bool | None = None
+    sort_order: int | None = None
+
+
 class TurnRequest(BaseModel):
     action_type: str = "message"
     user_input: str = ""
@@ -217,6 +270,188 @@ def delete_asset(asset_id: str, current_user: CurrentUser, db: DBSession) -> dic
     from app.services import game_assets
     game_assets.delete_asset(db, asset_id)
     return {"ok": True}
+
+
+def _romance_character_from_template(t) -> dict:
+    cfg = t.config or {}
+    return {
+        "id": f"tpl:{t.id}",
+        "target_id": cfg.get("target_id") or t.slug,
+        "template_id": t.id,
+        "source": "template",
+        "slug": t.slug,
+        "name": cfg.get("name") or t.title,
+        "name_en": cfg.get("name_en", ""),
+        "age": cfg.get("age", 24),
+        "role": cfg.get("role", ""),
+        "gender": cfg.get("gender", "neutral"),
+        "avatar_url": cfg.get("avatar_url") or t.cover_url,
+        "cover_url": cfg.get("cover_url") or t.cover_url,
+        "category": cfg.get("category", "恋爱社交"),
+        "personality": cfg.get("personality", ""),
+        "chat_style": cfg.get("chat_style", ""),
+        "identity_background": cfg.get("identity_background", ""),
+        "initial_scene": cfg.get("initial_scene", ""),
+        "prompt_override": cfg.get("prompt_override", ""),
+        "tags": cfg.get("tags") or t.tags or [],
+        "difficulty": t.difficulty,
+        "target_language": t.target_language,
+        "native_language": t.native_language,
+        "estimated_minutes": t.estimated_minutes,
+        "enabled": t.enabled,
+        "sort_order": t.sort_order,
+        "title": t.title,
+        "subtitle": t.subtitle,
+        "description": t.description,
+    }
+
+
+@router.get("/romance-characters")
+def list_romance_characters(db: DBSession, category: str | None = None, include_disabled: bool = False) -> list[dict]:
+    from app.models import GameTemplate
+    from app.services.romance_engine import list_builtin_targets
+    from sqlalchemy import select
+
+    rows = db.execute(
+        select(GameTemplate).where(GameTemplate.game_type == "romance").order_by(
+            GameTemplate.sort_order, GameTemplate.created_at.desc()
+        )
+    ).scalars().all()
+    template_chars = [_romance_character_from_template(t) for t in rows if include_disabled or t.enabled]
+
+    builtin_chars: list[dict] = []
+    for item in list_builtin_targets():
+        builtin_chars.append({
+            "id": item["id"],
+            "target_id": item["id"],
+            "template_id": None,
+            "source": "builtin",
+            "slug": item["id"],
+            **item,
+            "enabled": True,
+            "sort_order": 10,
+            "title": item.get("name", ""),
+            "subtitle": item.get("category", ""),
+            "description": item.get("initial_scene", ""),
+            "target_language": item.get("target_language", "en"),
+            "native_language": item.get("native_language", "zh"),
+            "estimated_minutes": item.get("estimated_minutes", 12),
+            "difficulty": item.get("difficulty", "B1"),
+        })
+
+    merged = template_chars + builtin_chars
+    deduped: list[dict] = []
+    seen: set[str] = set()
+    for item in merged:
+        tid = item.get("target_id") or item.get("id")
+        if not tid or tid in seen:
+            continue
+        seen.add(tid)
+        deduped.append(item)
+
+    if category and category != "全部":
+        deduped = [
+            c for c in deduped
+            if c.get("category") == category or category in (c.get("tags") or [])
+        ]
+    return deduped
+
+
+@router.post("/admin/romance-characters")
+def create_romance_character(payload: RomanceCharacterCreateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.models import GameTemplate
+
+    cfg = {
+        "target_id": payload.slug,
+        "name": payload.name,
+        "name_en": payload.name_en or payload.name,
+        "age": payload.age,
+        "role": payload.role,
+        "gender": payload.gender,
+        "avatar_url": payload.avatar_url,
+        "cover_url": payload.cover_url,
+        "category": payload.category,
+        "personality": payload.personality,
+        "chat_style": payload.chat_style,
+        "identity_background": payload.identity_background,
+        "initial_scene": payload.initial_scene,
+        "prompt_override": payload.prompt_override,
+        "tags": payload.tags,
+        "target_language": payload.target_language,
+        "native_language": payload.native_language,
+        "estimated_minutes": payload.estimated_minutes,
+        "difficulty": payload.difficulty,
+    }
+    t = GameTemplate(
+        slug=payload.slug,
+        game_type="romance",
+        title=payload.title or payload.name,
+        subtitle=payload.subtitle or payload.category,
+        description=payload.description or payload.initial_scene,
+        cover_url=payload.cover_url or payload.avatar_url,
+        difficulty=payload.difficulty,
+        target_language=payload.target_language,
+        native_language=payload.native_language,
+        estimated_minutes=payload.estimated_minutes,
+        learning_focus=[],
+        tags=payload.tags,
+        config=cfg,
+        enabled=payload.enabled,
+        sort_order=payload.sort_order,
+    )
+    db.add(t)
+    db.commit()
+    db.refresh(t)
+    return _romance_character_from_template(t)
+
+
+@router.patch("/admin/romance-characters/{template_id}")
+def update_romance_character(template_id: str, payload: RomanceCharacterUpdateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    from app.models import GameTemplate
+
+    t = db.get(GameTemplate, template_id)
+    if not t or t.game_type != "romance":
+        raise HTTPException(status_code=404, detail="Romance character not found")
+    cfg = dict(t.config or {})
+    data = payload.model_dump(exclude_none=True)
+
+    mapping = {
+        "name", "name_en", "age", "role", "gender", "avatar_url", "cover_url",
+        "category", "personality", "chat_style", "identity_background",
+        "initial_scene", "prompt_override", "tags",
+    }
+    for key in mapping:
+        if key in data:
+            cfg[key] = data[key]
+    if "tags" in data:
+        t.tags = data["tags"]
+    if "difficulty" in data:
+        t.difficulty = data["difficulty"]
+        cfg["difficulty"] = data["difficulty"]
+    if "target_language" in data:
+        t.target_language = data["target_language"]
+        cfg["target_language"] = data["target_language"]
+    if "native_language" in data:
+        t.native_language = data["native_language"]
+        cfg["native_language"] = data["native_language"]
+    if "estimated_minutes" in data:
+        t.estimated_minutes = data["estimated_minutes"]
+        cfg["estimated_minutes"] = data["estimated_minutes"]
+    if "title" in data:
+        t.title = data["title"]
+    if "subtitle" in data:
+        t.subtitle = data["subtitle"]
+    if "description" in data:
+        t.description = data["description"]
+    if "enabled" in data:
+        t.enabled = data["enabled"]
+    if "sort_order" in data:
+        t.sort_order = data["sort_order"]
+    t.cover_url = cfg.get("cover_url") or cfg.get("avatar_url") or t.cover_url
+    t.config = cfg
+    db.commit()
+    db.refresh(t)
+    return _romance_character_from_template(t)
 
 
 # ---------------------------------------------------------------------------

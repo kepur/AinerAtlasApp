@@ -77,6 +77,11 @@ export default function Home() {
     }
   }
 
+  function continueSession() {
+    if (recentConversations[0]) navigate(`/chat/${recentConversations[0].id}`);
+    else void startThought();
+  }
+
   const masteredCount = queue.filter((q) => q.mastery_score >= 80).length;
   const focusTopic = topics[0]?.title ?? "Nuanced Negotiation";
   const recent = recentConversations[0];
@@ -137,6 +142,42 @@ export default function Home() {
               <span className="material-symbols-outlined">edit_note</span>
               Express Your Thought
             </button>
+          </div>
+        </section>
+
+        {/* Digital Mentor (moved from Chat page) */}
+        <section>
+          <h2 className="font-label-sm text-label-sm text-outline mb-3 uppercase tracking-widest">Digital Mentor</h2>
+          <div className="relative overflow-hidden rounded-[20px] p-4 ai-glow glass-card border border-primary/10">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl" />
+            <div className="flex items-start gap-3 relative z-10">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-xl resonance-indicator flex items-center justify-center text-white shadow-lg">
+                  <span className="material-symbols-outlined fill text-[24px]">psychology</span>
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-tertiary-fixed-dim border-2 border-surface rounded-full" />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">AinerWise Coach</h3>
+                  <span className="font-label-sm text-[10px] text-primary font-bold">LIVE</span>
+                </div>
+                <p className="text-[13px] text-on-surface-variant line-clamp-2 leading-relaxed">
+                  "You've expressed new nuances today. Ready to refine your philosophical vocabulary?"
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-outline-variant/30 flex gap-2">
+              <button
+                onClick={continueSession}
+                className="flex-1 h-9 bg-primary text-white rounded-xl font-label-sm text-[13px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              >
+                Continue Session
+              </button>
+              <button onClick={() => navigate("/voice")} className="w-9 h-9 flex items-center justify-center text-primary bg-primary-fixed/30 rounded-xl active:scale-95 transition-transform">
+                <span className="material-symbols-outlined text-[18px]">settings_voice</span>
+              </button>
+            </div>
           </div>
         </section>
 

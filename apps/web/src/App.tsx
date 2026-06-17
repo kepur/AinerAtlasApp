@@ -27,6 +27,7 @@ import RoleplayStorylineList from "./pages/game/RoleplayStorylineList";
 import StoryPublisher from "./pages/admin/StoryPublisher";
 import AssetLibrary from "./pages/admin/AssetLibrary";
 import TemplateManager from "./pages/admin/TemplateManager";
+import RomanceCharacterManager from "./pages/admin/RomanceCharacterManager";
 import TurtleSoupSummary from "./pages/game/TurtleSoupSummary";
 import RomanceSocial from "./pages/game/RomanceSocial";
 import DetectiveBoard from "./pages/game/DetectiveBoard";
@@ -77,13 +78,15 @@ function AppLayout() {
           <Route path="/game" element={<GameHome />} />
           <Route path="/game/template/:id" element={<GameTemplateDetail />} />
           <Route path="/game/turtle-soup/detail/:id" element={<TurtleSoupDetail />} />
-          <Route path="/game/roleplay/home" element={<Navigate to="/game/roleplay/characters" replace />} />
-          <Route path="/game/roleplay" element={<Navigate to="/game/roleplay/characters" replace />} />
+          <Route path="/game/roleplay/home" element={<Navigate to="/game/romance-social/characters" replace />} />
+          <Route path="/game/roleplay" element={<Navigate to="/game/romance-social/characters" replace />} />
           <Route path="/game/roleplay/storylines" element={<RoleplayStorylineList />} />
-          <Route path="/game/roleplay/characters" element={<RoleplayCharacterList />} />
+          <Route path="/game/roleplay/characters" element={<Navigate to="/game/romance-social/characters" replace />} />
+          <Route path="/game/romance-social/characters" element={<RoleplayCharacterList />} />
           <Route path="/admin/story-publisher" element={<StoryPublisher />} />
           <Route path="/admin/asset-library" element={<AssetLibrary />} />
           <Route path="/admin/templates" element={<TemplateManager />} />
+          <Route path="/admin/romance-characters" element={<RomanceCharacterManager />} />
           <Route path="/game/roleplay/character/:id" element={<RoleplayCharacterDetail />} />
           <Route path="/game/roleplay/generated-setting" element={<GeneratedStorySettings />} />
           <Route path="/game/setup/:id" element={<RoleplaySetup />} />
@@ -100,7 +103,7 @@ function AppLayout() {
           <Route path="/game/romance-social" element={<RomanceSocial />} />
           <Route path="/game/romance-social/:id" element={<RomanceSocial />} />
           <Route path="/game/detective/summary/:id" element={<GameSummaryDetective />} />
-          <Route path="/game/roleplay/chat" element={<Navigate to="/game/roleplay/characters" replace />} />
+          <Route path="/game/roleplay/chat" element={<Navigate to="/game/romance-social/characters" replace />} />
           <Route path="/game/summary/:mode/:id" element={<GameSummaryScreen />} />
           <Route path="/game/summary/:id" element={<GameSummaryScreen />} />
           <Route path="/game/turtle-soup-summary/:id" element={<TurtleSoupSummary />} />

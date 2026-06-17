@@ -20,11 +20,41 @@ import { useAudioCacheStore } from "../../stores/audioCacheStore";
 
 type UIPhase = "lobby" | "reveal" | "night" | "day" | "vote" | "summary";
 
-const ROLE_CN: Record<string, { camp: string; ability: string; goal: string; name: string }> = {
-  werewolf: { name: "狼人", camp: "狼人阵营", ability: "夜晚与同伴猎杀一名玩家。", goal: "消灭所有好人。" },
-  villager: { name: "村民", camp: "好人阵营", ability: "无特殊能力，靠推理找出狼人。", goal: "白天放逐所有狼人。" },
-  seer: { name: "预言家", camp: "好人阵营", ability: "每晚查验一名玩家的身份。", goal: "带领好人放逐狼人。" },
-  guard: { name: "守卫", camp: "好人阵营", ability: "每晚守护一名玩家免于被杀。", goal: "保护好人放逐狼人。" },
+const ROLE_CN: Record<string, {
+  name: string; nameZh: string; nameEn: string;
+  camp: string; campZh: string; campEn: string;
+  ability: string; abilityZh: string; abilityEn: string;
+  goal: string; goalZh: string; goalEn: string;
+  emoji: string;
+}> = {
+  werewolf: {
+    name: "狼人", nameZh: "狼人", nameEn: "Werewolf",
+    camp: "狼人阵营", campZh: "狼人阵营", campEn: "Werewolf Camp",
+    ability: "夜晚与同伴猎杀一名玩家。", abilityZh: "夜晚与同伴猎杀一名玩家。", abilityEn: "Hunt a player with companions during the night.",
+    goal: "消灭所有好人。", goalZh: "消灭所有好人。", goalEn: "Eliminate all good players.",
+    emoji: "🐺"
+  },
+  villager: {
+    name: "村民", nameZh: "村民", nameEn: "Villager",
+    camp: "好人阵营", campZh: "好人阵营", campEn: "Good Camp",
+    ability: "无特殊能力，靠推理找出狼人。", abilityZh: "无特殊能力，靠推理找出狼人。", abilityEn: "No special ability. Find the werewolves by reasoning.",
+    goal: "白天放逐所有狼人。", goalZh: "白天放逐所有狼人。", goalEn: "Banish all werewolves during the day.",
+    emoji: "👨‍🌾"
+  },
+  seer: {
+    name: "预言家", nameZh: "预言家", nameEn: "Seer",
+    camp: "好人阵营", campZh: "好人阵营", campEn: "Good Camp",
+    ability: "每晚查验一名玩家的身份。", abilityZh: "每晚查验一名玩家的身份。", abilityEn: "Inspect one player's identity each night.",
+    goal: "带领好人放逐狼人。", goalZh: "带领好人放逐狼人。", goalEn: "Lead the good players to banish werewolves.",
+    emoji: "🔮"
+  },
+  guard: {
+    name: "守卫", nameZh: "守卫", nameEn: "Guard",
+    camp: "好人阵营", campZh: "好人阵营", campEn: "Good Camp",
+    ability: "每晚守护一名玩家免于被杀。", abilityZh: "每晚守护一名玩家免于被杀。", abilityEn: "Protect one player from being killed each night.",
+    goal: "保护好人放逐狼人。", goalZh: "保护好人放逐狼人。", goalEn: "Protect good players and banish werewolves.",
+    emoji: "🛡️"
+  },
 };
 
 export default function SocialLogicGame() {
@@ -180,12 +210,37 @@ export default function SocialLogicGame() {
 
           {/* Role reveal */}
           {uiPhase === "reveal" && (
-            <div className="w-full h-full flex flex-col items-center justify-center relative">
-              <div className="absolute inset-0 bg-black/60 z-0" />
+            <div className="w-full h-full flex flex-col items-center justify-center relative px-4 overflow-hidden">
+              {/* Spooky semi-transparent background image */}
+              <div 
+                className="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-color-dodge"
+                style={{ 
+                  backgroundImage: "url('https://images.unsplash.com/photo-1519074002996-a69e7ac46a42?auto=format&fit=crop&q=80&w=800')",
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0b0a1f]/80 via-[#0b0a1f]/95 to-[#0b0a1f] z-0" />
+              
               <div className="z-10 animate-[glow-burst_1s_ease-out]">
-                <RoleCard isFaceUp isUser role={roleInfo.name} camp={roleInfo.camp} ability={roleInfo.ability} goal={roleInfo.goal} onClick={handleStart} />
+                <RoleCard 
+                  isFaceUp 
+                  isUser 
+                  roleEn={roleInfo.nameEn}
+                  roleZh={roleInfo.nameZh}
+                  campEn={roleInfo.campEn}
+                  campZh={roleInfo.campZh}
+                  abilityEn={roleInfo.abilityEn}
+                  abilityZh={roleInfo.abilityZh}
+                  goalEn={roleInfo.goalEn}
+                  goalZh={roleInfo.goalZh}
+                  emoji={roleInfo.emoji}
+                  onClick={handleStart} 
+                />
               </div>
-              <p className="z-10 mt-6 text-white/60 text-xs">点击卡牌进入夜晚</p>
+              
+              <div className="z-10 mt-8 flex flex-col items-center gap-1.5 cursor-pointer active:opacity-80 transition-opacity" onClick={handleStart}>
+                <span className="text-[#a78bfa] font-extrabold text-sm tracking-widest uppercase animate-pulse">Click card to enter night</span>
+                <span className="text-white/40 text-[10px] font-semibold tracking-wider">点击卡牌进入夜晚</span>
+              </div>
             </div>
           )}
 

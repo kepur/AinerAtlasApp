@@ -12,6 +12,9 @@ type ActionPanelProps = {
 
 export default function ActionPanel({ mode, players, selectedPlayerId, onSelectPlayer, onSend, disabled }: ActionPanelProps) {
   const [text, setText] = useState("");
+  // default 模式 = 未选定质疑目标。此时锁定输入，避免 onSend(handleQuestion)
+  // 因 selectedPlayerId 缺失而静默 return，造成"发言发不出去"的困惑。
+  const locked = mode === "default";
 
   const submit = () => {
     if (!text.trim() || disabled) return;
@@ -49,12 +52,13 @@ export default function ActionPanel({ mode, players, selectedPlayerId, onSelectP
           <button
             key={chip}
             onClick={() => setText(chip)}
-            className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm text-white/90 whitespace-nowrap active:bg-white/20"
+            disabled={locked}
+            className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm text-white/90 whitespace-nowrap active:bg-white/20 disabled:opacity-40 disabled:active:bg-white/10"
           >
             {chip}
           </button>
         ))}
-        <button className="px-4 py-2 rounded-full bg-[#7c5cff]/20 backdrop-blur-md border border-[#7c5cff]/50 text-sm text-[#c0c1ff] whitespace-nowrap flex items-center gap-1 shrink-0">
+        <button disabled={locked} className="px-4 py-2 rounded-full bg-[#7c5cff]/20 backdrop-blur-md border border-[#7c5cff]/50 text-sm text-[#c0c1ff] whitespace-nowrap flex items-center gap-1 shrink-0 disabled:opacity-40">
           <Zap size={14} /> 帮我表达
         </button>
       </div>
@@ -65,14 +69,14 @@ export default function ActionPanel({ mode, players, selectedPlayerId, onSelectP
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } }}
-          className="w-full min-h-[50px] rounded-2xl bg-white/10 border border-white/20 text-white px-4 pr-14 outline-none focus:border-[#7c5cff] placeholder:text-white/40 text-sm"
-          placeholder={mode === "question" ? "质疑 TA…(English or 中文)" : "Type your thought... (English or 中文)"}
+          className="w-full min-h-[50px] rounded-2xl bg-white/10 border border-white/20 text-white px-4 pr-14 outline-none focus:border-[#7c5cff] placeholder:text-white/40 text-sm disabled:opacity-50"
+          placeholder={locked ? "点击上方玩家头像，选择质疑对象" : "质疑 TA…(English or 中文)"}
           type="text"
-          disabled={disabled}
+          disabled={disabled || locked}
         />
         <button
           onClick={submit}
-          disabled={disabled || !text.trim()}
+          disabled={disabled || locked || !text.trim()}
           className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#7c5cff] flex items-center justify-center hover:scale-95 transition-transform disabled:opacity-40"
         >
           <Send size={16} className="text-white" />

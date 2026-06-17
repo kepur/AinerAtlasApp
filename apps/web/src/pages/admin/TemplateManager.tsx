@@ -48,7 +48,7 @@ export default function TemplateManager() {
       <header className="sticky top-0 z-50 px-4 pt-[env(safe-area-inset-top,20px)] h-14 flex items-center justify-between bg-white shadow-sm">
         <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center text-gray-700"><ChevronLeft size={24} /></button>
         <h1 className="font-bold text-[16px]">已发布内容管理</h1>
-        <span className="text-[11px] text-slate-400">{templates.length}</span>
+        <button onClick={() => navigate("/admin/romance-characters")} className="text-[11px] text-indigo-600 font-semibold">人物配置</button>
       </header>
 
       <main className="flex-1 px-4 pt-4 flex flex-col gap-3">

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ChevronLeft, Volume2, Heart, Coffee, Sparkles, HeartHandshake, Leaf,
   Lightbulb, Send, Mic, Flame, Loader2,
@@ -27,9 +27,190 @@ const ACTION_PRESETS: Record<string, string> = {
 
 interface HintCard { title?: string; en?: string; zh?: string; breakdown?: string[] }
 
+const getTheme = (category: string) => {
+  const c = category || "恋爱社交";
+  if (c === "商务谈判") {
+    return {
+      bg: "bg-[#f0f7ff]",
+      bgStyle: { backgroundColor: "#f0f7ff" },
+      bgGradient: "from-blue-200/50 to-[#f0f7ff]",
+      accent: "text-blue-600",
+      accentBg: "bg-blue-600",
+      accentBorder: "border-blue-100",
+      accentBorderLight: "border-blue-50/60",
+      accentBorderStrong: "border-blue-100/80",
+      gradient: "from-blue-500 to-indigo-600",
+      shadow: "shadow-[0_4px_20px_rgba(59,130,246,0.06)]",
+      shadowTop: "shadow-[0_-8px_30px_rgba(59,130,246,0.04)]",
+      shadowBtn: "shadow-blue-500/20",
+      nodeCompleted: "bg-blue-100 border-blue-200 text-blue-500",
+      nodeLocked: "bg-white/95 border-blue-100 text-blue-300",
+      nodeTextActive: "text-blue-700",
+      nodeTextCompleted: "text-blue-600",
+      nodeTextLocked: "text-blue-300",
+      title: "商务谈判表达练习",
+      subtitle: "Business Negotiation",
+      tagBg: "bg-blue-50 text-blue-600 border border-blue-100",
+      tagBgLight: "bg-blue-50/70 text-blue-500 border border-blue-100/50",
+      btnPreset: "text-blue-700 border-blue-200 hover:bg-white",
+      micBg: "bg-blue-50 text-blue-500 hover:bg-blue-100",
+      sendGradient: "from-blue-500 to-indigo-600",
+      loaderColor: "text-blue-500",
+      bubbleGradient: "from-blue-500 to-indigo-600",
+      bubbleBg: "bg-white border-blue-50",
+      bubbleText: "text-blue-600",
+      avatarGradient: "from-blue-300 to-indigo-400",
+      progressBg: "bg-blue-100/70",
+      ttsBg: "bg-blue-50 text-blue-500",
+      ttsPlayGradient: "from-blue-400 to-indigo-500",
+      dividerBg: "bg-blue-100",
+      dividerText: "text-blue-300",
+      toastBg: "bg-gradient-to-r from-blue-500 to-indigo-500",
+      glowAnimation: "active-node-pulse-blue",
+      glowColor: "rgba(37, 99, 235, 0.3)",
+      glowColorHalf: "rgba(37, 99, 235, 0.1)",
+      glowColorBig: "rgba(37, 99, 235, 0.6)",
+      glowColorBigHalf: "rgba(37, 99, 235, 0.15)",
+    };
+  }
+  if (c === "移民生活") {
+    return {
+      bg: "bg-[#f0fdfa]",
+      bgStyle: { backgroundColor: "#f0fdfa" },
+      bgGradient: "from-teal-200/50 to-[#f0fdfa]",
+      accent: "text-teal-600",
+      accentBg: "bg-teal-600",
+      accentBorder: "border-teal-100",
+      accentBorderLight: "border-teal-50/60",
+      accentBorderStrong: "border-teal-100/80",
+      gradient: "from-teal-500 to-emerald-600",
+      shadow: "shadow-[0_4px_20px_rgba(13,148,136,0.06)]",
+      shadowTop: "shadow-[0_-8px_30px_rgba(13,148,136,0.04)]",
+      shadowBtn: "shadow-teal-500/20",
+      nodeCompleted: "bg-teal-100 border-teal-200 text-teal-500",
+      nodeLocked: "bg-white/95 border-teal-100 text-teal-300",
+      nodeTextActive: "text-teal-700",
+      nodeTextCompleted: "text-teal-600",
+      nodeTextLocked: "text-teal-300",
+      title: "移民生活表达练习",
+      subtitle: "Immigration Life",
+      tagBg: "bg-teal-50 text-teal-600 border border-teal-100",
+      tagBgLight: "bg-teal-50/70 text-teal-500 border border-teal-100/50",
+      btnPreset: "text-teal-700 border-teal-200 hover:bg-white",
+      micBg: "bg-teal-50 text-teal-500 hover:bg-teal-100",
+      sendGradient: "from-teal-500 to-emerald-600",
+      loaderColor: "text-teal-500",
+      bubbleGradient: "from-teal-500 to-emerald-600",
+      bubbleBg: "bg-white border-teal-50",
+      bubbleText: "text-teal-600",
+      avatarGradient: "from-teal-300 to-emerald-400",
+      progressBg: "bg-teal-100/70",
+      ttsBg: "bg-teal-50 text-teal-500",
+      ttsPlayGradient: "from-teal-400 to-emerald-500",
+      dividerBg: "bg-teal-100",
+      dividerText: "text-teal-300",
+      toastBg: "bg-gradient-to-r from-teal-500 to-emerald-500",
+      glowAnimation: "active-node-pulse-teal",
+      glowColor: "rgba(13, 148, 136, 0.3)",
+      glowColorHalf: "rgba(13, 148, 136, 0.1)",
+      glowColorBig: "rgba(13, 148, 136, 0.6)",
+      glowColorBigHalf: "rgba(13, 148, 136, 0.15)",
+    };
+  }
+  if (c === "旅游出差" || c === "生活日常" || c === "日常生活" || c === "校园大学") {
+    return {
+      bg: "bg-[#faf5ff]",
+      bgStyle: { backgroundColor: "#faf5ff" },
+      bgGradient: "from-violet-200/50 to-[#faf5ff]",
+      accent: "text-violet-600",
+      accentBg: "bg-violet-600",
+      accentBorder: "border-violet-100",
+      accentBorderLight: "border-violet-50/60",
+      accentBorderStrong: "border-violet-100/80",
+      gradient: "from-violet-500 to-fuchsia-600",
+      shadow: "shadow-[0_4px_20px_rgba(139,92,246,0.06)]",
+      shadowTop: "shadow-[0_-8px_30px_rgba(139,92,246,0.04)]",
+      shadowBtn: "shadow-violet-500/20",
+      nodeCompleted: "bg-violet-100 border-violet-200 text-violet-500",
+      nodeLocked: "bg-white/95 border-violet-100 text-violet-300",
+      nodeTextActive: "text-violet-700",
+      nodeTextCompleted: "text-violet-600",
+      nodeTextLocked: "text-violet-300",
+      title: c === "旅游出差" ? "旅游出差表达练习" : "生活日常表达练习",
+      subtitle: c === "旅游出差" ? "Travel & Business Trip" : "Daily Life Practice",
+      tagBg: "bg-violet-50 text-violet-600 border border-violet-100",
+      tagBgLight: "bg-violet-50/70 text-violet-500 border border-violet-100/50",
+      btnPreset: "text-violet-700 border-violet-200 hover:bg-white",
+      micBg: "bg-violet-50 text-violet-500 hover:bg-violet-100",
+      sendGradient: "from-violet-500 to-fuchsia-600",
+      loaderColor: "text-violet-500",
+      bubbleGradient: "from-violet-500 to-fuchsia-600",
+      bubbleBg: "bg-white border-violet-50",
+      bubbleText: "text-violet-600",
+      avatarGradient: "from-violet-300 to-fuchsia-400",
+      progressBg: "bg-violet-100/70",
+      ttsBg: "bg-violet-50 text-violet-500",
+      ttsPlayGradient: "from-violet-400 to-fuchsia-500",
+      dividerBg: "bg-violet-100",
+      dividerText: "text-violet-300",
+      toastBg: "bg-gradient-to-r from-violet-500 to-fuchsia-500",
+      glowAnimation: "active-node-pulse-violet",
+      glowColor: "rgba(139, 92, 246, 0.3)",
+      glowColorHalf: "rgba(139, 92, 246, 0.1)",
+      glowColorBig: "rgba(139, 92, 246, 0.6)",
+      glowColorBigHalf: "rgba(139, 92, 246, 0.15)",
+    };
+  }
+  // Default: 恋爱社交
+  return {
+    bg: "bg-[#fdf2f8]",
+    bgStyle: { backgroundColor: "#fdf2f8" },
+    bgGradient: "from-pink-200/50 to-[#fdf2f8]",
+    accent: "text-[#be185d]",
+    accentBg: "bg-[#be185d]",
+    accentBorder: "border-pink-100",
+    accentBorderLight: "border-pink-50/60",
+    accentBorderStrong: "border-pink-100/80",
+    gradient: "from-pink-400 to-rose-500",
+    shadow: "shadow-[0_4px_20px_rgba(244,63,94,0.06)]",
+    shadowTop: "shadow-[0_-8px_30px_rgba(244,63,94,0.04)]",
+    shadowBtn: "shadow-pink-500/20",
+    nodeCompleted: "bg-pink-100 border-pink-200 text-pink-500",
+    nodeLocked: "bg-white/95 border-pink-100 text-pink-300",
+    nodeTextActive: "text-[#be185d]",
+    nodeTextCompleted: "text-pink-600",
+    nodeTextLocked: "text-pink-300",
+    title: "恋爱社交表达练习",
+    subtitle: "Romance Social",
+    tagBg: "bg-pink-50 text-pink-600 border border-pink-100",
+    tagBgLight: "bg-pink-50/70 text-pink-500 border border-pink-100/50",
+    btnPreset: "text-[#be185d] border-pink-200 hover:bg-white",
+    micBg: "bg-pink-50 text-pink-500 hover:bg-pink-100",
+    sendGradient: "from-pink-400 to-rose-500",
+    loaderColor: "text-pink-500",
+    bubbleGradient: "from-pink-400 to-rose-400",
+    bubbleBg: "bg-white border-pink-50",
+    bubbleText: "text-[#be185d]",
+    avatarGradient: "from-pink-300 to-rose-400",
+    progressBg: "bg-pink-100/70",
+    ttsBg: "bg-pink-50 text-pink-500",
+    ttsPlayGradient: "from-pink-400 to-rose-500",
+    dividerBg: "bg-pink-100",
+    dividerText: "text-pink-300",
+    toastBg: "bg-gradient-to-r from-pink-400 to-rose-400",
+    glowAnimation: "active-node-pulse-pink",
+    glowColor: "rgba(244, 63, 94, 0.3)",
+    glowColorHalf: "rgba(244, 63, 94, 0.1)",
+    glowColorBig: "rgba(244, 63, 94, 0.6)",
+    glowColorBigHalf: "rgba(244, 63, 94, 0.15)",
+  };
+};
+
 export default function RomanceSocial() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
+  const templateId = new URLSearchParams(location.search).get("template") || undefined;
   const targetId = id && !/^[0-9a-fA-F-]{36}$/.test(id) ? id : "mia";
 
   const {
@@ -51,14 +232,18 @@ export default function RomanceSocial() {
       if (creating) return;
       setCreating(true);
       try {
-        const sess = await createSession("romance", undefined, { target_id: targetId });
+        const sess = await createSession(
+          "romance",
+          templateId,
+          templateId ? undefined : { target_id: targetId },
+        );
         navigate(`/game/romance-social/${sess.id}`, { replace: true });
       } finally {
         setCreating(false);
       }
     })();
     return () => { /* keep session in store */ };
-  }, [id]);
+  }, [id, templateId]);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,51 +270,126 @@ export default function RomanceSocial() {
     await sendTurn(currentSession.id, "user_action", text.trim());
   };
 
+  const category = target.category || "恋爱社交";
+  const th = getTheme(category);
+
   if (creating || !currentSession) {
     return (
       <div className="w-full h-screen bg-[#fdf2f8] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 size={32} className="animate-spin text-[#ec4899]" />
-          <span className="text-[#9d4d6e] text-sm">正在准备约会场景...</span>
+          <span className="text-[#9d4d6e] text-sm">正在准备对话场景...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full bg-[#fdf2f8] flex flex-col max-w-[480px] mx-auto relative overflow-hidden">
+    <div className={`w-full h-full ${th.bg} flex flex-col max-w-[480px] mx-auto relative overflow-hidden transition-colors duration-500`}>
       {/* Background board (faint scene) for immersion */}
       {target.cover_url && (
         <div className="absolute inset-0 z-0 pointer-events-none">
           <img src={target.cover_url} alt="" className="w-full h-full object-cover opacity-[0.12]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#fdf2f8]/70 via-[#fdf2f8]/60 to-[#fdf2f8]" />
+          <div className={`absolute inset-0 bg-gradient-to-b ${th.bgGradient}`} />
         </div>
       )}
       {/* Sticky top */}
-      <div className="sticky top-0 z-40 bg-[#fdf2f8]/80 backdrop-blur-sm">
+      <div className={`sticky top-0 z-40 ${th.bg}/80 backdrop-blur-sm transition-colors duration-500`}>
         {/* Header */}
         <header className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top,16px)] h-14">
           <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center text-gray-700 bg-white/60 rounded-full">
             <ChevronLeft size={20} />
           </button>
           <div className="text-center">
-            <h1 className="font-bold text-[15px] text-[#be185d]">恋爱社交表达练习</h1>
-            <p className="text-[10px] text-[#9ca3af]">Romance Social</p>
+            <h1 className={`font-bold text-[15px] ${th.accent}`}>{th.title}</h1>
+            <p className="text-[10px] text-[#9ca3af]">{th.subtitle}</p>
           </div>
-          <div className="flex items-center gap-1 bg-gradient-to-r from-pink-400 to-rose-400 text-white px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm">
+          <div className={`flex items-center gap-1 bg-gradient-to-r ${th.gradient} text-white px-2.5 py-1 rounded-full text-[11px] font-bold shadow-sm`}>
             <Flame size={12} /> {score}/100
           </div>
         </header>
 
-        {/* Tabs (phase indicators) */}
-        <div className="flex gap-2 px-4 pb-2">
-          {TABS.map((t) => {
-            const isActive = activeTab === t.id;
+        {/* Style block for animations */}
+        <style>{`
+          @keyframes ${th.glowAnimation} {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 8px ${th.glowColor}, 0 0 0 4px ${th.glowColorHalf}; }
+            50% { transform: scale(1.05); box-shadow: 0 0 16px ${th.glowColorBig}, 0 0 0 8px ${th.glowColorBigHalf}; }
+          }
+          @keyframes heart-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+          }
+          .active-node {
+            animation: ${th.glowAnimation} 2s infinite ease-in-out;
+          }
+        `}</style>
+
+        {/* Relationship Phase Road Progress Bar */}
+        <div className="px-6 pb-4 pt-8 relative flex items-center justify-between w-full select-none">
+          {/* Background line */}
+          <div className={`absolute left-[44px] right-[44px] top-[48px] h-1 ${th.progressBg} rounded-full z-0`} />
+          
+          {/* Filled progress line */}
+          <div 
+            className={`absolute left-[44px] top-[48px] h-1 bg-gradient-to-r ${th.gradient} rounded-full z-0 transition-all duration-700 ease-out`}
+            style={{ 
+              width: `calc(${
+                activeTab === "warmup" ? "0%" :
+                activeTab === "flirt" ? "33%" :
+                activeTab === "date" ? "66%" :
+                "100%"
+              })`
+            }}
+          />
+
+          {/* Nodes */}
+          {TABS.map((t, idx) => {
+            const tabIndices: Record<string, number> = { warmup: 0, flirt: 1, date: 2, couple: 3 };
+            const currentIndex = tabIndices[activeTab] ?? 0;
+            const nodeIndex = idx;
+            
+            const isCompleted = nodeIndex < currentIndex;
+            const isActive = nodeIndex === currentIndex;
+            const isLocked = nodeIndex > currentIndex;
+
             return (
-              <div key={t.id} className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-full text-[12px] font-bold ${
-                isActive ? "bg-gradient-to-r from-pink-400 to-rose-400 text-white shadow-sm" : "bg-white/70 text-[#be185d]"
-              }`}>
-                <t.icon size={12} /> {t.label}
+              <div key={t.id} className="flex flex-col items-center z-10 relative">
+                {/* Node icon area */}
+                <div 
+                  className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all duration-500 ${
+                    isActive 
+                      ? `bg-gradient-to-br ${th.gradient} border-transparent text-white active-node shadow-lg`
+                      : isCompleted 
+                        ? th.nodeCompleted
+                        : th.nodeLocked
+                  }`}
+                >
+                  {isActive ? (
+                    <Heart size={16} className="fill-white" style={{ animation: "heart-pulse 1.2s infinite ease-in-out" }} />
+                  ) : (
+                    <t.icon size={15} />
+                  )}
+                </div>
+                
+                {/* Node text */}
+                <span 
+                  className={`text-[10px] font-bold mt-1.5 tracking-wide transition-colors duration-500 ${
+                    isActive 
+                      ? `${th.nodeTextActive} scale-105 font-extrabold` 
+                      : isCompleted 
+                        ? th.nodeTextCompleted
+                        : th.nodeTextLocked
+                  }`}
+                >
+                  {t.label}
+                </span>
+
+                {/* Pulsing satisfaction hint badge above the active stage */}
+                {isActive && (
+                  <div className={`absolute -top-7.5 whitespace-nowrap bg-gradient-to-r ${th.gradient} text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-md ${th.shadowBtn} after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-pink-400`}>
+                    💖 满意度 {score}%
+                  </div>
+                )}
               </div>
             );
           })}
@@ -141,19 +401,34 @@ export default function RomanceSocial() {
         {/* Learning HUD cards */}
         <div className="px-4 pt-2 grid grid-cols-2 gap-3">
           {/* 自然表达 */}
-          <div className="bg-white rounded-2xl border border-pink-100 p-3 shadow-sm">
+          <div className={`bg-white rounded-2xl border ${th.accentBorder} p-3 shadow-sm`}>
             <div className="flex items-center gap-1.5 mb-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center"><Leaf size={12} className="text-pink-500" /></div>
-              <span className="text-[11px] font-bold text-[#be185d]">自然表达</span>
+              <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${category === "商务谈判" ? "from-blue-100 to-blue-200" : category === "移民生活" ? "from-teal-100 to-teal-200" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "from-violet-100 to-violet-200" : "from-pink-100 to-pink-200"} flex items-center justify-center`}><Leaf size={12} className={category === "商务谈判" ? "text-blue-500" : category === "移民生活" ? "text-teal-500" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "text-violet-500" : "text-pink-500"} /></div>
+              <span className={`text-[11px] font-bold ${th.accent}`}>自然表达</span>
             </div>
             <div className="text-[12px] font-extrabold text-[#1f2937] leading-snug">{phraseEn}</div>
             <div className="text-[10px] text-[#9ca3af] mt-1">{phraseZh}</div>
-            <TTSButton text={phraseEn} lang="en" voice="neutral_narrator" size={12} className="mt-2 w-7 h-7 rounded-full bg-gradient-to-br from-pink-300 to-pink-500 flex items-center justify-center text-white" />
-            <button onClick={() => setInputText(phraseEn)} className="mt-2 ml-2 text-[10px] text-pink-500 font-bold">套用</button>
+            <div className="flex items-center gap-2 mt-3">
+              <TTSButton 
+                text={phraseEn} 
+                lang="en" 
+                voice="neutral_narrator" 
+                size={12} 
+                className={`w-7 h-7 rounded-full bg-gradient-to-br ${th.ttsPlayGradient} flex items-center justify-center text-white shadow-sm ${th.shadowBtn} active:scale-95 transition-transform`} 
+              />
+              <button 
+                onClick={() => setInputText(phraseEn)} 
+                className={`px-2.5 py-1 bg-${category === "商务谈判" ? "blue" : category === "移民生活" ? "teal" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "violet" : "pink"}-500/10 hover:bg-${category === "商务谈判" ? "blue" : category === "移民生活" ? "teal" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "violet" : "pink"}-500/15 ${th.bubbleText} rounded-full text-[10px] font-bold backdrop-blur-md active:scale-95 transition-all flex items-center gap-1`}
+                style={{ border: `1px solid ${category === "商务谈判" ? "rgba(59, 130, 246, 0.2)" : category === "移民生活" ? "rgba(20, 184, 166, 0.2)" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "rgba(139, 92, 246, 0.2)" : "rgba(236, 72, 153, 0.2)"}` }}
+              >
+                <Sparkles size={10} className={category === "商务谈判" ? "text-blue-500" : category === "移民生活" ? "text-teal-500" : (category === "旅游出差" || category === "生活日常" || category === "校园大学") ? "text-violet-500" : "text-pink-500"} />
+                <span>套用</span>
+              </button>
+            </div>
           </div>
 
           {/* 为什么这么说 */}
-          <div className="bg-white rounded-2xl border border-pink-100 p-3 shadow-sm">
+          <div className={`bg-white rounded-2xl border ${th.accentBorder} p-3 shadow-sm`}>
             <div className="flex items-center gap-1.5 mb-2">
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center"><Lightbulb size={12} className="text-amber-500" /></div>
               <span className="text-[11px] font-bold text-[#b45309]">为什么这么说</span>
@@ -176,8 +451,8 @@ export default function RomanceSocial() {
         </div>
 
         {/* Scene bar */}
-        <div className="mx-4 mt-3 bg-white/70 rounded-2xl border border-pink-100 px-3 py-2.5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 flex items-center justify-center shrink-0 overflow-hidden">
+        <div className={`mx-4 mt-3 bg-white/70 rounded-2xl border ${th.accentBorder} px-3 py-2.5 flex items-center gap-3`}>
+          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${th.avatarGradient} flex items-center justify-center shrink-0 overflow-hidden`}>
             {target.avatar_url
               ? <img src={target.avatar_url} alt={target.name} className="w-full h-full object-cover" />
               : <span className="text-white font-bold">{(target.name || "M").charAt(0)}</span>}
@@ -190,9 +465,9 @@ export default function RomanceSocial() {
 
         {/* Divider */}
         <div className="flex items-center gap-2 px-4 py-3">
-          <div className="flex-1 h-px bg-pink-100" />
-          <span className="text-[10px] text-pink-300 font-semibold">对话练习</span>
-          <div className="flex-1 h-px bg-pink-100" />
+          <div className={`flex-1 h-px ${th.dividerBg}`} />
+          <span className={`text-[10px] ${th.dividerText} font-semibold`}>对话练习</span>
+          <div className={`flex-1 h-px ${th.dividerBg}`} />
         </div>
 
         {/* Chat messages */}
@@ -206,7 +481,7 @@ export default function RomanceSocial() {
             if (msg.type === "user_msg") {
               return (
                 <div key={i} className="flex justify-end">
-                  <div className="max-w-[75%] bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-[18px] rounded-tr-[4px] px-4 py-2.5 shadow-sm">
+                  <div className={`max-w-[75%] bg-gradient-to-br ${th.bubbleGradient} text-white rounded-[18px] rounded-tr-[4px] px-4 py-2.5 shadow-sm`}>
                     <p className="text-[13px] leading-snug">{msg.text}</p>
                   </div>
                 </div>
@@ -215,18 +490,18 @@ export default function RomanceSocial() {
             if (msg.type === "char_msg") {
               return (
                 <div key={i} className="flex gap-2 items-end">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${th.avatarGradient} flex items-center justify-center shrink-0 overflow-hidden`}>
                     {target.avatar_url
                       ? <img src={target.avatar_url} alt={target.name} className="w-full h-full object-cover" />
                       : <span className="text-white text-xs font-bold">{((msg.speaker as string) || "M").charAt(0)}</span>}
                   </div>
                   <div className="max-w-[75%]">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-[11px] font-bold text-[#be185d]">{msg.speaker as string}</span>
-                      <TTSButton text={String(msg.text || "")} lang="en" voice={target.voice || "female_warm"} size={10} className="w-5 h-5 rounded-full bg-pink-50 flex items-center justify-center text-pink-500" />
+                      <span className={`text-[11px] font-bold ${th.accent}`}>{msg.speaker as string}</span>
+                      <TTSButton text={String(msg.text || "")} lang="en" voice={target.voice || "female_warm"} size={10} className={`w-5 h-5 rounded-full ${th.ttsBg} flex items-center justify-center ${th.bubbleText}`} />
                       {msg.emotion ? <span className="text-[9px] text-[#c98bab]">({msg.emotion as string})</span> : null}
                     </div>
-                    <div className="bg-white rounded-[18px] rounded-tl-[4px] px-4 py-2.5 shadow-sm border border-pink-50">
+                    <div className={`bg-white rounded-[18px] rounded-tl-[4px] px-4 py-2.5 shadow-sm border ${th.accentBorderLight}`}>
                       <p className="text-[13px] text-[#1f2937] leading-snug">{msg.text}</p>
                       {msg.text_zh ? <p className="text-[10px] text-[#9ca3af] mt-1">{msg.text_zh as string}</p> : null}
                     </div>
@@ -238,7 +513,7 @@ export default function RomanceSocial() {
           })}
           {turnLoading && (
             <div className="flex items-center gap-2 px-2">
-              <Loader2 size={14} className="animate-spin text-pink-400" />
+              <Loader2 size={14} className={`animate-spin ${th.loaderColor}`} />
               <span className="text-[#c98bab] text-xs">{target.name} 正在回复...</span>
             </div>
           )}
@@ -247,33 +522,36 @@ export default function RomanceSocial() {
       </div>
 
       {/* Bottom: action chips + input */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-[#fdf2f8]/95 backdrop-blur-md border-t border-pink-100 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,16px)+8px)] z-40">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+      <div className={`fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto ${th.bg}/90 backdrop-blur-xl border-t ${th.accentBorderLight} px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,16px)+12px)] z-40 ${th.shadowTop}`}>
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-3">
           {Object.keys(ACTION_PRESETS).map((label) => (
             <button
               key={label}
               onClick={() => setInputText(ACTION_PRESETS[label])}
-              className="shrink-0 px-3 py-1.5 bg-white border border-pink-200 text-[#be185d] rounded-full text-[11px] font-bold shadow-sm active:scale-95"
+              className={`shrink-0 px-4 py-2 bg-white/90 border ${th.accentBorder} ${th.accent} rounded-full text-xs font-bold ${th.shadow} active:scale-95 transition-all hover:bg-white`}
             >
               {label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 border border-pink-100 shadow-sm">
-          <button className="w-7 h-7 flex items-center justify-center text-pink-400"><Mic size={16} /></button>
+        <div className={`flex items-center gap-2 bg-white rounded-2xl pl-3 pr-2 py-2 border ${th.accentBorderStrong} ${th.shadow}`}>
+          <button className={`w-9 h-9 rounded-xl flex items-center justify-center ${th.micBg} transition-colors shrink-0`}>
+            <Mic size={18} />
+          </button>
           <input
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(inputText)}
             placeholder="输入中文或英文，AI 帮你练习表达..."
-            className="flex-1 bg-transparent text-[13px] outline-none placeholder-[#c98bab] text-[#1f2937]"
+            className="flex-1 bg-transparent text-sm outline-none placeholder-[#c98bab] text-[#1f2937] px-1"
+            style={{ border: "none", boxShadow: "none" }}
           />
           <button
             onClick={() => send(inputText)}
             disabled={turnLoading || !inputText.trim()}
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center shadow-md shrink-0 disabled:opacity-40"
+            className={`w-10 h-10 rounded-xl bg-gradient-to-br ${th.sendGradient} flex items-center justify-center shadow-lg ${th.shadowBtn} shrink-0 disabled:opacity-40 active:scale-95 transition-transform`}
           >
-            {turnLoading ? <Loader2 size={16} className="text-white animate-spin" /> : <Send size={16} className="text-white" />}
+            {turnLoading ? <Loader2 size={18} className="text-white animate-spin" /> : <Send size={16} className="text-white fill-white ml-0.5" />}
           </button>
         </div>
       </div>

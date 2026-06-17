@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Play, Brain, Drama, Search, Heart, Dices, RotateCcw, Users, Bell, Search as SearchIcon, Loader2, BookOpen, PlusSquare } from "lucide-react";
+import { Play, Brain, Search, Heart, Dices, RotateCcw, Users, Bell, Search as SearchIcon, Loader2, Library } from "lucide-react";
 import { useGameStore, GameTemplate } from "../../stores/gameStore";
 
 const GAME_TYPE_PATHS: Record<string, (slug: string) => string> = {
@@ -13,14 +13,14 @@ const GAME_TYPE_PATHS: Record<string, (slug: string) => string> = {
 
 const GAME_TYPE_LABEL: Record<string, string> = {
   turtle_soup: "海龟汤",
-  roleplay: "角色扮演",
+  roleplay: "剧本代入",
   detective: "AI侦探",
   social_logic: "狼人杀",
 };
 
 const CATEGORY_LIST = [
+  { id: "storyline", name: "剧本代入", icon: <Library size={24} className="text-[#8b5cf6]" />, bg: "bg-purple-50/80", b1: "bg-gradient-to-b from-purple-100 to-purple-50" },
   { id: "turtle_soup", name: "海龟汤", icon: <Brain size={24} className="text-[#3b82f6]" />, bg: "bg-blue-50/80", b1: "bg-gradient-to-b from-blue-100 to-blue-50" },
-  { id: "roleplay", name: "角色扮演", icon: <Drama size={24} className="text-[#8b5cf6]" />, bg: "bg-purple-50/80", b1: "bg-gradient-to-b from-purple-100 to-purple-50" },
   { id: "detective", name: "AI侦探", icon: <Search size={24} className="text-[#eab308]" />, bg: "bg-yellow-50/80", b1: "bg-gradient-to-b from-yellow-100 to-yellow-50" },
   { id: "social_logic", name: "狼人杀 Lite", icon: <div className="text-[24px]">🐺</div>, bg: "bg-indigo-50/80", b1: "bg-gradient-to-b from-indigo-100 to-indigo-50" },
   { id: "romance", name: "恋爱社交", icon: <Heart size={24} className="text-[#ec4899]" />, bg: "bg-pink-50/80", b1: "bg-gradient-to-b from-pink-100 to-pink-50" },
@@ -61,7 +61,6 @@ export default function GameHome() {
   }, []);
 
   const lastSession = sessions[0];
-  const roleplayTemplates = templates.filter((t) => t.game_type === "roleplay");
   const otherTemplates = templates.filter((t) => t.game_type !== "roleplay");
 
   return (
@@ -156,9 +155,9 @@ export default function GameHome() {
               <button
                 key={cat.id}
                 onClick={() => {
-                  if (cat.id === "roleplay") navigate("/game/roleplay/characters");
+                  if (cat.id === "storyline") navigate("/game/roleplay/storylines");
                   else if (cat.id === "social_logic") navigate("/game/social-logic/new");
-                  else if (cat.id === "romance") navigate("/game/romance-social");
+                  else if (cat.id === "romance") navigate("/game/romance-social/characters");
                   else if (cat.id === "detective") navigate("/game/detective-board");
                   else if (cat.id === "turtle_soup") navigate("/game/turtle-soup/detail/passenger");
                   else {
@@ -177,67 +176,6 @@ export default function GameHome() {
           </div>
         </section>
 
-        {/* System storylines — built-in roleplay games */}
-        <section>
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-bold text-[#111827]">系统故事线</h3>
-            <button
-              type="button"
-              className="text-xs text-[#6b7280]"
-              onClick={() => navigate("/game/roleplay/storylines")}
-            >
-              全部故事 &gt;
-            </button>
-          </div>
-          {templatesLoading ? (
-            <div className="flex justify-center py-6"><Loader2 size={18} className="animate-spin text-[#8b5cf6]" /></div>
-          ) : roleplayTemplates.length === 0 ? (
-            <p className="text-sm text-[#9ca3af] py-4 text-center">暂无系统故事，请检查 API 连接</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {roleplayTemplates.slice(0, 4).map((t) => (
-                <div
-                  key={t.id}
-                  onClick={() => navigate(`/game/play/roleplay/${t.slug}`)}
-                  className="bg-gradient-to-r from-[#fdf2f8] to-white p-3 rounded-[20px] flex gap-3 shadow-sm border border-pink-100/60 cursor-pointer active:scale-[0.99] transition-transform"
-                >
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-pink-100 flex items-center justify-center">
-                    {t.cover_url ? (
-                      <img src={t.cover_url} alt={t.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <BookOpen size={22} className="text-pink-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-sm text-[#111827] truncate">{t.title}</h4>
-                    <p className="text-[10px] text-pink-500 font-medium mt-0.5">{t.subtitle || "官方剧情"}</p>
-                    <p className="text-[10px] text-[#9ca3af] line-clamp-2 mt-1">{t.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Custom storyline entry */}
-        <section>
-          <div
-            onClick={() => navigate("/game/custom-story-builder")}
-            className="bg-gradient-to-br from-[#fdf4ff] to-[#fce7f3] border border-pink-200/50 p-4 rounded-[20px] flex gap-4 shadow-sm cursor-pointer active:scale-[0.99] transition-transform"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-inner border border-pink-100">
-              <PlusSquare size={24} className="text-pink-500" />
-            </div>
-            <div className="flex flex-col flex-1">
-              <h3 className="font-bold text-[15px] text-[#111827]">自定义故事线</h3>
-              <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed">
-                输入一两句设定，AI 生成完整世界观与分支剧情，然后开始互动故事。
-              </p>
-              <span className="text-[11px] font-bold text-pink-500 mt-2">创建故事 →</span>
-            </div>
-          </div>
-        </section>
-
         {/* Recommended Games — non-roleplay templates */}
         <section>
           <div className="flex justify-between items-center mb-3">
@@ -250,7 +188,7 @@ export default function GameHome() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {otherTemplates.map((t) => (
+            {otherTemplates.filter((t) => t.game_type !== "romance").map((t) => (
               <div
                 key={t.id}
                 onClick={() => navigate(templatePath(t))}
@@ -289,7 +227,7 @@ export default function GameHome() {
               </div>
             ))}
 
-            {!templatesLoading && otherTemplates.length === 0 && roleplayTemplates.length === 0 && (
+            {!templatesLoading && otherTemplates.length === 0 && (
               <div className="text-center text-[#9ca3af] text-sm py-8">
                 暂无游戏模板，请检查后端连接
               </div>

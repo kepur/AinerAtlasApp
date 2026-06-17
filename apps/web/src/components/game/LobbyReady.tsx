@@ -16,7 +16,7 @@ type LobbyReadyProps = {
 
 export default function LobbyReady({ players, onStartDealing }: LobbyReadyProps) {
   return (
-    <div className="flex flex-col gap-6 px-4 py-6 max-w-md mx-auto w-full relative z-10 pb-24">
+    <div className="flex flex-col gap-6 px-4 py-6 max-w-md mx-auto w-full relative z-10 pb-36">
       {/* Game Settings Card */}
       <section className="game-glass-card p-5 mt-4">
         <h2 className="text-xs text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -98,13 +98,15 @@ export default function LobbyReady({ players, onStartDealing }: LobbyReadyProps)
       </section>
 
       {/* Bottom Action Area */}
-      <div className="fixed bottom-[80px] left-0 w-full px-4 pt-8 pb-4 bg-gradient-to-t from-[#0b0a1f] via-[#0b0a1f]/90 to-transparent z-40">
-        <button 
-          onClick={onStartDealing}
-          className="w-full max-w-md mx-auto h-14 bg-[#7c5cff] text-white rounded-full font-bold text-lg shadow-[0_0_24px_rgba(124,92,255,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform"
-        >
-          开始发牌
-        </button>
+      <div className="fixed bottom-0 left-0 w-full px-4 pt-8 pb-[max(env(safe-area-inset-bottom,16px),16px)] bg-gradient-to-t from-[#0b0a1f] via-[#0b0a1f]/95 to-transparent z-40">
+        <div className="max-w-md mx-auto">
+          <button 
+            onClick={onStartDealing}
+            className="w-full h-14 bg-[#7c5cff] text-white rounded-full font-bold text-lg shadow-[0_0_24px_rgba(124,92,255,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            开始发牌
+          </button>
+        </div>
       </div>
     </div>
   );

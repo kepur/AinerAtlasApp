@@ -257,6 +257,7 @@ def seed_defaults() -> None:
             logger.info("Seeded app settings")
 
         _seed_game_templates(db)
+        _seed_romance_templates_if_missing(db)
         try:
             from app.services.game_assets import seed_assets
             n = seed_assets(db)
@@ -342,6 +343,117 @@ def _seed_game_templates(db) -> None:
     ]
     db.add_all(templates)
     logger.info("Seeded {} game templates", len(templates))
+
+
+def _seed_romance_templates_if_missing(db) -> None:
+    """Ensure romance character templates exist even in older databases."""
+    romance_exists = db.scalar(select(GameTemplate).where(GameTemplate.game_type == "romance").limit(1))
+    if romance_exists:
+        return
+    romance_templates = [
+        GameTemplate(
+            slug="romance-mia", game_type="romance",
+            title="Mia", subtitle="恋爱社交",
+            description="咖啡店常客，适合轻松开场与表达好感。",
+            cover_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300&h=300",
+            difficulty="B1", estimated_minutes=12,
+            tags=["恋爱社交", "轻松", "B1-B2"],
+            config={
+                "target_id": "mia",
+                "name": "Mia",
+                "name_en": "Mia",
+                "age": 25,
+                "role": "咖啡店常客",
+                "gender": "female",
+                "avatar_url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300&h=300",
+                "category": "恋爱社交",
+                "personality": "轻松外向，说话温柔，喜欢旅行和摄影，容易害羞",
+                "chat_style": "温柔自然、偏口语化，鼓励用户多表达感受",
+                "identity_background": "自由摄影师，常在咖啡店工作。",
+                "initial_scene": "咖啡店初次见面，你发现她正坐在窗边看书...",
+                "prompt_override": "",
+                "tags": ["恋爱社交", "轻松", "B1-B2"],
+            },
+            sort_order=16,
+        ),
+        GameTemplate(
+            slug="biz-leo", game_type="romance",
+            title="Leo", subtitle="商务谈判",
+            description="欧洲客户，适合价值解释、反驳与让步表达训练。",
+            cover_url="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=300&h=300",
+            difficulty="B2", estimated_minutes=15,
+            tags=["商务谈判", "正式", "B2-C1"],
+            config={
+                "target_id": "leo",
+                "name": "Leo",
+                "name_en": "Leo",
+                "age": 32,
+                "role": "欧洲客户",
+                "gender": "male",
+                "avatar_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=300&h=300",
+                "category": "商务谈判",
+                "personality": "直接、谨慎、喜欢砍价，但私下里幽默且体贴",
+                "chat_style": "正式、结构化、结果导向",
+                "identity_background": "跨境采购负责人，关注ROI与风险。",
+                "initial_scene": "项目商务谈判后的酒会，你们在吧台碰面...",
+                "prompt_override": "",
+                "tags": ["商务谈判", "正式", "B2-C1"],
+            },
+            sort_order=17,
+        ),
+        GameTemplate(
+            slug="immigration-amy", game_type="romance",
+            title="Amy", subtitle="移民生活",
+            description="移民顾问同伴，适合材料、租房、求职等生活对话。",
+            cover_url="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=300&h=300",
+            difficulty="B1", estimated_minutes=12,
+            tags=["移民生活", "实用", "B1-B2"],
+            config={
+                "target_id": "amy",
+                "name": "Amy",
+                "name_en": "Amy",
+                "age": 28,
+                "role": "移民顾问同伴",
+                "gender": "female",
+                "avatar_url": "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=300&h=300",
+                "category": "移民生活",
+                "personality": "理性耐心，擅长解释流程，也会照顾对方情绪",
+                "chat_style": "分步骤说明，强调可执行建议",
+                "identity_background": "刚完成技术移民申请，熟悉初到当地的生活流程。",
+                "initial_scene": "社区中心的新移民分享会后，你们继续交流经验...",
+                "prompt_override": "",
+                "tags": ["移民生活", "实用", "B1-B2"],
+            },
+            sort_order=18,
+        ),
+        GameTemplate(
+            slug="campus-junior-sister", game_type="romance",
+            title="小师妹", subtitle="旅游出差",
+            description="久别重逢场景，适合情绪表达和关系边界训练。",
+            cover_url="https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&q=80&w=300&h=300",
+            difficulty="B1", estimated_minutes=12,
+            tags=["旅游出差", "情感", "B1"],
+            config={
+                "target_id": "junior_sister",
+                "name": "小师妹",
+                "name_en": "Junior Sister",
+                "age": 19,
+                "role": "青云宗弟子",
+                "gender": "female",
+                "avatar_url": "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?auto=format&fit=crop&q=80&w=300&h=300",
+                "category": "旅游出差",
+                "personality": "温柔、善良、试探心意，一直暗恋你",
+                "chat_style": "含蓄细腻，偏古风情绪表达",
+                "identity_background": "青云宗内门弟子，与你有旧日同门羁绊。",
+                "initial_scene": "后山重逢，你离开宗门多年后第一次回来...",
+                "prompt_override": "",
+                "tags": ["旅游出差", "情感", "B1"],
+            },
+            sort_order=19,
+        ),
+    ]
+    db.add_all(romance_templates)
+    logger.info("Seeded {} romance templates", len(romance_templates))
 
 
 def _repair_provider_api_keys(db, settings) -> None:
