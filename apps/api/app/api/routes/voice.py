@@ -55,6 +55,43 @@ def _resolve_audio_url(audio_url: str, audio_base64: str) -> str:
     return audio_url
 
 
+# ── In-memory TTS cache ────────────────────────────────────────────────────
+# Pre-scripted game content (story openings, character greetings, fixed lines)
+# is identical across users and replays. Re-synthesising it every time wastes
+# DashScope quota and adds latency. A small LRU keyed by the resolved provider
+# + voice + speed + text lets identical phrases be served instantly after the
+# first synthesis. Cleared on process restart (e.g. --reload) — that's fine.
+import hashlib
+from collections import OrderedDict
+
+_TTS_CACHE: "OrderedDict[str, dict]" = OrderedDict()
+_TTS_CACHE_MAX = 512
+
+
+def _tts_cache_key(provider: str, voice: str, language: str, speed: float, text: str) -> str:
+    raw = f"{provider}|{voice}|{language}|{speed}|{text}".encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _tts_cache_get(key: str) -> dict | None:
+    val = _TTS_CACHE.get(key)
+    if val is not None:
+        _TTS_CACHE.move_to_end(key)
+    return val
+
+
+def _tts_cache_put(key: str, val: dict | None) -> None:
+    # Only cache successful results that actually carry audio.
+    if not val or val.get("error"):
+        return
+    if not (val.get("audio_base64") or val.get("audio_url")):
+        return
+    _TTS_CACHE[key] = val
+    _TTS_CACHE.move_to_end(key)
+    while len(_TTS_CACHE) > _TTS_CACHE_MAX:
+        _TTS_CACHE.popitem(last=False)
+
+
 @router.post("/session", response_model=VoiceSessionRead)
 def create_voice_session(
     payload: VoiceSessionCreate,
@@ -89,6 +126,22 @@ def list_voice_sessions(current_user: CurrentUser, db: DBSession) -> list[VoiceS
 
 @router.post("/tts")
 async def synthesize(payload: TTSRequest, db: DBSession) -> dict:
+    # Serve identical phrases from the LRU cache (see _TTS_CACHE) so pre-scripted
+    # game content isn't re-synthesised on every replay. Keyed by the configured
+    # provider so an admin provider switch naturally invalidates stale entries.
+    _app = db.get(AppSettings, "default")
+    _provider = getattr(_app, "tts_provider", "browser") or "browser" if _app else "browser"
+    _key = _tts_cache_key(_provider, payload.voice or "", payload.language or "", payload.speed, payload.text)
+    _hit = _tts_cache_get(_key)
+    if _hit is not None:
+        return {**_hit, "cached": True}
+
+    result = await _synthesize_impl(payload, db)
+    _tts_cache_put(_key, result)
+    return result
+
+
+async def _synthesize_impl(payload: TTSRequest, db: DBSession) -> dict:
     # ── Game voice-preset path ───────────────────────────────────────────
     # When the frontend sends a game preset id (e.g. "female_warm") we resolve
     # it to a provider-specific voice and synthesise with the *configured*
