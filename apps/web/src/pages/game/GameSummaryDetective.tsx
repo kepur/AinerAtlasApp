@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Volume2, Star, Target, MessageSquare, Clock, BookOpen, Puzzle, BarChart2, RotateCcw, Save, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { useGameStore } from "../../stores/gameStore";
+import { saveGameToAssets, addPatternsToCrush } from "../../lib/gameLearning";
 
 function fmtDuration(seconds: number): string {
   if (!seconds || seconds < 0) return "--";
@@ -15,6 +16,8 @@ export default function GameSummaryDetective() {
   const { loadSummary } = useGameStore();
   const [data, setData] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
@@ -157,9 +160,20 @@ export default function GameSummaryDetective() {
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-purple-100 px-4 py-3 pb-6">
         <div className="grid grid-cols-3 gap-2">
-          <button className="flex flex-col items-center gap-1 bg-blue-50 border border-blue-100 rounded-xl py-2.5 px-1">
-            <Save size={16} className="text-blue-500" />
-            <span className="text-[10px] font-bold text-blue-700 text-center leading-tight">保存到Assets</span>
+          <button
+            onClick={async () => {
+              if (saved || saving) return;
+              setSaving(true);
+              await addPatternsToCrush(patterns);
+              const ok = await saveGameToAssets(caseTitle, [truth, ...topLines.map((l) => l.en), ...patterns]);
+              setSaved(ok);
+              setSaving(false);
+            }}
+            disabled={saving}
+            className="flex flex-col items-center gap-1 bg-blue-50 border border-blue-100 rounded-xl py-2.5 px-1 disabled:opacity-60"
+          >
+            {saving ? <Loader2 size={16} className="text-blue-500 animate-spin" /> : <Save size={16} className="text-blue-500" />}
+            <span className="text-[10px] font-bold text-blue-700 text-center leading-tight">{saved ? "已保存✓" : saving ? "保存中" : "保存到Assets"}</span>
           </button>
           <button onClick={() => navigate("/game/detective-board/cafe_lie")} className="flex flex-col items-center gap-1 bg-[#7c3aed] rounded-xl py-2.5 px-1 shadow-md shadow-purple-200">
             <RotateCcw size={16} className="text-white" />

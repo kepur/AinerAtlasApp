@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Flame, Lightbulb, HelpCircle, Search, Clock, Volume2, Sparkles, RefreshCcw, Bookmark, ChevronRight, Loader2 } from "lucide-react";
 import { useGameStore } from "../../stores/gameStore";
+import { saveGameToAssets, addPatternsToCrush } from "../../lib/gameLearning";
 
 interface KeyQuestion { text: string; meaning?: string }
 interface Agent { agent: string; emoji?: string; result: string }
@@ -19,6 +20,9 @@ export default function TurtleSoupSummary() {
   const { loadSummary } = useGameStore();
   const [data, setData] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [crushed, setCrushed] = useState(0);
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
@@ -160,7 +164,16 @@ export default function TurtleSoupSummary() {
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#111827]">
                 <div className="w-3.5 h-3.5 rounded bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center text-[8px]">📚</div> 本局学到的句型
               </div>
-              <span className="text-[9px] text-[#8b5cf6] font-bold flex items-center">加入消消乐 <ChevronRight size={10} /></span>
+              <button
+                onClick={async () => {
+                  if (crushed) return;
+                  const n = await addPatternsToCrush(patterns);
+                  setCrushed(n);
+                }}
+                className="text-[9px] text-[#8b5cf6] font-bold flex items-center"
+              >
+                {crushed ? `已加入 ${crushed} 条 ✓` : <>加入消消乐 <ChevronRight size={10} /></>}
+              </button>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {(patterns.length ? patterns : ["Did he...?", "Was it related to...?"]).map((p, i) => (
@@ -197,8 +210,19 @@ export default function TurtleSoupSummary() {
           <button onClick={() => navigate('/game/play/turtle_soup/passenger')} className="flex-1 bg-[#8b5cf6] text-white h-12 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-md hover:bg-[#7c3aed] transition-colors active:scale-95">
             <RefreshCcw size={16} /> 再来一局
           </button>
-          <button className="flex-1 bg-white text-[#8b5cf6] h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border border-[#8b5cf6] shadow-sm hover:bg-[#f5f3ff] transition-colors active:scale-95">
-            <Bookmark size={16} /> 保存到 Assets
+          <button
+            onClick={async () => {
+              if (saved || saving) return;
+              setSaving(true);
+              const lines = [truth, ...(keyQuestions.map((q) => q.text)), ...patterns];
+              const ok = await saveGameToAssets(title, lines);
+              setSaved(ok);
+              setSaving(false);
+            }}
+            disabled={saving}
+            className="flex-1 bg-white text-[#8b5cf6] h-12 rounded-2xl font-bold flex items-center justify-center gap-2 border border-[#8b5cf6] shadow-sm hover:bg-[#f5f3ff] transition-colors active:scale-95 disabled:opacity-60"
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Bookmark size={16} />} {saved ? "已保存 ✓" : saving ? "保存中..." : "保存到 Assets"}
           </button>
         </div>
 
