@@ -185,6 +185,15 @@ class RomanceEngine(GameTypeEngine):
                 "grammar_tips": []
             }
 
+        return self._finalize(session, state, target, parsed, user_input)
+
+    def _finalize(self, session: GameSession, state: dict, target: dict,
+                  parsed: dict, user_input: str) -> dict:
+        """Apply score/phase changes and build the turn's feed items.
+
+        Shared by handle_turn (non-streaming) and handle_turn_stream so both
+        paths produce an identical authoritative feed + HUD.
+        """
         # Update relationship score
         old_score = state.get("relationship_score", 0)
         new_score = min(100, max(0, old_score + parsed.get("relationship_change", 0)))
@@ -240,6 +249,7 @@ class RomanceEngine(GameTypeEngine):
         session.state = state
 
         return {
+            "state": state,
             "ai_response": parsed,
             "feed_items": new_feed,
             "phase_after": session.phase,
@@ -248,6 +258,97 @@ class RomanceEngine(GameTypeEngine):
                 "max_score": state["max_score"]
             }
         }
+
+    async def handle_turn_stream(
+        self, db: Session, session: GameSession, action_type: str,
+        user_input: str, extra: dict,
+    ):
+        """Streaming version: emit the character reply token-by-token.
+
+        Yields:
+            {"type": "partial_feed", "data": {"feed_items": [...]}} — live deltas
+            {"type": "complete", "data": {...}} — authoritative turn result
+        """
+        state = dict(session.state)
+        target = state.get("target", _BUILTIN_TARGETS["mia"])
+        state["total_turns"] = state.get("total_turns", 0) + 1
+
+        # Echo the user's bubble immediately so it never feels frozen.
+        if user_input:
+            yield {"type": "partial_feed", "data": {"feed_items": [{
+                "type": "user_msg",
+                "text": user_input,
+                "created_at": datetime.now(UTC).isoformat(),
+            }]}}
+
+        from app.services.game_prompts import get_game_prompt
+        prompt = get_game_prompt(db, "romance.turn", self._build_prompt(state, user_input, extra or {}))
+        provider = _provider_for("chat", db)
+
+        parsed: dict | None = None
+        try:
+            stream = provider.complete_json_stream(
+                "You are a romance social game engine. Generate the next turn state as JSON.",
+                prompt, temperature=0.8, max_tokens=900,
+            )
+
+            import re
+            buffer = ""
+            last_text = ""
+            # Pull the growing character_reply value out of partial JSON so the
+            # English reply streams character-by-character into one live bubble.
+            reply_re = re.compile(r'"character_reply"\s*:\s*"((?:[^"\\]|\\.)*)', re.S)
+
+            def _extract(buf: str) -> str:
+                m = reply_re.search(buf)
+                if not m:
+                    return ""
+                raw = m.group(1)
+                try:
+                    return json.loads('"' + raw + '"')
+                except Exception:  # noqa: BLE001
+                    return raw.replace('\\n', '\n').replace('\\"', '"')
+
+            async for chunk in stream:
+                if chunk == "___STREAM_JSON_DONE___":
+                    continue
+                buffer += chunk
+                rtext = _extract(buffer)
+                if rtext and len(rtext) > len(last_text):
+                    delta = rtext[len(last_text):]
+                    if delta:
+                        yield {"type": "partial_feed", "data": {"feed_items": [{
+                            "type": "char_msg",
+                            "speaker": target["name"],
+                            "speaker_en": target["name_en"],
+                            "speaker_avatar": target.get("avatar_url", ""),
+                            "text": delta,
+                        }]}}
+                    last_text = rtext
+
+            parsed = getattr(provider, "_stream_json_result", None)
+            if not parsed:
+                try:
+                    parsed = json.loads(buffer)
+                except Exception:  # noqa: BLE001
+                    parsed = None
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Romance streaming turn failed: {e}")
+            parsed = None
+
+        if not parsed or "character_reply" not in parsed:
+            parsed = {
+                "character_reply": "Haha, that's interesting...",
+                "character_reply_zh": "哈哈，真有趣...",
+                "emotion": "开心",
+                "emotion_emoji": "😊",
+                "relationship_change": 1,
+                "learning_point": {"title": "保持对话", "desc": "你刚才的回应很好。"},
+                "grammar_tips": [],
+            }
+
+        result = self._finalize(session, state, target, parsed, user_input)
+        yield {"type": "complete", "data": result}
 
     async def get_summary(self, db: Session, session: GameSession) -> dict:
         return {

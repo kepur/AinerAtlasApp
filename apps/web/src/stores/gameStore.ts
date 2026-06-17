@@ -213,9 +213,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   sendTurn: async (sessionId, actionType, userInput = "", extra) => {
-    // Auto-detect streaming for roleplay games
+    // Auto-detect streaming for engines that stream token-by-token.
     const state = get();
-    if (state.currentSession?.game_type === "roleplay") {
+    const STREAM_TYPES = new Set(["roleplay", "romance"]);
+    if (state.currentSession && STREAM_TYPES.has(state.currentSession.game_type)) {
       return state.sendTurnStream(sessionId, actionType, userInput, extra);
     }
 
@@ -335,18 +336,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (!eventType || !dataStr) continue;
 
           if (eventType === "feed") {
-            // Partial feed update — merge streaming narrator chunks into ONE
-            // live bubble; append other item types (user bubble) once.
+            // Partial feed update — merge streaming text chunks (narrator for
+            // roleplay, char_msg for romance/social) into ONE live bubble;
+            // append other item types (user bubble) once.
             const parsed = JSON.parse(dataStr);
             const items = parsed.feed_items || [];
+            const STREAMABLE = new Set(["narrator", "char_msg"]);
             if (items.length > 0) {
               set((s) => {
                 const fi = [...s.feedItems];
                 for (const it of items) {
-                  if (it.type === "narrator") {
+                  if (STREAMABLE.has(it.type)) {
                     const last = fi[fi.length - 1];
-                    if (last && last.type === "narrator" && (last as any)._streaming) {
-                      fi[fi.length - 1] = { ...last, text: (last.text || "") + (it.text || "") };
+                    if (last && last.type === it.type && (last as any)._streaming) {
+                      // Grow the live bubble. Later deltas may also carry richer
+                      // metadata (emotion, learning_point) — merge those in too.
+                      fi[fi.length - 1] = {
+                        ...last,
+                        ...it,
+                        text: (last.text || "") + (it.text || ""),
+                        _streaming: true,
+                      };
                     } else {
                       fi.push({ ...it, _streaming: true });
                     }

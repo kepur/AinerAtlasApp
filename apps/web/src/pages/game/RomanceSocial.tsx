@@ -617,7 +617,7 @@ export default function RomanceSocial() {
             }
             return null;
           })}
-          {turnLoading && (
+          {turnLoading && !(feedItems[feedItems.length - 1] as FeedItem & { _streaming?: boolean })?._streaming && (
             <div className="flex items-center gap-2 px-2">
               <Loader2 size={14} className={`animate-spin ${th.loaderColor}`} />
               <span className="text-[#c98bab] text-xs">{target.name} 正在回复...</span>

@@ -630,9 +630,10 @@ async def send_turn_stream(
     if not sess or sess.status != "active":
         raise HTTPException(status_code=400, detail="Game session not found or not active")
 
-    # Only roleplay games support streaming for now
-    if sess.game_type != "roleplay":
-        # Fall back to non-streaming
+    # Any engine that implements handle_turn_stream can stream token-by-token;
+    # others fall back to a single non-streaming complete event.
+    eng = engine.get_engine(sess.game_type)
+    if not hasattr(eng, "handle_turn_stream"):
         try:
             result = await engine.handle_turn(
                 db, session_id, current_user.id,
@@ -646,13 +647,6 @@ async def send_turn_stream(
         except Exception as exc:
             logger.exception("game turn failed")
             raise HTTPException(status_code=503, detail=f"游戏操作失败：{exc}") from exc
-
-    # --- Streaming path for roleplay ---
-    from app.services.roleplay_engine import RoleplayEngine
-
-    eng = engine.get_engine("roleplay")
-    if not isinstance(eng, RoleplayEngine):
-        raise HTTPException(status_code=500, detail="Roleplay engine not found")
 
     async def sse_generator() -> AsyncGenerator[str, None]:
         try:
@@ -694,6 +688,11 @@ async def send_turn_stream(
                     db.commit()
                     db.refresh(turn)
 
+                    try:
+                        view = eng.get_state_view(sess, current_user.id)
+                    except Exception:  # noqa: BLE001
+                        view = {}
+
                     final = {
                         "turn": {
                             "id": turn.id,
@@ -714,12 +713,12 @@ async def send_turn_stream(
                             "turn_count": sess.turn_count,
                             "score": sess.score,
                             "status": sess.status,
-                            "view": {},
+                            "view": view,
                         },
                     }
                     yield f"event: complete\ndata: {json.dumps(final, ensure_ascii=False, default=str)}\n\n"
         except Exception as exc:
-            logger.exception("roleplay streaming turn failed")
+            logger.exception("streaming turn failed")
             yield f"event: error\ndata: {json.dumps({'detail': str(exc)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
