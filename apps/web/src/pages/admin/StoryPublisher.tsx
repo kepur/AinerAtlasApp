@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Sparkles, BookOpen, Send, Loader2, CheckCircle2, RefreshCcw, GitBranch, Flag, Images } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "../../api";
+
+type VoicePreset = { id: string; name: string; gender: string };
 
 const LENGTHS = [
   { id: "short", label: "短篇", desc: "3章·轻松" },
@@ -20,6 +22,18 @@ export default function StoryPublisher() {
   const [publishing, setPublishing] = useState(false);
   const [generatedStory, setGeneratedStory] = useState<any>(null);
   const [published, setPublished] = useState(false);
+  const [voices, setVoices] = useState<VoicePreset[]>([]);
+
+  useEffect(() => {
+    apiRequest<VoicePreset[]>("/api/games/voices").then(setVoices).catch(() => setVoices([]));
+  }, []);
+
+  const setCharacterVoice = (index: number, voice: string) => {
+    if (!generatedStory?.characters) return;
+    const newChars = [...generatedStory.characters];
+    newChars[index] = { ...newChars[index], voice };
+    setGeneratedStory({ ...generatedStory, characters: newChars });
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -196,6 +210,14 @@ export default function StoryPublisher() {
                           <div className="flex flex-col min-w-0">
                             <div className="font-bold text-[12px] text-slate-800 truncate">{c.name} <span className="text-[9px] text-slate-400">{c.gender === "female" ? "♀" : c.gender === "male" ? "♂" : ""}</span></div>
                             <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-2 leading-snug">{c.personality}</div>
+                            <select
+                              value={c.voice || ""}
+                              onChange={(e) => setCharacterVoice(i, e.target.value)}
+                              className="mt-1 rounded-md border border-slate-200 px-1.5 py-1 text-[10px] bg-white text-slate-600"
+                            >
+                              <option value="">音色：自动</option>
+                              {voices.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                            </select>
                           </div>
                         </div>
                       ))}

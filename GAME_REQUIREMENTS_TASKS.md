@@ -47,12 +47,15 @@ roleplay 角色 / romance 对象 / detective 嫌疑人(审讯+主板) / social_l
 - ✅ **各结算页 保存到Assets/加入消消乐接后端**：TurtleSoupSummary、GameSummaryDetective、UnifiedGameChat(roleplay/通用) 都接 `POST /api/assets` + `POST /api/grammar/candidate`（含 saving/saved 态）。
 - ✅ **海龟汤详情页接真实数据**：`TurtleSoupDetail` 读 `loadTemplate(slug)`（标题/简介/封面/难度/时长/学习重点），带回退。
 - ✅ **角色音色绑定后台**：RomanceCharacterManager 加音色下拉(`/api/games/voices`)，写入 config.voice，play 时 RomanceSocial 按角色音色朗读；补 romance 角色 DELETE 路由。
-- ⬜ 待做：
-  - **AI侦探主板 推理关系图(05.png)**：节点图(线索↔嫌疑人)，已发现才连线（涉及 UI，需确认解冻该局部）。
+- ✅ **TTS 音频修复**：DashScope 免费额度耗尽 → 自动重试备用 qwen 模型(独立额度)恢复 Cherry/Ethan 真声 + 真实错误提示。
+- ✅ **普通对话异步分析**：回复完成即解锁输入(analyzing 阶段)，HUD 后台生成；新消息用 AbortController 中止上一条分析防竞态。
+- ✅ **恋爱/社交对话丰富化**：每轮"本轮要点"色块 + hint_card 历史可追溯；情绪 emoji 贴头像 + 情绪标签 + 好感±变化；分类化进度维度(恋爱好感度/商务成交意向/旅游熟络度/移民融入度)，prompt 按分类目标驱动。
+- ✅ **StoryPublisher + RomanceCharacterManager 角色音色下拉**：手动绑定角色音色(`/api/games/voices`)，play 时按角色朗读。
+- ✅ **game.* Prompt 后台可编辑**：admin 应用 Prompts 页已列出并可编辑全部 `game.*`（分组美化为可选 polish）。
+- ⬜ 仍待做（涉及 UI，需确认解冻局部）：
+  - **AI侦探主板 推理关系图(05.png)**：节点图(线索↔嫌疑人)，已发现才连线。
   - **侦探时间线**：审讯陈述聚合成事件时间线。
-  - **Roleplay Setup(06.png)** 三入口 + 自定义剧情页接通（涉及 UI）。
-  - **StoryPublisher 角色音色下拉**（roleplay 目前按性别自动配音色，可加手动选择）。
-  - **admin Prompts 面板 `task_type=game` 分组编辑 UI**（目前可通过通用 Prompt 接口编辑 `game.*`）。
+  - **Roleplay Setup(06.png)** 三入口 + 自定义剧情页接通。
   - 详情页模式切换(Solo/Party、文字/语音)落地。
 
 ### P2 — 新玩法 / 基础设施
