@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import AsyncGenerator
 
 import httpx
 
@@ -134,6 +135,16 @@ class GeminiLLMProvider(LLMProvider):
 
         user_content = f"Title: {title}\n\nConversation transcript:\n{source_text}"
         return await self._call_llm(system_prompt, user_content)
+
+    async def chat_v2(self, *args, **kwargs) -> dict:
+        raise NotImplementedError("chat_v2 not implemented for GeminiLLMProvider")
+
+    async def analyze_user_profile(self, *args, **kwargs) -> dict:
+        raise NotImplementedError("analyze_user_profile not implemented for GeminiLLMProvider")
+
+    async def thought_dialogue_stream(self, *args, **kwargs) -> AsyncGenerator[str, None]:
+        raise NotImplementedError("thought_dialogue_stream not implemented for GeminiLLMProvider")
+        yield
 
     async def _call_llm(
         self,

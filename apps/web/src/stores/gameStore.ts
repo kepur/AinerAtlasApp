@@ -220,6 +220,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set({ turnLoading: true });
+    const optimisticMessage = userInput && (actionType === "message" || actionType === "user_action" || actionType === "solve");
+    const baseLength = get().feedItems.length;
+
+    if (optimisticMessage) {
+      set((s) => ({
+        feedItems: [
+          ...s.feedItems,
+          {
+            type: "user_msg",
+            text: userInput,
+            created_at: new Date().toISOString(),
+          } as any
+        ]
+      }));
+    }
+
     try {
       const result = await apiRequest<TurnResult>(`/api/games/sessions/${sessionId}/turns`, {
         method: "POST",
@@ -233,14 +249,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const newFeedItems = result.turn.feed_items || [];
       const hud = result.turn.hud && Object.keys(result.turn.hud).length > 0 ? result.turn.hud : null;
 
-      // Backend feed items already echo the user input — no manual prepend.
+      // Backend feed items already echo the user input — replace the optimistic one to avoid duplication.
       set((s) => ({
-        feedItems: [...s.feedItems, ...newFeedItems],
+        feedItems: [...s.feedItems.slice(0, baseLength), ...newFeedItems],
         currentHud: hud || s.currentHud,
         currentSession: result.session,
       }));
 
       return result;
+    } catch (err) {
+      if (optimisticMessage) {
+        set((s) => {
+          const reverted = [...s.feedItems];
+          if (reverted[baseLength]) {
+            reverted[baseLength] = {
+              ...reverted[baseLength],
+              text: reverted[baseLength].text + " (发送失败，请重试)",
+              error: true
+            } as any;
+          }
+          return { feedItems: reverted };
+        });
+      }
+      throw err;
     } finally {
       set({ turnLoading: false });
     }

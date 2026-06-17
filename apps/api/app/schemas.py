@@ -573,6 +573,21 @@ class UsageLogRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class LLMCallLogRead(BaseModel):
+    id: str
+    provider_name: str
+    model_name: str
+    method_name: str
+    prompt: str | None = None
+    response: str | None = None
+    error: str | None = None
+    status: str
+    latency_ms: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class MembershipUpdate(BaseModel):
     membership_level: str
     status: str = "active"

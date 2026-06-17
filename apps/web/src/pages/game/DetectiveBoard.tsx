@@ -6,13 +6,14 @@ import {
 } from "lucide-react";
 import { useGameStore } from "../../stores/gameStore";
 
-type TabKey = "背景" | "线索" | "嫌疑人" | "时间线";
+type TabKey = "背景" | "线索" | "嫌疑人" | "时间线" | "推理";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "背景", label: "案件背景" },
   { key: "线索", label: "关键搜证" },
   { key: "嫌疑人", label: "嫌疑人" },
   { key: "时间线", label: "时间线" },
+  { key: "推理", label: "推理关系" },
 ];
 
 const CLUE_ICONS = ["☂️", "🥤", "📝", "🔑", "📹", "🩸", "🔦", "📦"];
@@ -237,6 +238,15 @@ export default function DetectiveBoard() {
               <span className="font-bold text-[13px] text-[#111827]">案件时间线</span>
             </div>
             <div className="flex flex-col gap-3">
+              {(view.discovered_clues || []).map((c: any) => (
+                <div key={c.id} className="flex gap-3">
+                  <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                  <div>
+                    <p className="text-[12px] font-bold text-[#111827]">🔍 发现线索：{c.title}</p>
+                    <p className="text-[11px] text-[#6b7280]">{c.desc}</p>
+                  </div>
+                </div>
+              ))}
               {suspects.map((s) => (
                 <div key={s.id} className="flex gap-3">
                   <div className="w-2 h-2 rounded-full bg-purple-400 mt-1.5 shrink-0" />
@@ -245,6 +255,25 @@ export default function DetectiveBoard() {
                     <p className="text-[11px] text-[#6b7280]">{s.interrogated ? `已审问 ${s.statement_count || 0} 次` : "尚未审问"}</p>
                   </div>
                 </div>
+              ))}
+              {(view.discovered_clues || []).length === 0 && (
+                <p className="text-[11px] text-[#9ca3af]">先去「关键搜证」解锁线索、审讯嫌疑人，时间线会逐步还原。</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "推理" && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
+            <div className="flex items-center gap-2 mb-1">
+              <Gavel size={15} className="text-[#7c3aed]" />
+              <span className="font-bold text-[13px] text-[#111827]">推理关系图</span>
+            </div>
+            <p className="text-[11px] text-[#9ca3af] mb-2">连线越红，嫌疑越高（依据你的审讯结果，不剧透真凶）。</p>
+            <DeductionGraph suspects={suspects} cluesFound={discoveredCount} />
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {(view.discovered_clues || []).map((c: any) => (
+                <span key={c.id} className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-full">🔍 {c.title}</span>
               ))}
             </div>
           </div>
@@ -309,5 +338,43 @@ export default function DetectiveBoard() {
         </div>
       )}
     </div>
+  );
+}
+
+/* Radial "deduction relationship" graph: case at the center, suspects around it,
+   edge colour/width by suspicion (100 - trust). Spoiler-free — derived only from
+   the player's interrogation results, not the real culprit. */
+function DeductionGraph({ suspects, cluesFound }: { suspects: any[]; cluesFound: number }) {
+  const W = 320, H = 230, cx = W / 2, cy = H / 2, R = 78;
+  const n = Math.max(suspects.length, 1);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 260 }}>
+      {/* edges */}
+      {suspects.map((s, i) => {
+        const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const x = cx + R * Math.cos(ang), y = cy + R * Math.sin(ang);
+        const suspicion = 100 - (s.trust ?? 50);
+        const color = suspicion >= 60 ? "#ef4444" : suspicion >= 40 ? "#f97316" : "#a78bfa";
+        return <line key={`e${i}`} x1={cx} y1={cy} x2={x} y2={y} stroke={color} strokeWidth={1 + suspicion / 25} opacity={0.55} />;
+      })}
+      {/* case center node */}
+      <circle cx={cx} cy={cy} r={26} fill="#7c3aed" />
+      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="11" fill="#fff" fontWeight="bold">案件</text>
+      <text x={cx} y={cy + 11} textAnchor="middle" fontSize="8" fill="#ede9fe">线索 {cluesFound}</text>
+      {/* suspect nodes */}
+      {suspects.map((s, i) => {
+        const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const x = cx + R * Math.cos(ang), y = cy + R * Math.sin(ang);
+        const suspicion = 100 - (s.trust ?? 50);
+        const color = suspicion >= 60 ? "#ef4444" : suspicion >= 40 ? "#f97316" : "#22c55e";
+        return (
+          <g key={`n${i}`}>
+            <circle cx={x} cy={y} r={20} fill="#fff" stroke={color} strokeWidth={2} />
+            <text x={x} y={y - 1} textAnchor="middle" fontSize="10" fill="#111827" fontWeight="bold">{(s.name || "?").slice(0, 4)}</text>
+            <text x={x} y={y + 10} textAnchor="middle" fontSize="8" fill={color}>嫌疑{suspicion}</text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }

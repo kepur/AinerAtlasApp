@@ -11,7 +11,9 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: apiProxy,
-        ws: true
+        ws: true,
+        timeout: 120000,
+        proxyTimeout: 120000
       },
       "/health": apiProxy
     }

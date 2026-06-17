@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator
 
@@ -431,15 +432,79 @@ class MockLLMProvider(LLMProvider):
 class FallbackLLMProvider(LLMProvider):
     """Wraps multiple providers and tries them in order until one succeeds."""
 
-    def __init__(self, providers: list[LLMProvider]) -> None:
+    def __init__(self, providers: list[LLMProvider], db: Session | None = None) -> None:
         self._providers = providers
         self._active: LLMProvider | None = None
+        self.db = db
+
+    @property
+    def providers(self) -> list[LLMProvider]:
+        return self._providers
 
     @property
     def last_usage(self) -> dict:
         if self._active:
             return self._active.last_usage
         return {}
+
+    def _record_llm_call(
+        self,
+        provider: LLMProvider,
+        method_name: str,
+        args: tuple,
+        kwargs: dict,
+        response: str | None,
+        error: Exception | None,
+        latency_ms: int,
+    ) -> None:
+        if not self.db:
+            return
+        try:
+            from app.models import LLMCallLog
+            import json
+            from app.db.session import SessionLocal
+
+            # Format prompt/inputs safely
+            prompt_data = {}
+            if args:
+                prompt_data["args"] = [str(a)[:1000] for a in args]
+            if kwargs:
+                cleaned_kwargs = {}
+                for k, v in kwargs.items():
+                    if k == "profile" and v:
+                        cleaned_kwargs[k] = {"user_id": getattr(v, "user_id", None)}
+                    elif isinstance(v, (str, int, float, bool, list, dict)) or v is None:
+                        cleaned_kwargs[k] = v
+                    else:
+                        cleaned_kwargs[k] = str(v)[:2000]
+                prompt_data["kwargs"] = cleaned_kwargs
+
+            prompt_str = json.dumps(prompt_data, ensure_ascii=False, default=str)[:50000]
+            
+            provider_name = getattr(provider, "provider_name", type(provider).__name__)
+            model_name = getattr(provider, "model_name", "unknown")
+            status = "success" if error is None else "failed"
+            error_str = f"{type(error).__name__}: {str(error)}" if error else None
+            if error_str:
+                error_str = error_str[:10000]
+            if response:
+                response = response[:50000]
+
+            with SessionLocal() as log_db:
+                call_log = LLMCallLog(
+                    provider_name=provider_name,
+                    model_name=model_name,
+                    method_name=method_name,
+                    prompt=prompt_str,
+                    response=response,
+                    error=error_str,
+                    status=status,
+                    latency_ms=latency_ms,
+                )
+                log_db.add(call_log)
+                log_db.commit()
+        except Exception as log_exc:
+            logger.error("Failed to record LLM call log to database: %s", log_exc)
 
     async def thought_dialogue(self, *args, **kwargs) -> ConversationAIResult:
         return await self._try_all("thought_dialogue", *args, **kwargs)
@@ -459,18 +524,30 @@ class FallbackLLMProvider(LLMProvider):
     async def complete_json_stream(self, *args, **kwargs):
         last_exc: Exception | None = None
         for provider in self._providers:
+            start_time = time.perf_counter()
+            chunks = []
             try:
                 self._active = provider
                 gen = provider.complete_json_stream(*args, **kwargs)
                 async for chunk in gen:
+                    chunks.append(chunk)
                     yield chunk
                 # Ensure _stream_json_result is propagated
                 if hasattr(provider, "_stream_json_result"):
                     self._stream_json_result = provider._stream_json_result
+                
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
+                res_str = "".join(chunks)
+                self._record_llm_call(provider, "complete_json_stream", args, kwargs, res_str, None, latency_ms)
                 return
             except Exception as exc:  # noqa: BLE001
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
                 pname = type(provider).__name__
                 logger.warning("Provider %s failed for complete_json_stream: %s", pname, exc)
+                
+                res_str = "".join(chunks) if chunks else None
+                self._record_llm_call(provider, "complete_json_stream", args, kwargs, res_str, exc, latency_ms)
+                
                 last_exc = exc
                 continue
         if last_exc:
@@ -483,15 +560,27 @@ class FallbackLLMProvider(LLMProvider):
     async def thought_dialogue_stream(self, *args, **kwargs) -> AsyncGenerator[str, None]:
         last_exc: Exception | None = None
         for provider in self._providers:
+            start_time = time.perf_counter()
+            chunks = []
             try:
                 self._active = provider
                 gen = provider.thought_dialogue_stream(*args, **kwargs)
                 async for chunk in gen:
+                    chunks.append(chunk)
                     yield chunk
+                
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
+                res_str = "".join(chunks)
+                self._record_llm_call(provider, "thought_dialogue_stream", args, kwargs, res_str, None, latency_ms)
                 return
             except Exception as exc:  # noqa: BLE001
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
                 pname = type(provider).__name__
                 logger.warning("Provider %s failed for thought_dialogue_stream: %s", pname, exc)
+                
+                res_str = "".join(chunks) if chunks else None
+                self._record_llm_call(provider, "thought_dialogue_stream", args, kwargs, res_str, exc, latency_ms)
+                
                 last_exc = exc
                 continue
         if last_exc:
@@ -501,15 +590,27 @@ class FallbackLLMProvider(LLMProvider):
     async def chat_reply_stream(self, *args, **kwargs) -> AsyncGenerator[str, None]:
         last_exc: Exception | None = None
         for provider in self._providers:
+            start_time = time.perf_counter()
+            chunks = []
             try:
                 self._active = provider
                 gen = provider.chat_reply_stream(*args, **kwargs)
                 async for chunk in gen:
+                    chunks.append(chunk)
                     yield chunk
+                
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
+                res_str = "".join(chunks)
+                self._record_llm_call(provider, "chat_reply_stream", args, kwargs, res_str, None, latency_ms)
                 return
             except Exception as exc:  # noqa: BLE001
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
                 pname = type(provider).__name__
                 logger.warning("Provider %s failed for chat_reply_stream: %s", pname, exc)
+                
+                res_str = "".join(chunks) if chunks else None
+                self._record_llm_call(provider, "chat_reply_stream", args, kwargs, res_str, exc, latency_ms)
+                
                 last_exc = exc
                 continue
         if last_exc:
@@ -519,13 +620,32 @@ class FallbackLLMProvider(LLMProvider):
     async def _try_all(self, method_name: str, *args, **kwargs) -> Any:
         last_exc: Exception | None = None
         for provider in self._providers:
+            start_time = time.perf_counter()
             try:
                 self._active = provider
                 result = await getattr(provider, method_name)(*args, **kwargs)
+                
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
+                
+                # Format result for logging
+                res_str = None
+                if result is not None:
+                    if hasattr(result, "to_dict"):
+                        res_str = str(result.to_dict())
+                    elif hasattr(result, "dict"):
+                        res_str = str(result.dict())
+                    else:
+                        res_str = str(result)
+                
+                self._record_llm_call(provider, method_name, args, kwargs, res_str, None, latency_ms)
                 return result
             except Exception as exc:  # noqa: BLE001
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
                 pname = type(provider).__name__
                 logger.warning("Provider %s failed for %s: %s", pname, method_name, exc)
+                
+                self._record_llm_call(provider, method_name, args, kwargs, None, exc, latency_ms)
+                
                 last_exc = exc
                 continue
         if last_exc:
@@ -669,6 +789,93 @@ def _build_llm_provider_from_row(row, model_override: str | None = None) -> LLMP
     return None
 
 
+def wrap_provider_with_logging(provider: LLMProvider, db: Session) -> LLMProvider:
+    provider_class = type(provider)
+    if provider_class.__name__.startswith("Logging"):
+        return provider
+
+    if isinstance(provider, FallbackLLMProvider):
+        return provider
+
+    class_name = f"Logging{provider_class.__name__}"
+
+    def wrap_sync_or_async_method(method_name):
+        original_method = getattr(provider_class, method_name, None)
+        if not original_method:
+            return None
+
+        import inspect
+        if inspect.isasyncgenfunction(original_method):
+            async def wrapped_stream(self, *args, **kwargs):
+                start_time = time.perf_counter()
+                chunks = []
+                fallback_logger = FallbackLLMProvider([], db=db)
+                try:
+                    gen = original_method(self, *args, **kwargs)
+                    async for chunk in gen:
+                        chunks.append(chunk)
+                        yield chunk
+                    latency_ms = int((time.perf_counter() - start_time) * 1000)
+                    res_str = "".join(chunks)
+                    fallback_logger._record_llm_call(self, method_name, args, kwargs, res_str, None, latency_ms)
+                except Exception as exc:
+                    latency_ms = int((time.perf_counter() - start_time) * 1000)
+                    res_str = "".join(chunks) if chunks else None
+                    fallback_logger._record_llm_call(self, method_name, args, kwargs, res_str, exc, latency_ms)
+                    raise
+            return wrapped_stream
+        else:
+            async def wrapped_method(self, *args, **kwargs):
+                start_time = time.perf_counter()
+                fallback_logger = FallbackLLMProvider([], db=db)
+                try:
+                    result = await original_method(self, *args, **kwargs)
+                    latency_ms = int((time.perf_counter() - start_time) * 1000)
+                    
+                    res_str = None
+                    if result is not None:
+                        if hasattr(result, "to_dict"):
+                            res_str = str(result.to_dict())
+                        elif hasattr(result, "dict"):
+                            res_str = str(result.dict())
+                        else:
+                            res_str = str(result)
+                            
+                    fallback_logger._record_llm_call(self, method_name, args, kwargs, res_str, None, latency_ms)
+                    return result
+                except Exception as exc:
+                    latency_ms = int((time.perf_counter() - start_time) * 1000)
+                    fallback_logger._record_llm_call(self, method_name, args, kwargs, None, exc, latency_ms)
+                    raise
+            return wrapped_method
+
+    methods_to_wrap = [
+        "thought_dialogue",
+        "generate_expression_asset",
+        "chat_v2",
+        "explain_token",
+        "complete_json",
+        "complete_json_stream",
+        "analyze_user_profile",
+        "thought_dialogue_stream",
+        "chat_reply_stream",
+    ]
+
+    overrides = {}
+    for m in methods_to_wrap:
+        wrapped = wrap_sync_or_async_method(m)
+        if wrapped:
+            overrides[m] = wrapped
+
+    try:
+        logging_subclass = type(class_name, (provider_class,), overrides)
+        provider.__class__ = logging_subclass
+    except Exception:
+        pass
+
+    return provider
+
+
 def get_llm_provider(
     hint: str = "mock",
     db: Session | None = None,
@@ -730,9 +937,12 @@ def get_llm_provider(
         )
 
     if len(providers) == 1:
-        return providers[0]
+        provider = providers[0]
+        if db is not None:
+            provider = wrap_provider_with_logging(provider, db)
+        return provider
 
-    return FallbackLLMProvider(providers)
+    return FallbackLLMProvider(providers, db=db)
 
 
 def require_llm_provider(hint: str, db: Session) -> LLMProvider:

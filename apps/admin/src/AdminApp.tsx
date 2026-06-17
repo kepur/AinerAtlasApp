@@ -47,7 +47,8 @@ const navGroups = [
       { key: "AI Providers", label: "模型供应商", icon: Bot },
       { key: "Prompts", label: "Prompt 模板", icon: FileText },
       { key: "Patterns", label: "语法模式", icon: Puzzle },
-      { key: "Usage Logs", label: "用量日志", icon: Activity }
+      { key: "Usage Logs", label: "用量日志", icon: Activity },
+      { key: "LLM Logs", label: "LLM日志", icon: ClipboardList }
     ]
   },
   {
@@ -178,6 +179,19 @@ type UsageLog = {
   cost_estimate: number;
   latency_ms: number;
   status: string;
+  created_at: string;
+};
+
+type LLMCallLog = {
+  id: string;
+  provider_name: string;
+  model_name: string;
+  method_name: string;
+  prompt: string | null;
+  response: string | null;
+  error: string | null;
+  status: string;
+  latency_ms: number;
   created_at: string;
 };
 
@@ -380,6 +394,9 @@ function AdminApp() {
   const [users, setUsers] = useState<AdminUserRead[]>([]);
   const [prompts, setPrompts] = useState<PromptTemplate[]>([]);
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
+  const [llmLogs, setLlmLogs] = useState<LLMCallLog[]>([]);
+  const [selectedLlmLog, setSelectedLlmLog] = useState<LLMCallLog | null>(null);
+  const [llmFilterStatus, setLlmFilterStatus] = useState<string>("");
   const [securityStatus, setSecurityStatus] = useState<SecurityStatus | null>(null);
   const [form, setForm] = useState<ProviderForm>(defaultForm);
   const [providerPanelMode, setProviderPanelMode] = useState<"closed" | "view" | "edit" | "create">("closed");
@@ -577,6 +594,33 @@ function AdminApp() {
     });
   }
 
+  async function loadLlmLogs(statusFilter = llmFilterStatus) {
+    if (!token) return;
+    setStatus("正在加载LLM调用日志...");
+    try {
+      const url = statusFilter ? `/api/admin/llm-logs?status=${statusFilter}` : "/api/admin/llm-logs";
+      const data = await apiGet<LLMCallLog[]>(url, token);
+      setLlmLogs(data);
+      setStatus(`LLM 调用日志已加载：${data.length} 条。`);
+    } catch (err) {
+      setStatus(`加载日志失败: ${errorMessage(err)}`);
+    }
+  }
+
+  async function clearLlmLogs() {
+    if (!token) return;
+    if (!window.confirm("确定要清除全部 LLM 调用日志吗？此操作不可逆。")) return;
+    setStatus("正在清除日志...");
+    try {
+      await apiDelete("/api/admin/llm-logs", token);
+      setLlmLogs([]);
+      setSelectedLlmLog(null);
+      setStatus("已成功清空 LLM 调用日志。");
+    } catch (err) {
+      setStatus(`清空日志失败: ${errorMessage(err)}`);
+    }
+  }
+
   async function loadDashboard(activeToken = token) {
     if (!activeToken) return;
     try {
@@ -765,6 +809,7 @@ function AdminApp() {
       Prompts: "正在加载 Prompt 模板...",
       Patterns: "正在加载语法模式...",
       "Usage Logs": "正在加载用量日志...",
+      "LLM Logs": "正在加载LLM调用日志...",
       "Audit Logs": "正在加载审计日志...",
       Security: "正在加载安全状态...",
       Matches: "正在加载匹配数据..."
@@ -834,6 +879,9 @@ function AdminApp() {
         const data = await apiGet<UsageLog[]>("/api/admin/usage", token);
         setUsageLogs(data);
         setStatus(`用量日志已加载：${data.length} 条。`);
+      }
+      if (label === "LLM Logs") {
+        await loadLlmLogs();
       }
       if (label === "Security" || label === "Settings") {
         const [data, settings, appData] = await Promise.all([
@@ -2561,6 +2609,157 @@ function AdminApp() {
           </section>
         )}
 
+        {activeNav === "LLM Logs" && (
+          <section className="panel page-panel">
+            <div className="panel-header">
+              <div>
+                <span>LLM Call Logs</span>
+                <h2>LLM 调用日志</h2>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="ghost-button danger" onClick={() => void clearLlmLogs()}>清除全部日志</button>
+                <button className="primary-button" onClick={() => void loadLlmLogs()}>刷新</button>
+              </div>
+            </div>
+
+            <div className="filter-bar" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              <select 
+                value={llmFilterStatus} 
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLlmFilterStatus(val);
+                  void loadLlmLogs(val);
+                }}
+                style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--panel-bg)', color: 'var(--text)' }}
+              >
+                <option value="">所有状态</option>
+                <option value="success">成功</option>
+                <option value="failed">失败</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+              <div className="table-wrap" style={{ flex: 1 }}>
+                {llmLogs.length === 0 ? (
+                  <p className="module-copy">当前没有调用日志。调用 LLM 后数据将显示在这里。</p>
+                ) : (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>时间</th>
+                        <th>供应商</th>
+                        <th>模型</th>
+                        <th>接口方法</th>
+                        <th>延迟</th>
+                        <th>状态</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {llmLogs.map((log) => (
+                        <tr
+                          key={log.id}
+                          className={selectedLlmLog?.id === log.id ? "selected-row" : ""}
+                          onClick={() => setSelectedLlmLog(log)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td>{new Date(log.created_at).toLocaleString()}</td>
+                          <td>{log.provider_name}</td>
+                          <td>{log.model_name}</td>
+                          <td><code>{log.method_name}</code></td>
+                          <td>{log.latency_ms} ms</td>
+                          <td style={{ color: log.status === 'success' ? 'var(--success)' : 'var(--danger)', fontWeight: 'bold' }}>
+                            {log.status === 'success' ? '成功' : '失败'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {selectedLlmLog && (
+                <article className="panel detail-panel" style={{ width: '480px', position: 'sticky', top: '16px', background: 'var(--panel-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+                  <div className="panel-header" style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Log Details</span>
+                      <h3 style={{ margin: 0, fontSize: '16px' }}>{selectedLlmLog.provider_name} - {selectedLlmLog.model_name}</h3>
+                    </div>
+                    <button className="secondary-button" onClick={() => setSelectedLlmLog(null)}>关闭</button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px', color: 'var(--text)' }}>
+                    <div>
+                      <strong>时间:</strong> {new Date(selectedLlmLog.created_at).toLocaleString()}
+                    </div>
+                    <div>
+                      <strong>方法:</strong> <code>{selectedLlmLog.method_name}</code>
+                    </div>
+                    <div>
+                      <strong>延迟:</strong> {selectedLlmLog.latency_ms} ms
+                    </div>
+                    <div>
+                      <strong>状态:</strong>{' '}
+                      <span style={{ color: selectedLlmLog.status === 'success' ? 'var(--success)' : 'var(--danger)', fontWeight: 'bold' }}>
+                        {selectedLlmLog.status === 'success' ? '成功' : '失败'}
+                      </span>
+                    </div>
+
+                    {selectedLlmLog.error && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <strong style={{ color: 'var(--danger)' }}>错误信息:</strong>
+                        <pre style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: 'var(--danger)',
+                          padding: '8px',
+                          borderRadius: '4px',
+                          overflowX: 'auto',
+                          fontSize: '11px',
+                          whiteSpace: 'pre-wrap',
+                          maxHeight: '120px',
+                          border: '1px solid rgba(239, 68, 68, 0.2)'
+                        }}>
+                          {selectedLlmLog.error}
+                        </pre>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <strong>输入 Prompt (参数):</strong>
+                      <pre style={{
+                        background: 'rgba(0,0,0,0.05)',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        overflow: 'auto',
+                        maxHeight: '220px',
+                        fontSize: '11px',
+                        whiteSpace: 'pre-wrap',
+                        border: '1px solid var(--border)'
+                      }}>
+                        {formatPrompt(selectedLlmLog.prompt)}
+                      </pre>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <strong>返回结果:</strong>
+                      <pre style={{
+                        background: 'rgba(0,0,0,0.05)',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        overflow: 'auto',
+                        maxHeight: '220px',
+                        fontSize: '11px',
+                        whiteSpace: 'pre-wrap',
+                        border: '1px solid var(--border)'
+                      }}>
+                        {selectedLlmLog.response || '(无)'}
+                      </pre>
+                    </div>
+                  </div>
+                </article>
+              )}
+            </div>
+          </section>
+        )}
+
         {activeNav === "Audit Logs" && (
           <section className="panel page-panel">
             <div className="panel-header">
@@ -3017,6 +3216,16 @@ function capabilityStatusLabel(status: string): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "未知错误";
+}
+
+function formatPrompt(promptStr: string | null): string {
+  if (!promptStr) return "(无)";
+  try {
+    const parsed = JSON.parse(promptStr);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return promptStr;
+  }
 }
 
 function statusBadge(status: string) {

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, select, delete
 
 from app.api.deps import AdminUser, DBSession
 from app.core.security import encrypt_api_key
@@ -21,6 +21,7 @@ from app.models import (
     User,
     UserMastery,
     UserProfile,
+    LLMCallLog,
 )
 from app.schemas import (
     AdminUserCreate,
@@ -43,6 +44,7 @@ from app.schemas import (
     PromptTemplateRead,
     PromptTemplateUpdate,
     UsageLogRead,
+    LLMCallLogRead,
     UserDetailRead,
     UserProfileSummary,
     UserRead,
@@ -317,6 +319,28 @@ def update_prompt(
 @router.get("/usage", response_model=list[UsageLogRead])
 def list_usage(_: AdminUser, db: DBSession) -> list[UsageLog]:
     return list(db.scalars(select(UsageLog).order_by(UsageLog.created_at.desc()).limit(100)))
+
+
+@router.get("/llm-logs", response_model=list[LLMCallLogRead])
+def list_llm_logs(
+    _: AdminUser,
+    db: DBSession,
+    limit: int = 100,
+    offset: int = 0,
+    status: str | None = None,
+) -> list[LLMCallLog]:
+    query = select(LLMCallLog)
+    if status:
+        query = query.where(LLMCallLog.status == status)
+    query = query.order_by(LLMCallLog.created_at.desc()).offset(offset).limit(limit)
+    return list(db.scalars(query))
+
+
+@router.delete("/llm-logs")
+def clear_llm_logs(_: AdminUser, db: DBSession) -> dict:
+    db.execute(delete(LLMCallLog))
+    db.commit()
+    return {"status": "ok", "message": "LLM logs cleared"}
 
 
 @router.get("/costs", response_model=CostSummary)
