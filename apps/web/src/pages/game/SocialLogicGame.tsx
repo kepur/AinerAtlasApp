@@ -6,7 +6,6 @@ import GameShell from "../../components/game/GameShell";
 import GameStatusBar from "../../components/game/GameStatusBar";
 import LobbyReady from "../../components/game/LobbyReady";
 import RoleCard from "../../components/game/RoleCard";
-import PhaseBanner from "../../components/game/PhaseBanner";
 import PlayerStrip from "../../components/game/PlayerStrip";
 import SpeechFeed from "../../components/game/SpeechFeed";
 import PlayerSpeechCard from "../../components/game/PlayerSpeechCard";
@@ -68,6 +67,8 @@ export default function SocialLogicGame() {
   const [summary, setSummary] = useState<any>(null);
   const feedEndRef = useRef<HTMLDivElement>(null);
   const creatingRef = useRef(false);
+  const nightRunRef = useRef(false);
+  const [nightSec, setNightSec] = useState(0);
 
   // Create a real backend game on mount.
   useEffect(() => {
@@ -131,6 +132,19 @@ export default function SocialLogicGame() {
     setGame(data);
     enterDay(data);
   };
+
+  // Night phase: kick off the (slow) AI resolution immediately and run a live
+  // countdown so the screen never looks frozen while AI players "act".
+  useEffect(() => {
+    if (uiPhase !== "night") { nightRunRef.current = false; setNightSec(0); return; }
+    if (nightRunRef.current) return;
+    nightRunRef.current = true;
+    setNightSec(0);
+    const timer = setInterval(() => setNightSec((s) => s + 1), 1000);
+    handleNightDone().finally(() => clearInterval(timer));
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uiPhase, gid]);
 
   const handleQuestion = async (text: string) => {
     if (!gid || !text.trim()) return;
@@ -258,9 +272,20 @@ export default function SocialLogicGame() {
             </div>
           )}
 
-          {/* Night transition */}
+          {/* Night transition — live countdown so it never looks frozen */}
           {uiPhase === "night" && (
-            <PhaseBanner phase="night" message="天黑请闭眼" subMessage="狼人正在行动..." onComplete={handleNightDone} />
+            <div className="w-full h-full flex flex-col items-center justify-center relative px-6 text-center">
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0b0a1f] via-[#13112a] to-[#0b0a1f]" />
+              <div className="relative z-10 flex flex-col items-center gap-4">
+                <div className="text-6xl animate-pulse">🌙</div>
+                <h2 className="text-2xl font-extrabold text-white tracking-widest">天黑请闭眼</h2>
+                <p className="text-white/60 text-sm">狼人正在行动，AI 玩家正在准备发言…</p>
+                <div className="mt-2 w-48 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-[#7c5cff] to-[#a78bfa] rounded-full transition-all duration-1000" style={{ width: `${Math.min(95, nightSec * 12)}%` }} />
+                </div>
+                <p className="text-white/40 text-xs">{nightSec < 8 ? `天亮倒计时 ${Math.max(0, 8 - nightSec)}s…` : "AI 思考中，马上就好…"}</p>
+              </div>
+            </div>
           )}
 
           {/* Day discussion */}
