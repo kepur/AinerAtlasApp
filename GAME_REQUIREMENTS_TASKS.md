@@ -42,12 +42,18 @@
 ### ✅ 额外完成：所有对话页角色头像（11.png 风格）
 roleplay 角色 / romance 对象 / detective 嫌疑人(审讯+主板) / social_logic 玩家 全部真人头像；后端 init 拷贝 avatar_url、视图暴露。
 
-### P1 — 设计图视觉细化（UI 第一）
-3. **AI侦探主板 推理关系图(05.png 右下"推理关系")**：节点图(线索↔嫌疑人)，已发现线索才连线，避免剧透。
-4. **侦探时间线(05/02)**：把嫌疑人审讯陈述聚合成事件时间线展示。
-5. **海龟汤详情页(07)**：`TurtleSoupDetail.tsx` 目前硬编码，接 `loadTemplate` 真实数据；模式切换(Solo/Party、文字/语音)落地。
-6. **Roleplay Setup(06.png)**：系统/用户/角色定制 三入口 + 主题选择 + 自定义剧情设定页 `GeneratedStorySettings`/`CustomStoryBuilder` 完整接通。
-7. **各结算页**："保存到 Assets"、"加入消消乐"按钮接后端(写入资产/Pattern Crush)。
+### P1 — 进度（功能接线，UI 已冻结）
+- ✅ **狼人杀天亮发言修复**：白天进入自动 question 模式+预选首个存活 AI，输入框不再锁死，闭环可走。
+- ✅ **各结算页 保存到Assets/加入消消乐接后端**：TurtleSoupSummary、GameSummaryDetective、UnifiedGameChat(roleplay/通用) 都接 `POST /api/assets` + `POST /api/grammar/candidate`（含 saving/saved 态）。
+- ✅ **海龟汤详情页接真实数据**：`TurtleSoupDetail` 读 `loadTemplate(slug)`（标题/简介/封面/难度/时长/学习重点），带回退。
+- ✅ **角色音色绑定后台**：RomanceCharacterManager 加音色下拉(`/api/games/voices`)，写入 config.voice，play 时 RomanceSocial 按角色音色朗读；补 romance 角色 DELETE 路由。
+- ⬜ 待做：
+  - **AI侦探主板 推理关系图(05.png)**：节点图(线索↔嫌疑人)，已发现才连线（涉及 UI，需确认解冻该局部）。
+  - **侦探时间线**：审讯陈述聚合成事件时间线。
+  - **Roleplay Setup(06.png)** 三入口 + 自定义剧情页接通（涉及 UI）。
+  - **StoryPublisher 角色音色下拉**（roleplay 目前按性别自动配音色，可加手动选择）。
+  - **admin Prompts 面板 `task_type=game` 分组编辑 UI**（目前可通过通用 Prompt 接口编辑 `game.*`）。
+  - 详情页模式切换(Solo/Party、文字/语音)落地。
 
 ### P2 — 新玩法 / 基础设施
 8. **多人剧本杀 Party Room(02.png 屏8)**：需真实多人后端(房间/WS/座位/角色分发)。当前 `PartyRoom.tsx` 未注册路由。较大工程。
