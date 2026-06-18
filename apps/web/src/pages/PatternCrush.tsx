@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { apiRequest, type MasteryItem } from "../api";
+import {
+  apiRequest,
+  fetchGrammarPractice,
+  submitGrammarPractice,
+  type GrammarPracticeResponse,
+  type MasteryItem,
+  type PracticeExercise,
+} from "../api";
 import { useAuthStore } from "../stores/authStore";
 
 function CrushTabsPremium() {
@@ -53,12 +60,149 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   new: { label: "新发现", cls: "bg-primary-fixed text-primary" }
 };
 
+const EXERCISE_LABEL: Record<string, string> = {
+  translate: "翻译练习",
+  fix_error: "改错练习",
+  choose_natural: "选择更自然表达",
+};
+
+function PracticeModal({
+  item,
+  exercise,
+  answer,
+  busy,
+  result,
+  onAnswer,
+  onSubmit,
+  onNext,
+  onClose,
+}: {
+  item: MasteryItem;
+  exercise: PracticeExercise;
+  answer: string;
+  busy: boolean;
+  result: GrammarPracticeResponse | null;
+  onAnswer: (value: string) => void;
+  onSubmit: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}) {
+  const isChoice = exercise.exercise_type === "choose_natural" && (exercise.options?.length ?? 0) > 0;
+  const answered = result?.correct != null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end justify-center" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-white rounded-t-3xl p-6 animate-[fadeInUp_0.3s_ease-out] max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-[11px] font-bold text-primary uppercase tracking-wider">
+              {EXERCISE_LABEL[exercise.exercise_type] ?? "语法练习"}
+            </p>
+            <h3 className="font-bold text-[18px] text-on-surface">{item.title}</h3>
+          </div>
+          <button onClick={onClose} className="material-symbols-outlined text-on-surface-variant">close</button>
+        </div>
+
+        <div className="bg-surface-container-low rounded-2xl p-4 mb-4">
+          <p className="text-[15px] text-on-surface leading-relaxed">{exercise.prompt}</p>
+          {exercise.hint && !answered && (
+            <p className="text-[12px] text-outline mt-2">提示：{exercise.hint}</p>
+          )}
+        </div>
+
+        {!answered && (
+          isChoice ? (
+            <div className="space-y-2 mb-4">
+              {exercise.options!.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => onAnswer(opt)}
+                  disabled={busy}
+                  className={
+                    "w-full text-left px-4 py-3 rounded-xl border text-[14px] transition-all " +
+                    (answer === opt
+                      ? "border-primary bg-primary/10 text-primary font-semibold"
+                      : "border-outline/20 text-on-surface active:scale-[0.99]")
+                  }
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <textarea
+              value={answer}
+              onChange={(e) => onAnswer(e.target.value)}
+              placeholder="输入你的答案…"
+              rows={3}
+              className="w-full rounded-2xl border border-outline/20 px-4 py-3 text-[15px] mb-4 resize-none focus:outline-none focus:border-primary"
+            />
+          )
+        )}
+
+        {answered && (
+          <div
+            className={
+              "rounded-2xl p-4 mb-4 text-center " +
+              (result?.correct ? "bg-tertiary-container/15 text-tertiary-container" : "bg-error/10 text-error")
+            }
+          >
+            <span className="material-symbols-outlined text-[32px] mb-1">
+              {result?.correct ? "check_circle" : "cancel"}
+            </span>
+            <p className="font-bold text-[16px]">{result?.correct ? "回答正确！" : "再试一次"}</p>
+            <p className="text-[13px] mt-1 opacity-80">{result?.message}</p>
+            <p className="text-[12px] mt-2">掌握度 {Math.round(result?.item.mastery_score ?? item.mastery_score)}%</p>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          {!answered ? (
+            <button
+              onClick={onSubmit}
+              disabled={busy || !answer.trim()}
+              className="flex-1 py-3 rounded-2xl bg-primary text-white font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform"
+            >
+              {busy ? "判分中…" : "提交答案"}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onNext}
+                disabled={busy}
+                className="flex-1 py-3 rounded-2xl bg-primary text-white font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform"
+              >
+                下一题
+              </button>
+              <button
+                onClick={onClose}
+                className="px-5 py-3 rounded-2xl border border-outline/20 text-on-surface-variant font-semibold"
+              >
+                完成
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PatternCrush() {
   const navigate = useNavigate();
   const profile = useAuthStore((s) => s.profile);
   const [queue, setQueue] = useState<MasteryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [practiceItem, setPracticeItem] = useState<MasteryItem | null>(null);
+  const [exercise, setExercise] = useState<PracticeExercise | null>(null);
+  const [exerciseToken, setExerciseToken] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [practiceBusy, setPracticeBusy] = useState(false);
+  const [practiceResult, setPracticeResult] = useState<GrammarPracticeResponse | null>(null);
 
   useEffect(() => {
     loadQueue();
@@ -75,7 +219,7 @@ export default function PatternCrush() {
     setLoading(false);
   }
 
-  async function act(item: MasteryItem, action: "practice" | "mark-mastered" | "ignore") {
+  async function act(item: MasteryItem, action: "mark-mastered" | "ignore") {
     setBusy(item.id);
     try {
       await apiRequest(`/api/grammar/${item.id}/${action}`, { method: "POST" });
@@ -84,6 +228,65 @@ export default function PatternCrush() {
       /* ignore */
     }
     setBusy(null);
+  }
+
+  async function openPractice(item: MasteryItem) {
+    setPracticeBusy(true);
+    setPracticeResult(null);
+    setAnswer("");
+    try {
+      const data = await fetchGrammarPractice(item.id);
+      if (!data.exercise || !data.exercise_token) return;
+      setPracticeItem(data.item);
+      setExercise(data.exercise);
+      setExerciseToken(data.exercise_token);
+    } catch {
+      setPracticeItem(null);
+      setExercise(null);
+    }
+    setPracticeBusy(false);
+  }
+
+  async function submitPractice() {
+    if (!practiceItem || !exercise || !exerciseToken || !answer.trim()) return;
+    setPracticeBusy(true);
+    try {
+      const data = await submitGrammarPractice(practiceItem.id, {
+        answer: answer.trim(),
+        exercise_token: exerciseToken,
+      });
+      setPracticeResult(data);
+      setPracticeItem(data.item);
+      await loadQueue();
+    } catch {
+      /* ignore */
+    }
+    setPracticeBusy(false);
+  }
+
+  async function nextPractice() {
+    if (!practiceItem) return;
+    setPracticeResult(null);
+    setAnswer("");
+    setPracticeBusy(true);
+    try {
+      const data = await fetchGrammarPractice(practiceItem.id);
+      if (data.exercise && data.exercise_token) {
+        setExercise(data.exercise);
+        setExerciseToken(data.exercise_token);
+      }
+    } catch {
+      /* ignore */
+    }
+    setPracticeBusy(false);
+  }
+
+  function closePractice() {
+    setPracticeItem(null);
+    setExercise(null);
+    setExerciseToken("");
+    setAnswer("");
+    setPracticeResult(null);
   }
 
   const crushed = queue.filter((q) => q.mastery_score >= 80);
@@ -173,8 +376,8 @@ export default function PatternCrush() {
               {gamified.examples?.[0] && <p className="text-primary font-headline-md font-bold italic">"{gamified.examples[0]}"</p>}
             </div>
             <button
-              onClick={() => act(gamified, "practice")}
-              disabled={busy === gamified.id}
+              onClick={() => void openPractice(gamified)}
+              disabled={busy === gamified.id || practiceBusy}
               className="w-full bg-primary text-white h-11 rounded-full font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-60"
             >
               <span className="material-symbols-outlined">play_arrow</span>
@@ -213,8 +416,8 @@ export default function PatternCrush() {
                         <span className="material-symbols-outlined">check_circle</span>
                       </button>
                       <button
-                        onClick={() => act(item, "practice")}
-                        disabled={busy === item.id}
+                        onClick={() => void openPractice(item)}
+                        disabled={busy === item.id || practiceBusy}
                         className="bg-primary/10 text-primary px-3 py-1.5 rounded-full text-[13px] font-bold active:scale-95 transition-transform disabled:opacity-60"
                       >
                         继续练习
@@ -265,12 +468,26 @@ export default function PatternCrush() {
       {/* FAB */}
       {gamified && (
         <button
-          onClick={() => act(gamified, "practice")}
+          onClick={() => void openPractice(gamified)}
           className="fixed bottom-[88px] left-1/2 translate-x-[60px] h-12 px-5 bg-primary text-white rounded-full shadow-lg flex items-center justify-center gap-2 font-bold z-50 pulse-orb active:scale-95 transition-all"
         >
           <span className="material-symbols-outlined">add</span>
           开始练习
         </button>
+      )}
+
+      {practiceItem && exercise && (
+        <PracticeModal
+          item={practiceItem}
+          exercise={exercise}
+          answer={answer}
+          busy={practiceBusy}
+          result={practiceResult}
+          onAnswer={setAnswer}
+          onSubmit={() => void submitPractice()}
+          onNext={() => void nextPractice()}
+          onClose={closePractice}
+        />
       )}
     </div>
   );
