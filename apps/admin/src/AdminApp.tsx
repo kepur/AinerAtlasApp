@@ -5,6 +5,7 @@ import {
   ChevronRight,
   ClipboardList,
   CreditCard,
+  Database,
   DollarSign,
   FileText,
   Globe,
@@ -22,6 +23,7 @@ import {
   Settings
 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { DataManagement } from "./DataManagement";
 import { MatchRadar } from "./MatchRadar";
 
 const navGroups = [
@@ -38,7 +40,8 @@ const navGroups = [
       { key: "Cost Center", label: "成本中心", icon: DollarSign },
       { key: "Topics", label: "话题", icon: Hash },
       { key: "Circles", label: "圈子", icon: Globe },
-      { key: "Assets", label: "表达资产", icon: BookOpen }
+      { key: "Assets", label: "表达资产", icon: BookOpen },
+      { key: "Data Management", label: "数据管理", icon: Database }
     ]
   },
   {
@@ -388,6 +391,7 @@ function AdminApp() {
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [activeNav, setActiveNav] = useState("Dashboard");
+  const [expandedGroup, setExpandedGroup] = useState<string | null>("概览");
   const [overview, setOverview] = useState<Overview | null>(null);
   const [providers, setProviders] = useState<ProviderRead[]>([]);
   const [providerCapabilities, setProviderCapabilities] = useState<ProviderCapability[]>([]);
@@ -794,6 +798,10 @@ function AdminApp() {
 
   async function handleNav(label: string) {
     setActiveNav(label);
+    const parentGroup = navGroups.find(g => g.items.some(item => item.key === label));
+    if (parentGroup) {
+      setExpandedGroup(parentGroup.title);
+    }
     if (!token) {
       setStatus("请先登录后台。");
       return;
@@ -812,7 +820,8 @@ function AdminApp() {
       "LLM Logs": "正在加载LLM调用日志...",
       "Audit Logs": "正在加载审计日志...",
       Security: "正在加载安全状态...",
-      Matches: "正在加载匹配数据..."
+      Matches: "正在加载匹配数据...",
+      "Data Management": "正在加载数据管理..."
     };
     setStatus(messages[label] ?? `${label} 已选中。`);
     try {
@@ -1448,26 +1457,40 @@ function AdminApp() {
             <span>Admin Console</span>
           </div>
         </div>
-        {navGroups.map((group) => (
-          <div className="nav-group" key={group.title}>
-            <span className="nav-group-label">{group.title}</span>
-            <nav>
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    className={activeNav === item.key ? "active" : ""}
-                    key={item.key}
-                    onClick={() => void handleNav(item.key)}
-                  >
-                    <Icon size={17} />
-                    {item.label}
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        ))}
+        {navGroups.map((group) => {
+          const isExpanded = expandedGroup === group.title;
+          return (
+            <div className={`nav-group ${isExpanded ? "expanded" : "collapsed"}`} key={group.title}>
+              <div className="nav-group-header" onClick={() => setExpandedGroup(isExpanded ? null : group.title)}>
+                <span className="nav-group-label">{group.title}</span>
+                <ChevronRight
+                  size={12}
+                  className="nav-group-chevron"
+                  style={{
+                    transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s ease",
+                    color: "var(--text-muted)"
+                  }}
+                />
+              </div>
+              <nav>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      className={activeNav === item.key ? "active" : ""}
+                      key={item.key}
+                      onClick={() => void handleNav(item.key)}
+                    >
+                      <Icon size={17} />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          );
+        })}
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <strong>{user.email}</strong>
@@ -3012,6 +3035,10 @@ function AdminApp() {
               </div>
             )}
           </section>
+        )}
+
+        {activeNav === "Data Management" && token && (
+          <DataManagement token={token} onStatus={setStatus} />
         )}
 
         {activeNav === "Assets" && (

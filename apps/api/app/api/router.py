@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     admin,
+    admin_data,
     admin_match,
     assets,
     auth,
@@ -32,6 +33,7 @@ api_router.include_router(grammar.router)
 api_router.include_router(vocabulary.router)
 api_router.include_router(voice.router)
 api_router.include_router(admin.router)
+api_router.include_router(admin_data.router)
 api_router.include_router(admin_match.router, prefix="/admin/match-radar", tags=["admin-match-radar"])
 api_router.include_router(topics.router)
 api_router.include_router(thoughts.router)

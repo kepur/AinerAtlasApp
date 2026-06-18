@@ -278,6 +278,12 @@ button:disabled {
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: start;
+  overflow-y: auto;
+  scrollbar-width: thin;
   display: flex;
   flex-direction: column;
   padding: 20px 14px;
@@ -285,6 +291,15 @@ button:disabled {
   background:
     linear-gradient(180deg, rgba(139, 92, 246, 0.06), transparent 120px),
     var(--bg-sidebar);
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 4px;
 }
 
 .brand {
@@ -318,12 +333,27 @@ button:disabled {
 }
 
 .nav-group {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+.nav-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 8px 12px;
+  margin-bottom: 2px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.nav-group-header:hover {
+  background: rgba(139, 92, 246, 0.08);
 }
 
 .nav-group-label {
   display: block;
-  padding: 0 12px 8px;
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 700;
@@ -334,6 +364,15 @@ button:disabled {
 .sidebar nav {
   display: grid;
   gap: 4px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+
+.nav-group.expanded nav {
+  max-height: 500px;
+  opacity: 1;
 }
 
 .sidebar button {
@@ -1438,10 +1477,18 @@ tbody tr:last-child td {
     top: 0;
     z-index: 10;
     max-height: none;
+    align-self: stretch;
+  }
+
+  .nav-group-header {
+    display: none !important;
   }
 
   .sidebar nav {
     grid-template-columns: repeat(3, 1fr);
+    max-height: none !important;
+    opacity: 1 !important;
+    overflow: visible !important;
   }
 
   .nav-group-label {
