@@ -373,11 +373,71 @@ async def question_player(
 
     target["suspicion"] = min(95, target["suspicion"] + random.randint(6, 14))
 
+    hud = _finalize_hud(hud, content, native)
+    game["learning_turns"].append(hud)
+
+    return {"hud": hud, "answer": answer, "state": _public_view(game)}
+
+
+async def help_express(
+    db: Session, game_id: str, user_id: str,
+    content: str, target_player_id: str | None = None,
+) -> dict:
+    """Generate challenge-expression HUD only; does not advance game state."""
+    game = _get_game(game_id, user_id)
+    if game["phase"] != "day_discussion":
+        raise ValueError("Help express only available during discussion")
+
+    native = game["native_language"]
+    target_lang = game["target_language"]
+    target_name = "the player"
+    target_claim = ""
+    if target_player_id:
+        target = next(
+            (p for p in game["players"] if p["id"] == target_player_id and not p["is_user"]),
+            None,
+        )
+        if target and target["alive"]:
+            target_name = target["name"]
+            target_claim = target.get("public_claim", "")
+
+    hud_system = (
+        f"你是英语表达教练。用户在狼人杀游戏中想用{native}或英文质疑玩家 {target_name}。"
+        f"仅生成学习 HUD，帮助用户选择如何用{target_lang}更好地质疑。\n\n"
+        "返回JSON：\n"
+        '{"main_expression":"自然口语版英文质疑句，1句不超18词",'
+        f'"meaning_native":"{native}翻译",'
+        '"variants":{"natural":"自然口语","assertive":"强硬质疑","polite":"委婉质疑","deductive":"推理式"},'
+        f'"why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],'
+        '"patterns_v2":[{"pattern":"句型","example":"例句","add_to_crush":true}],'
+        '"vocabulary":["词1","词2"],'
+        f'"agents":[{{"agent":"Language Coach","result":"{native}点评表达"}}]'
+        "}"
+    )
+    hud_user = f"用户想表达：{content}"
+    if target_claim:
+        hud_user += f"\n目标玩家已公开说：{target_claim}"
+
+    hud: dict = {}
+    try:
+        from app.services.game_prompts import get_game_prompt
+        provider = _provider_for("game_challenge_hud", db)
+        hud_system = get_game_prompt(db, "social_logic.hud", hud_system)
+        raw = await provider.complete_json(hud_system, hud_user, temperature=0.65, max_tokens=700)
+        if isinstance(raw, dict):
+            hud = raw
+    except Exception as exc:
+        logger.warning("social-logic help-express failed: %s", exc)
+
+    hud = _finalize_hud(hud, content, native)
+    return {"hud": hud}
+
+
+def _finalize_hud(hud: dict, content: str, native: str) -> dict:
     for a in (hud.get("agents") or []):
         if "name" in a and "agent" not in a:
             a["agent"] = a.pop("name")
 
-    # Normalize legacy keys → chat_v2 / LearningHUD shape
     if not hud.get("patterns_v2") and hud.get("patterns"):
         raw = hud.pop("patterns")
         if isinstance(raw, list):
@@ -386,10 +446,17 @@ async def question_player(
                 for p in raw
             ]
 
-    # Guarantee the learning card always has content even if the model was terse.
     if not hud.get("main_expression"):
         hud["main_expression"] = hud.get("expression") or content
     hud.setdefault("meaning_native", "")
+    if not hud.get("variants"):
+        main = hud["main_expression"]
+        hud["variants"] = {
+            "natural": main,
+            "assertive": f"I suspect you. {main}",
+            "polite": f"Could you explain — {main}",
+            "deductive": f"That doesn't add up. {main}",
+        }
     if not hud.get("agents"):
         hud["agents"] = [
             {"agent": "Logic Agent", "result": "质疑要有逻辑：先指出矛盾，再要求对方解释。"},
@@ -402,9 +469,7 @@ async def question_player(
         ]
     hud["v2"] = True
     hud["detected_intent"] = "expression_learning"
-    game["learning_turns"].append(hud)
-
-    return {"hud": hud, "answer": answer, "state": _public_view(game)}
+    return hud
 
 
 # ─────────────────────────────────────────────────

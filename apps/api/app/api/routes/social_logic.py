@@ -23,6 +23,11 @@ class QuestionRequest(BaseModel):
     content: str
 
 
+class HelpExpressRequest(BaseModel):
+    content: str
+    target_player_id: str | None = None
+
+
 class VoteRequest(BaseModel):
     target_player_id: str
     reason: str = ""
@@ -81,6 +86,21 @@ async def question(game_id: str, payload: QuestionRequest, current_user: Current
     except Exception as exc:
         logger.exception("social-logic question failed")
         raise HTTPException(status_code=503, detail=f"提问失败：{exc}") from exc
+
+
+@router.post("/{game_id}/help-express")
+async def help_express(
+    game_id: str, payload: HelpExpressRequest, current_user: CurrentUser, db: DBSession,
+) -> dict:
+    try:
+        return await engine.help_express(
+            db, game_id, current_user.id, payload.content, payload.target_player_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("social-logic help-express failed")
+        raise HTTPException(status_code=503, detail=f"表达生成失败：{exc}") from exc
 
 
 @router.post("/{game_id}/vote")

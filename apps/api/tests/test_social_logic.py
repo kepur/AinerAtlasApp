@@ -64,6 +64,16 @@ def test_social_logic_full_flow_structure() -> None:
         answer = body.get("answer") or {}
         assert answer.get("text"), "target answer text should not be empty"
 
+        help_resp = client.post(
+            f"/api/games/social-logic/{gid}/help-express",
+            headers=headers,
+            json={"content": "你昨晚在哪里？", "target_player_id": target["id"]},
+        )
+        assert help_resp.status_code == 200, help_resp.text
+        help_hud = help_resp.json().get("hud") or {}
+        assert help_hud.get("main_expression")
+        assert help_hud.get("variants")
+
         vote_target = next(
             p for p in body["state"]["players"] if not p["is_user"] and p["alive"]
         )
