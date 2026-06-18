@@ -303,7 +303,7 @@ export default function VoiceChat() {
               onClick={() => {
                 if (mode === "跟读训练") { navigate("/follow-read"); return; }
                 // 小组语音 → 进入话题/圈子会议入口（多人语音房）。
-                if (mode === "小组语音") { navigate("/topics"); return; }
+                if (mode === "小组语音") { navigate("/home#today-topics"); return; }
                 // 切到面试练习需重连以应用面试官 persona。
                 if (connected && i !== activeMode) disconnect();
                 setActiveMode(i);

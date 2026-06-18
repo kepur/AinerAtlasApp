@@ -121,7 +121,7 @@ export default function CircleRoom() {
       {/* Header */}
       <header className="flex-shrink-0 flex items-center justify-between px-margin-mobile h-touch-target-min bg-surface/80 backdrop-blur-xl border-b border-white/20 z-40">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/topics")} className="material-symbols-outlined text-primary">arrow_back</button>
+          <button onClick={() => navigate("/home#today-topics")} className="material-symbols-outlined text-primary">arrow_back</button>
           <div className="min-w-0">
             <h2 className="font-bold text-[15px] text-on-surface truncate">{room?.title || "小组讨论"}</h2>
             <p className="text-[11px] text-on-surface-variant">

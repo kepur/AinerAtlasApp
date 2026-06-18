@@ -1,15 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiRequest, type Asset, type Conversation, type MasteryItem } from "../api";
+import TodayTopicsSection, { type TodayTopic } from "../components/TodayTopicsSection";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
-
-type Topic = {
-  id: string;
-  title: string;
-  tags: string[];
-};
 
 // Mock placeholders for sections without a backend feed yet.
 // TODO(backend): GET /api/assets?type=freeze for the Thought Freeze carousel.
@@ -28,8 +23,15 @@ export default function Home() {
 
   const [recentConversations, setRecentConversations] = useState<Conversation[]>([]);
   const [queue, setQueue] = useState<MasteryItem[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
+  const [topics, setTopics] = useState<TodayTopic[]>([]);
+  const [topicsLoading, setTopicsLoading] = useState(true);
   const [assets, setAssets] = useState<Asset[]>([]);
+
+  useEffect(() => {
+    if (window.location.hash !== "#today-topics") return;
+    const el = document.getElementById("today-topics");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [topicsLoading]);
 
   useEffect(() => {
     // Use real data only — no mock fallbacks (a mock conversation id would make
@@ -42,9 +44,10 @@ export default function Home() {
       .then((data) => setQueue(data && data.length > 0 ? data : []))
       .catch(() => setQueue([]));
 
-    apiRequest<Topic[]>("/api/topics")
-      .then((data) => setTopics(data && data.length > 0 ? data.slice(0, 5) : []))
-      .catch(() => setTopics([]));
+    apiRequest<TodayTopic[]>("/api/topics")
+      .then((data) => setTopics(data?.length ? data : []))
+      .catch(() => setTopics([]))
+      .finally(() => setTopicsLoading(false));
 
     apiRequest<Asset[]>("/api/assets")
       .then((data) => setAssets(Array.isArray(data) ? data.slice(0, 6) : []))
@@ -68,7 +71,6 @@ export default function Home() {
   const masteredCount = queue.filter((q) => q.mastery_score >= 80).length;
   const focusTopic = topics[0]?.title ?? "Nuanced Negotiation";
   const recent = recentConversations[0];
-  const liveRoom = topics[0];
 
   const hour = new Date().getHours();
   const partOfDay = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
@@ -231,35 +233,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Live Circle Rooms */}
-        <section className="pb-2">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-headline-lg text-headline-lg text-on-surface">Live Circle Rooms</h3>
-            <div className="flex gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="w-2 h-2 rounded-full bg-surface-dim" />
-            </div>
-          </div>
-          <div className="relative rounded-[1.5rem] overflow-hidden aspect-[16/9] premium-shadow bg-gradient-to-br from-[#732ee4] via-[#630ed4] to-[#0058be]">
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent flex flex-col justify-end p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-tertiary" />
-                </span>
-                <p className="font-label-sm text-label-sm text-white uppercase tracking-widest">Trending Now</p>
-              </div>
-              <h4 className="font-headline-lg text-headline-lg text-white mb-1">{liveRoom?.title ?? "Poetic Structures in Business"}</h4>
-              <p className="font-body-md text-white/80">14 architects discussing right now</p>
-              <button
-                onClick={() => navigate("/topics")}
-                className="mt-4 px-6 h-10 bg-white text-primary rounded-full font-bold self-start hover:bg-primary-fixed active:scale-95 transition-all"
-              >
-                Join Circle
-              </button>
-            </div>
-          </div>
-        </section>
+        {/* 今日话题 — 原独立 /topics 页，收敛到主页 */}
+        <TodayTopicsSection topics={topics} loading={topicsLoading} />
       </main>
     </div>
   );

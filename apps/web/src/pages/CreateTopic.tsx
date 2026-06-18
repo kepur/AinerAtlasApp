@@ -25,7 +25,7 @@ export default function CreateTopic() {
           tags: tags.split(",").map((t) => t.trim()).filter(Boolean)
         })
       });
-      navigate("/topics");
+      navigate("/home#today-topics");
     } catch {
       /* ignore */
     }

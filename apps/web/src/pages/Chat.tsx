@@ -178,7 +178,7 @@ export default function Chat() {
         <section className="mb-8">
           <div className="flex justify-between items-end mb-4">
             <h2 className="font-label-sm text-label-sm text-outline uppercase tracking-widest">Active Circles</h2>
-            <button onClick={() => navigate("/topics")} className="text-primary font-label-sm text-[12px] font-bold">
+            <button onClick={() => navigate("/home#today-topics")} className="text-primary font-label-sm text-[12px] font-bold">
               View All
             </button>
           </div>

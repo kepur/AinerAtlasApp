@@ -19,7 +19,7 @@ const tabs: TabItem[] = [
 
 function isTabActive(tab: TabItem, pathname: string): boolean {
   if (tab.key === "connect") {
-    return pathname.startsWith("/match") || pathname.startsWith("/circles") || pathname.startsWith("/topics");
+    return pathname.startsWith("/match") || pathname.startsWith("/circles");
   }
   if (tab.key === "chat") {
     return pathname === "/chat" || pathname.startsWith("/chat/") || pathname.startsWith("/trio-chat");
@@ -53,7 +53,6 @@ export default function TabBar() {
     "/thoughts",
     "/match",
     "/profile",
-    "/topics"
   ];
 
   if (!showPaths.includes(pathname)) {

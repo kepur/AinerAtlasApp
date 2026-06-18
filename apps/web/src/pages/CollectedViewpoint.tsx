@@ -56,7 +56,7 @@ export default function CollectedViewpoint() {
             <h2 className="font-bold text-[18px] text-on-surface">还没有收藏的观点</h2>
             <p className="text-[14px] text-on-surface-variant text-center px-8">在小组讨论中点击消息旁的"收藏"按钮，精彩观点会保存到这里</p>
             <button
-              onClick={() => navigate("/topics")}
+              onClick={() => navigate("/home#today-topics")}
               className="bg-primary text-white px-6 py-2.5 rounded-full font-bold text-[14px] shadow-md active:scale-95 transition-all"
             >
               去发现讨论

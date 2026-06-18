@@ -49,7 +49,7 @@ import Settings from "./pages/Settings";
 import ResetPassword from "./pages/ResetPassword";
 import Thoughts from "./pages/Thoughts";
 import ThoughtDetail from "./pages/ThoughtDetail";
-import TopicExplore from "./pages/TopicExplore";
+import CreateTopic from "./pages/CreateTopic";
 import VocabCrush from "./pages/VocabCrush";
 import VoiceChat from "./pages/VoiceChat";
 import StudioDashboard from "./pages/studio/Dashboard";
@@ -62,7 +62,6 @@ import { useAuthStore } from "./stores/authStore";
 import MatchDetail from "./pages/MatchDetail";
 import CircleSummary from "./pages/CircleSummary";
 import AiTrioChat from "./pages/AiTrioChat";
-import CreateTopic from "./pages/CreateTopic";
 import CollectedViewpoint from "./pages/CollectedViewpoint";
 import Report from "./pages/Report";
 import SoulmateQuestionnaire from "./pages/SoulmateQuestionnaire";
@@ -123,7 +122,7 @@ function AppLayout() {
           <Route path="/membership" element={<Membership />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/report" element={<Report />} />
-          <Route path="/topics" element={<TopicExplore />} />
+          <Route path="/topics" element={<Navigate to="/home#today-topics" replace />} />
           <Route path="/topics/new" element={<CreateTopic />} />
           <Route path="/circles/:roomId" element={<CircleRoom />} />
           <Route path="/circles/summary/:roomId" element={<CircleSummary />} />
