@@ -4,7 +4,20 @@
 > UI 严格对齐根目录设计图（01–11.png），**不要乱改 UI、不要删配置功能**。后端依据前端页面扩展。
 > 设计图：01 侦探总结 / 02 侦探素材库+审讯+多人 / 03 恋爱社交 / 04 角色扮演 Adventure / 05 AI侦探主板 / 06 Roleplay Setup / 07 海龟汤详情 / 08 海龟汤结算 / 09 海龟汤对话 / 10 Story Dialogue / 11 侦探审讯（真人头像+学习栏）。
 
-最后更新：2026-06-17
+最后更新：2026-06-18
+
+---
+
+## ⚡ WAVE 7 — 性能/体验优化（响应慢专项，已完成）
+
+> 用户反馈：系统对话/恋爱社交返回慢、狼人杀天黑卡 10s+、剧本/声音每次都重新调用。结论：前后端流式管线本已最优，瓶颈是默认 qwen 模型首字延迟（实测 7s）与重复合成。
+
+- ✅ **系统对话提速**（issue 1）：phase-1 接话回复路由到更快的 flash 模型（`get_fast_llm_provider`，自动发现 deepseek-v4-flash），学习要点分析(HUD)仍留 qwen 保质量。首字 **7s→3.4s**；无快模型时回退默认零行为变更。
+- ✅ **狼人杀天黑提速**（issue 2）：`_resolve_night` 本是纯规则(瞬时)，唯一 LLM 调用 `_generate_day_speeches`(风味文本)改走 flash。夜→昼 **10s+→5s**，落在 8s 倒计时内。倒计时屏(🌙 进度条)前序已加。
+- ✅ **剧本/海龟汤秒进**（issue 3）：roleplay 内置故事预置 `opening`(旁白+角色台词+选项)直接喂 feed、不调 AI(create/start 0.0s，前序已做)；海龟汤 `init/start` 本就纯内置、无 LLM。
+- ✅ **TTS 声音缓存**（issue 3「声音不要每次调用」）：`/voice/tts` 加进程级 LRU(provider+voice+speed+text 哈希)。冷合成 ~4s → 命中 **0.03s**，省 DashScope 额度；按 provider 入键，管理员切换自动失效。
+- ✅ **恋爱/社交逐字流式**（issue 4）：romance 引擎加 `handle_turn_stream`(正则抽取增长中的 `character_reply`→char_msg 增量)；`/turns/stream` 通用化(任意带 `handle_turn_stream` 的引擎)+ complete 事件填真实 `view`；gameStore 泛化合并(narrator+char_msg 增长气泡)、romance 走流式。用户气泡秒回、英文逐字流出、要点/中译/hint_card 随 complete 落定。
+- ⏸ **issue 5（已记录，后续）**：多人 PartyRoom 真后端、social_logic 内存→DB、策划词汇/句型包、难度曲线可视化、admin Prompt `game.*` 分组美化。
 
 ---
 
