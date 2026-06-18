@@ -460,6 +460,15 @@ def batch_delete_reports(payload: BatchDeleteRequest, admin: AdminUser, db: DBSe
     return {"deleted": result.rowcount}
 
 
+@router.delete("/reports/user/{user_id}")
+def purge_reports_by_user(user_id: str, admin: AdminUser, db: DBSession) -> dict:
+    """Delete all reports filed by a given user (reporter_id)."""
+    result = db.execute(delete(Report).where(Report.reporter_id == user_id))
+    _audit(db, admin, "purge_reports_by_user", "user", user_id, {"count": result.rowcount})
+    db.commit()
+    return {"deleted": result.rowcount, "user_id": user_id}
+
+
 # ---------------------------------------------------------------------------
 # Usage logs & moderation
 # ---------------------------------------------------------------------------

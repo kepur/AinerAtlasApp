@@ -55,13 +55,15 @@ type TabKey =
   | "game-templates"
   | "reports";
 
-const TABS: { key: TabKey; label: string; purgeAll: boolean }[] = [
-  { key: "conversations", label: "历史对话", purgeAll: true },
-  { key: "thoughts", label: "想法记录", purgeAll: true },
-  { key: "game-sessions", label: "游戏会话", purgeAll: true },
-  { key: "expression-assets", label: "表达资产", purgeAll: false },
-  { key: "game-templates", label: "游戏模板", purgeAll: false },
-  { key: "reports", label: "举报记录", purgeAll: false },
+// userScoped = the resource has an owning user, so user-filter + "按用户清空"
+// are meaningful. searchable = the list endpoint honors the q text filter.
+const TABS: { key: TabKey; label: string; purgeAll: boolean; userScoped: boolean; searchable: boolean }[] = [
+  { key: "conversations", label: "历史对话", purgeAll: true, userScoped: true, searchable: true },
+  { key: "thoughts", label: "想法记录", purgeAll: true, userScoped: true, searchable: true },
+  { key: "game-sessions", label: "游戏会话", purgeAll: true, userScoped: true, searchable: false },
+  { key: "expression-assets", label: "表达资产", purgeAll: false, userScoped: true, searchable: true },
+  { key: "game-templates", label: "游戏模板", purgeAll: false, userScoped: false, searchable: false },
+  { key: "reports", label: "举报记录", purgeAll: false, userScoped: true, searchable: false },
 ];
 
 const CONFIRM_ALL = "DELETE_ALL";
@@ -124,11 +126,10 @@ export function DataManagement({ token, onStatus }: Props) {
 
   const buildQuery = useCallback(
     (tabKey: TabKey, off: number) => {
+      const meta = TABS.find((t) => t.key === tabKey);
       const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(off) });
-      if (userFilter.trim()) params.set("user_id", userFilter.trim());
-      if (searchQ.trim() && tabKey !== "game-sessions" && tabKey !== "game-templates" && tabKey !== "reports") {
-        params.set("q", searchQ.trim());
-      }
+      if (userFilter.trim() && meta?.userScoped) params.set("user_id", userFilter.trim());
+      if (searchQ.trim() && meta?.searchable) params.set("q", searchQ.trim());
       return `/api/admin/data/${tabKey}?${params}`;
     },
     [userFilter, searchQ],
@@ -384,15 +385,17 @@ export function DataManagement({ token, onStatus }: Props) {
       </div>
 
       <div className="form-grid" style={{ marginBottom: 16 }}>
-        <label>
-          用户 ID 筛选
-          <input
-            value={userFilter}
-            placeholder="UUID，留空表示全部"
-            onChange={(e) => setUserFilter(e.target.value)}
-          />
-        </label>
-        {tab !== "game-sessions" && tab !== "game-templates" && tab !== "reports" && (
+        {tabMeta.userScoped && (
+          <label>
+            用户 ID 筛选
+            <input
+              value={userFilter}
+              placeholder="UUID，留空表示全部"
+              onChange={(e) => setUserFilter(e.target.value)}
+            />
+          </label>
+        )}
+        {tabMeta.searchable && (
           <label>
             关键词
             <input
@@ -402,6 +405,11 @@ export function DataManagement({ token, onStatus }: Props) {
             />
           </label>
         )}
+        {!tabMeta.userScoped && !tabMeta.searchable && (
+          <p className="module-copy" style={{ alignSelf: "center", margin: 0 }}>
+            该资源为系统级内容，不支持按用户或关键词筛选。
+          </p>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
@@ -409,9 +417,11 @@ export function DataManagement({ token, onStatus }: Props) {
         <button className="btn-secondary" onClick={() => void batchDelete()} disabled={selected.size === 0}>
           批量删除 ({selected.size})
         </button>
-        <button className="btn-secondary" onClick={() => void purgeByUser()} disabled={!userFilter.trim()}>
-          清空该用户
-        </button>
+        {tabMeta.userScoped && (
+          <button className="btn-secondary" onClick={() => void purgeByUser()} disabled={!userFilter.trim()}>
+            清空该用户
+          </button>
+        )}
         {tabMeta.purgeAll && (
           <>
             <input
