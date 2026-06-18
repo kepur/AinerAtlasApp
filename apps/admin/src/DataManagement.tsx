@@ -214,7 +214,13 @@ export function DataManagement({ token, onStatus }: Props) {
       onStatus("请先填写用户 ID");
       return;
     }
-    if (!window.confirm(`确定清空用户 ${uid} 的全部「${tabMeta.label}」？`)) return;
+    // Typed confirmation (retype the user id) — consistent with the全库清空
+    // DELETE_ALL gate, since per-user purge is also irreversible.
+    const typed = window.prompt(`不可恢复操作：将清空用户「${tabMeta.label}」全部数据。\n请重新输入该用户 ID 以确认：`, "");
+    if (typed?.trim() !== uid) {
+      if (typed !== null) onStatus("用户 ID 不匹配，已取消");
+      return;
+    }
     try {
       const res = await apiDelete<{ deleted: number }>(`/api/admin/data/${tab}/user/${uid}`, token);
       onStatus(`已清空该用户 ${res.deleted} 条`);
