@@ -81,25 +81,23 @@ export default function Home() {
           <div className="relative overflow-hidden rounded-[20px] p-5 ai-glow glass-card border border-primary/10">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl" />
             <div className="relative z-10">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl resonance-indicator flex items-center justify-center text-white shadow-lg flex-shrink-0">
-                  <span className="material-symbols-outlined fill text-[24px]">edit_note</span>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl resonance-indicator flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                  <span className="material-symbols-outlined fill text-[20px]">edit_note</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">Express Your Thought</h2>
-                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] rounded-full font-bold flex-shrink-0">
-                      Daily Resonance
-                    </span>
-                  </div>
-                  <p className="text-[13px] text-on-surface-variant leading-relaxed">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <span className="inline-block w-fit max-w-full px-2 py-0.5 bg-primary/10 text-primary text-[10px] rounded-full font-bold leading-normal">
+                    Daily Resonance
+                  </span>
+                  <h2 className="text-[14px] font-semibold text-on-surface leading-snug">Express Your Thought</h2>
+                  <p className="text-[12px] text-on-surface-variant leading-relaxed">
                     选一种对话模式，围绕今日金句开始表达
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowModePicker(true)}
-                className="w-full h-11 bg-primary text-white rounded-xl font-label-sm text-[14px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md shadow-primary/20"
+                className="w-full h-10 mt-4 bg-primary text-white rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md shadow-primary/20"
               >
                 <span className="material-symbols-outlined text-[20px]">forum</span>
                 选择模式并开始表达
