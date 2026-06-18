@@ -25,6 +25,9 @@ import {
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DataManagement } from "./DataManagement";
 import { MatchRadar } from "./MatchRadar";
+import { TopicManagement } from "./TopicManagement";
+import { CircleManagement } from "./CircleManagement";
+import { ExpressionAssetsPanel } from "./ExpressionAssetsPanel";
 
 const navGroups = [
   {
@@ -218,6 +221,11 @@ type UserDetail = AdminUserRead & {
     fluency_score: number;
     explanation_language?: string;
     ui_language?: string;
+    learning_goals?: string[];
+    favorite_topics?: string[];
+    grammar_level_score?: number;
+    vocabulary_level_score?: number;
+    speaking_confidence_score?: number;
     birthday?: string | null;
     avatar_url?: string;
     gender_identity?: string;
@@ -226,7 +234,59 @@ type UserDetail = AdminUserRead & {
     orientation_custom?: string;
     lgbtq_visible?: boolean;
   } | null;
+  match_profile?: {
+    bio?: string;
+    interests?: string[];
+    tags?: string[];
+    values?: string[];
+    lifestyle?: string;
+  } | null;
+  communication_profile?: {
+    reasoning_depth?: number;
+    knowledge_breadth?: number;
+    emotional_maturity?: number;
+    communication_quality?: number;
+    response_style?: string;
+  } | null;
+  latest_analysis?: {
+    id: string;
+    report_type: string;
+    summary: string;
+    match_score: number;
+    personality_type?: string;
+    match_tags?: string[];
+    created_at: string;
+  } | null;
+  ai_memory_preview?: string[];
   stats: Record<string, number>;
+};
+
+type ProfileFormState = {
+  birthday: string;
+  gender_identity: string;
+  gender_custom: string;
+  sexual_orientation: string;
+  orientation_custom: string;
+  lgbtq_visible: boolean;
+  native_language: string;
+  primary_target_language: string;
+  current_level: string;
+  learning_goals: string;
+  favorite_topics: string;
+};
+
+const EMPTY_PROFILE_FORM: ProfileFormState = {
+  birthday: "",
+  gender_identity: "",
+  gender_custom: "",
+  sexual_orientation: "",
+  orientation_custom: "",
+  lgbtq_visible: false,
+  native_language: "zh",
+  primary_target_language: "en",
+  current_level: "B1",
+  learning_goals: "",
+  favorite_topics: "",
 };
 
 const GENDER_LABELS: Record<string, string> = {
@@ -334,48 +394,6 @@ type AuthSettings = {
   updated_at: string;
 };
 
-type Topic = {
-  id: string;
-  title: string;
-  creator_email?: string;
-  tags: string[];
-  status: string;
-  view_count: number;
-  parent_topic_id: string | null;
-};
-
-type Circle = {
-  id: string;
-  title: string;
-  status: string;
-  created_at: string;
-  ended_at: string | null;
-  room_type: string;
-  allowed_languages: string[];
-  member_count?: number;
-  message_count?: number;
-};
-
-type CircleMember = {
-  id: string;
-  user_id: string;
-  email: string;
-  username: string;
-  role: string;
-  joined_at: string;
-};
-
-type CircleMessageRow = {
-  id: string;
-  user_id: string | null;
-  username: string;
-  role: string;
-  content: string;
-  content_language: string;
-  translated_content: string;
-  created_at: string;
-};
-
 type VoiceSessionRow = {
   id: string;
   kind: string;
@@ -420,18 +438,6 @@ type ModerationEvent = {
   user_id: string;
   status: string;
   details: Record<string, unknown>;
-  created_at: string;
-};
-
-type UserAsset = {
-  id: string;
-  user_id: string;
-  title: string;
-  source_text: string;
-  target_language: string;
-  variants: Record<string, string>;
-  keywords: string[];
-  current_version: number;
   created_at: string;
 };
 
@@ -499,6 +505,7 @@ function AdminApp() {
   const [userForm, setUserForm] = useState({
     email: "", username: "", role: "user", membership_level: "free", status: "active", password: ""
   });
+  const [profileForm, setProfileForm] = useState<ProfileFormState>(EMPTY_PROFILE_FORM);
   const [costCenter, setCostCenter] = useState<CostCenter | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>([]);
@@ -541,14 +548,6 @@ function AdminApp() {
     tts_pitch: 1.1,
     global_api_keys: [] as { platform: string; api_key: string; base_url: string }[],
   });
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [topicsPage, setTopicsPage] = useState(1);
-  const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
-  const [topicForm, setTopicForm] = useState({ title: "", tags: "" });
-  const [circles, setCircles] = useState<Circle[]>([]);
-  const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null);
-  const [circleMembers, setCircleMembers] = useState<CircleMember[]>([]);
-  const [circleMessages, setCircleMessages] = useState<CircleMessageRow[]>([]);
   const [voiceSessions, setVoiceSessions] = useState<VoiceSessionRow[]>([]);
   const [patterns, setPatterns] = useState<GrammarPattern[]>([]);
   const [patternFilter, setPatternFilter] = useState("");
@@ -558,8 +557,6 @@ function AdminApp() {
   const [feedbackLookupId, setFeedbackLookupId] = useState("");
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [moderationEvents, setModerationEvents] = useState<ModerationEvent[]>([]);
-  const [userAssets, setUserAssets] = useState<UserAsset[]>([]);
-  const [assetLookupId, setAssetLookupId] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   function toggleAdminTheme(theme: "dark" | "light") {
@@ -886,8 +883,8 @@ function AdminApp() {
       Users: "正在加载用户列表...",
       Memberships: "正在加载会员数据...",
       "Cost Center": "正在加载成本数据...",
-      Topics: "正在加载话题列表...",
-      Circles: "正在加载圈子列表...",
+      Topics: "话题管理",
+      Circles: "圈子管理",
       "Voice Sessions": "正在加载实时语音会话...",
       "AI Providers": "正在加载 Provider...",
       Prompts: "正在加载 Prompt 模板...",
@@ -917,20 +914,6 @@ function AdminApp() {
         const data = await apiGet<CostCenter>("/api/admin/costs", token);
         setCostCenter(data);
         setStatus(`今日总成本 $${data.today_total.toFixed(4)}`);
-      }
-      if (label === "Topics") {
-        const data = await apiGet<Topic[]>("/api/topics", token);
-        setTopics(data);
-        setTopicsPage(1);
-        setStatus(`话题已加载：${data.length} 篇。`);
-      }
-      if (label === "Circles") {
-        const data = await apiGet<Circle[]>("/api/admin/circles", token);
-        setCircles(data);
-        setSelectedCircleId(null);
-        setCircleMembers([]);
-        setCircleMessages([]);
-        setStatus(`圈子已加载：${data.length} 个。`);
       }
       if (label === "Voice Sessions") {
         const data = await apiGet<{ items: VoiceSessionRow[] }>("/api/admin/voice/sessions", token);
@@ -1352,9 +1335,62 @@ function AdminApp() {
       setSelectedUserId(userId);
       const detail = await apiGet<UserDetail>(`/api/admin/users/${userId}`, token);
       setUserDetail(detail);
+      if (detail.profile) {
+        setProfileForm({
+          birthday: detail.profile.birthday ?? "",
+          gender_identity: detail.profile.gender_identity ?? "",
+          gender_custom: detail.profile.gender_custom ?? "",
+          sexual_orientation: detail.profile.sexual_orientation ?? "",
+          orientation_custom: detail.profile.orientation_custom ?? "",
+          lgbtq_visible: Boolean(detail.profile.lgbtq_visible),
+          native_language: detail.profile.native_language ?? "zh",
+          primary_target_language: detail.profile.primary_target_language ?? "en",
+          current_level: detail.profile.current_level ?? "B1",
+          learning_goals: (detail.profile.learning_goals ?? []).join(", "),
+          favorite_topics: (detail.profile.favorite_topics ?? []).join(", "),
+        });
+      } else {
+        setProfileForm(EMPTY_PROFILE_FORM);
+      }
       setStatus(`已加载用户详情：${detail.email}`);
     } catch (error) {
       setStatus(`用户详情加载失败：${errorMessage(error)}`);
+    }
+  }
+
+  async function saveUserProfile(userId: string) {
+    if (!token) return;
+    try {
+      setStatus("正在保存用户资料...");
+      await apiPut(`/api/admin/users/${userId}/profile`, token, {
+        birthday: profileForm.birthday || null,
+        gender_identity: profileForm.gender_identity,
+        gender_custom: profileForm.gender_custom,
+        sexual_orientation: profileForm.sexual_orientation,
+        orientation_custom: profileForm.orientation_custom,
+        lgbtq_visible: profileForm.lgbtq_visible,
+        native_language: profileForm.native_language,
+        primary_target_language: profileForm.primary_target_language,
+        current_level: profileForm.current_level,
+        learning_goals: profileForm.learning_goals.split(",").map((s) => s.trim()).filter(Boolean),
+        favorite_topics: profileForm.favorite_topics.split(",").map((s) => s.trim()).filter(Boolean),
+      });
+      await loadUserDetail(userId);
+      setStatus("用户资料已保存。");
+    } catch (error) {
+      setStatus(`资料保存失败：${errorMessage(error)}`);
+    }
+  }
+
+  async function triggerUserAnalysis(userId: string) {
+    if (!token) return;
+    try {
+      setStatus("正在运行 AI 用户分析（可能需要几十秒）...");
+      await apiPost<{ summary?: string; personality_type?: string }>(`/api/admin/users/${userId}/analyze`, token, {});
+      await loadUserDetail(userId);
+      setStatus("AI 分析完成。");
+    } catch (error) {
+      setStatus(`AI 分析失败：${errorMessage(error)}`);
     }
   }
 
@@ -1419,6 +1455,7 @@ function AdminApp() {
       status: u.status,
       password: ""
     });
+    void loadUserDetail(u.id);
   }
 
   async function saveUser() {
@@ -1738,7 +1775,7 @@ function AdminApp() {
 
         {(activeNav === "Matches" || activeNav === "Match Radar") && (
           <>
-            <MatchRadar token={token} apiGet={apiGet} />
+            <MatchRadar token={token} apiGet={apiGet} apiPost={apiPost} />
 
             <section className="panel page-panel" style={{ marginTop: 24 }}>
               <div className="panel-header">
@@ -1888,6 +1925,61 @@ function AdminApp() {
                     </select>
                   </label>
                 </div>
+                {userPanelMode === "edit" && selectedUserId && (
+                  <>
+                    <h3 style={{ marginTop: 24, marginBottom: 12 }}>个人资料（匹配用）</h3>
+                    <div className="form-grid">
+                      <label>生日<input type="date" value={profileForm.birthday} onChange={(e) => setProfileForm({ ...profileForm, birthday: e.target.value })} /></label>
+                      <label>性别
+                        <select value={profileForm.gender_identity} onChange={(e) => setProfileForm({ ...profileForm, gender_identity: e.target.value })}>
+                          <option value="">未填写</option>
+                          <option value="male">男</option>
+                          <option value="female">女</option>
+                          <option value="non_binary">非二元</option>
+                          <option value="self_describe">自定义</option>
+                          <option value="prefer_not_to_say">不愿透露</option>
+                        </select>
+                      </label>
+                      <label>性别（自定义）<input value={profileForm.gender_custom} onChange={(e) => setProfileForm({ ...profileForm, gender_custom: e.target.value })} /></label>
+                      <label>性取向
+                        <select value={profileForm.sexual_orientation} onChange={(e) => setProfileForm({ ...profileForm, sexual_orientation: e.target.value })}>
+                          <option value="">未填写</option>
+                          <option value="straight">异性恋</option>
+                          <option value="gay">男同性恋</option>
+                          <option value="lesbian">女同性恋</option>
+                          <option value="bisexual">双性恋</option>
+                          <option value="pansexual">泛性恋</option>
+                          <option value="asexual">无性恋</option>
+                          <option value="queer">酷儿</option>
+                          <option value="self_describe">自定义</option>
+                          <option value="prefer_not_to_say">不愿透露</option>
+                        </select>
+                      </label>
+                      <label>取向（自定义）<input value={profileForm.orientation_custom} onChange={(e) => setProfileForm({ ...profileForm, orientation_custom: e.target.value })} /></label>
+                      <label>母语<input value={profileForm.native_language} onChange={(e) => setProfileForm({ ...profileForm, native_language: e.target.value })} /></label>
+                      <label>目标语言<input value={profileForm.primary_target_language} onChange={(e) => setProfileForm({ ...profileForm, primary_target_language: e.target.value })} /></label>
+                      <label>等级<input value={profileForm.current_level} onChange={(e) => setProfileForm({ ...profileForm, current_level: e.target.value })} /></label>
+                      <label className="wide">学习目标（逗号分隔）<input value={profileForm.learning_goals} onChange={(e) => setProfileForm({ ...profileForm, learning_goals: e.target.value })} /></label>
+                      <label className="wide">兴趣话题（逗号分隔）<input value={profileForm.favorite_topics} onChange={(e) => setProfileForm({ ...profileForm, favorite_topics: e.target.value })} /></label>
+                      <label><input type="checkbox" checked={profileForm.lgbtq_visible} onChange={(e) => setProfileForm({ ...profileForm, lgbtq_visible: e.target.checked })} /> LGBTQ+ 可见</label>
+                    </div>
+                    {userDetail?.latest_analysis && (
+                      <article className="module-card wide" style={{ marginTop: 16 }}>
+                        <strong>最新 AI 分析 · {userDetail.latest_analysis.personality_type || "未分类"}</strong>
+                        <p style={{ margin: "8px 0", opacity: 0.85, whiteSpace: "pre-wrap" }}>{userDetail.latest_analysis.summary}</p>
+                        <p style={{ fontSize: 13, opacity: 0.7 }}>
+                          匹配分 {Math.round(userDetail.latest_analysis.match_score)} ·
+                          标签 {(userDetail.latest_analysis.match_tags ?? []).join(" · ") || "—"} ·
+                          {new Date(userDetail.latest_analysis.created_at).toLocaleString("zh-CN")}
+                        </p>
+                      </article>
+                    )}
+                    <div className="prompt-edit-actions" style={{ marginTop: 16 }}>
+                      <button type="button" onClick={() => void saveUserProfile(selectedUserId)}>保存资料</button>
+                      <button type="button" className="secondary-button" onClick={() => void triggerUserAnalysis(selectedUserId)}>立即 AI 分析</button>
+                    </div>
+                  </>
+                )}
                 <div className="prompt-edit-actions" style={{ marginTop: 24 }}>
                   <button onClick={() => void saveUser()}>保存会员</button>
                   {userPanelMode === "edit" && selectedUserId && (
@@ -2017,8 +2109,53 @@ function AdminApp() {
                               {userDetail.profile.native_language} → {userDetail.profile.primary_target_language} · {userDetail.profile.current_level}
                             </strong>
                           </p>
+                          <p>
+                            <span>学习目标</span>
+                            <strong>{(userDetail.profile.learning_goals ?? []).join("、") || "—"}</strong>
+                          </p>
+                          <p>
+                            <span>兴趣话题</span>
+                            <strong>{(userDetail.profile.favorite_topics ?? []).join("、") || "—"}</strong>
+                          </p>
+                          <p>
+                            <span>能力分</span>
+                            <strong>
+                              语法 {Math.round(userDetail.profile.grammar_level_score ?? 0)} ·
+                              词汇 {Math.round(userDetail.profile.vocabulary_level_score ?? 0)} ·
+                              流利 {Math.round(userDetail.profile.fluency_score ?? 0)}
+                            </strong>
+                          </p>
                         </div>
                       </div>
+                    </article>
+                  )}
+                  {userDetail.match_profile && (
+                    <article className="module-card wide">
+                      <strong>匹配资料</strong>
+                      <p>{userDetail.match_profile.bio || "—"}</p>
+                      <p style={{ fontSize: 13, opacity: 0.85 }}>
+                        兴趣: {(userDetail.match_profile.interests ?? []).join("、") || "—"} ·
+                        标签: {(userDetail.match_profile.tags ?? []).join("、") || "—"}
+                      </p>
+                    </article>
+                  )}
+                  {userDetail.latest_analysis && (
+                    <article className="module-card wide">
+                      <strong>AI 画像 · {userDetail.latest_analysis.personality_type || "分析中"}</strong>
+                      <p style={{ whiteSpace: "pre-wrap", margin: "8px 0" }}>{userDetail.latest_analysis.summary}</p>
+                      <p style={{ fontSize: 13, opacity: 0.85 }}>
+                        匹配分 {Math.round(userDetail.latest_analysis.match_score)} ·
+                        {(userDetail.latest_analysis.match_tags ?? []).map((t) => `#${t}`).join(" ")}
+                      </p>
+                      <button className="ghost-button" style={{ marginTop: 8 }} onClick={() => void triggerUserAnalysis(userDetail.id)}>重新分析</button>
+                    </article>
+                  )}
+                  {userDetail.ai_memory_preview && userDetail.ai_memory_preview.length > 0 && (
+                    <article className="module-card wide">
+                      <strong>AI 记忆摘要</strong>
+                      <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 13, opacity: 0.9 }}>
+                        {userDetail.ai_memory_preview.map((line, i) => <li key={i}>{line}</li>)}
+                      </ul>
                     </article>
                   )}
                 </div>
@@ -2086,222 +2223,12 @@ function AdminApp() {
           </section>
         )}
 
-        {activeNav === "Topics" && (
-          <section className="panel page-panel">
-            <div className="panel-header">
-              <div>
-                <span>Topics</span>
-                <h2>话题管理</h2>
-              </div>
-              <button onClick={() => void handleNav("Topics")}>
-                <RefreshCw size={15} /> 刷新
-              </button>
-            </div>
-            {topics.length === 0 ? (
-              <p className="module-copy">正在加载话题列表...</p>
-            ) : (
-              <>
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr><th>Title</th><th>Creator</th><th>Tags</th><th>Status</th><th>Views</th><th>Forked</th><th>操作</th></tr>
-                    </thead>
-                    <tbody>
-                      {topics.slice((topicsPage - 1) * 10, topicsPage * 10).map((t) => (
-                        <tr key={t.id} className={editingTopicId === t.id ? "selected-row" : ""}>
-                          <td>{t.title}</td>
-                          <td>{t.creator_email || "-"}</td>
-                          <td>{(t.tags || []).join(", ") || "-"}</td>
-                          <td>{t.status}</td>
-                          <td>{t.view_count}</td>
-                          <td>{t.parent_topic_id ? t.parent_topic_id.slice(0, 8) + "..." : "-"}</td>
-                          <td>
-                            <div className="mini-actions">
-                              {editingTopicId === t.id ? (
-                                <>
-                                  <button onClick={async () => {
-                                    try {
-                                      setStatus("正在保存话题...");
-                                      await apiPut(`/api/topics/${t.id}`, token, {
-                                        title: topicForm.title,
-                                        tags: topicForm.tags.split(",").map((s: string) => s.trim()).filter(Boolean)
-                                      });
-                                      const data = await apiGet<Topic[]>("/api/topics", token);
-                                      setTopics(data);
-                                      setEditingTopicId(null);
-                                      setStatus("话题已更新。");
-                                    } catch (err) { setStatus(`保存失败：${errorMessage(err)}`); }
-                                  }}>保存</button>
-                                  <button className="secondary-button" onClick={() => setEditingTopicId(null)}>取消</button>
-                                </>
-                              ) : (
-                                <>
-                                  <button onClick={() => {
-                                    setEditingTopicId(t.id);
-                                    setTopicForm({ title: t.title, tags: (t.tags || []).join(", ") });
-                                  }}>编辑</button>
-                                  <button onClick={async () => {
-                                    const nextStatus = t.status === "active" ? "archived" : "active";
-                                    try {
-                                      setStatus(`正在${nextStatus === "active" ? "激活" : "归档"}话题...`);
-                                      await apiPut(`/api/topics/${t.id}`, token, { status: nextStatus });
-                                      const data = await apiGet<Topic[]>("/api/topics", token);
-                                      setTopics(data);
-                                      setStatus(`话题已${nextStatus === "active" ? "激活" : "归档"}。`);
-                                    } catch (err) { setStatus(`操作失败：${errorMessage(err)}`); }
-                                  }}>
-                                    {t.status === "active" ? "归档" : "激活"}
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {editingTopicId && (
-                  <article className="panel" style={{ marginTop: 16, border: "1px solid var(--border)", padding: 24 }}>
-                    <h3>编辑话题</h3>
-                    <div className="form-grid">
-                      <label>Title<input value={topicForm.title} onChange={e => setTopicForm({ ...topicForm, title: e.target.value })} /></label>
-                      <label>Tags (逗号分隔)<input value={topicForm.tags} onChange={e => setTopicForm({ ...topicForm, tags: e.target.value })} /></label>
-                    </div>
-                  </article>
-                )}
-                <div className="button-row" style={{ marginTop: 16, justifyContent: "center" }}>
-                  {Array.from({ length: Math.ceil(topics.length / 10) }, (_, i) => (
-                    <button key={i} className={topicsPage === i + 1 ? "preset active" : "preset"} onClick={() => setTopicsPage(i + 1)}>
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </section>
+        {activeNav === "Topics" && token && (
+          <TopicManagement token={token} onStatus={setStatus} />
         )}
 
-        {activeNav === "Circles" && (
-          <section className="panel page-panel">
-            <div className="panel-header">
-              <div>
-                <span>Circles</span>
-                <h2>圈子管理</h2>
-              </div>
-              <button onClick={() => void handleNav("Circles")}>
-                <RefreshCw size={15} /> 刷新
-              </button>
-            </div>
-            {circles.length === 0 ? (
-              <p className="module-copy">正在加载圈子列表...</p>
-            ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr><th>Title</th><th>Type</th><th>Languages</th><th>Status</th><th>Created</th><th>Ended</th><th>操作</th></tr>
-                  </thead>
-                  <tbody>
-                    {circles.map((c) => (
-                      <tr key={c.id} className={selectedCircleId === c.id ? "selected-row" : ""}>
-                        <td><strong>{c.title}</strong></td>
-                        <td>{c.room_type}</td>
-                        <td>{(c.allowed_languages || []).join(", ") || "-"}</td>
-                        <td>{c.status}</td>
-                        <td>{new Date(c.created_at).toLocaleDateString()}</td>
-                        <td>{c.ended_at ? new Date(c.ended_at).toLocaleDateString() : "-"}</td>
-                        <td>
-                          <div className="mini-actions">
-                            <button onClick={async () => {
-                              try {
-                                setSelectedCircleId(c.id);
-                                setCircleMessages([]);
-                                setStatus("正在加载圈子成员...");
-                                const members = await apiGet<CircleMember[]>(`/api/admin/circles/${c.id}/members`, token);
-                                setCircleMembers(members);
-                                setStatus(`成员已加载：${members.length} 人。`);
-                              } catch (err) { setStatus(`加载失败：${errorMessage(err)}`); }
-                            }}>查看成员</button>
-                            <button onClick={async () => {
-                              try {
-                                setSelectedCircleId(c.id);
-                                setCircleMembers([]);
-                                setStatus("正在加载聊天记录...");
-                                const data = await apiGet<{ messages: CircleMessageRow[] }>(`/api/admin/circles/${c.id}/messages`, token);
-                                setCircleMessages(data.messages || []);
-                                setStatus(`聊天记录已加载：${(data.messages || []).length} 条。`);
-                              } catch (err) { setStatus(`加载失败：${errorMessage(err)}`); }
-                            }}>聊天记录{c.message_count != null ? ` (${c.message_count})` : ""}</button>
-                            <button onClick={async () => {
-                              const nextStatus = c.status === "active" ? "archived" : "active";
-                              try {
-                                setStatus(`正在${nextStatus === "active" ? "激活" : "归档"}圈子...`);
-                                await apiPut(`/api/admin/circles/${c.id}`, token, { status: nextStatus });
-                                const data = await apiGet<Circle[]>("/api/admin/circles", token);
-                                setCircles(data);
-                                setStatus(`圈子已${nextStatus === "active" ? "激活" : "归档"}。`);
-                              } catch (err) { setStatus(`操作失败：${errorMessage(err)}`); }
-                            }}>
-                              {c.status === "active" ? "归档" : "激活"}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {selectedCircleId && circleMembers.length > 0 && (
-              <article className="panel" style={{ marginTop: 16, border: "1px solid var(--border)", padding: 24 }}>
-                <div className="panel-header" style={{ borderBottom: "none", paddingBottom: 0, marginBottom: 16 }}>
-                  <h2>圈子成员</h2>
-                  <button className="secondary-button" onClick={() => { setSelectedCircleId(null); setCircleMembers([]); }}>关闭</button>
-                </div>
-                <div className="table-wrap">
-                  <table>
-                    <thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Joined</th></tr></thead>
-                    <tbody>
-                      {circleMembers.map((m) => (
-                        <tr key={m.id}>
-                          <td>{m.email}</td>
-                          <td>{m.username || "-"}</td>
-                          <td>{m.role}</td>
-                          <td>{new Date(m.joined_at).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </article>
-            )}
-            {selectedCircleId && circleMessages.length > 0 && (
-              <article className="panel" style={{ marginTop: 16, border: "1px solid var(--border)", padding: 24 }}>
-                <div className="panel-header" style={{ borderBottom: "none", paddingBottom: 0, marginBottom: 16 }}>
-                  <h2>聊天记录 ({circleMessages.length})</h2>
-                  <button className="secondary-button" onClick={() => { setSelectedCircleId(null); setCircleMessages([]); }}>关闭</button>
-                </div>
-                <div className="table-wrap">
-                  <table>
-                    <thead><tr><th>时间</th><th>发言人</th><th>角色</th><th>内容</th></tr></thead>
-                    <tbody>
-                      {circleMessages.map((m) => (
-                        <tr key={m.id}>
-                          <td style={{ whiteSpace: "nowrap" }}>{new Date(m.created_at).toLocaleString()}</td>
-                          <td>{m.username}</td>
-                          <td>{m.role}</td>
-                          <td>
-                            <div>{m.content}</div>
-                            {m.translated_content ? <div style={{ color: "var(--muted)", fontSize: 12 }}>{m.translated_content}</div> : null}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </article>
-            )}
-          </section>
+        {activeNav === "Circles" && token && (
+          <CircleManagement token={token} onStatus={setStatus} />
         )}
 
         {activeNav === "Voice Sessions" && (
@@ -3241,64 +3168,8 @@ function AdminApp() {
           <DataManagement token={token} onStatus={setStatus} />
         )}
 
-        {activeNav === "Assets" && (
-          <section className="panel page-panel">
-            <div className="panel-header">
-              <div>
-                <span>Expression Assets</span>
-                <h2>用户表达资产查询</h2>
-              </div>
-            </div>
-            <div className="form-grid" style={{ marginBottom: 16 }}>
-              <label>
-                用户 ID
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    value={assetLookupId}
-                    placeholder="输入用户 UUID"
-                    onChange={(e) => setAssetLookupId(e.target.value)}
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!assetLookupId.trim()) return;
-                      try {
-                        setStatus("正在查询资产...");
-                        const assets = await apiGet<UserAsset[]>(`/api/admin/users/${assetLookupId.trim()}/assets`, token);
-                        setUserAssets(assets);
-                        setStatus(`资产查询完成：${assets.length} 个。`);
-                      } catch (err) {
-                        setStatus(`查询失败：${errorMessage(err)}`);
-                      }
-                    }}
-                  >
-                    查询
-                  </button>
-                </div>
-              </label>
-            </div>
-            {userAssets.length > 0 ? (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr><th>Title</th><th>Language</th><th>Version</th><th>Keywords</th><th>Created</th></tr>
-                  </thead>
-                  <tbody>
-                    {userAssets.map((asset) => (
-                      <tr key={asset.id}>
-                        <td><strong>{asset.title}</strong></td>
-                        <td>{asset.target_language}</td>
-                        <td>v{asset.current_version}</td>
-                        <td>{(asset.keywords ?? []).slice(0, 3).join(", ")}{(asset.keywords ?? []).length > 3 ? "..." : ""}</td>
-                        <td>{new Date(asset.created_at).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="module-copy">{assetLookupId ? "该用户暂无表达资产。" : "输入用户 ID 后点击查询。"}</p>
-            )}
-          </section>
+        {activeNav === "Assets" && token && (
+          <ExpressionAssetsPanel token={token} onStatus={setStatus} />
         )}
 
         {activeNav === "Gamification" && (

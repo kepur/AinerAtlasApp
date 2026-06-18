@@ -16,11 +16,17 @@ from app.models import (
     ModerationEvent,
     Report,
     Thought,
+    Topic,
     UsageLog,
     User,
 )
 from app.services.audit import write_audit_log
-from app.services.conversation_moderation import batch_scan_conversations, block_conversation, scan_conversation
+from app.services.conversation_moderation import (
+    batch_scan_conversations,
+    block_conversation,
+    scan_conversation,
+    soft_delete_conversation,
+)
 from app.services.conversation_activity import log_conversation_activity
 from app.services.user_data_purge import (
     delete_conversations_by_ids,
@@ -70,6 +76,40 @@ def _user_brief(db, user_id: str | None) -> dict | None:
     if not user:
         return {"id": user_id, "email": "?", "username": "?"}
     return {"id": user.id, "email": user.email, "username": user.username}
+
+
+def _user_topics_brief(db: DBSession, user_id: str, limit: int = 5) -> list[dict]:
+    topics = list(
+        db.scalars(
+            select(Topic)
+            .where(Topic.creator_id == user_id)
+            .order_by(Topic.created_at.desc())
+            .limit(limit)
+        )
+    )
+    return [{"id": t.id, "title": t.title, "status": t.status} for t in topics]
+
+
+def _user_ids_by_username(db: DBSession, username: str) -> list[str]:
+    pattern = f"%{username.strip()}%"
+    return list(
+        db.scalars(
+            select(User.id).where(
+                or_(User.username.ilike(pattern), User.email.ilike(pattern))
+            )
+        )
+    )
+
+
+def _user_ids_by_topic_title(db: DBSession, topic_q: str) -> list[str]:
+    pattern = f"%{topic_q.strip()}%"
+    return list(
+        db.scalars(
+            select(Topic.creator_id)
+            .where(Topic.title.ilike(pattern))
+            .distinct()
+        )
+    )
 
 
 @router.get("/stats")
@@ -346,6 +386,45 @@ def batch_block_conversations(payload: ConversationBlockRequest, admin: AdminUse
     return {"blocked": blocked}
 
 
+@router.post("/conversations/{conversation_id}/soft-delete")
+def soft_delete_conversation_admin(conversation_id: str, admin: AdminUser, db: DBSession) -> dict:
+    conversation = db.get(Conversation, conversation_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    soft_delete_conversation(conversation, deleted_by="admin")
+    log_conversation_activity(
+        db,
+        user_id=admin.id,
+        conversation_id=conversation_id,
+        action="admin_soft_deleted",
+        details={"owner_user_id": conversation.user_id, "title": conversation.title},
+    )
+    _audit(db, admin, "soft_delete_conversation", "conversation", conversation_id)
+    db.commit()
+    return {"deleted": True, "id": conversation_id, "soft": True}
+
+
+@router.post("/conversations/batch-soft-delete")
+def batch_soft_delete_conversations(payload: BatchDeleteRequest, admin: AdminUser, db: DBSession) -> dict:
+    count = 0
+    for cid in payload.ids:
+        conversation = db.get(Conversation, cid)
+        if not conversation:
+            continue
+        soft_delete_conversation(conversation, deleted_by="admin")
+        log_conversation_activity(
+            db,
+            user_id=admin.id,
+            conversation_id=cid,
+            action="admin_soft_deleted",
+            details={"owner_user_id": conversation.user_id, "title": conversation.title},
+        )
+        count += 1
+    _audit(db, admin, "batch_soft_delete_conversations", "conversation", ",".join(payload.ids[:5]), {"count": count})
+    db.commit()
+    return {"deleted": count, "soft": True}
+
+
 @router.delete("/conversations/{conversation_id}")
 def delete_conversation(conversation_id: str, admin: AdminUser, db: DBSession) -> dict:
     conversation = db.get(Conversation, conversation_id)
@@ -534,25 +613,63 @@ def purge_all_game_sessions(payload: PurgeAllRequest, admin: AdminUser, db: DBSe
 
 @router.get("/expression-assets")
 def list_expression_assets(
-    _: AdminUser, db: DBSession,
-    user_id: str | None = None, q: str | None = None,
-    limit: int = DEFAULT_LIMIT, offset: int = 0,
+    _: AdminUser,
+    db: DBSession,
+    user_id: str | None = None,
+    username: str | None = None,
+    q: str | None = None,
+    topic_q: str | None = None,
+    limit: int = DEFAULT_LIMIT,
+    offset: int = 0,
 ) -> dict:
     lim, off = _paginate(limit, offset)
     stmt = select(ExpressionAsset)
     if user_id:
         stmt = stmt.where(ExpressionAsset.user_id == user_id)
+    if username and username.strip():
+        user_ids = _user_ids_by_username(db, username)
+        if not user_ids:
+            return {"items": [], "total": 0, "limit": lim, "offset": off}
+        stmt = stmt.where(ExpressionAsset.user_id.in_(user_ids))
+    if topic_q and topic_q.strip():
+        creator_ids = _user_ids_by_topic_title(db, topic_q)
+        if not creator_ids:
+            return {"items": [], "total": 0, "limit": lim, "offset": off}
+        stmt = stmt.where(ExpressionAsset.user_id.in_(creator_ids))
     if q:
-        stmt = stmt.where(ExpressionAsset.title.ilike(f"%{q.strip()}%"))
+        stmt = stmt.where(
+            or_(
+                ExpressionAsset.title.ilike(f"%{q.strip()}%"),
+                ExpressionAsset.source_text.ilike(f"%{q.strip()}%"),
+            )
+        )
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = list(db.scalars(stmt.order_by(ExpressionAsset.updated_at.desc()).offset(off).limit(lim)))
+
+    user_topics_cache: dict[str, list[dict]] = {}
+    items = []
+    for a in rows:
+        if a.user_id not in user_topics_cache:
+            user_topics_cache[a.user_id] = _user_topics_brief(db, a.user_id)
+        items.append(
+            {
+                "id": a.id,
+                "user_id": a.user_id,
+                "user": _user_brief(db, a.user_id),
+                "title": a.title,
+                "target_language": a.target_language,
+                "keywords": a.keywords or [],
+                "current_version": a.current_version,
+                "user_topics": user_topics_cache[a.user_id],
+                "created_at": a.created_at.isoformat(),
+                "updated_at": a.updated_at.isoformat(),
+            }
+        )
     return {
-        "items": [{
-            "id": a.id, "user_id": a.user_id, "user": _user_brief(db, a.user_id),
-            "title": a.title, "target_language": a.target_language,
-            "created_at": a.created_at.isoformat(),
-        } for a in rows],
-        "total": total, "limit": lim, "offset": off,
+        "items": items,
+        "total": total,
+        "limit": lim,
+        "offset": off,
     }
 
 

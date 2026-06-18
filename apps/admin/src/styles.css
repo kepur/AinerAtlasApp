@@ -637,6 +637,51 @@ button:disabled {
   font-weight: 600;
 }
 
+/* Data management: 6 metrics in one compact row */
+.stats-grid--compact {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stats-grid--compact .stat-card {
+  padding: 10px 12px;
+}
+
+.stats-grid--compact .stat-card > span:first-child {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.stats-grid--compact .stat-card strong {
+  font-size: 1.35rem;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+.stats-grid--compact .stat-card small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.9;
+}
+
+@media (max-width: 1400px) {
+  .stats-grid--compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .stats-grid--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ─── Panels ─── */
 .main-grid {
   display: grid;
@@ -1557,7 +1602,7 @@ tbody tr:last-child td {
     display: none;
   }
 
-  .stats-grid,
+  .stats-grid:not(.stats-grid--compact),
   .main-grid,
   .prompt-grid,
   .form-grid,

@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import func, select, delete
+from pydantic import BaseModel, Field
+from sqlalchemy import func, or_, select, delete
 
 from app.api.deps import AdminUser, DBSession
 from app.core.security import encrypt_api_key
@@ -15,6 +16,7 @@ from app.models import (
     CircleRoom,
     Conversation,
     ExpressionAsset,
+    MatchAnalysisReport,
     MembershipPlan,
     ModerationEvent,
     PromptTemplate,
@@ -22,11 +24,16 @@ from app.models import (
     Topic,
     UsageLog,
     User,
+    UserAIMemory,
+    UserCommunicationProfile,
     UserMastery,
+    UserMatchProfile,
     UserProfile,
     VoiceSession,
     LLMCallLog,
 )
+from app.services.audit import write_audit_log
+from app.services.topic_purge import delete_circle_room, delete_topic_by_id
 from app.schemas import (
     AdminUserCreate,
     AdminUserUpdate,
@@ -50,13 +57,18 @@ from app.schemas import (
     UsageLogRead,
     LLMCallLogRead,
     AdminProfileUpdate,
+    AnalysisSummary,
     UserDetailRead,
     UserProfileSummary,
     UserRead,
+    CommunicationProfileSummary,
+    MatchProfileSummary,
 )
 from app.api.routes.profile import _sync_match_birthday
+from app.services.llm import get_llm_provider
+from app.services.runtime_config import resolve_default_llm_provider
+from app.services.user_profile_analysis import analyze_user_for_matching
 from app.services.app_settings import get_app_settings, resolved_default_locale, resolved_enabled_locales
-from app.services.audit import write_audit_log
 from app.services.auth_settings import (
     demo_password_configured,
     get_auth_settings,
@@ -74,6 +86,30 @@ from app.services.provider_tester import test_provider_connection
 from app.services.verification_code import generate_verification_code
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+ADMIN_LIST_LIMIT = 50
+ADMIN_LIST_MAX = 200
+
+
+class BatchDeleteRequest(BaseModel):
+    ids: list[str] = Field(default_factory=list, min_length=1)
+
+
+def _admin_paginate(limit: int, offset: int) -> tuple[int, int]:
+    return min(max(limit, 1), ADMIN_LIST_MAX), max(offset, 0)
+
+
+def _creator_filter(db: DBSession, username: str | None) -> list[str] | None:
+    if not username or not username.strip():
+        return None
+    pattern = f"%{username.strip()}%"
+    return list(
+        db.scalars(
+            select(User.id).where(
+                or_(User.username.ilike(pattern), User.email.ilike(pattern))
+            )
+        )
+    )
 
 
 @router.get("/overview")
@@ -117,6 +153,39 @@ def get_user_detail(user_id: str, _: AdminUser, db: DBSession) -> UserDetailRead
         select(func.avg(UserMastery.mastery_score)).where(UserMastery.user_id == user.id)
     ) or 0
 
+    match_profile = db.scalar(select(UserMatchProfile).where(UserMatchProfile.user_id == user.id))
+    comm_profile = db.scalar(
+        select(UserCommunicationProfile).where(UserCommunicationProfile.user_id == user.id)
+    )
+    latest_report = db.scalar(
+        select(MatchAnalysisReport)
+        .where(MatchAnalysisReport.user_id == user.id)
+        .order_by(MatchAnalysisReport.created_at.desc())
+        .limit(1)
+    )
+    memory_rows = list(
+        db.scalars(
+            select(UserAIMemory)
+            .where(UserAIMemory.user_id == user.id)
+            .order_by(UserAIMemory.created_at.desc())
+            .limit(6)
+        )
+    )
+
+    latest_analysis = None
+    if latest_report:
+        details = dict(latest_report.details or {})
+        latest_analysis = AnalysisSummary(
+            id=latest_report.id,
+            report_type=latest_report.report_type,
+            summary=latest_report.summary,
+            match_score=latest_report.match_score,
+            personality_type=str(details.get("personality_type") or ""),
+            match_tags=list(details.get("match_tags") or []),
+            details=details,
+            created_at=latest_report.created_at,
+        )
+
     return UserDetailRead(
         id=user.id,
         email=user.email,
@@ -127,6 +196,12 @@ def get_user_detail(user_id: str, _: AdminUser, db: DBSession) -> UserDetailRead
         membership_expires_at=user.membership_expires_at,
         created_at=user.created_at,
         profile=UserProfileSummary.model_validate(profile) if profile else None,
+        match_profile=MatchProfileSummary.model_validate(match_profile) if match_profile else None,
+        communication_profile=(
+            CommunicationProfileSummary.model_validate(comm_profile) if comm_profile else None
+        ),
+        latest_analysis=latest_analysis,
+        ai_memory_preview=[f"[{m.memory_type}] {m.content[:120]}" for m in memory_rows],
         stats={
             "conversations": conversation_count,
             "assets": asset_count,
@@ -135,6 +210,40 @@ def get_user_detail(user_id: str, _: AdminUser, db: DBSession) -> UserDetailRead
             "avg_mastery_score": round(float(avg_mastery), 1),
         },
     )
+
+
+@router.post("/users/{user_id}/analyze")
+async def trigger_user_analysis(user_id: str, admin: AdminUser, db: DBSession) -> dict:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    provider = get_llm_provider(
+        resolve_default_llm_provider(db),
+        db,
+        allow_mock_fallback=True,
+    )
+    report = await analyze_user_for_matching(db, user_id, provider, report_type="manual")
+    if not report:
+        raise HTTPException(status_code=400, detail="用户数据不足，无法生成分析")
+    write_audit_log(
+        db,
+        admin,
+        action="trigger_user_analysis",
+        resource_type="user",
+        resource_id=user_id,
+        details={"report_id": report.id},
+    )
+    db.commit()
+    db.refresh(report)
+    details = dict(report.details or {})
+    return {
+        "ok": True,
+        "report_id": report.id,
+        "summary": report.summary,
+        "match_score": report.match_score,
+        "personality_type": details.get("personality_type", ""),
+        "match_tags": details.get("match_tags") or [],
+    }
 
 
 @router.put("/users/{user_id}/profile", response_model=UserProfileSummary)
@@ -821,9 +930,49 @@ async def test_saved_provider(provider_id: str, _: AdminUser, db: DBSession) -> 
 
 
 @router.get("/topics")
-def list_admin_topics(_: AdminUser, db: DBSession) -> list[dict]:
-    topics = list(db.scalars(select(Topic).order_by(Topic.created_at.desc()).limit(50)))
-    return [{"id": t.id, "title": t.title, "status": t.status, "category": getattr(t, "category", ""), "tags": t.tags or [], "heat": getattr(t, "heat", "0"), "created_at": t.created_at.isoformat()} for t in topics]
+def list_admin_topics(
+    _: AdminUser,
+    db: DBSession,
+    q: str | None = None,
+    username: str | None = None,
+    status: str | None = None,
+    limit: int = ADMIN_LIST_LIMIT,
+    offset: int = 0,
+) -> dict:
+    lim, off = _admin_paginate(limit, offset)
+    stmt = select(Topic)
+    if q and q.strip():
+        stmt = stmt.where(Topic.title.ilike(f"%{q.strip()}%"))
+    if status:
+        stmt = stmt.where(Topic.status == status)
+    creator_ids = _creator_filter(db, username)
+    if creator_ids is not None:
+        if not creator_ids:
+            return {"items": [], "total": 0, "limit": lim, "offset": off}
+        stmt = stmt.where(Topic.creator_id.in_(creator_ids))
+
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    topics = list(db.scalars(stmt.order_by(Topic.created_at.desc()).offset(off).limit(lim)))
+    items = []
+    for t in topics:
+        creator = db.get(User, t.creator_id)
+        items.append(
+            {
+                "id": t.id,
+                "title": t.title,
+                "creator_id": t.creator_id,
+                "creator_email": creator.email if creator else "",
+                "creator_username": creator.username if creator else "",
+                "status": t.status,
+                "category": getattr(t, "category", ""),
+                "tags": t.tags or [],
+                "view_count": t.view_count,
+                "parent_topic_id": t.parent_topic_id,
+                "heat": getattr(t, "heat", "0"),
+                "created_at": t.created_at.isoformat(),
+            }
+        )
+    return {"items": items, "total": total, "limit": lim, "offset": off}
 
 
 @router.put("/topics/{topic_id}")
@@ -840,46 +989,112 @@ def update_admin_topic(topic_id: str, payload: dict, _: AdminUser, db: DBSession
 
 
 @router.delete("/topics/{topic_id}")
-def delete_admin_topic(topic_id: str, _: AdminUser, db: DBSession) -> dict:
+def delete_admin_topic(topic_id: str, admin: AdminUser, db: DBSession) -> dict:
     topic = db.get(Topic, topic_id)
     if not topic:
         raise HTTPException(status_code=404)
-    db.delete(topic)
+    title = topic.title
+    if not delete_topic_by_id(db, topic_id):
+        raise HTTPException(status_code=404)
+    write_audit_log(
+        db,
+        admin,
+        action="delete_topic",
+        resource_type="topic",
+        resource_id=topic_id,
+        details={"title": title},
+    )
     db.commit()
-    return {"deleted": True}
+    return {"deleted": True, "id": topic_id}
+
+
+@router.post("/topics/batch-delete")
+def batch_delete_admin_topics(payload: BatchDeleteRequest, admin: AdminUser, db: DBSession) -> dict:
+    deleted = 0
+    titles: list[str] = []
+    for topic_id in payload.ids:
+        topic = db.get(Topic, topic_id)
+        if topic and delete_topic_by_id(db, topic_id):
+            deleted += 1
+            titles.append(topic.title)
+    write_audit_log(
+        db,
+        admin,
+        action="batch_delete_topics",
+        resource_type="topic",
+        resource_id=",".join(payload.ids[:5]),
+        details={"count": deleted, "titles": titles[:10]},
+    )
+    db.commit()
+    return {"deleted": deleted}
 
 
 @router.get("/circles")
-def list_admin_circles(_: AdminUser, db: DBSession) -> list[dict]:
-    circles = list(db.scalars(select(CircleRoom).order_by(CircleRoom.created_at.desc()).limit(100)))
-    # Batch member + message counts to avoid N+1 per circle.
-    member_counts = dict(
-        db.execute(
-            select(CircleMember.room_id, func.count(CircleMember.id)).group_by(CircleMember.room_id)
-        ).all()
-    )
-    message_counts = dict(
-        db.execute(
-            select(CircleMessage.room_id, func.count(CircleMessage.id)).group_by(CircleMessage.room_id)
-        ).all()
-    )
+def list_admin_circles(
+    _: AdminUser,
+    db: DBSession,
+    q: str | None = None,
+    username: str | None = None,
+    status: str | None = None,
+    limit: int = ADMIN_LIST_LIMIT,
+    offset: int = 0,
+) -> dict:
+    lim, off = _admin_paginate(limit, offset)
+    stmt = select(CircleRoom)
+    if q and q.strip():
+        stmt = stmt.where(CircleRoom.title.ilike(f"%{q.strip()}%"))
+    if status:
+        stmt = stmt.where(CircleRoom.status == status)
+    creator_ids = _creator_filter(db, username)
+    if creator_ids is not None:
+        if not creator_ids:
+            return {"items": [], "total": 0, "limit": lim, "offset": off}
+        stmt = stmt.where(CircleRoom.creator_id.in_(creator_ids))
+
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    circles = list(db.scalars(stmt.order_by(CircleRoom.created_at.desc()).offset(off).limit(lim)))
+
+    circle_ids = [c.id for c in circles]
+    member_counts: dict[str, int] = {}
+    message_counts: dict[str, int] = {}
+    if circle_ids:
+        member_counts = dict(
+            db.execute(
+                select(CircleMember.room_id, func.count(CircleMember.id))
+                .where(CircleMember.room_id.in_(circle_ids))
+                .group_by(CircleMember.room_id)
+            ).all()
+        )
+        message_counts = dict(
+            db.execute(
+                select(CircleMessage.room_id, func.count(CircleMessage.id))
+                .where(CircleMessage.room_id.in_(circle_ids))
+                .group_by(CircleMessage.room_id)
+            ).all()
+        )
+
     result = []
     for c in circles:
-        result.append({
-            "id": c.id,
-            "title": c.title,
-            "room_type": c.room_type,
-            "status": c.status,
-            "topic_id": c.topic_id,
-            "creator_id": c.creator_id,
-            "allowed_languages": c.allowed_languages or [],
-            "member_count": member_counts.get(c.id, 0),
-            "message_count": message_counts.get(c.id, 0),
-            "max_members": c.max_members,
-            "created_at": c.created_at.isoformat(),
-            "ended_at": c.ended_at.isoformat() if c.ended_at else None,
-        })
-    return result
+        creator = db.get(User, c.creator_id)
+        result.append(
+            {
+                "id": c.id,
+                "title": c.title,
+                "room_type": c.room_type,
+                "status": c.status,
+                "topic_id": c.topic_id,
+                "creator_id": c.creator_id,
+                "creator_email": creator.email if creator else "",
+                "creator_username": creator.username if creator else "",
+                "allowed_languages": c.allowed_languages or [],
+                "member_count": member_counts.get(c.id, 0),
+                "message_count": message_counts.get(c.id, 0),
+                "max_members": c.max_members,
+                "created_at": c.created_at.isoformat(),
+                "ended_at": c.ended_at.isoformat() if c.ended_at else None,
+            }
+        )
+    return {"items": result, "total": total, "limit": lim, "offset": off}
 
 
 @router.get("/circles/{circle_id}/members")
@@ -945,16 +1160,44 @@ def update_admin_circle(circle_id: str, payload: dict, _: AdminUser, db: DBSessi
 
 
 @router.delete("/circles/{circle_id}")
-def delete_admin_circle(circle_id: str, _: AdminUser, db: DBSession) -> dict:
+def delete_admin_circle(circle_id: str, admin: AdminUser, db: DBSession) -> dict:
     circle = db.get(CircleRoom, circle_id)
     if not circle:
         raise HTTPException(status_code=404)
-    # Cascade: remove members + messages so no orphan rows are left behind.
-    db.execute(delete(CircleMessage).where(CircleMessage.room_id == circle_id))
-    db.execute(delete(CircleMember).where(CircleMember.room_id == circle_id))
-    db.delete(circle)
+    title = circle.title
+    delete_circle_room(db, circle_id)
+    write_audit_log(
+        db,
+        admin,
+        action="delete_circle",
+        resource_type="circle",
+        resource_id=circle_id,
+        details={"title": title},
+    )
     db.commit()
-    return {"deleted": True}
+    return {"deleted": True, "id": circle_id}
+
+
+@router.post("/circles/batch-delete")
+def batch_delete_admin_circles(payload: BatchDeleteRequest, admin: AdminUser, db: DBSession) -> dict:
+    deleted = 0
+    titles: list[str] = []
+    for circle_id in payload.ids:
+        circle = db.get(CircleRoom, circle_id)
+        if circle:
+            delete_circle_room(db, circle_id)
+            deleted += 1
+            titles.append(circle.title)
+    write_audit_log(
+        db,
+        admin,
+        action="batch_delete_circles",
+        resource_type="circle",
+        resource_id=",".join(payload.ids[:5]),
+        details={"count": deleted, "titles": titles[:10]},
+    )
+    db.commit()
+    return {"deleted": deleted}
 
 
 @router.get("/voice/sessions")

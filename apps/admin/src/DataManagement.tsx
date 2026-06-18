@@ -218,7 +218,33 @@ export function DataManagement({ token, onStatus }: Props) {
     });
   }
 
+  async function softDeleteOne(id: string) {
+    if (!window.confirm("软删除后用户端不可见，但数据库仍保留记录。确定？")) return;
+    try {
+      await apiPost(`/api/admin/data/conversations/${id}/soft-delete`, token, {});
+      onStatus("已软删除 1 条");
+      await Promise.all([loadList(), loadStats()]);
+    } catch (err) {
+      onStatus(`软删除失败：${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function hardDeleteOne(id: string) {
+    if (!window.confirm("永久删除将从数据库清除该对话及关联消息，不可恢复。确定？")) return;
+    try {
+      await apiDelete(`/api/admin/data/${tab}/${id}`, token);
+      onStatus("已永久删除 1 条");
+      await Promise.all([loadList(), loadStats()]);
+    } catch (err) {
+      onStatus(`永久删除失败：${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   async function deleteOne(id: string) {
+    if (tab === "conversations") {
+      await hardDeleteOne(id);
+      return;
+    }
     if (!window.confirm("确定删除这条记录？")) return;
     try {
       await apiDelete(`/api/admin/data/${tab}/${id}`, token);
@@ -229,20 +255,41 @@ export function DataManagement({ token, onStatus }: Props) {
     }
   }
 
-  async function batchDelete() {
+  async function batchSoftDelete() {
+    if (tab !== "conversations" || selected.size === 0) return;
+    if (!window.confirm(`软删除 ${selected.size} 条对话？用户端将不可见，数据库仍保留。`)) return;
+    try {
+      const res = await apiPost<{ deleted: number }>(
+        "/api/admin/data/conversations/batch-soft-delete",
+        token,
+        { ids: [...selected] },
+      );
+      onStatus(`已软删除 ${res.deleted} 条`);
+      await Promise.all([loadList(), loadStats()]);
+    } catch (err) {
+      onStatus(`批量软删除失败：${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function batchHardDelete() {
     if (selected.size === 0) return;
-    if (!window.confirm(`确定批量删除 ${selected.size} 条记录？`)) return;
+    const label = tab === "conversations" ? "永久删除" : "删除";
+    if (!window.confirm(`确定${label} ${selected.size} 条记录？${tab === "conversations" ? "数据库记录将彻底清除。" : ""}`)) return;
     try {
       const res = await apiPost<{ deleted: number }>(
         `/api/admin/data/${tab}/batch-delete`,
         token,
         { ids: [...selected] },
       );
-      onStatus(`已删除 ${res.deleted} 条`);
+      onStatus(`已${label} ${res.deleted} 条`);
       await Promise.all([loadList(), loadStats()]);
     } catch (err) {
-      onStatus(`批量删除失败：${err instanceof Error ? err.message : String(err)}`);
+      onStatus(`批量${label}失败：${err instanceof Error ? err.message : String(err)}`);
     }
+  }
+
+  async function batchDelete() {
+    await batchHardDelete();
   }
 
   async function batchScanConversations() {
@@ -448,7 +495,7 @@ export function DataManagement({ token, onStatus }: Props) {
       </div>
 
       {statCards.length > 0 && (
-        <div className="stat-grid" style={{ marginBottom: 16 }}>
+        <div className="stats-grid stats-grid--compact">
           {statCards.map((s) => (
             <div key={s.label} className="stat-card stat-card--blue">
               <span>{s.label}</span>
@@ -526,9 +573,14 @@ export function DataManagement({ token, onStatus }: Props) {
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <button onClick={() => void loadList(tab, 0)} disabled={loading}>查询</button>
-        <button className="btn-secondary" onClick={() => void batchDelete()} disabled={selected.size === 0}>
-          批量删除 ({selected.size})
+        <button className="btn-secondary" onClick={() => void batchHardDelete()} disabled={selected.size === 0}>
+          {tab === "conversations" ? "批量永久删除" : "批量删除"} ({selected.size})
         </button>
+        {tab === "conversations" && (
+          <button className="btn-secondary" onClick={() => void batchSoftDelete()} disabled={selected.size === 0}>
+            批量软删除 ({selected.size})
+          </button>
+        )}
         {tab === "conversations" && (
           <>
             <button className="btn-secondary" onClick={() => void batchScanConversations()}>
@@ -598,11 +650,27 @@ export function DataManagement({ token, onStatus }: Props) {
                   {renderRow(item)}
                   <td style={{ whiteSpace: "nowrap" }}>
                     {tab === "conversations" && (
-                      <button className="btn-secondary" style={{ marginRight: 8 }} onClick={() => void openConversationDetail(item.id)}>
-                        详情
-                      </button>
+                      <>
+                        <button className="btn-secondary" style={{ marginRight: 8 }} onClick={() => void openConversationDetail(item.id)}>
+                          详情
+                        </button>
+                        {!item.deleted_at && (
+                          <button className="btn-secondary" style={{ marginRight: 8 }} onClick={() => void softDeleteOne(item.id)}>
+                            软删除
+                          </button>
+                        )}
+                        <button
+                          className="btn-secondary"
+                          style={{ color: "var(--danger, #ef4444)" }}
+                          onClick={() => void hardDeleteOne(item.id)}
+                        >
+                          永久删除
+                        </button>
+                      </>
                     )}
-                    <button className="btn-secondary" onClick={() => void deleteOne(item.id)}>删除</button>
+                    {tab !== "conversations" && (
+                      <button className="btn-secondary" onClick={() => void deleteOne(item.id)}>删除</button>
+                    )}
                   </td>
                 </tr>
               ))}
