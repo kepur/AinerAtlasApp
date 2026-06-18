@@ -500,6 +500,8 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
     """WebSocket endpoint for bidirectional realtime voice + DashScope ASR."""
     await websocket.accept()
     token = websocket.query_params.get("token", "")
+    # Optional practice mode steers the AI partner's persona/topic.
+    mode = websocket.query_params.get("mode", "free")
     user_id: str | None = None
 
     if token:
@@ -511,9 +513,17 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
             await websocket.close()
             return
 
+    # Map the practice mode to a dialogue topic the realtime adapter threads
+    # into the AI partner's reply generation.
+    _MODE_TOPICS = {
+        "interview": "English job interview practice — the AI acts as a professional interviewer, asks one interview question at a time, and briefly evaluates each answer.",
+        "free": "free natural conversation",
+    }
+    session_topic = _MODE_TOPICS.get(mode, _MODE_TOPICS["free"])
+
     with SessionLocal() as db:
         adapter = get_realtime_adapter(resolve_default_voice_provider(db), db=db)
-        session_info = await adapter.create_session({"user_id": user_id})
+        session_info = await adapter.create_session({"user_id": user_id, "mode": mode, "topic": session_topic})
         await websocket.send_json({"type": "session", **session_info})
 
         session_started = datetime.now(UTC)

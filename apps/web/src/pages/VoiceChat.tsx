@@ -60,7 +60,9 @@ export default function VoiceChat() {
     const token = getToken();
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
-    const ws = new WebSocket(`${protocol}//${host}/api/voice/realtime?token=${token}`);
+    // activeMode 2 = 面试练习 → interview persona; others use free conversation.
+    const wsMode = activeMode === 2 ? "interview" : "free";
+    const ws = new WebSocket(`${protocol}//${host}/api/voice/realtime?token=${token}&mode=${wsMode}`);
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);
@@ -117,7 +119,7 @@ export default function VoiceChat() {
         setGrammarTips([]);
       }
     };
-  }, [t]);
+  }, [t, activeMode]);
 
   useEffect(() => () => {
     captureRef.current?.stop();
@@ -298,6 +300,10 @@ export default function VoiceChat() {
               key={mode}
               onClick={() => {
                 if (mode === "跟读训练") { navigate("/follow-read"); return; }
+                // 小组语音 → 进入话题/圈子会议入口（多人语音房）。
+                if (mode === "小组语音") { navigate("/topics"); return; }
+                // 切到面试练习需重连以应用面试官 persona。
+                if (connected && i !== activeMode) disconnect();
                 setActiveMode(i);
               }}
               className={

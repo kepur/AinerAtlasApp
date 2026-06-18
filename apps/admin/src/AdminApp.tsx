@@ -40,6 +40,7 @@ const navGroups = [
       { key: "Cost Center", label: "成本中心", icon: DollarSign },
       { key: "Topics", label: "话题", icon: Hash },
       { key: "Circles", label: "圈子", icon: Globe },
+      { key: "Voice Sessions", label: "实时语音", icon: Activity },
       { key: "Assets", label: "表达资产", icon: BookOpen },
       { key: "Data Management", label: "数据管理", icon: Database }
     ]
@@ -303,6 +304,8 @@ type Circle = {
   ended_at: string | null;
   room_type: string;
   allowed_languages: string[];
+  member_count?: number;
+  message_count?: number;
 };
 
 type CircleMember = {
@@ -312,6 +315,28 @@ type CircleMember = {
   username: string;
   role: string;
   joined_at: string;
+};
+
+type CircleMessageRow = {
+  id: string;
+  user_id: string | null;
+  username: string;
+  role: string;
+  content: string;
+  content_language: string;
+  translated_content: string;
+  created_at: string;
+};
+
+type VoiceSessionRow = {
+  id: string;
+  kind: string;
+  user_id: string | null;
+  username: string;
+  provider: string;
+  duration_seconds: number;
+  status: string;
+  created_at: string;
 };
 
 type GrammarPattern = {
@@ -475,6 +500,8 @@ function AdminApp() {
   const [circles, setCircles] = useState<Circle[]>([]);
   const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null);
   const [circleMembers, setCircleMembers] = useState<CircleMember[]>([]);
+  const [circleMessages, setCircleMessages] = useState<CircleMessageRow[]>([]);
+  const [voiceSessions, setVoiceSessions] = useState<VoiceSessionRow[]>([]);
   const [patterns, setPatterns] = useState<GrammarPattern[]>([]);
   const [patternFilter, setPatternFilter] = useState("");
   const [editingPatternId, setEditingPatternId] = useState<string | null>(null);
@@ -813,6 +840,7 @@ function AdminApp() {
       "Cost Center": "正在加载成本数据...",
       Topics: "正在加载话题列表...",
       Circles: "正在加载圈子列表...",
+      "Voice Sessions": "正在加载实时语音会话...",
       "AI Providers": "正在加载 Provider...",
       Prompts: "正在加载 Prompt 模板...",
       Patterns: "正在加载语法模式...",
@@ -849,11 +877,17 @@ function AdminApp() {
         setStatus(`话题已加载：${data.length} 篇。`);
       }
       if (label === "Circles") {
-        const data = await apiGet<Circle[]>("/api/circles", token);
+        const data = await apiGet<Circle[]>("/api/admin/circles", token);
         setCircles(data);
         setSelectedCircleId(null);
         setCircleMembers([]);
+        setCircleMessages([]);
         setStatus(`圈子已加载：${data.length} 个。`);
+      }
+      if (label === "Voice Sessions") {
+        const data = await apiGet<{ items: VoiceSessionRow[] }>("/api/admin/voice/sessions", token);
+        setVoiceSessions(data.items || []);
+        setStatus(`实时语音会话已加载：${(data.items || []).length} 条。`);
       }
       if (label === "Matches") {
         setStatus("匹配雷达已加载。");
@@ -2089,18 +2123,29 @@ function AdminApp() {
                             <button onClick={async () => {
                               try {
                                 setSelectedCircleId(c.id);
+                                setCircleMessages([]);
                                 setStatus("正在加载圈子成员...");
-                                const members = await apiGet<CircleMember[]>(`/api/circles/${c.id}/members`, token);
+                                const members = await apiGet<CircleMember[]>(`/api/admin/circles/${c.id}/members`, token);
                                 setCircleMembers(members);
                                 setStatus(`成员已加载：${members.length} 人。`);
                               } catch (err) { setStatus(`加载失败：${errorMessage(err)}`); }
                             }}>查看成员</button>
                             <button onClick={async () => {
+                              try {
+                                setSelectedCircleId(c.id);
+                                setCircleMembers([]);
+                                setStatus("正在加载聊天记录...");
+                                const data = await apiGet<{ messages: CircleMessageRow[] }>(`/api/admin/circles/${c.id}/messages`, token);
+                                setCircleMessages(data.messages || []);
+                                setStatus(`聊天记录已加载：${(data.messages || []).length} 条。`);
+                              } catch (err) { setStatus(`加载失败：${errorMessage(err)}`); }
+                            }}>聊天记录{c.message_count != null ? ` (${c.message_count})` : ""}</button>
+                            <button onClick={async () => {
                               const nextStatus = c.status === "active" ? "archived" : "active";
                               try {
                                 setStatus(`正在${nextStatus === "active" ? "激活" : "归档"}圈子...`);
-                                await apiPut(`/api/circles/${c.id}`, token, { status: nextStatus });
-                                const data = await apiGet<Circle[]>("/api/circles", token);
+                                await apiPut(`/api/admin/circles/${c.id}`, token, { status: nextStatus });
+                                const data = await apiGet<Circle[]>("/api/admin/circles", token);
                                 setCircles(data);
                                 setStatus(`圈子已${nextStatus === "active" ? "激活" : "归档"}。`);
                               } catch (err) { setStatus(`操作失败：${errorMessage(err)}`); }
@@ -2137,6 +2182,69 @@ function AdminApp() {
                   </table>
                 </div>
               </article>
+            )}
+            {selectedCircleId && circleMessages.length > 0 && (
+              <article className="panel" style={{ marginTop: 16, border: "1px solid var(--border)", padding: 24 }}>
+                <div className="panel-header" style={{ borderBottom: "none", paddingBottom: 0, marginBottom: 16 }}>
+                  <h2>聊天记录 ({circleMessages.length})</h2>
+                  <button className="secondary-button" onClick={() => { setSelectedCircleId(null); setCircleMessages([]); }}>关闭</button>
+                </div>
+                <div className="table-wrap">
+                  <table>
+                    <thead><tr><th>时间</th><th>发言人</th><th>角色</th><th>内容</th></tr></thead>
+                    <tbody>
+                      {circleMessages.map((m) => (
+                        <tr key={m.id}>
+                          <td style={{ whiteSpace: "nowrap" }}>{new Date(m.created_at).toLocaleString()}</td>
+                          <td>{m.username}</td>
+                          <td>{m.role}</td>
+                          <td>
+                            <div>{m.content}</div>
+                            {m.translated_content ? <div style={{ color: "var(--muted)", fontSize: 12 }}>{m.translated_content}</div> : null}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            )}
+          </section>
+        )}
+
+        {activeNav === "Voice Sessions" && (
+          <section className="panel page-panel">
+            <div className="panel-header">
+              <div>
+                <span>Voice</span>
+                <h2>实时语音会话</h2>
+              </div>
+              <button onClick={() => void handleNav("Voice Sessions")}>
+                <RefreshCw size={15} /> 刷新
+              </button>
+            </div>
+            {voiceSessions.length === 0 ? (
+              <p className="module-copy">暂无实时语音会话记录。</p>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>时间</th><th>用户</th><th>类型</th><th>Provider</th><th>时长(秒)</th><th>状态</th></tr>
+                  </thead>
+                  <tbody>
+                    {voiceSessions.map((s) => (
+                      <tr key={`${s.kind}-${s.id}`}>
+                        <td style={{ whiteSpace: "nowrap" }}>{new Date(s.created_at).toLocaleString()}</td>
+                        <td>{s.username}</td>
+                        <td>{s.kind === "realtime" ? "实时WS" : "会话"}</td>
+                        <td>{s.provider}</td>
+                        <td>{s.duration_seconds || 0}</td>
+                        <td>{s.status || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
         )}

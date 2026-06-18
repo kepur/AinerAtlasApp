@@ -10,17 +10,21 @@ from app.models import (
     AppSettings,
     AuditLog,
     AuthSettings,
+    CircleMember,
+    CircleMessage,
     CircleRoom,
     Conversation,
     ExpressionAsset,
     MembershipPlan,
     ModerationEvent,
     PromptTemplate,
+    RealtimeSessionLog,
     Topic,
     UsageLog,
     User,
     UserMastery,
     UserProfile,
+    VoiceSession,
     LLMCallLog,
 )
 from app.schemas import (
@@ -810,13 +814,86 @@ def delete_admin_topic(topic_id: str, _: AdminUser, db: DBSession) -> dict:
 
 @router.get("/circles")
 def list_admin_circles(_: AdminUser, db: DBSession) -> list[dict]:
-    circles = list(db.scalars(select(CircleRoom).order_by(CircleRoom.created_at.desc()).limit(50)))
-    from app.models import CircleMember
+    circles = list(db.scalars(select(CircleRoom).order_by(CircleRoom.created_at.desc()).limit(100)))
+    # Batch member + message counts to avoid N+1 per circle.
+    member_counts = dict(
+        db.execute(
+            select(CircleMember.room_id, func.count(CircleMember.id)).group_by(CircleMember.room_id)
+        ).all()
+    )
+    message_counts = dict(
+        db.execute(
+            select(CircleMessage.room_id, func.count(CircleMessage.id)).group_by(CircleMessage.room_id)
+        ).all()
+    )
     result = []
     for c in circles:
-        member_count = len(list(db.scalars(select(CircleMember).where(CircleMember.room_id == c.id))))
-        result.append({"id": c.id, "title": c.title, "room_type": c.room_type, "status": c.status, "member_count": member_count, "max_members": c.max_members, "created_at": c.created_at.isoformat()})
+        result.append({
+            "id": c.id,
+            "title": c.title,
+            "room_type": c.room_type,
+            "status": c.status,
+            "topic_id": c.topic_id,
+            "creator_id": c.creator_id,
+            "allowed_languages": c.allowed_languages or [],
+            "member_count": member_counts.get(c.id, 0),
+            "message_count": message_counts.get(c.id, 0),
+            "max_members": c.max_members,
+            "created_at": c.created_at.isoformat(),
+            "ended_at": c.ended_at.isoformat() if c.ended_at else None,
+        })
     return result
+
+
+@router.get("/circles/{circle_id}/members")
+def list_admin_circle_members(circle_id: str, _: AdminUser, db: DBSession) -> list[dict]:
+    members = list(db.scalars(select(CircleMember).where(CircleMember.room_id == circle_id)))
+    result = []
+    for m in members:
+        user = db.get(User, m.user_id)
+        result.append({
+            "id": m.id,
+            "user_id": m.user_id,
+            "username": user.username if user else "?",
+            "email": user.email if user else "",
+            "role": m.role,
+            "joined_at": m.joined_at.isoformat(),
+        })
+    return result
+
+
+@router.get("/circles/{circle_id}/messages")
+def list_admin_circle_messages(circle_id: str, _: AdminUser, db: DBSession) -> dict:
+    """Chat records for a circle/meeting — full message history for moderation."""
+    circle = db.get(CircleRoom, circle_id)
+    if not circle:
+        raise HTTPException(status_code=404)
+    msgs = list(
+        db.scalars(
+            select(CircleMessage)
+            .where(CircleMessage.room_id == circle_id)
+            .order_by(CircleMessage.created_at.asc())
+            .limit(500)
+        )
+    )
+    items = []
+    for m in msgs:
+        user = db.get(User, m.user_id) if m.user_id else None
+        items.append({
+            "id": m.id,
+            "user_id": m.user_id,
+            "username": (user.username if user else ("AI 主持" if m.role == "assistant" else "?")),
+            "role": m.role,
+            "content": m.content,
+            "content_language": m.content_language,
+            "translated_content": m.translated_content,
+            "created_at": m.created_at.isoformat(),
+        })
+    return {
+        "circle": {"id": circle.id, "title": circle.title, "status": circle.status},
+        "messages": items,
+        "total": len(items),
+    }
 
 
 @router.put("/circles/{circle_id}")
@@ -835,6 +912,51 @@ def delete_admin_circle(circle_id: str, _: AdminUser, db: DBSession) -> dict:
     circle = db.get(CircleRoom, circle_id)
     if not circle:
         raise HTTPException(status_code=404)
+    # Cascade: remove members + messages so no orphan rows are left behind.
+    db.execute(delete(CircleMessage).where(CircleMessage.room_id == circle_id))
+    db.execute(delete(CircleMember).where(CircleMember.room_id == circle_id))
     db.delete(circle)
     db.commit()
     return {"deleted": True}
+
+
+@router.get("/voice/sessions")
+def list_admin_voice_sessions(_: AdminUser, db: DBSession, limit: int = 100) -> dict:
+    """Real-time voice sessions — both stored VoiceSession rows and the
+    realtime WebSocket session logs, merged into one chronological list."""
+    limit = max(1, min(limit, 300))
+    rows: list[dict] = []
+
+    for s in db.scalars(
+        select(VoiceSession).order_by(VoiceSession.created_at.desc()).limit(limit)
+    ):
+        user = db.get(User, s.user_id) if s.user_id else None
+        rows.append({
+            "id": s.id,
+            "kind": "session",
+            "user_id": s.user_id,
+            "username": user.username if user else "?",
+            "provider": s.provider,
+            "duration_seconds": s.duration_seconds,
+            "status": "completed" if s.duration_seconds else "empty",
+            "has_transcript": bool(s.transcript),
+            "created_at": s.created_at.isoformat(),
+        })
+
+    for r in db.scalars(
+        select(RealtimeSessionLog).order_by(RealtimeSessionLog.created_at.desc()).limit(limit)
+    ):
+        user = db.get(User, r.user_id) if r.user_id else None
+        rows.append({
+            "id": r.id,
+            "kind": "realtime",
+            "user_id": r.user_id,
+            "username": user.username if user else "?",
+            "provider": r.provider,
+            "duration_seconds": getattr(r, "duration_seconds", 0),
+            "status": getattr(r, "status", ""),
+            "created_at": r.created_at.isoformat(),
+        })
+
+    rows.sort(key=lambda x: x["created_at"], reverse=True)
+    return {"items": rows[:limit], "total": len(rows)}
