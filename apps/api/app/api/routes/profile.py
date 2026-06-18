@@ -1,17 +1,34 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.models import UserAIMemory, UserProfile
+from app.models import User, UserAIMemory, UserMatchProfile, UserProfile
 from app.schemas import AIMemoryRead, AIMemoryUpsert, APIMessage, ProfileRead, ProfileUpsert
 from app.services.ai_memory import upsert_memory
+from app.services.avatar_storage import save_user_avatar
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 
+def _sync_match_birthday(db: DBSession, user_id: str, birthday) -> None:
+    if birthday is None:
+        return
+    match_profile = db.scalar(select(UserMatchProfile).where(UserMatchProfile.user_id == user_id))
+    if not match_profile:
+        match_profile = UserMatchProfile(user_id=user_id)
+        db.add(match_profile)
+    match_profile.birthday = birthday
+
+
 @router.get("", response_model=ProfileRead)
 def get_profile(current_user: CurrentUser, db: DBSession) -> UserProfile:
-    return db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
+    if not profile:
+        profile = UserProfile(user_id=current_user.id)
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
+    return profile
 
 
 @router.put("", response_model=ProfileRead)
@@ -24,8 +41,38 @@ def update_profile(
     if not profile:
         profile = UserProfile(user_id=current_user.id)
         db.add(profile)
-    for field, value in payload.model_dump().items():
+
+    data = payload.model_dump(exclude={"username"})
+    username = payload.username
+    for field, value in data.items():
         setattr(profile, field, value)
+
+    if username is not None:
+        user = db.get(User, current_user.id)
+        if user:
+            cleaned = username.strip()
+            if cleaned:
+                user.username = cleaned[:120]
+
+    _sync_match_birthday(db, current_user.id, profile.birthday)
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+@router.post("/avatar", response_model=ProfileRead)
+async def upload_avatar(
+    current_user: CurrentUser,
+    db: DBSession,
+    file: UploadFile = File(...),
+) -> UserProfile:
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
+    if not profile:
+        profile = UserProfile(user_id=current_user.id)
+        db.add(profile)
+        db.flush()
+
+    profile.avatar_url = await save_user_avatar(current_user.id, file)
     db.commit()
     db.refresh(profile)
     return profile

@@ -76,6 +76,36 @@ export type AuthToken = {
   user: AuthUser;
 };
 
+export function resolveMediaUrl(path?: string | null): string {
+  if (!path) return "";
+  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${normalized}`;
+}
+
+export async function uploadProfileAvatar(file: File): Promise<Profile> {
+  const form = new FormData();
+  form.append("file", file);
+  const token = getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(`${API_BASE_URL}/api/profile/avatar`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+  if (response.status === 401) {
+    clearToken();
+    window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Upload failed: ${response.status}`);
+  }
+  return response.json() as Promise<Profile>;
+}
+
 export type Profile = {
   id: string;
   user_id: string;
@@ -91,6 +121,13 @@ export type Profile = {
   ui_language: string;
   ui_theme: string;
   voice_preference: string;
+  birthday?: string | null;
+  avatar_url?: string;
+  gender_identity?: string;
+  gender_custom?: string;
+  sexual_orientation?: string;
+  orientation_custom?: string;
+  lgbtq_visible?: boolean;
   speaking_confidence_score: number;
   writing_confidence_score: number;
   grammar_level_score: number;

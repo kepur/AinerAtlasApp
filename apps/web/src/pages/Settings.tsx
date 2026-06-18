@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PersonalProfileSection from "../components/PersonalProfileSection";
 import { apiRequest, type Profile } from "../api";
 import { isLocaleCode, useI18n } from "../i18n";
 import {
@@ -55,7 +56,7 @@ function coachToPersona(coach?: string): AIPersona {
 }
 
 export default function Settings() {
-  const { user, profile, logout } = useAuthStore();
+  const { user, profile, logout, loadUser } = useAuthStore();
   const config = useAppConfigStore((s) => s.config);
   const loadConfig = useAppConfigStore((s) => s.loadConfig);
   const { t, locale, setLocale } = useI18n();
@@ -71,6 +72,14 @@ export default function Settings() {
   const [targetLanguage, setTargetLanguage] = useState(profile?.primary_target_language ?? "en");
   const [uiTheme, setUiTheme] = useState<ThemeMode>((profile?.ui_theme as ThemeMode) || "light");
   const [currentLevelIdx, setCurrentLevelIdx] = useState(masteryIndexFromLevel(profile?.current_level));
+  const [username, setUsername] = useState(user?.username ?? "");
+  const [birthday, setBirthday] = useState(profile?.birthday?.slice(0, 10) ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
+  const [genderIdentity, setGenderIdentity] = useState(profile?.gender_identity ?? "prefer_not_to_say");
+  const [genderCustom, setGenderCustom] = useState(profile?.gender_custom ?? "");
+  const [sexualOrientation, setSexualOrientation] = useState(profile?.sexual_orientation ?? "prefer_not_to_say");
+  const [orientationCustom, setOrientationCustom] = useState(profile?.orientation_custom ?? "");
+  const [lgbtqVisible, setLgbtqVisible] = useState(profile?.lgbtq_visible ?? false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +89,10 @@ export default function Settings() {
   }, [config, loadConfig]);
 
   useEffect(() => {
+    if (user?.username) setUsername(user.username);
+  }, [user?.username]);
+
+  useEffect(() => {
     if (!profile) return;
     setUiLanguage(profile.ui_language);
     setExplanationLanguage(profile.explanation_language || profile.ui_language);
@@ -87,6 +100,13 @@ export default function Settings() {
     setTargetLanguage(profile.primary_target_language);
     setUiTheme((profile.ui_theme as ThemeMode) || "light");
     setCurrentLevelIdx(masteryIndexFromLevel(profile.current_level));
+    setBirthday(profile.birthday?.slice(0, 10) ?? "");
+    setAvatarUrl(profile.avatar_url ?? "");
+    setGenderIdentity(profile.gender_identity || "prefer_not_to_say");
+    setGenderCustom(profile.gender_custom ?? "");
+    setSexualOrientation(profile.sexual_orientation || "prefer_not_to_say");
+    setOrientationCustom(profile.orientation_custom ?? "");
+    setLgbtqVisible(!!profile.lgbtq_visible);
     updatePrefs({ aiPersona: coachToPersona(profile.coach_style) });
   }, [profile, updatePrefs]);
 
@@ -111,6 +131,7 @@ export default function Settings() {
         method: "PUT",
         body: JSON.stringify({
           ...profile,
+          username: username.trim() || undefined,
           ui_language: uiLanguage,
           explanation_language: explanationLanguage,
           native_language: nativeLanguage,
@@ -120,9 +141,17 @@ export default function Settings() {
           ui_theme: uiTheme,
           coach_style: prefs.aiPersona,
           voice_preference: prefs.voiceStyle,
+          birthday: birthday || null,
+          avatar_url: avatarUrl,
+          gender_identity: genderIdentity,
+          gender_custom: genderIdentity === "self_describe" ? genderCustom : "",
+          sexual_orientation: sexualOrientation,
+          orientation_custom: sexualOrientation === "self_describe" ? orientationCustom : "",
+          lgbtq_visible: lgbtqVisible,
         }),
       });
       useAuthStore.setState({ profile: updated });
+      if (username.trim()) await loadUser();
       if (isLocaleCode(uiLanguage)) {
         setLocale(uiLanguage);
       }
@@ -197,6 +226,29 @@ export default function Settings() {
             </button>
           </div>
         </section>
+
+        <PersonalProfileSection
+          username={username}
+          onUsernameChange={setUsername}
+          birthday={birthday}
+          onBirthdayChange={setBirthday}
+          avatarUrl={avatarUrl}
+          onAvatarUrlChange={setAvatarUrl}
+          genderIdentity={genderIdentity}
+          onGenderIdentityChange={setGenderIdentity}
+          genderCustom={genderCustom}
+          onGenderCustomChange={setGenderCustom}
+          sexualOrientation={sexualOrientation}
+          onSexualOrientationChange={setSexualOrientation}
+          orientationCustom={orientationCustom}
+          onOrientationCustomChange={setOrientationCustom}
+          lgbtqVisible={lgbtqVisible}
+          onLgbtqVisibleChange={setLgbtqVisible}
+          onProfilePatched={(url) => {
+            setAvatarUrl(url);
+            if (profile) useAuthStore.setState({ profile: { ...profile, avatar_url: url } });
+          }}
+        />
 
         {/* Display & language */}
         <section className="space-y-4">

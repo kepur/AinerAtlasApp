@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
@@ -103,7 +103,7 @@ class AuthToken(BaseModel):
     user: UserRead
 
 
-class ProfileUpsert(BaseModel):
+class ProfileBase(BaseModel):
     native_language: str = "zh"
     target_languages: list[str] = Field(default_factory=lambda: ["en"])
     primary_target_language: str = "en"
@@ -116,9 +116,20 @@ class ProfileUpsert(BaseModel):
     ui_language: str = "zh"
     ui_theme: str = "dark"
     voice_preference: str = "warm-neutral"
+    birthday: date | None = None
+    avatar_url: str = ""
+    gender_identity: str = ""
+    gender_custom: str = ""
+    sexual_orientation: str = ""
+    orientation_custom: str = ""
+    lgbtq_visible: bool = False
 
 
-class ProfileRead(ProfileUpsert):
+class ProfileUpsert(ProfileBase):
+    username: str | None = None
+
+
+class ProfileRead(ProfileBase):
     id: str
     user_id: str
     speaking_confidence_score: float

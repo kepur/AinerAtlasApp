@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchUserStats, type UserStats } from "../api";
+import { fetchUserStats, resolveMediaUrl, type UserStats } from "../api";
 import { useAuthStore } from "../stores/authStore";
 
 type MenuRow = {
@@ -30,6 +30,7 @@ export default function Profile() {
   }
 
   const username = user?.username || "Language Architect";
+  const avatarUrl = resolveMediaUrl(profile?.avatar_url);
   const membership = (user?.membership_level ?? "free").toUpperCase();
   const level = profile?.current_level ?? "A1";
   const grammar = Math.round(profile?.grammar_level_score ?? 0);
@@ -105,7 +106,11 @@ export default function Profile() {
             <span className="material-symbols-outlined text-primary">auto_awesome</span>
           </button>
           <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary-fixed bg-primary-fixed flex items-center justify-center font-bold text-primary text-sm">
-            {username.charAt(0).toUpperCase()}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              username.charAt(0).toUpperCase()
+            )}
           </div>
         </div>
       </nav>
@@ -116,9 +121,21 @@ export default function Profile() {
           <div className="relative mb-6">
             <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-primary to-tertiary-fixed-dim">
               <div className="w-full h-full rounded-full overflow-hidden border-4 border-surface bg-primary-fixed flex items-center justify-center text-primary text-5xl font-bold">
-                {username.charAt(0).toUpperCase()}
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  username.charAt(0).toUpperCase()
+                )}
               </div>
             </div>
+            {profile?.lgbtq_visible && (
+              <span
+                className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-br from-[#e40303] via-[#ff8c00] to-[#732982] text-white text-xs flex items-center justify-center shadow-md"
+                title="LGBTQ+"
+              >
+                🏳️‍🌈
+              </span>
+            )}
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary px-3 py-1 rounded-full shadow-lg border border-surface whitespace-nowrap">
               <span className="text-white font-label-sm text-[10px] uppercase tracking-wider font-bold">{level} Expressionist</span>
             </div>
