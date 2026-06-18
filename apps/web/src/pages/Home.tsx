@@ -31,41 +31,19 @@ export default function Home() {
   const [topics, setTopics] = useState<Topic[]>([]);
 
   useEffect(() => {
+    // Use real data only — no mock fallbacks (a mock conversation id would make
+    // "继续会话" navigate to an invalid /chat/:id). Empty states render cleanly.
     apiRequest<Conversation[]>("/api/conversations")
-      .then((data) => {
-        if (data && data.length > 0) setRecentConversations(data.slice(0, 3));
-        else
-          setRecentConversations([
-            { id: "mock-c1", title: "The Subtle nuances of 'Heimat'", mode: "socratic", messages: [1, 2, 3, 4], status: "active", created_at: "", updated_at: "" } as unknown as Conversation
-          ]);
-      })
-      .catch(() =>
-        setRecentConversations([
-          { id: "mock-c1", title: "The Subtle nuances of 'Heimat'", mode: "socratic", messages: [1, 2, 3, 4], status: "active", created_at: "", updated_at: "" } as unknown as Conversation
-        ])
-      );
+      .then((data) => setRecentConversations(data && data.length > 0 ? data.slice(0, 3) : []))
+      .catch(() => setRecentConversations([]));
 
     apiRequest<MasteryItem[]>("/api/grammar/queue")
-      .then((data) => {
-        if (data && data.length > 0) setQueue(data);
-        else
-          setQueue([
-            { id: "mq1", item_type: "vocabulary", title: "Serendipity", mastery_score: 85, status: "mastered", item_id: "vi1" } as unknown as MasteryItem,
-            { id: "mq2", item_type: "pattern", title: "Not only... but also", mastery_score: 45, status: "learning", item_id: "pi1" } as unknown as MasteryItem
-          ]);
-      })
+      .then((data) => setQueue(data && data.length > 0 ? data : []))
       .catch(() => setQueue([]));
 
     apiRequest<Topic[]>("/api/topics")
-      .then((data) => {
-        if (data && data.length > 0) setTopics(data.slice(0, 5));
-        else
-          setTopics([
-            { id: "mt1", title: "Poetic Structures in Business", tags: ["Career", "Hot"] },
-            { id: "mt2", title: "Sustainable Living Tips", tags: ["Lifestyle"] }
-          ]);
-      })
-      .catch(() => setTopics([{ id: "mt1", title: "Poetic Structures in Business", tags: ["Career", "Hot"] }]));
+      .then((data) => setTopics(data && data.length > 0 ? data.slice(0, 5) : []))
+      .catch(() => setTopics([]));
   }, []);
 
   async function startThought() {

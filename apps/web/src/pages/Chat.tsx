@@ -25,15 +25,13 @@ const MODE_ICONS: Record<string, string> = {
   "free-talk": "chat"
 };
 
-const MOCK_CIRCLES = [
-  { id: "c1", name: "Paris Salon", count: "12+", tint: "from-[#7c3aed] to-[#0058be]" },
-  { id: "c2", name: "Tech Ethics", count: "", tint: "from-[#005b3d] to-[#0058be]" }
-];
+const CIRCLE_TINTS = ["from-[#7c3aed] to-[#0058be]", "from-[#005b3d] to-[#0058be]", "from-[#be185d] to-[#7c3aed]"];
 
 type MatchType = "soulmate" | "founder" | "language_partner" | "interest";
 
 type ConnectFriend = {
   id: string;
+  user_id?: string;
   username: string;
   match_type: MatchType;
   last_message?: string;
@@ -69,12 +67,7 @@ const MATCH_TYPE_META: Record<MatchType, { label: string; ring: string; badge: s
   },
 };
 
-const MOCK_FRIENDS: ConnectFriend[] = [
-  { id: "f1", username: "Kevin · Japan", match_type: "founder", last_message: "你好！我们可以聊一下AI创业方向吗？", last_time: "刚刚", unread: 2, score: 87 },
-  { id: "f2", username: "Luna · Beijing", match_type: "soulmate", last_message: "上次聊的那个话题我一直在想...", last_time: "2小时前", unread: 0, score: 79 },
-  { id: "f3", username: "Aria · Singapore", match_type: "language_partner", last_message: "Hi! Shall we practice English today?", last_time: "昨天", unread: 1, score: 71 },
-  { id: "f4", username: "Mike · London", match_type: "interest", last_message: "发现一个很有意思的观点...", last_time: "3天前", unread: 0, score: 65 },
-];
+type CircleStrip = { id: string; title: string; member_count?: number };
 
 type ChatTab = "ai" | "friends";
 type FilterType = "all" | MatchType;
@@ -97,23 +90,36 @@ export default function Chat() {
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [friends, setFriends] = useState<ConnectFriend[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
+  const [circles, setCircles] = useState<CircleStrip[]>([]);
 
   useEffect(() => {
     loadConversations();
+    apiRequest<CircleStrip[]>("/api/circles?status=active")
+      .then((data) => setCircles(Array.isArray(data) ? data.slice(0, 8) : []))
+      .catch(() => setCircles([]));
   }, [loadConversations]);
 
   useEffect(() => {
     if (chatTab === "friends" && friends.length === 0) {
       setFriendsLoading(true);
-      apiRequest<{ items?: ConnectFriend[] }>("/api/connect/requests?status=accepted")
-        .then((data) => {
-          if (data?.items?.length) setFriends(data.items);
-          else setFriends(MOCK_FRIENDS);
-        })
-        .catch(() => setFriends(MOCK_FRIENDS))
+      apiRequest<{ items?: ConnectFriend[] }>("/api/connect/friends")
+        .then((data) => setFriends(data?.items ?? []))
+        .catch(() => setFriends([]))
         .finally(() => setFriendsLoading(false));
     }
   }, [chatTab]);
+
+  async function openFriendChat(friend: ConnectFriend) {
+    try {
+      const room = await apiRequest<{ id: string }>("/api/connect/dm", {
+        method: "POST",
+        body: JSON.stringify({ friend_user_id: friend.user_id ?? friend.id }),
+      });
+      navigate(`/trio-chat?room=${room.id}`);
+    } catch {
+      navigate("/match");
+    }
+  }
 
   async function handleNewConversation(mode?: string) {
     try {
@@ -177,17 +183,17 @@ export default function Chat() {
             </button>
           </div>
           <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-margin-mobile px-margin-mobile">
-            {MOCK_CIRCLES.map((c) => (
-              <button key={c.id} onClick={() => navigate("/topics")} className="flex-shrink-0 w-16 flex flex-col items-center gap-1.5">
+            {circles.map((c, i) => (
+              <button key={c.id} onClick={() => navigate(`/circles/${c.id}`)} className="flex-shrink-0 w-16 flex flex-col items-center gap-1.5">
                 <div className="w-16 h-16 rounded-full p-[3px] border-2 border-primary-container relative">
-                  <div className={`w-full h-full rounded-full bg-gradient-to-br ${c.tint}`} />
-                  {c.count && (
+                  <div className={`w-full h-full rounded-full bg-gradient-to-br ${CIRCLE_TINTS[i % CIRCLE_TINTS.length]}`} />
+                  {!!c.member_count && (
                     <div className="absolute -bottom-1 -right-1 bg-on-primary-fixed-variant text-[9px] text-white px-1.5 py-0.5 rounded-full font-bold border border-white">
-                      {c.count}
+                      {c.member_count}
                     </div>
                   )}
                 </div>
-                <span className="font-label-sm text-[11px] text-on-surface truncate w-full text-center">{c.name}</span>
+                <span className="font-label-sm text-[11px] text-on-surface truncate w-full text-center">{c.title}</span>
               </button>
             ))}
             <button onClick={() => navigate("/topics/new")} className="flex-shrink-0 w-16 flex flex-col items-center gap-1.5">
@@ -324,7 +330,7 @@ export default function Chat() {
                     return (
                       <button
                         key={friend.id}
-                        onClick={() => navigate("/match")}
+                        onClick={() => void openFriendChat(friend)}
                         className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-surface-container transition-colors active:scale-[0.98] text-left"
                       >
                         {/* Avatar with gradient ring */}

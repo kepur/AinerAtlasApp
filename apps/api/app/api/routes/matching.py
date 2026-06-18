@@ -313,17 +313,125 @@ def send_match_request(
 
 
 @router.get("/requests", response_model=list[MatchRequestRead])
-def list_requests(current_user: CurrentUser, db: DBSession) -> list[MatchRequest]:
-    return list(
-        db.scalars(
-            select(MatchRequest)
-            .where(
-                (MatchRequest.from_user_id == current_user.id)
-                | (MatchRequest.to_user_id == current_user.id)
-            )
-            .order_by(MatchRequest.created_at.desc())
+def list_requests(
+    current_user: CurrentUser, db: DBSession, status: str | None = None,
+) -> list[MatchRequest]:
+    stmt = select(MatchRequest).where(
+        (MatchRequest.from_user_id == current_user.id)
+        | (MatchRequest.to_user_id == current_user.id)
+    )
+    if status:
+        stmt = stmt.where(MatchRequest.status == status)
+    return list(db.scalars(stmt.order_by(MatchRequest.created_at.desc())))
+
+
+def _dm_room_for(db, user_a: str, user_b: str) -> CircleRoom | None:
+    """Find an existing 1:1 DM room shared by both users, if any."""
+    a_rooms = set(db.scalars(
+        select(CircleMember.room_id).where(CircleMember.user_id == user_a)
+    ))
+    if not a_rooms:
+        return None
+    rooms = db.scalars(
+        select(CircleRoom).where(
+            CircleRoom.id.in_(a_rooms), CircleRoom.room_type == "dm"
         )
     )
+    for room in rooms:
+        member_ids = set(db.scalars(
+            select(CircleMember.user_id).where(CircleMember.room_id == room.id)
+        ))
+        if user_b in member_ids and len(member_ids) <= 2:
+            return room
+    return None
+
+
+@router.get("/friends")
+def list_friends(current_user: CurrentUser, db: DBSession) -> dict:
+    """Accepted match partners, shaped for the Chat 好友 tab. Real data only —
+    the frontend no longer needs a mock fallback."""
+    from app.models import CircleMessage
+
+    accepted = list(db.scalars(
+        select(MatchRequest).where(
+            ((MatchRequest.from_user_id == current_user.id)
+             | (MatchRequest.to_user_id == current_user.id)),
+            MatchRequest.status == "accepted",
+        ).order_by(MatchRequest.responded_at.desc())
+    ))
+
+    items = []
+    seen: set[str] = set()
+    for req in accepted:
+        other_id = req.to_user_id if req.from_user_id == current_user.id else req.from_user_id
+        if other_id in seen:
+            continue
+        seen.add(other_id)
+        other = db.get(User, other_id)
+        if not other:
+            continue
+        # Last message preview from the shared DM room (if one was opened).
+        last_message, last_time = "", ""
+        dm = _dm_room_for(db, current_user.id, other_id)
+        if dm:
+            last = db.scalar(
+                select(CircleMessage)
+                .where(CircleMessage.room_id == dm.id)
+                .order_by(CircleMessage.created_at.desc())
+                .limit(1)
+            )
+            if last:
+                last_message = last.content[:60]
+                last_time = last.created_at.strftime("%H:%M")
+        rec = db.scalar(
+            select(MatchRecommendation).where(
+                MatchRecommendation.user_id == current_user.id,
+                MatchRecommendation.target_user_id == other_id,
+            )
+        )
+        items.append({
+            "id": other_id,
+            "user_id": other_id,
+            "username": other.username,
+            "match_type": "language_partner",
+            "last_message": last_message,
+            "last_time": last_time,
+            "unread": 0,
+            "score": round(rec.score) if rec else 0,
+        })
+    return {"items": items}
+
+
+@router.post("/dm")
+def open_dm(
+    current_user: CurrentUser,
+    db: DBSession,
+    friend_user_id: str = Body("", embed=True),
+) -> dict:
+    """Open (or reuse) a 1:1 private chat room with an accepted friend."""
+    if not friend_user_id or friend_user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Invalid friend_user_id")
+    friend = db.get(User, friend_user_id)
+    if not friend:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    existing = _dm_room_for(db, current_user.id, friend_user_id)
+    if existing:
+        return {"id": existing.id, "reused": True}
+
+    room = CircleRoom(
+        creator_id=current_user.id,
+        title=f"私聊 · {friend.username}",
+        max_members=2,
+        room_type="dm",
+        allowed_languages=["zh", "en"],
+    )
+    db.add(room)
+    db.flush()
+    db.add(CircleMember(room_id=room.id, user_id=current_user.id, role="host"))
+    db.add(CircleMember(room_id=room.id, user_id=friend_user_id, role="member"))
+    db.commit()
+    return {"id": room.id, "reused": False}
 
 
 @router.post("/requests/{request_id}/accept", response_model=MatchRequestRead)

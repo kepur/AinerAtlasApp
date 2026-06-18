@@ -28,6 +28,7 @@ export default function AiTrioChat() {
   const [room, setRoom] = useState<CircleRoom | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,8 +46,37 @@ export default function AiTrioChat() {
   function loadRoom() {
     if (!roomId) return;
     apiRequest<CircleRoom>(`/api/circles/${roomId}`)
-      .then(setRoom)
-      .catch(() => {});
+      .then((r) => { setRoom(r); setLoadFailed(false); })
+      .catch(() => setLoadFailed((prev) => prev || room === null));
+  }
+
+  // The room could not be opened (missing id or backend failure) — surface a
+  // real error state with recovery actions instead of a frozen empty chat.
+  if (!roomId || (loadFailed && !room)) {
+    return (
+      <div className="premium fixed inset-0 bg-surface-bright text-on-surface flex flex-col items-center justify-center gap-4 px-8 text-center">
+        <span className="material-symbols-outlined text-[48px] text-on-surface-variant">forum</span>
+        <p className="text-on-surface-variant text-[15px]">
+          {!roomId ? "没有指定对话房间，先去匹配一位语伴吧。" : "无法进入这个对话房间，可能已结束或不存在。"}
+        </p>
+        <div className="flex gap-3">
+          {roomId && (
+            <button
+              onClick={() => { setLoadFailed(false); loadRoom(); }}
+              className="px-5 py-2.5 rounded-full border border-primary/30 text-primary font-bold text-[14px] active:scale-95 transition-transform"
+            >
+              重试
+            </button>
+          )}
+          <button
+            onClick={() => navigate("/match")}
+            className="px-5 py-2.5 rounded-full bg-primary text-white font-bold text-[14px] active:scale-95 transition-transform"
+          >
+            去匹配语伴
+          </button>
+        </div>
+      </div>
+    );
   }
 
   async function handleSend() {

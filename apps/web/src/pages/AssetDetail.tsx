@@ -1,7 +1,7 @@
 import { ArrowLeft, Loader, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiRequest, orderedVariantKeys, variantLabel, type Asset } from "../api";
+import { apiRequest, addCrushCandidate, orderedVariantKeys, variantLabel, type Asset } from "../api";
 
 const VERSION_CARDS = [
   { key: "vlog", icon: "movie", label: "Vlog 版", sub: "富有生活气息", color: "text-primary", bg: "bg-primary/10" },
@@ -23,6 +23,13 @@ export default function AssetDetail() {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeVariant, setActiveVariant] = useState("");
+  const [toast, setToast] = useState("");
+  const [busy, setBusy] = useState<"" | "variants" | "public" | "crush">("");
+
+  function flash(msg: string) {
+    setToast(msg);
+    window.setTimeout(() => setToast(""), 2600);
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -36,6 +43,8 @@ export default function AssetDetail() {
       .catch(() => setAsset(null))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // ── Action handlers (defined after asset/activeText below via closures) ──
 
   if (loading) {
     return (
@@ -57,6 +66,60 @@ export default function AssetDetail() {
 
   const keys = orderedVariantKeys(asset.variants);
   const activeText = asset.variants[activeVariant] ?? asset.variants[keys[0]] ?? "";
+
+  async function handleGenerateVariants() {
+    if (!id || busy) return;
+    setBusy("variants");
+    try {
+      const updated = await apiRequest<Asset>(`/api/assets/${id}/generate-variants`, { method: "POST" });
+      setAsset(updated);
+      const k = orderedVariantKeys(updated.variants);
+      setActiveVariant(k[0] ?? "");
+      flash("已生成新的相似表达 ✨");
+    } catch {
+      flash("生成失败，请稍后再试");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function handleAddToCrush() {
+    if (busy) return;
+    const text = activeText.trim();
+    if (!text) { flash("没有可练习的内容"); return; }
+    setBusy("crush");
+    try {
+      await addCrushCandidate(text, asset?.source_text || "", asset?.target_language || "en", "pattern");
+      flash("已加入消消乐练习队列 🧩");
+    } catch {
+      flash("加入失败，请稍后再试");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function handlePublish() {
+    if (busy || !asset) return;
+    setBusy("public");
+    try {
+      await apiRequest("/api/topics", {
+        method: "POST",
+        body: JSON.stringify({
+          title: asset.title,
+          background: `${asset.source_text}\n\n表达：${activeText}`,
+          pro_view: "",
+          con_view: "",
+          tags: ["expression", "shared"],
+          thought_id: null,
+        }),
+      });
+      flash("已发布到话题广场，其他人可以看到啦 🌍");
+    } catch {
+      flash("发布失败，请稍后再试");
+    } finally {
+      setBusy("");
+    }
+  }
 
   return (
     <div className="premium min-h-full bg-surface text-on-surface">
@@ -101,11 +164,18 @@ export default function AssetDetail() {
                 <span className="material-symbols-outlined text-[20px]">refresh</span>
                 <span className="text-[10px] font-bold">继续迭代</span>
               </button>
-              <button className="h-14 glass-card rounded-2xl flex flex-col items-center justify-center gap-0.5 text-on-surface-variant active:scale-95 transition-transform">
-                <span className="material-symbols-outlined text-[20px]">public</span>
+              <button
+                onClick={handlePublish}
+                disabled={busy !== ""}
+                className="h-14 glass-card rounded-2xl flex flex-col items-center justify-center gap-0.5 text-on-surface-variant active:scale-95 transition-transform disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">{busy === "public" ? "hourglass_top" : "public"}</span>
                 <span className="text-[10px] font-bold">转公开</span>
               </button>
-              <button className="h-14 glass-card rounded-2xl flex flex-col items-center justify-center gap-0.5 text-on-surface-variant active:scale-95 transition-transform">
+              <button
+                onClick={() => navigate("/voice")}
+                className="h-14 glass-card rounded-2xl flex flex-col items-center justify-center gap-0.5 text-on-surface-variant active:scale-95 transition-transform"
+              >
                 <span className="material-symbols-outlined text-[20px]">mic</span>
                 <span className="text-[10px] font-bold">语音练习</span>
               </button>
@@ -155,12 +225,20 @@ export default function AssetDetail() {
 
           {/* Contextual actions */}
           <div className="flex flex-wrap gap-2 mt-5">
-            <button className="px-4 h-9 rounded-full bg-secondary-container/10 text-secondary-container text-[12px] flex items-center gap-1.5 font-bold active:scale-95 transition-transform">
-              <span className="material-symbols-outlined text-[18px]">extension</span>
+            <button
+              onClick={handleAddToCrush}
+              disabled={busy !== ""}
+              className="px-4 h-9 rounded-full bg-secondary-container/10 text-secondary-container text-[12px] flex items-center gap-1.5 font-bold active:scale-95 transition-transform disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[18px]">{busy === "crush" ? "hourglass_top" : "extension"}</span>
               加入消消乐
             </button>
-            <button className="px-4 h-9 rounded-full bg-secondary-container/10 text-secondary-container text-[12px] flex items-center gap-1.5 font-bold active:scale-95 transition-transform">
-              <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+            <button
+              onClick={handleGenerateVariants}
+              disabled={busy !== ""}
+              className="px-4 h-9 rounded-full bg-secondary-container/10 text-secondary-container text-[12px] flex items-center gap-1.5 font-bold active:scale-95 transition-transform disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[18px]">{busy === "variants" ? "hourglass_top" : "auto_awesome"}</span>
               生成相似句
             </button>
             <button
@@ -234,6 +312,12 @@ export default function AssetDetail() {
           <span className="material-symbols-outlined text-[28px] fill" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
         </button>
       </div>
+
+      {toast && (
+        <div className="fixed bottom-[180px] left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-full bg-on-surface/90 text-surface text-[13px] font-bold shadow-lg whitespace-nowrap">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
