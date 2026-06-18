@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiRequest, type Asset, type Conversation, type MasteryItem } from "../api";
+import { apiRequest, type Conversation } from "../api";
 import ConversationModePicker from "../components/ConversationModePicker";
 import TodayTopicsSection, { type TodayTopic } from "../components/TodayTopicsSection";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
-
-const FREEZE_TINTS = [
-  "from-[#7c3aed] to-[#0058be]",
-  "from-[#005b3d] to-[#0058be]",
-  "from-[#732ee4] to-[#d2bbff]",
-];
 
 export default function Home() {
   const user = useAuthStore((s) => s.user);
@@ -20,10 +14,8 @@ export default function Home() {
   const navigate = useNavigate();
 
   const [recentConversations, setRecentConversations] = useState<Conversation[]>([]);
-  const [queue, setQueue] = useState<MasteryItem[]>([]);
   const [topics, setTopics] = useState<TodayTopic[]>([]);
   const [topicsLoading, setTopicsLoading] = useState(true);
-  const [assets, setAssets] = useState<Asset[]>([]);
   const [showModePicker, setShowModePicker] = useState(false);
 
   useEffect(() => {
@@ -37,18 +29,10 @@ export default function Home() {
       .then((data) => setRecentConversations(data && data.length > 0 ? data.slice(0, 3) : []))
       .catch(() => setRecentConversations([]));
 
-    apiRequest<MasteryItem[]>("/api/grammar/queue")
-      .then((data) => setQueue(data && data.length > 0 ? data : []))
-      .catch(() => setQueue([]));
-
     apiRequest<TodayTopic[]>("/api/topics")
       .then((data) => setTopics(data?.length ? data : []))
       .catch(() => setTopics([]))
       .finally(() => setTopicsLoading(false));
-
-    apiRequest<Asset[]>("/api/assets")
-      .then((data) => setAssets(Array.isArray(data) ? data.slice(0, 6) : []))
-      .catch(() => setAssets([]));
   }, []);
 
   async function handleNewConversation(mode?: string) {
@@ -69,12 +53,6 @@ export default function Home() {
     else setShowModePicker(true);
   }
 
-  const masteredCount = queue.filter((q) => q.mastery_score >= 80).length;
-  const focusTopic = topics[0]?.title ?? "Nuanced Negotiation";
-  const recent = recentConversations[0];
-
-  const hour = new Date().getHours();
-  const partOfDay = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
   const greetingName = user?.username || "Language Architect";
 
   return (
@@ -95,7 +73,31 @@ export default function Home() {
       </nav>
 
       <main className="pt-2 pb-8 px-margin-mobile space-y-8">
-        {/* 1. AinerWise Coach — 主页最上方 */}
+        {/* 1. Express Your Thought — 主页首位 */}
+        <section className="relative overflow-hidden rounded-[1.5rem] premium-shadow bg-surface-container-lowest p-6 border border-primary/5">
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-primary/5 rounded-full blur-3xl" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <span className="px-3 py-1 bg-primary/10 text-primary font-label-sm text-label-sm rounded-full">Daily Resonance</span>
+              <span className="material-symbols-outlined text-primary/40">lightbulb</span>
+            </div>
+            <h2 className="font-headline-lg text-headline-lg text-on-surface mb-2 italic">
+              "The art of silence is as expressive as the choice of words."
+            </h2>
+            <p className="font-body-md text-on-surface-variant mb-6">
+              How would you translate this sentiment into your target language's formal register?
+            </p>
+            <button
+              onClick={() => setShowModePicker(true)}
+              className="w-full h-12 bg-primary text-on-primary rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined">edit_note</span>
+              Express Your Thought
+            </button>
+          </div>
+        </section>
+
+        {/* 2. AinerWise Coach */}
         <section>
           <div className="relative overflow-hidden rounded-[20px] p-4 ai-glow glass-card border border-primary/10">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl" />
@@ -133,107 +135,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 2. 今日话题 */}
+        {/* 3. 今日话题 */}
         <TodayTopicsSection topics={topics} loading={topicsLoading} />
-
-        {/* 3. 其余内容 */}
-        <header className="pt-0">
-          <h1 className="font-headline-xl-mobile text-headline-xl-mobile text-on-surface tracking-tight">
-            {partOfDay}, {greetingName}
-          </h1>
-          <p className="font-body-md text-on-surface-variant mt-2">
-            Today we focus on <span className="text-primary font-semibold">{focusTopic}</span>. You've mastered{" "}
-            {masteredCount} new thought-assets this week.
-          </p>
-        </header>
-
-        <section className="relative overflow-hidden rounded-[1.5rem] premium-shadow bg-surface-container-lowest p-6 border border-primary/5">
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-primary/5 rounded-full blur-3xl" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <span className="px-3 py-1 bg-primary/10 text-primary font-label-sm text-label-sm rounded-full">Daily Resonance</span>
-              <span className="material-symbols-outlined text-primary/40">lightbulb</span>
-            </div>
-            <h2 className="font-headline-lg text-headline-lg text-on-surface mb-2 italic">
-              "The art of silence is as expressive as the choice of words."
-            </h2>
-            <p className="font-body-md text-on-surface-variant mb-6">
-              How would you translate this sentiment into your target language's formal register?
-            </p>
-            <button
-              onClick={() => setShowModePicker(true)}
-              className="w-full h-12 bg-primary text-on-primary rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined">edit_note</span>
-              Express Your Thought
-            </button>
-          </div>
-        </section>
-
-        <section className="grid grid-cols-2 gap-4">
-          <button
-            onClick={() => navigate("/voice")}
-            className="col-span-2 flex items-center justify-between p-5 bg-primary-container text-on-primary-container rounded-[1.5rem] premium-shadow active:scale-[0.98] transition-transform"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-on-primary-container/20 flex items-center justify-center">
-                <span className="material-symbols-outlined fill text-3xl">mic</span>
-              </div>
-              <div className="text-left">
-                <p className="font-headline-md text-headline-md leading-tight">Quick Start</p>
-                <p className="font-label-sm text-label-sm opacity-80 uppercase tracking-wider">Voice Coach</p>
-              </div>
-            </div>
-            <span className="material-symbols-outlined">arrow_forward_ios</span>
-          </button>
-
-          {recent && (
-            <button
-              onClick={() => navigate(`/chat/${recent.id}`)}
-              className="col-span-2 text-left p-5 bg-white rounded-[1.5rem] premium-shadow border border-surface-variant/30 flex flex-col justify-between min-h-[160px]"
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-2 h-2 rounded-full bg-tertiary-container animate-pulse" />
-                  <span className="font-label-sm text-label-sm text-on-surface-variant uppercase">Recent Discussion</span>
-                </div>
-                <h3 className="font-headline-md text-headline-md text-on-surface">{recent.title}</h3>
-                <p className="font-body-md text-on-surface-variant line-clamp-1">
-                  AI: "While often translated as home, it carries..."
-                </p>
-              </div>
-              <div className="flex -space-x-2 mt-4">
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-surface-dim flex items-center justify-center text-[10px] font-bold">AI</div>
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-primary-fixed flex items-center justify-center text-[10px] font-bold">ME</div>
-              </div>
-            </button>
-          )}
-        </section>
-
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-headline-lg text-headline-lg text-on-surface">Thought Freeze Assets</h3>
-            <button onClick={() => navigate("/assets")} className="text-primary font-label-sm text-label-sm font-semibold">
-              View All
-            </button>
-          </div>
-          <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-margin-mobile px-margin-mobile">
-            {assets.length === 0 && (
-              <p className="text-on-surface-variant font-body-md py-4">还没有冻结的表达资产，去对话里沉淀第一条吧。</p>
-            )}
-            {assets.map((asset, i) => (
-              <button
-                key={asset.id}
-                onClick={() => navigate(`/assets/${asset.id}`)}
-                className="flex-shrink-0 w-40 p-4 bg-white rounded-2xl premium-shadow border border-surface-variant/20 text-left"
-              >
-                <div className={`w-full aspect-square rounded-xl mb-3 bg-gradient-to-br ${FREEZE_TINTS[i % FREEZE_TINTS.length]}`} />
-                <p className="font-label-sm text-label-sm font-bold text-on-surface truncate">{asset.title}</p>
-                <p className="font-label-sm text-label-sm text-on-surface-variant truncate">{asset.target_language?.toUpperCase() || "EN"}</p>
-              </button>
-            ))}
-          </div>
-        </section>
       </main>
 
       <ConversationModePicker
