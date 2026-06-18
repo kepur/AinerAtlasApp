@@ -68,9 +68,9 @@ async def start_game(game_id: str, current_user: CurrentUser, db: DBSession) -> 
 
 
 @router.get("/{game_id}")
-def get_game(game_id: str, current_user: CurrentUser) -> dict:
+def get_game(game_id: str, current_user: CurrentUser, db: DBSession) -> dict:
     try:
-        return engine.get_game(game_id, current_user.id)
+        return engine.get_game(db, game_id, current_user.id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

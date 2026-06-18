@@ -80,6 +80,26 @@ def test_question_uses_single_llm_call() -> None:
             assert body["hud"]["detected_intent"] == "expression_learning"
 
 
+def test_social_logic_persists_across_get() -> None:
+    """Game state must survive GET reload (DB-backed, not in-memory)."""
+    with TestClient(app) as client:
+        headers = {"Authorization": f"Bearer {_token(client)}"}
+        create = client.post(
+            "/api/games/social-logic",
+            headers=headers,
+            json={"difficulty": "easy"},
+        )
+        assert create.status_code == 200
+        gid = create.json()["game_id"]
+        client.post(f"/api/games/social-logic/{gid}/deal", headers=headers)
+        reload = client.get(f"/api/games/social-logic/{gid}", headers=headers)
+        assert reload.status_code == 200, reload.text
+        body = reload.json()
+        assert body["game_id"] == gid
+        assert body["phase"] == "role_reveal"
+        assert body.get("user_role") == "villager"
+
+
 def test_social_logic_full_flow_structure() -> None:
     with TestClient(app) as client:
         headers = {"Authorization": f"Bearer {_token(client)}"}

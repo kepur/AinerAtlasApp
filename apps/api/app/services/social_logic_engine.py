@@ -2,22 +2,26 @@
 
 Phases: lobby → dealing → role_reveal → night → day_discussion → vote → result → ended
 AI speeches/answers driven by LLM (dual-tier: quality for reasoning, cheap for gloss).
-State kept in-process (_GAMES dict). DB persistence can replace it later.
+State persisted in ``game_sessions`` (game_type=social_logic).
 """
 from __future__ import annotations
 
 import logging
 import random
 import uuid
+from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
+from app.models import GameSession, new_id
 from app.services.llm import get_llm_provider_for_task
 from app.services.runtime_config import resolve_default_llm_provider
 
 logger = logging.getLogger(__name__)
 
-_GAMES: dict[str, dict] = {}
+_SOCIAL_LOGIC_TYPE = "social_logic"
 
 _ROSTER = [
     {"name": "Alex", "code": "A", "personality": "cautious, speaks conservatively", "gender": "male", "avatar_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150", "voice": "male_calm"},
@@ -123,7 +127,7 @@ async def create_game(
     })
 
     game = {
-        "game_id": str(uuid.uuid4()), "user_id": user_id, "difficulty": difficulty,
+        "game_id": new_id(), "user_id": user_id, "difficulty": difficulty,
         "target_language": target_language, "native_language": native_language,
         "round": 0, "phase": "lobby", "players": players, "user_player_id": user_pid,
         "feed": [], "winner": None, "reveal_on_death": cfg["reveal"],
@@ -136,7 +140,7 @@ async def create_game(
         "text": f"欢迎来到狼人杀 Lite！本局 {len(players)} 名玩家，其中 {cfg['wolves']} 名狼人。准备好了就开始发牌吧。",
         "text_native": "",
     })
-    _GAMES[game["game_id"]] = game
+    _insert_game(db, game)
     return _public_view(game)
 
 
@@ -145,7 +149,7 @@ async def create_game(
 # ─────────────────────────────────────────────────
 
 async def deal_cards(db: Session, game_id: str, user_id: str) -> dict:
-    game = _get_game(game_id, user_id)
+    game = _get_game(db, game_id, user_id)
     if game["phase"] != "lobby":
         raise ValueError("Can only deal in lobby phase")
 
@@ -167,6 +171,7 @@ async def deal_cards(db: Session, game_id: str, user_id: str) -> dict:
         "text": "牌已发好。翻开你的身份牌吧！",
         "text_native": "",
     })
+    _save_game(db, game)
     return _public_view(game)
 
 
@@ -175,7 +180,7 @@ async def deal_cards(db: Session, game_id: str, user_id: str) -> dict:
 # ─────────────────────────────────────────────────
 
 async def start_game(db: Session, game_id: str, user_id: str) -> dict:
-    game = _get_game(game_id, user_id)
+    game = _get_game(db, game_id, user_id)
     if game["phase"] != "role_reveal":
         raise ValueError("Can only start after role reveal")
 
@@ -190,6 +195,7 @@ async def start_game(db: Session, game_id: str, user_id: str) -> dict:
         await _generate_day_speeches(db, game)
         game["phase"] = "day_discussion"
 
+    _save_game(db, game)
     return _public_view(game)
 
 
@@ -296,7 +302,7 @@ async def question_player(
     db: Session, game_id: str, user_id: str,
     target_player_id: str, content: str,
 ) -> dict:
-    game = _get_game(game_id, user_id)
+    game = _get_game(db, game_id, user_id)
     if game["phase"] != "day_discussion":
         raise ValueError("Not in discussion phase")
     target = next(
@@ -381,6 +387,7 @@ async def question_player(
 
     hud = _finalize_hud(hud, content, native)
     game["learning_turns"].append(hud)
+    _save_game(db, game)
 
     return {"hud": hud, "answer": answer, "state": _public_view(game)}
 
@@ -390,7 +397,7 @@ async def help_express(
     content: str, target_player_id: str | None = None,
 ) -> dict:
     """Generate challenge-expression HUD only; does not advance game state."""
-    game = _get_game(game_id, user_id)
+    game = _get_game(db, game_id, user_id)
     if game["phase"] != "day_discussion":
         raise ValueError("Help express only available during discussion")
 
@@ -486,7 +493,7 @@ async def cast_vote(
     db: Session, game_id: str, user_id: str,
     target_player_id: str, reason: str = "",
 ) -> dict:
-    game = _get_game(game_id, user_id)
+    game = _get_game(db, game_id, user_id)
     if game["phase"] != "day_discussion":
         raise ValueError("Not votable now")
     target = next((p for p in game["players"] if p["id"] == target_player_id), None)
@@ -553,6 +560,7 @@ async def cast_vote(
             await _detect_contradictions(db, game)
             game["phase"] = "day_discussion"
 
+    _save_game(db, game)
     return _public_view(game)
 
 
@@ -602,12 +610,12 @@ async def _detect_contradictions(db: Session, game: dict) -> None:
 # Get / Summary
 # ─────────────────────────────────────────────────
 
-def get_game(game_id: str, user_id: str) -> dict:
-    return _public_view(_get_game(game_id, user_id))
+def get_game(db: Session, game_id: str, user_id: str) -> dict:
+    return _public_view(_get_game(db, game_id, user_id))
 
 
 async def summarize_game(db: Session, game_id: str, user_id: str) -> dict:
-    game = _get_game(game_id, user_id)
+    game = _get_game(db, game_id, user_id)
     patterns: list[str] = []
     for turn in game["learning_turns"]:
         for p in (turn.get("patterns_v2") or turn.get("patterns") or []):
@@ -646,8 +654,57 @@ async def summarize_game(db: Session, game_id: str, user_id: str) -> dict:
 # Helpers
 # ─────────────────────────────────────────────────
 
-def _get_game(game_id: str, user_id: str) -> dict:
-    game = _GAMES.get(game_id)
-    if not game or game["user_id"] != user_id:
+def _insert_game(db: Session, game: dict) -> None:
+    sess = GameSession(
+        id=game["game_id"],
+        user_id=game["user_id"],
+        game_type=_SOCIAL_LOGIC_TYPE,
+        title="狼人杀 Lite",
+        target_language=game["target_language"],
+        native_language=game["native_language"],
+        difficulty=game["difficulty"],
+        phase=game["phase"],
+        state=game,
+        status="active",
+        started_at=datetime.now(UTC),
+    )
+    db.add(sess)
+    db.commit()
+
+
+def _save_game(db: Session, game: dict) -> None:
+    gs = db.scalar(
+        select(GameSession).where(
+            GameSession.id == game["game_id"],
+            GameSession.user_id == game["user_id"],
+            GameSession.game_type == _SOCIAL_LOGIC_TYPE,
+        )
+    )
+    if not gs:
         raise ValueError("Game not found")
+    gs.state = game
+    gs.phase = game.get("phase", gs.phase)
+    gs.difficulty = game.get("difficulty", gs.difficulty)
+    gs.turn_count = int(game.get("round") or gs.turn_count)
+    if game.get("winner"):
+        gs.status = "ended"
+        gs.ended_at = datetime.now(UTC)
+    flag_modified(gs, "state")
+    db.add(gs)
+    db.commit()
+
+
+def _get_game(db: Session, game_id: str, user_id: str) -> dict:
+    gs = db.scalar(
+        select(GameSession).where(
+            GameSession.id == game_id,
+            GameSession.user_id == user_id,
+            GameSession.game_type == _SOCIAL_LOGIC_TYPE,
+        )
+    )
+    if not gs or not isinstance(gs.state, dict) or not gs.state:
+        raise ValueError("Game not found")
+    game = gs.state
+    if game.get("game_id") != game_id:
+        game["game_id"] = game_id
     return game
