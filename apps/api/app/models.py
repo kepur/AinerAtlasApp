@@ -829,7 +829,10 @@ class AppSettings(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default="default")
     default_theme: Mapped[str] = mapped_column(String(20), default="dark")
-    enabled_locales: Mapped[list[str]] = mapped_column(JSON, default=lambda: ["zh", "en"])
+    enabled_locales: Mapped[list[str]] = mapped_column(
+        JSON,
+        default=lambda: ["en", "zh", "hi", "es", "fr", "ar", "bn", "pt", "ru", "sr"],
+    )
     default_locale: Mapped[str] = mapped_column(String(20), default="zh")
     allow_user_theme_override: Mapped[bool] = mapped_column(Boolean, default=True)
     allow_user_locale_override: Mapped[bool] = mapped_column(Boolean, default=True)

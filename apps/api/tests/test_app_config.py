@@ -12,4 +12,6 @@ def test_public_app_config():
         data = response.json()
         assert "enabled_locales" in data
         assert "zh" in data["enabled_locales"]
+        assert "sr" in data["enabled_locales"]
+        assert len(data["enabled_locales"]) >= 10
         assert data["default_theme"] in {"dark", "light"}

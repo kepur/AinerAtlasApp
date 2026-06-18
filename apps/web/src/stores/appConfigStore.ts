@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { apiRequest } from "../api";
 import { isLocaleCode, type LocaleCode } from "../i18n";
+import { DEFAULT_LANGUAGE_CODES } from "../lib/languages";
 
 export type LocaleInfo = {
   code: string;
@@ -34,6 +35,7 @@ export const useAppConfigStore = create<AppConfigState>((set) => ({
 }));
 
 export function enabledLocaleCodes(config: AppConfig | null): LocaleCode[] {
-  if (!config) return ["zh", "en"];
-  return config.enabled_locales.filter((code): code is LocaleCode => isLocaleCode(code));
+  if (!config) return [...DEFAULT_LANGUAGE_CODES];
+  const enabled = config.enabled_locales.filter((code): code is LocaleCode => isLocaleCode(code));
+  return enabled.length ? enabled : [...DEFAULT_LANGUAGE_CODES];
 }

@@ -255,6 +255,13 @@ def seed_defaults() -> None:
         if not app_settings:
             db.add(AppSettings(id="default"))
             logger.info("Seeded app settings")
+        else:
+            from app.services.languages import DEFAULT_ENABLED_LOCALES, filter_enabled_locales
+
+            current = filter_enabled_locales(app_settings.enabled_locales)
+            if set(DEFAULT_ENABLED_LOCALES) - set(current):
+                app_settings.enabled_locales = list(DEFAULT_ENABLED_LOCALES)
+                logger.info("Upgraded app_settings.enabled_locales to %s", DEFAULT_ENABLED_LOCALES)
 
         _seed_game_templates(db)
         _seed_romance_templates_if_missing(db)

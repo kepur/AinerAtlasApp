@@ -962,7 +962,7 @@ class AppSettingsUpdate(BaseModel):
     default_locale: str = "zh"
     enabled_locales: list[str] = Field(
         default_factory=lambda: [
-            "en", "zh", "hi", "es", "fr", "ar", "bn", "pt", "ru", "ja", "sr"
+            "en", "zh", "hi", "es", "fr", "ar", "bn", "pt", "ru", "sr"
         ]
     )
     allow_user_theme_override: bool = True

@@ -23,7 +23,6 @@ DEFAULT_ENABLED_LOCALES = [
     "bn",
     "pt",
     "ru",
-    "ja",
     "sr",
 ]
 DEFAULT_LOCALE = "zh"

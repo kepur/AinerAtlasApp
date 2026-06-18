@@ -1,11 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiRequest, type Profile } from "../api";
-import { useI18n } from "../i18n";
+import { isLocaleCode, useI18n } from "../i18n";
+import {
+  buildLanguageOptions,
+  CEFR_LEVELS,
+  DEFAULT_LANGUAGE_CODES,
+  levelFromMasteryIndex,
+  masteryIndexFromLevel,
+} from "../lib/languages";
 import { applyTheme, type ThemeMode } from "../lib/theme";
-import { useAppConfigStore } from "../stores/appConfigStore";
+import { enabledLocaleCodes, useAppConfigStore } from "../stores/appConfigStore";
 import { useAuthStore } from "../stores/authStore";
-import { useChatPrefsStore, type VoiceStyle, type AIPersona } from "../stores/chatPrefsStore";
+import {
+  useChatPrefsStore,
+  type AIPersona,
+  type AutoReadMode,
+  type FontSize,
+  type VoiceStyle,
+} from "../stores/chatPrefsStore";
 
 const AI_PERSONAS: { key: AIPersona; icon: string; label: string; desc: string }[] = [
   { key: "encouraging", icon: "favorite", label: "Gentle", desc: "Warm & supportive" },
@@ -18,208 +31,302 @@ const AI_PERSONAS: { key: AIPersona; icon: string; label: string; desc: string }
 ];
 
 const VOICES: { key: VoiceStyle; label: string }[] = [
-  { key: "auto", label: "Auto Recommend" },
-  { key: "sweet_female", label: "Sweet Female" },
-  { key: "gentle_male", label: "Gentle Male" },
-  { key: "pro_female", label: "Pro Female" },
-  { key: "pro_male", label: "Pro Male" },
-  { key: "lively_female", label: "Lively Female" },
-  { key: "calm_male", label: "Calm Male" },
+  { key: "auto", label: "Auto" },
+  { key: "sweet_female", label: "Sweet F" },
+  { key: "gentle_male", label: "Gentle M" },
+  { key: "pro_female", label: "Pro F" },
+  { key: "pro_male", label: "Pro M" },
+  { key: "lively_female", label: "Lively F" },
+  { key: "calm_male", label: "Calm M" },
 ];
 
-const TONES = [
-  { key: "academic", icon: "school", label: "Academic", desc: "Precise & structured" },
-  { key: "natural", icon: "forum", label: "Natural/Street", desc: "Slang & daily flow" },
-  { key: "business", icon: "work", label: "Business", desc: "Polite & executive" },
-  { key: "poetic", icon: "ink_pen", label: "Poetic", desc: "Metaphorical & deep" }
-];
-
-const MASTERY = ["Novice", "Beginner (B1)", "Intermediate (B2)", "Advanced (C1)", "Expert (C2)"];
-
-function levelToSlider(level?: string): number {
-  const map: Record<string, number> = { A1: 1, A2: 1, B1: 2, B2: 3, C1: 4, C2: 5 };
-  return map[(level ?? "").toUpperCase()] ?? 2;
+function coachToPersona(coach?: string): AIPersona {
+  const map: Record<string, AIPersona> = {
+    socratic: "socratic",
+    structured: "strict_teacher",
+    immersive: "lively_friend",
+    encouraging: "encouraging",
+    strict: "strict_teacher",
+    lively: "lively_friend",
+    business: "business_coach",
+    debate: "debate_opponent",
+  };
+  return map[coach ?? ""] ?? "lively_friend";
 }
 
 export default function Settings() {
-  const { profile } = useAuthStore();
+  const { user, profile, logout } = useAuthStore();
   const config = useAppConfigStore((s) => s.config);
   const loadConfig = useAppConfigStore((s) => s.loadConfig);
   const { t, locale, setLocale } = useI18n();
   const navigate = useNavigate();
   const prefs = useChatPrefsStore();
-  const updatePrefs = useChatPrefsStore(s => s.updatePrefs);
+  const updatePrefs = useChatPrefsStore((s) => s.updatePrefs);
 
   const [uiLanguage, setUiLanguage] = useState(profile?.ui_language ?? "zh");
-  const [explanationLanguage, setExplanationLanguage] = useState(profile?.explanation_language ?? profile?.ui_language ?? "zh");
+  const [explanationLanguage, setExplanationLanguage] = useState(
+    profile?.explanation_language ?? profile?.ui_language ?? "zh"
+  );
+  const [nativeLanguage, setNativeLanguage] = useState(profile?.native_language ?? "zh");
+  const [targetLanguage, setTargetLanguage] = useState(profile?.primary_target_language ?? "en");
   const [uiTheme, setUiTheme] = useState<ThemeMode>((profile?.ui_theme as ThemeMode) || "light");
-  const [tone, setTone] = useState("academic"); // TODO(backend): no profile field yet
-  const [currentMastery, setCurrentMastery] = useState(levelToSlider(profile?.current_level));
-  const [targetMastery, setTargetMastery] = useState(4); // TODO(backend): no target field yet
+  const [currentLevelIdx, setCurrentLevelIdx] = useState(masteryIndexFromLevel(profile?.current_level));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!config) loadConfig();
+    if (!config) void loadConfig();
   }, [config, loadConfig]);
 
   useEffect(() => {
     if (!profile) return;
     setUiLanguage(profile.ui_language);
     setExplanationLanguage(profile.explanation_language || profile.ui_language);
+    setNativeLanguage(profile.native_language);
+    setTargetLanguage(profile.primary_target_language);
     setUiTheme((profile.ui_theme as ThemeMode) || "light");
-    setCurrentMastery(levelToSlider(profile.current_level));
-  }, [profile]);
+    setCurrentLevelIdx(masteryIndexFromLevel(profile.current_level));
+    updatePrefs({ aiPersona: coachToPersona(profile.coach_style) });
+  }, [profile, updatePrefs]);
 
-  const localeOptions = config?.locales ?? [{ code: "zh", name: "Chinese", native_name: "简体中文" }];
+  const languageCodes = useMemo(() => {
+    if (config?.enabled_locales?.length) return config.enabled_locales;
+    return [...DEFAULT_LANGUAGE_CODES];
+  }, [config]);
 
-  async function handleUpdate() {
+  const languageOptions = useMemo(
+    () => buildLanguageOptions(languageCodes),
+    [languageCodes]
+  );
+
+  async function handleSave() {
     if (!profile) return;
     setSaving(true);
     setSaved(false);
+    setError(null);
+    const currentLevel = levelFromMasteryIndex(currentLevelIdx);
     try {
       const updated = await apiRequest<Profile>("/api/profile", {
         method: "PUT",
-        body: JSON.stringify({ ...profile, ui_language: uiLanguage, explanation_language: explanationLanguage, ui_theme: uiTheme })
+        body: JSON.stringify({
+          ...profile,
+          ui_language: uiLanguage,
+          explanation_language: explanationLanguage,
+          native_language: nativeLanguage,
+          primary_target_language: targetLanguage,
+          target_languages: [targetLanguage],
+          current_level: currentLevel,
+          ui_theme: uiTheme,
+          coach_style: prefs.aiPersona,
+          voice_preference: prefs.voiceStyle,
+        }),
       });
       useAuthStore.setState({ profile: updated });
-      setLocale(uiLanguage as typeof locale);
+      if (isLocaleCode(uiLanguage)) {
+        setLocale(uiLanguage);
+      }
       applyTheme(uiTheme);
       setSaved(true);
-    } catch {
-      /* ignore */
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("settings.saveFailed"));
     }
     setSaving(false);
   }
 
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
+
+  const selectClass =
+    "form-select w-full h-11 px-3 rounded-xl bg-surface-container-low border border-outline-variant/30 text-on-surface focus:ring-2 focus:ring-primary/20";
+
   return (
     <div className="premium min-h-full bg-surface text-on-surface">
-      {/* Top App Bar */}
       <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 flex items-center justify-between px-margin-mobile h-16">
-        <button onClick={() => navigate(-1)} className="material-symbols-outlined text-on-surface-variant active:scale-95 transition-transform">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="material-symbols-outlined text-on-surface-variant active:scale-95 transition-transform"
+        >
           close
         </button>
-        <h1 className="font-headline-md text-[20px] font-bold text-primary tracking-tight">Intelligence Profile</h1>
-        <button onClick={() => navigate("/voice")} className="material-symbols-outlined text-primary active:scale-95 transition-transform">
-          auto_awesome
-        </button>
+        <h1 className="font-headline-md text-[20px] font-bold text-primary tracking-tight">
+          {t("settings.title")}
+        </h1>
+        <div className="w-6" />
       </header>
 
       <main className="pt-6 pb-32 px-margin-mobile space-y-8">
-        {/* AI Insight Banner */}
-        <section className="glass-card premium-shadow p-6 rounded-2xl relative overflow-hidden">
-          <p className="font-label-sm text-label-sm text-primary uppercase tracking-widest mb-1">AI Recommendation</p>
-          <h2 className="font-headline-md text-[20px] mb-2">Refine your resonance</h2>
-          <p className="text-on-surface-variant text-sm leading-relaxed">
-            AinerWise adapts its linguistic logic based on your tone. Selecting "Natural" prioritizes colloquial flow over rigid grammar.
+        {error && (
+          <p className="text-sm text-error bg-error-container/20 border border-error-container/40 rounded-xl px-4 py-3">
+            {error}
           </p>
+        )}
+
+        {/* Account */}
+        <section className="space-y-4">
+          <h3 className="font-headline-md text-[18px]">{t("settings.accountSection")}</h3>
+          <div className="glass-card premium-shadow p-4 rounded-2xl space-y-3">
+            <div>
+              <label className="font-label-sm text-on-surface-variant block mb-1">{t("settings.email")}</label>
+              <p className="text-sm font-medium">{user?.email ?? "—"}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              className="text-sm text-primary font-medium"
+            >
+              {t("settings.changePassword")}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/privacy")}
+              className="w-full flex items-center justify-between py-2 text-sm font-medium"
+            >
+              {t("settings.privacy")}
+              <span className="material-symbols-outlined text-outline text-[20px]">chevron_right</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full py-2 text-sm font-medium text-error text-left"
+            >
+              {t("settings.logout")}
+            </button>
+          </div>
         </section>
 
-        {/* Display (functional prefs) */}
+        {/* Display & language */}
         <section className="space-y-4">
-          <h3 className="font-headline-md text-[20px]">Display</h3>
+          <h3 className="font-headline-md text-[18px]">{t("settings.displaySection")}</h3>
           <div className="glass-card premium-shadow p-4 rounded-2xl space-y-4">
             <div>
-              <label className="font-label-sm text-on-surface-variant block mb-1">Interface Language</label>
+              <label className="font-label-sm text-on-surface-variant block mb-1">{t("settings.uiLanguage")}</label>
               <select
                 value={uiLanguage}
                 disabled={config?.allow_user_locale_override === false}
                 onChange={(e) => setUiLanguage(e.target.value)}
-                className="form-select w-full h-11 px-3 rounded-xl bg-surface-container-low border border-outline-variant/30 text-on-surface focus:ring-2 focus:ring-primary/20"
+                className={selectClass}
               >
-                {localeOptions.map((item) => (
+                {languageOptions.map((item) => (
                   <option key={item.code} value={item.code}>
-                    {item.native_name} ({item.code})
+                    {item.label}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="font-label-sm text-on-surface-variant block mb-1">Explanation Language</label>
+              <label className="font-label-sm text-on-surface-variant block mb-1">
+                {t("settings.explanationLanguage")}
+              </label>
               <select
                 value={explanationLanguage}
                 disabled={config?.allow_user_locale_override === false}
                 onChange={(e) => setExplanationLanguage(e.target.value)}
-                className="form-select w-full h-11 px-3 rounded-xl bg-surface-container-low border border-outline-variant/30 text-on-surface focus:ring-2 focus:ring-primary/20"
+                className={selectClass}
               >
-                {localeOptions.map((item) => (
+                {languageOptions.map((item) => (
                   <option key={item.code} value={item.code}>
-                    {item.native_name} ({item.code})
+                    {item.label}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="font-label-sm text-on-surface-variant block mb-2">Theme</label>
+              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.theme")}</label>
               <div className="flex gap-2">
-                <button
-                  onClick={() => { setUiTheme("light"); applyTheme("light"); }}
-                  className={
-                    uiTheme === "light"
-                      ? "flex-1 h-11 rounded-xl border-2 border-primary bg-[#fefcff] flex items-center justify-center gap-2 font-medium text-on-surface"
-                      : "flex-1 h-11 rounded-xl border border-outline-variant/30 bg-surface-container-low flex items-center justify-center gap-2 font-medium text-on-surface-variant"
-                  }
-                >
-                  <span className="material-symbols-outlined text-[18px]">light_mode</span> Light
-                </button>
-                <button
-                  onClick={() => { setUiTheme("dark"); applyTheme("dark"); }}
-                  className={
-                    uiTheme === "dark"
-                      ? "flex-1 h-11 rounded-xl border-2 border-primary bg-[#fefcff] flex items-center justify-center gap-2 font-medium text-on-surface"
-                      : "flex-1 h-11 rounded-xl border border-outline-variant/30 bg-surface-container-low flex items-center justify-center gap-2 font-medium text-on-surface-variant"
-                  }
-                >
-                  <span className="material-symbols-outlined text-[18px]">dark_mode</span> Dark
-                </button>
+                {(["light", "dark"] as ThemeMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      setUiTheme(mode);
+                      applyTheme(mode);
+                    }}
+                    className={
+                      uiTheme === mode
+                        ? "flex-1 h-11 rounded-xl border-2 border-primary bg-[#fefcff] flex items-center justify-center gap-2 font-medium text-on-surface"
+                        : "flex-1 h-11 rounded-xl border border-outline-variant/30 bg-surface-container-low flex items-center justify-center gap-2 font-medium text-on-surface-variant"
+                    }
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      {mode === "light" ? "light_mode" : "dark_mode"}
+                    </span>
+                    {mode === "light" ? t("settings.themeLight") : t("settings.themeDark")}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Language Pairs (real profile) */}
+        {/* Learning profile */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-headline-md text-[20px]">Language Pairs</h3>
-            <span className="font-label-sm text-label-sm text-on-surface-variant">2 Selected</span>
-          </div>
-          <div className="grid grid-cols-1 gap-3">
-            <div className="glass-card premium-shadow p-4 rounded-2xl flex items-center justify-between border-l-4 border-l-primary">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-primary">language</span>
-                </div>
-                <div>
-                  <p className="font-label-sm text-on-surface-variant">Primary (Native)</p>
-                  <p className="font-headline-md text-[18px]">{(profile?.native_language ?? "ZH").toUpperCase()}</p>
-                </div>
-              </div>
-              <span className="material-symbols-outlined text-outline">expand_more</span>
+          <h3 className="font-headline-md text-[18px]">{t("settings.learningSection")}</h3>
+          <div className="glass-card premium-shadow p-4 rounded-2xl space-y-4">
+            <div>
+              <label className="font-label-sm text-on-surface-variant block mb-1">
+                {t("settings.nativeLanguage")}
+              </label>
+              <select
+                value={nativeLanguage}
+                onChange={(e) => setNativeLanguage(e.target.value)}
+                className={selectClass}
+              >
+                {languageOptions.map((item) => (
+                  <option key={`native-${item.code}`} value={item.code}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="glass-card premium-shadow p-4 rounded-2xl flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-secondary">translate</span>
-                </div>
-                <div>
-                  <p className="font-label-sm text-on-surface-variant">Target (Learning)</p>
-                  <p className="font-headline-md text-[18px]">{(profile?.primary_target_language ?? "EN").toUpperCase()}</p>
-                </div>
+            <div>
+              <label className="font-label-sm text-on-surface-variant block mb-1">
+                {t("settings.targetLanguage")}
+              </label>
+              <select
+                value={targetLanguage}
+                onChange={(e) => setTargetLanguage(e.target.value)}
+                className={selectClass}
+              >
+                {languageOptions.map((item) => (
+                  <option key={`target-${item.code}`} value={item.code}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div className="flex justify-between items-end mb-2">
+                <label className="font-label-sm text-on-surface-variant">{t("settings.currentLevel")}</label>
+                <span className="text-primary font-bold text-sm">
+                  {CEFR_LEVELS[currentLevelIdx - 1] ?? "B1"}
+                </span>
               </div>
-              <span className="material-symbols-outlined text-outline">expand_more</span>
+              <input
+                type="range"
+                min={1}
+                max={CEFR_LEVELS.length}
+                value={currentLevelIdx}
+                onChange={(e) => setCurrentLevelIdx(Number(e.target.value))}
+                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-surface-container accent-[#630ed4]"
+              />
             </div>
           </div>
         </section>
 
         {/* AI Persona */}
         <section className="space-y-4">
-          <h3 className="font-headline-md text-[20px]">AI Persona</h3>
+          <h3 className="font-headline-md text-[18px]">{t("settings.aiPersona")}</h3>
           <div className="grid grid-cols-2 gap-3">
             {AI_PERSONAS.map((p) => {
               const active = prefs.aiPersona === p.key;
               return (
                 <button
                   key={p.key}
+                  type="button"
                   onClick={() => updatePrefs({ aiPersona: p.key })}
                   className={
                     active
@@ -227,7 +334,11 @@ export default function Settings() {
                       : "glass-card premium-shadow p-4 rounded-2xl text-left border border-transparent transition-all"
                   }
                 >
-                  <span className={`material-symbols-outlined mb-2 block ${active ? "text-primary" : "text-on-surface-variant"}`}>{p.icon}</span>
+                  <span
+                    className={`material-symbols-outlined mb-2 block ${active ? "text-primary" : "text-on-surface-variant"}`}
+                  >
+                    {p.icon}
+                  </span>
                   <p className="font-bold text-sm">{p.label}</p>
                   <p className="text-xs text-on-surface-variant mt-1">{p.desc}</p>
                 </button>
@@ -236,30 +347,30 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Voice & Audio */}
+        {/* Voice */}
         <section className="space-y-4">
-          <h3 className="font-headline-md text-[20px]">Voice & Audio</h3>
+          <h3 className="font-headline-md text-[18px]">{t("settings.voiceAudio")}</h3>
           <div className="glass-card premium-shadow p-4 rounded-2xl space-y-5">
             <div>
-              <label className="font-label-sm text-on-surface-variant block mb-2">Auto Read Mode</label>
+              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.autoReadMode")}</label>
               <select
                 value={prefs.autoReadMode}
-                onChange={(e) => updatePrefs({ autoReadMode: e.target.value as any })}
-                className="form-select w-full h-11 px-3 rounded-xl bg-surface-container-low border border-outline-variant/30 text-on-surface focus:ring-2 focus:ring-primary/20"
+                onChange={(e) => updatePrefs({ autoReadMode: e.target.value as AutoReadMode })}
+                className={selectClass}
               >
-                <option value="off">Off (Manual tap to play)</option>
-                <option value="target_only">Target Language Only</option>
-                <option value="always">Always Auto-read AI Replies</option>
-                <option value="voice_only">Voice Mode Only</option>
-                <option value="wifi_only">Wi-Fi Only</option>
+                <option value="off">{t("settings.autoReadOff")}</option>
+                <option value="target_only">{t("settings.autoReadTarget")}</option>
+                <option value="always">{t("settings.autoReadAlways")}</option>
+                <option value="voice_only">{t("settings.autoReadVoice")}</option>
               </select>
             </div>
             <div>
-              <label className="font-label-sm text-on-surface-variant block mb-2">Voice Style</label>
+              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.voiceStyle")}</label>
               <div className="flex flex-wrap gap-2">
-                {VOICES.map(v => (
+                {VOICES.map((v) => (
                   <button
                     key={v.key}
+                    type="button"
                     onClick={() => updatePrefs({ voiceStyle: v.key })}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                       prefs.voiceStyle === v.key
@@ -275,17 +386,18 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Chat Display Preferences */}
+        {/* Chat display */}
         <section className="space-y-4">
-          <h3 className="font-headline-md text-[20px]">Chat Display</h3>
+          <h3 className="font-headline-md text-[18px]">{t("settings.chatDisplay")}</h3>
           <div className="glass-card premium-shadow p-4 rounded-2xl space-y-5">
             <div>
-              <label className="font-label-sm text-on-surface-variant block mb-2">Font Size</label>
+              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.fontSize")}</label>
               <div className="flex bg-surface-container-low rounded-xl p-1 border border-outline-variant/30">
-                {["small", "standard", "large", "xlarge"].map(size => (
+                {(["small", "standard", "large", "xlarge"] as FontSize[]).map((size) => (
                   <button
                     key={size}
-                    onClick={() => updatePrefs({ fontSize: size as any })}
+                    type="button"
+                    onClick={() => updatePrefs({ fontSize: size })}
                     className={`flex-1 py-1.5 text-xs font-medium rounded-lg capitalize ${
                       prefs.fontSize === size ? "bg-white text-primary shadow-sm" : "text-on-surface-variant"
                     }`}
@@ -295,34 +407,11 @@ export default function Settings() {
                 ))}
               </div>
             </div>
-
-            <div className="space-y-3 pt-2">
-              {[
-                { key: "showChineseExplanation", label: "Show Native Explanations" },
-                { key: "showGrammarHUD", label: "Show Learning HUD" },
-                { key: "showAgentTips", label: "Show Agent Tips" },
-                { key: "showSpeakerIcon", label: "Show Speaker Icon" },
-                { key: "showEmoji", label: "Show Emojis" },
-              ].map(toggle => (
-                <div key={toggle.key} className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{toggle.label}</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={prefs[toggle.key as keyof typeof prefs] as boolean}
-                      onChange={(e) => updatePrefs({ [toggle.key]: e.target.checked })}
-                    />
-                    <div className="w-11 h-6 bg-surface-container rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </label>
-                </div>
-              ))}
-            </div>
-
             <div className="pt-2 border-t border-outline-variant/20">
-              <label className="font-label-sm text-on-surface-variant block mb-2">Bubble Density</label>
+              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.bubbleDensity")}</label>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={() => updatePrefs({ bubbleDensity: "compact" })}
                   className={`flex-1 py-2 rounded-xl text-sm font-medium border ${
                     prefs.bubbleDensity === "compact"
@@ -330,9 +419,10 @@ export default function Settings() {
                       : "border-outline-variant/30 text-on-surface-variant"
                   }`}
                 >
-                  Compact
+                  {t("settings.compact")}
                 </button>
                 <button
+                  type="button"
                   onClick={() => updatePrefs({ bubbleDensity: "comfortable" })}
                   className={`flex-1 py-2 rounded-xl text-sm font-medium border ${
                     prefs.bubbleDensity === "comfortable"
@@ -340,62 +430,27 @@ export default function Settings() {
                       : "border-outline-variant/30 text-on-surface-variant"
                   }`}
                 >
-                  Comfortable
+                  {t("settings.comfortable")}
                 </button>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Proficiency Targets */}
-        <section className="space-y-6">
-          <h3 className="font-headline-md text-[20px]">Proficiency Targets</h3>
-          <div className="space-y-8 glass-card premium-shadow p-6 rounded-2xl">
-            <div className="space-y-3">
-              <div className="flex justify-between items-end">
-                <label className="font-label-sm text-on-surface-variant">Current Mastery</label>
-                <span className="text-primary font-bold">{MASTERY[currentMastery - 1]}</span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={currentMastery}
-                onChange={(e) => setCurrentMastery(Number(e.target.value))}
-                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-surface-container accent-[#630ed4]"
-              />
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-end">
-                <label className="font-label-sm text-on-surface-variant">Target Mastery</label>
-                <span className="text-secondary font-bold">{MASTERY[targetMastery - 1]}</span>
-              </div>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                value={targetMastery}
-                onChange={(e) => setTargetMastery(Number(e.target.value))}
-                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-surface-container accent-[#0058be]"
-              />
-            </div>
-          </div>
-        </section>
-
-        <div className="py-4 flex flex-col items-center justify-center opacity-40">
-          <p className="text-xs tracking-widest uppercase font-label-sm">AinerWise Semantic Engine v4.2</p>
-        </div>
+        <p className="text-center text-xs text-on-surface-variant opacity-60">
+          {languageCodes.length} {t("settings.languageSettings").toLowerCase()} · {locale.toUpperCase()}
+        </p>
       </main>
 
-      {/* Bottom Action Bar */}
       <div className="premium fixed bottom-0 left-1/2 -translate-x-1/2 w-[min(100%,430px)] p-margin-mobile bg-surface/80 backdrop-blur-xl border-t border-outline-variant/20 z-50">
         <button
-          onClick={handleUpdate}
-          disabled={saving}
+          type="button"
+          onClick={handleSave}
+          disabled={saving || !profile}
           className="w-full h-14 bg-primary text-on-primary rounded-xl font-headline-md text-[16px] font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-60"
         >
-          <span className="material-symbols-outlined">{saved ? "check" : "sync"}</span>
-          {saving ? "Updating…" : saved ? "Updated" : "Update Intelligence"}
+          <span className="material-symbols-outlined">{saved ? "check" : "save"}</span>
+          {saving ? t("settings.saving") : saved ? t("settings.saved") : t("settings.save")}
         </button>
       </div>
     </div>
