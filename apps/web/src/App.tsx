@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import PrivateRoute from "./components/PrivateRoute";
+import AdminRoute from "./components/AdminRoute";
 import TabBar from "./components/TabBar";
 import Assets from "./pages/Assets";
 import AssetDetail from "./pages/AssetDetail";
@@ -83,10 +84,12 @@ function AppLayout() {
           <Route path="/game/roleplay/storylines" element={<RoleplayStorylineList />} />
           <Route path="/game/roleplay/characters" element={<Navigate to="/game/romance-social/characters" replace />} />
           <Route path="/game/romance-social/characters" element={<RoleplayCharacterList />} />
-          <Route path="/admin/story-publisher" element={<StoryPublisher />} />
-          <Route path="/admin/asset-library" element={<AssetLibrary />} />
-          <Route path="/admin/templates" element={<TemplateManager />} />
-          <Route path="/admin/romance-characters" element={<RomanceCharacterManager />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/admin/story-publisher" element={<StoryPublisher />} />
+            <Route path="/admin/asset-library" element={<AssetLibrary />} />
+            <Route path="/admin/templates" element={<TemplateManager />} />
+            <Route path="/admin/romance-characters" element={<RomanceCharacterManager />} />
+          </Route>
           <Route path="/game/roleplay/character/:id" element={<RoleplayCharacterDetail />} />
           <Route path="/game/roleplay/generated-setting" element={<GeneratedStorySettings />} />
           <Route path="/game/setup/:id" element={<RoleplaySetup />} />

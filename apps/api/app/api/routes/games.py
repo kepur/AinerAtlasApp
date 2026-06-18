@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.api.deps import CurrentUser, DBSession
+from app.api.deps import AdminUser, CurrentUser, DBSession
 from app.services import game_engine as engine
 
 logger = logging.getLogger(__name__)
@@ -193,7 +193,7 @@ class TemplateUpdateRequest(BaseModel):
 
 
 @router.patch("/templates/{template_id}")
-def update_template(template_id: str, payload: TemplateUpdateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+def update_template(template_id: str, payload: TemplateUpdateRequest, current_user: AdminUser, db: DBSession) -> dict:
     from app.models import GameTemplate
     t = db.get(GameTemplate, template_id)
     if not t:
@@ -208,7 +208,7 @@ def update_template(template_id: str, payload: TemplateUpdateRequest, current_us
 
 
 @router.delete("/templates/{template_id}")
-def delete_template(template_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+def delete_template(template_id: str, current_user: AdminUser, db: DBSession) -> dict:
     from app.models import GameTemplate, GameSession
     from sqlalchemy import update
     t = db.get(GameTemplate, template_id)
@@ -253,13 +253,13 @@ def list_voices() -> list[dict]:
 
 
 @router.post("/assets")
-def create_asset(payload: AssetRequest, current_user: CurrentUser, db: DBSession) -> dict:
+def create_asset(payload: AssetRequest, current_user: AdminUser, db: DBSession) -> dict:
     from app.services import game_assets
     return game_assets.create_asset(db, payload.model_dump())
 
 
 @router.patch("/assets/{asset_id}")
-def update_asset(asset_id: str, payload: AssetUpdateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+def update_asset(asset_id: str, payload: AssetUpdateRequest, current_user: AdminUser, db: DBSession) -> dict:
     from app.services import game_assets
     try:
         return game_assets.update_asset(db, asset_id, payload.model_dump(exclude_none=True))
@@ -268,7 +268,7 @@ def update_asset(asset_id: str, payload: AssetUpdateRequest, current_user: Curre
 
 
 @router.delete("/assets/{asset_id}")
-def delete_asset(asset_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+def delete_asset(asset_id: str, current_user: AdminUser, db: DBSession) -> dict:
     from app.services import game_assets
     game_assets.delete_asset(db, asset_id)
     return {"ok": True}
@@ -361,7 +361,7 @@ def list_romance_characters(db: DBSession, category: str | None = None, include_
 
 
 @router.post("/admin/romance-characters")
-def create_romance_character(payload: RomanceCharacterCreateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+def create_romance_character(payload: RomanceCharacterCreateRequest, current_user: AdminUser, db: DBSession) -> dict:
     from app.models import GameTemplate
 
     cfg = {
@@ -410,7 +410,7 @@ def create_romance_character(payload: RomanceCharacterCreateRequest, current_use
 
 
 @router.patch("/admin/romance-characters/{template_id}")
-def update_romance_character(template_id: str, payload: RomanceCharacterUpdateRequest, current_user: CurrentUser, db: DBSession) -> dict:
+def update_romance_character(template_id: str, payload: RomanceCharacterUpdateRequest, current_user: AdminUser, db: DBSession) -> dict:
     from app.models import GameTemplate
 
     t = db.get(GameTemplate, template_id)
@@ -459,7 +459,7 @@ def update_romance_character(template_id: str, payload: RomanceCharacterUpdateRe
 
 
 @router.delete("/admin/romance-characters/{template_id}")
-def delete_romance_character(template_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+def delete_romance_character(template_id: str, current_user: AdminUser, db: DBSession) -> dict:
     from app.models import GameTemplate, GameSession
     from sqlalchemy import update
     t = db.get(GameTemplate, template_id)
@@ -488,7 +488,7 @@ async def generate_story_for_user(payload: GenerateStoryRequest, current_user: C
 
 
 @router.post("/admin/generate-story")
-async def generate_story(payload: GenerateStoryRequest, current_user: CurrentUser, db: DBSession) -> dict:
+async def generate_story(payload: GenerateStoryRequest, current_user: AdminUser, db: DBSession) -> dict:
     return await _generate_story_outline(payload, db)
 
 
