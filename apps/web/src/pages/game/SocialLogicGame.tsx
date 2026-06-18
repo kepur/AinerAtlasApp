@@ -17,6 +17,9 @@ import VotePanel from "../../components/game/VotePanel";
 import VoteResultCard from "../../components/game/VoteResultCard";
 import ContradictionHintCard from "../../components/game/ContradictionHintCard";
 import GameSummary from "../../components/game/GameSummary";
+import CardDeck from "../../components/game/CardDeck";
+import PlayerDetailSheet, { type PlayerDetail } from "../../components/game/PlayerDetailSheet";
+import TimelineDrawer, { type TimelineEntry, type TimelineFilter } from "../../components/game/TimelineDrawer";
 import { LearningHUD, TokenExplainSheet, TurnSelector, useTts } from "../../components/learning";
 import { apiRequest } from "../../api";
 import { addPatternsToCrush, saveGameToAssets } from "../../lib/gameLearning";
@@ -24,7 +27,7 @@ import { useAudioCacheStore } from "../../stores/audioCacheStore";
 import { normalizeGameHud, useSocialLogicStore } from "../../stores/socialLogicStore";
 import type { HudData } from "../../stores/chatStore";
 
-type UIPhase = "lobby" | "reveal" | "night" | "day" | "vote" | "vote_result" | "summary";
+type UIPhase = "lobby" | "shuffling" | "dealt" | "reveal" | "ai_ready" | "night" | "day" | "vote" | "vote_result" | "summary";
 
 type VoteResultView = {
   eliminatedName: string;
@@ -80,6 +83,11 @@ export default function SocialLogicGame() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>();
   const [summary, setSummary] = useState<any>(null);
   const [voteResult, setVoteResult] = useState<VoteResultView | null>(null);
+  const [roleFaceUp, setRoleFaceUp] = useState(false);
+  const [detailPlayerId, setDetailPlayerId] = useState<string | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("all");
+  const [helpBusy, setHelpBusy] = useState(false);
   const [tokenSheet, setTokenSheet] = useState<{ token: string; context: string } | null>(null);
   const [crushBusy, setCrushBusy] = useState(false);
   const [assetsBusy, setAssetsBusy] = useState(false);
@@ -175,13 +183,28 @@ export default function SocialLogicGame() {
 
   const handleDeal = async () => {
     if (!gid) return;
+    setUiPhase("shuffling");
+    await new Promise((r) => setTimeout(r, 1600));
     const data = await call(`/${gid}/deal`);
     setGame(data);
+    setRoleFaceUp(false);
+    setUiPhase("dealt");
+  };
+
+  const handleViewRole = () => {
     setUiPhase("reveal");
+  };
+
+  const handleFlipRole = () => {
+    setRoleFaceUp(true);
   };
 
   const handleStart = async () => {
     if (!gid) return;
+    setUiPhase("ai_ready");
+  };
+
+  const handleAiReadyContinue = () => {
     setUiPhase("night");
   };
 
@@ -213,6 +236,54 @@ export default function SocialLogicGame() {
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uiPhase, gid]);
+
+  const handleHelpExpress = async (text: string) => {
+    if (!gid || !text.trim()) return;
+    const targetId = selectedPlayerId
+      || (players.find((p: any) => !p.is_user && p.alive)?.id);
+    setHelpBusy(true);
+    try {
+      const data = await apiRequest<any>(`/api/games/social-logic/${gid}/help-express`, {
+        method: "POST",
+        body: JSON.stringify({ content: text.trim(), target_player_id: targetId }),
+      });
+      if (data.hud) {
+        pushTurn("帮我表达", normalizeGameHud(data.hud));
+      }
+    } finally {
+      setHelpBusy(false);
+    }
+  };
+
+  function buildPlayerDetail(playerId: string): PlayerDetail | null {
+    const p = players.find((x: any) => x.id === playerId);
+    if (!p) return null;
+    const speeches = (game?.feed || [])
+      .filter((f: any) => f.type === "speech" && f.speaker === p.name)
+      .map((f: any) => f.text_native || f.text);
+    const hints = (game?.feed || [])
+      .filter((f: any) => f.type === "contradiction" && (f.players_involved || []).includes(p.name))
+      .map((f: any) => f.text);
+    return {
+      id: p.id,
+      name: p.name,
+      alive: p.alive,
+      suspicion: p.suspicion ?? 0,
+      publicClaim: p.public_claim,
+      roleKnown: p.role ? (ROLE_CN[p.role]?.name) : undefined,
+      speechSummary: speeches,
+      suspicionHints: hints,
+    };
+  }
+
+  const timelineEntries: TimelineEntry[] = (game?.feed || []).map((f: any, i: number) => ({
+    id: `${i}-${f.type}`,
+    type: f.type,
+    speaker: f.speaker,
+    text: f.text || f.text_native || "",
+    textNative: f.text_native,
+    round: f.round,
+  }));
 
   const handleQuestion = async (text: string) => {
     if (!gid || !text.trim()) return;
@@ -350,6 +421,7 @@ export default function SocialLogicGame() {
             totalCount={game.total_count}
             userRole={roleInfo.name}
             onBack={() => navigate(-1)}
+            onOptions={() => setTimelineOpen(true)}
           />
         )}
 
@@ -366,22 +438,65 @@ export default function SocialLogicGame() {
             />
           )}
 
-          {/* Role reveal */}
+          {uiPhase === "shuffling" && (
+            <div className="w-full h-full flex flex-col items-center justify-center px-6 text-center gap-6">
+              <CardDeck isShuffling />
+              <div>
+                <h2 className="text-xl font-bold text-white">AI 正在洗牌…</h2>
+                <p className="text-white/50 text-sm mt-2">身份将随机分配，每个 AI 只知道自己该知道的信息</p>
+              </div>
+              {busy && (
+                <div className="flex items-center gap-2 text-white/60 text-xs">
+                  <Loader2 size={14} className="animate-spin" /> 正在分配身份…
+                </div>
+              )}
+            </div>
+          )}
+
+          {uiPhase === "dealt" && (
+            <div className="w-full h-full flex flex-col items-center justify-center px-4 gap-6">
+              <h2 className="text-lg font-bold text-white">身份牌已发放</h2>
+              <p className="text-white/50 text-sm -mt-4">点击你的身份牌查看身份</p>
+              <div className="flex flex-wrap justify-center gap-3 max-w-md">
+                {players.map((p: any) => (
+                  <div key={p.id} className="flex flex-col items-center gap-2">
+                    <RoleCard
+                      isFaceUp={false}
+                      isUser={p.is_user}
+                      playerName={p.name}
+                      onClick={p.is_user ? handleViewRole : undefined}
+                    />
+                    <span className="text-[10px] text-white/40">{p.is_user ? "你的身份牌" : "已发牌"}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={handleViewRole}
+                className="mt-2 px-8 py-3 rounded-2xl bg-[#7c5cff] text-white font-bold text-sm shadow-[0_0_20px_rgba(124,92,255,0.4)]"
+              >
+                查看我的身份
+              </button>
+            </div>
+          )}
+
           {uiPhase === "reveal" && (
             <div className="w-full h-full flex flex-col items-center justify-center relative px-4 overflow-hidden">
-              {/* Spooky semi-transparent background image */}
-              <div 
+              <div
                 className="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-color-dodge"
-                style={{ 
+                style={{
                   backgroundImage: "url('https://images.unsplash.com/photo-1519074002996-a69e7ac46a42?auto=format&fit=crop&q=80&w=800')",
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-b from-[#0b0a1f]/80 via-[#0b0a1f]/95 to-[#0b0a1f] z-0" />
-              
-              <div className="z-10 animate-[glow-burst_1s_ease-out]">
-                <RoleCard 
-                  isFaceUp 
-                  isUser 
+
+              {!roleFaceUp && (
+                <p className="z-10 text-white/60 text-sm mb-4 animate-pulse">正在揭示你的身份…</p>
+              )}
+
+              <div className={`z-10 ${roleFaceUp ? "animate-[glow-burst_1s_ease-out]" : ""}`}>
+                <RoleCard
+                  isFaceUp={roleFaceUp}
+                  isUser
                   roleEn={roleInfo.nameEn}
                   roleZh={roleInfo.nameZh}
                   campEn={roleInfo.campEn}
@@ -391,14 +506,49 @@ export default function SocialLogicGame() {
                   goalEn={roleInfo.goalEn}
                   goalZh={roleInfo.goalZh}
                   emoji={roleInfo.emoji}
-                  onClick={handleStart} 
+                  onClick={roleFaceUp ? handleStart : handleFlipRole}
                 />
               </div>
-              
-              <div className="z-10 mt-8 flex flex-col items-center gap-1.5 cursor-pointer active:opacity-80 transition-opacity" onClick={handleStart}>
-                <span className="text-[#a78bfa] font-extrabold text-sm tracking-widest uppercase animate-pulse">Click card to enter night</span>
-                <span className="text-white/40 text-[10px] font-semibold tracking-wider">点击卡牌进入夜晚</span>
+
+              {roleFaceUp ? (
+                <button
+                  onClick={handleStart}
+                  className="z-10 mt-8 px-8 py-3 rounded-2xl bg-[#7c5cff] text-white font-bold text-sm shadow-[0_0_20px_rgba(124,92,255,0.4)]"
+                >
+                  我知道了，进入游戏
+                </button>
+              ) : (
+                <p className="z-10 mt-8 text-white/40 text-xs">点击卡牌翻开身份</p>
+              )}
+            </div>
+          )}
+
+          {uiPhase === "ai_ready" && (
+            <div className="w-full h-full flex flex-col px-4 py-8 gap-6">
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-white">AI 玩家已收到各自身份</h2>
+                <p className="text-white/50 text-sm mt-2">每个 AI 将根据身份、性格和已知信息发言</p>
               </div>
+              <PlayerStrip
+                players={players.filter((p: any) => !p.is_user).map((p: any) => ({
+                  id: p.id, name: p.name, avatarChar: (p.name || "?").charAt(p.name.length - 1),
+                  isHuman: false, isAlive: true, isSpeaking: false, suspicionLevel: 0,
+                }))}
+                onPlayerClick={() => {}}
+              />
+              <div className="flex flex-wrap justify-center gap-2">
+                {players.filter((p: any) => !p.is_user).map((p: any) => (
+                  <span key={p.id} className="text-[10px] px-2 py-1 rounded-full bg-white/10 text-white/50 border border-white/10">
+                    {p.name} · 身份已隐藏
+                  </span>
+                ))}
+              </div>
+              <button
+                onClick={handleAiReadyContinue}
+                className="mt-auto mx-auto px-10 py-3 rounded-2xl bg-[#7c5cff] text-white font-bold text-sm"
+              >
+                继续
+              </button>
             </div>
           )}
 
@@ -457,9 +607,8 @@ export default function SocialLogicGame() {
                 }))}
                 onPlayerClick={(id: string) => {
                   const p = players.find((x: any) => x.id === id);
-                  if (!p || p.is_user || !p.alive) return; // can only question living AI players
-                  setSelectedPlayerId(id);
-                  setActionMode("question");
+                  if (!p || p.is_user) return;
+                  setDetailPlayerId(id);
                 }}
               />
 
@@ -529,6 +678,9 @@ export default function SocialLogicGame() {
                   selectedPlayerId={selectedPlayerId}
                   onSelectPlayer={setSelectedPlayerId}
                   onSend={handleQuestion}
+                  onHelpExpress={handleHelpExpress}
+                  helpBusy={helpBusy}
+                  disabled={busy}
                 />
                 <button
                   onClick={() => setUiPhase("vote")}
@@ -584,6 +736,37 @@ export default function SocialLogicGame() {
               assetsBusy={assetsBusy}
               crushDone={crushDone}
               assetsDone={assetsDone}
+            />
+          )}
+
+          {detailPlayerId && buildPlayerDetail(detailPlayerId) && (
+            <PlayerDetailSheet
+              player={buildPlayerDetail(detailPlayerId)!}
+              onClose={() => setDetailPlayerId(null)}
+              onQuestion={() => {
+                setSelectedPlayerId(detailPlayerId);
+                setActionMode("question");
+                setDetailPlayerId(null);
+              }}
+              onChallenge={() => {
+                setSelectedPlayerId(detailPlayerId);
+                setActionMode("question");
+                setDetailPlayerId(null);
+              }}
+              onViewHistory={() => {
+                setTimelineOpen(true);
+                setTimelineFilter("speech");
+                setDetailPlayerId(null);
+              }}
+            />
+          )}
+
+          {timelineOpen && (
+            <TimelineDrawer
+              entries={timelineEntries}
+              filter={timelineFilter}
+              onFilterChange={setTimelineFilter}
+              onClose={() => setTimelineOpen(false)}
             />
           )}
 
