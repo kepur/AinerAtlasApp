@@ -254,7 +254,11 @@ async def _generate_day_speeches(db: Session, game: dict) -> None:
         f"存活玩家：\n" + "\n".join(player_lines)
     )
     try:
-        provider = _provider_for("game_ai_speech", db)
+        # Day speeches are flavor text (not pivotal reasoning), so route them to
+        # a faster flash model — this is the single LLM call behind the "天黑闭眼"
+        # freeze, so cutting its latency directly shortens the night wait.
+        from app.services.llm import get_fast_llm_provider
+        provider = get_fast_llm_provider(db, resolve_default_llm_provider(db))
         data = await provider.complete_json(system, user, temperature=0.85, max_tokens=900)
         speeches = data.get("speeches", []) if isinstance(data, dict) else []
     except Exception as exc:

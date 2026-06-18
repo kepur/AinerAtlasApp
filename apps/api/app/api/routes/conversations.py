@@ -331,14 +331,14 @@ async def stream_message(
 
     # Route the lightweight phase-1 reply through a faster flash model (if one is
     # configured) to roughly halve time-to-first-token; analysis stays on the
-    # quality default `provider`. Falls back to `provider` when unavailable.
+    # quality default `provider`. get_fast_llm_provider already falls back to the
+    # default provider when no fast model exists, so this is safe to use directly.
     reply_provider = provider
-    fast_name = _resolve_fast_reply_provider_name(db, default_provider_name)
-    if fast_name != default_provider_name:
-        try:
-            reply_provider = require_llm_provider(fast_name, db=db)
-        except Exception:  # noqa: BLE001
-            reply_provider = provider
+    try:
+        from app.services.llm import get_fast_llm_provider
+        reply_provider = get_fast_llm_provider(db, default_provider_name)
+    except Exception:  # noqa: BLE001
+        reply_provider = provider
 
     conversation_history = _conversation_history(conversation)
 
@@ -781,34 +781,6 @@ def _explanation_language(profile: ProfileRead | None, native_language: str) -> 
     return native_language
 
 
-# Markers that identify a low-latency "flash" chat model. The phase-1
-# conversational reply (1-2 throwaway sentences, no learning content) is routed
-# to such a model for a much faster time-to-first-token, while the phase-2
-# learning analysis stays on the quality default model.
-_FAST_MODEL_MARKERS = ("flash", "mini", "fast", "lite", "turbo", "haiku", "nano")
-
-
-def _resolve_fast_reply_provider_name(db, default_provider_name: str) -> str:
-    """Pick an enabled provider backed by a fast model for the conversational
-    reply. Prefers one *other* than the default (quality) provider. Falls back
-    to the default when no fast model is configured — zero behaviour change.
-    """
-    try:
-        from app.models import AIProvider
-
-        rows = list(db.scalars(select(AIProvider).where(AIProvider.enabled.is_(True))))
-        candidates = [
-            r for r in rows
-            if any(m in (r.model_name or "").lower() for m in _FAST_MODEL_MARKERS)
-        ]
-        # Prefer a non-default provider (the default is the quality model we keep
-        # for analysis); a stable secondary sort keeps results deterministic.
-        candidates.sort(key=lambda r: (r.provider_name == default_provider_name, r.provider_name))
-        if candidates:
-            return candidates[0].provider_name
-    except Exception:  # noqa: BLE001
-        pass
-    return default_provider_name
 
 
 def _load_prompt_template(

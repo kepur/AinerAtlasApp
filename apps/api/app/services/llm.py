@@ -1033,3 +1033,43 @@ def get_llm_provider_for_task(
                 provider.model_name = task_model
 
     return provider
+
+
+# Markers that identify a low-latency "flash" chat model.
+_FAST_MODEL_MARKERS = ("flash", "mini", "fast", "lite", "turbo", "haiku", "nano")
+
+
+def get_fast_llm_provider(
+    db: Session | None,
+    default_hint: str = "auto",
+    *,
+    allow_mock_fallback: bool | None = None,
+) -> LLMProvider:
+    """Return a provider backed by a low-latency *flash* model when one is
+    configured, preferring a provider other than the quality default.
+
+    Use for throwaway / flavor generation (a conversational reply turn, game
+    flavor speeches) where time-to-first-token matters more than peak quality.
+    Falls back to the default provider when no fast model exists, so callers get
+    a zero-behaviour-change default.
+    """
+    if db is None:
+        return get_llm_provider(default_hint, db, allow_mock_fallback=allow_mock_fallback)
+    try:
+        from app.models import AIProvider
+
+        rows = list(db.scalars(select(AIProvider).where(AIProvider.enabled.is_(True))))
+        candidates = [
+            r for r in rows
+            if any(m in (r.model_name or "").lower() for m in _FAST_MODEL_MARKERS)
+        ]
+        # Prefer a non-default provider (the default is the quality model we keep
+        # for reasoning); stable secondary sort keeps the pick deterministic.
+        candidates.sort(key=lambda r: (r.provider_name == default_hint, r.provider_name))
+        if candidates:
+            return get_llm_provider(
+                candidates[0].provider_name, db, allow_mock_fallback=allow_mock_fallback,
+            )
+    except Exception:  # noqa: BLE001
+        logger.warning("get_fast_llm_provider lookup failed; using default", exc_info=True)
+    return get_llm_provider(default_hint, db, allow_mock_fallback=allow_mock_fallback)
