@@ -72,7 +72,7 @@ const FILTER_TABS: { key: FilterType; label: string }[] = [
 ];
 
 export default function Chat() {
-  const { conversations, loading, loadConversations, createConversation } = useChatStore();
+  const { conversations, loading, loadConversations, createConversation, deleteConversation } = useChatStore();
   const user = useAuthStore((s) => s.user);
   const { t, locale } = useI18n();
   const navigate = useNavigate();
@@ -247,24 +247,42 @@ export default function Chat() {
                 {conversations.map((conv) => {
                   const last = conv.messages?.[conv.messages.length - 1];
                   return (
-                    <button
+                    <div
                       key={conv.id}
-                      onClick={() => navigate(`/chat/${conv.id}`)}
-                      className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-surface-container transition-colors active:scale-[0.98] text-left"
+                      className="flex items-center gap-1.5 rounded-2xl hover:bg-surface-container transition-colors"
                     >
-                      <div className="w-14 h-14 rounded-2xl resonance-indicator flex items-center justify-center text-white flex-shrink-0">
-                        <span className="material-symbols-outlined text-[28px]">{MODE_ICONS[conv.mode] ?? "chat"}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-end mb-1">
-                          <h4 className="font-headline-md text-headline-md text-on-surface truncate">{conv.title}</h4>
-                          <span className="text-[11px] text-outline flex-shrink-0 ml-2">{formatTime(conv.created_at)}</span>
+                      <button
+                        onClick={() => navigate(`/chat/${conv.id}`)}
+                        className="flex-1 flex items-center gap-3 p-2.5 active:scale-[0.98] text-left min-w-0"
+                      >
+                        <div className="w-11 h-11 rounded-xl resonance-indicator flex items-center justify-center text-white flex-shrink-0">
+                          <span className="material-symbols-outlined text-[22px]">{MODE_ICONS[conv.mode] ?? "chat"}</span>
                         </div>
-                        <p className="text-body-md text-on-surface-variant truncate">
-                          {last?.content?.slice(0, 60) || t("chat.newConversation")}
-                        </p>
-                      </div>
-                    </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-end mb-0.5">
+                            <h4 className="text-[14px] font-bold text-on-surface truncate m-0 leading-tight">{conv.title}</h4>
+                            <span className="text-[10px] text-outline flex-shrink-0 ml-2 leading-none">{formatTime(conv.created_at)}</span>
+                          </div>
+                          <p className="text-[12px] text-on-surface-variant truncate m-0 leading-normal">
+                            {last?.content?.slice(0, 60) || t("chat.newConversation")}
+                          </p>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="删除对话"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!window.confirm("删除后将不在列表中显示，确定删除这条对话？")) return;
+                          void deleteConversation(conv.id).catch(() => {
+                            window.alert("删除失败，请稍后重试");
+                          });
+                        }}
+                        className="mr-2 w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-outline hover:text-red-500 hover:bg-red-50 active:scale-95 transition-all"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -322,11 +340,11 @@ export default function Chat() {
                       <button
                         key={friend.id}
                         onClick={() => void openFriendChat(friend)}
-                        className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-surface-container transition-colors active:scale-[0.98] text-left"
+                        className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-surface-container transition-colors active:scale-[0.98] text-left"
                       >
                         {/* Avatar with gradient ring */}
                         <div className={`p-[2px] rounded-full bg-gradient-to-br ${meta.ring} flex-shrink-0`}>
-                          <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center font-bold text-on-surface text-lg">
+                          <div className="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center font-bold text-on-surface text-base">
                             {initial}
                           </div>
                         </div>
@@ -334,13 +352,13 @@ export default function Chat() {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <h4 className="font-headline-md text-headline-md text-on-surface truncate text-[14px]">{friend.username}</h4>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${meta.badge} flex-shrink-0`}>
+                            <h4 className="text-[14px] font-bold text-on-surface truncate m-0 leading-tight">{friend.username}</h4>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${meta.badge} flex-shrink-0 leading-none`}>
                               {meta.label}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-[12px] text-on-surface-variant truncate flex-1">{friend.last_message || "开始你们的第一次对话吧"}</p>
+                            <p className="text-[12px] text-on-surface-variant truncate flex-1 m-0 leading-normal">{friend.last_message || "开始你们的第一次对话吧"}</p>
                             <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                               {friend.last_time && <span className="text-[10px] text-outline">{friend.last_time}</span>}
                               {(friend.unread ?? 0) > 0 && (

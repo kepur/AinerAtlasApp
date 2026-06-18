@@ -216,9 +216,57 @@ type UserDetail = AdminUserRead & {
     primary_target_language: string;
     current_level: string;
     fluency_score: number;
+    explanation_language?: string;
+    ui_language?: string;
+    birthday?: string | null;
+    avatar_url?: string;
+    gender_identity?: string;
+    gender_custom?: string;
+    sexual_orientation?: string;
+    orientation_custom?: string;
+    lgbtq_visible?: boolean;
   } | null;
   stats: Record<string, number>;
 };
+
+const GENDER_LABELS: Record<string, string> = {
+  prefer_not_to_say: "不愿透露",
+  male: "男",
+  female: "女",
+  non_binary: "非二元",
+  self_describe: "自定义",
+  "": "未填写",
+};
+
+const ORIENTATION_LABELS: Record<string, string> = {
+  prefer_not_to_say: "不愿透露",
+  straight: "异性恋",
+  gay: "男同性恋",
+  lesbian: "女同性恋",
+  bisexual: "双性恋",
+  pansexual: "泛性恋",
+  asexual: "无性恋",
+  queer: "酷儿",
+  self_describe: "自定义",
+  "": "未填写",
+};
+
+function resolveMediaUrl(path?: string | null): string {
+  if (!path) return "";
+  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return normalized;
+}
+
+function formatProfileLabel(value: string | undefined, labels: Record<string, string>): string {
+  if (!value) return "—";
+  return labels[value] ?? value;
+}
+
+function formatBirthday(value?: string | null): string {
+  if (!value) return "—";
+  return value;
+}
 
 type CostCenter = {
   today_total: number;
@@ -1924,9 +1972,53 @@ function AdminApp() {
                   <article className="module-card"><strong>Pattern</strong><span>{userDetail.stats.patterns} / 已掌握 {userDetail.stats.mastered_patterns}</span></article>
                   <article className="module-card"><strong>平均掌握度</strong><span>{userDetail.stats.avg_mastery_score}</span></article>
                   {userDetail.profile && (
-                    <article className="module-card wide">
-                      <strong>语言设置</strong>
-                      <p>{userDetail.profile.native_language} → {userDetail.profile.primary_target_language} · {userDetail.profile.current_level}</p>
+                    <article className="module-card wide user-profile-personal">
+                      <strong>个人资料</strong>
+                      <div className="user-profile-personal-body">
+                        <div className="user-profile-avatar-wrap">
+                          {userDetail.profile.avatar_url ? (
+                            <img
+                              src={resolveMediaUrl(userDetail.profile.avatar_url)}
+                              alt={userDetail.username || userDetail.email}
+                              className="user-profile-avatar"
+                            />
+                          ) : (
+                            <div className="user-profile-avatar user-profile-avatar--empty">
+                              {(userDetail.username || userDetail.email).slice(0, 1).toUpperCase()}
+                            </div>
+                          )}
+                          {userDetail.profile.lgbtq_visible && (
+                            <span className="user-profile-lgbtq-badge" title="LGBTQ+ 可见">🏳️‍🌈</span>
+                          )}
+                        </div>
+                        <div className="user-profile-meta">
+                          <p><span>生日</span><strong>{formatBirthday(userDetail.profile.birthday)}</strong></p>
+                          <p>
+                            <span>性别</span>
+                            <strong>
+                              {formatProfileLabel(userDetail.profile.gender_identity, GENDER_LABELS)}
+                              {userDetail.profile.gender_custom && userDetail.profile.gender_identity === "self_describe"
+                                ? `（${userDetail.profile.gender_custom}）`
+                                : ""}
+                            </strong>
+                          </p>
+                          <p>
+                            <span>性取向</span>
+                            <strong>
+                              {formatProfileLabel(userDetail.profile.sexual_orientation, ORIENTATION_LABELS)}
+                              {userDetail.profile.orientation_custom && userDetail.profile.sexual_orientation === "self_describe"
+                                ? `（${userDetail.profile.orientation_custom}）`
+                                : ""}
+                            </strong>
+                          </p>
+                          <p>
+                            <span>语言设置</span>
+                            <strong>
+                              {userDetail.profile.native_language} → {userDetail.profile.primary_target_language} · {userDetail.profile.current_level}
+                            </strong>
+                          </p>
+                        </div>
+                      </div>
                     </article>
                   )}
                 </div>

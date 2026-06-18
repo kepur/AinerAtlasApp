@@ -51,6 +51,12 @@ from app.services.llm import (
 )
 from app.services.pattern_mining import mine_from_analysis, mine_learning_items
 from app.services.vocabulary_mining import mine_vocabulary_from_analysis
+from app.services.conversation_activity import log_conversation_activity
+from app.services.conversation_moderation import (
+    flag_conversation_from_result,
+    soft_delete_conversation,
+)
+from app.services.moderation import moderate_text
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/conversations", tags=["conversations"])
@@ -64,6 +70,14 @@ def create_conversation(
 ) -> Conversation:
     conversation = Conversation(user_id=current_user.id, **payload.model_dump())
     db.add(conversation)
+    db.flush()
+    log_conversation_activity(
+        db,
+        user_id=current_user.id,
+        conversation_id=conversation.id,
+        action="conversation_created",
+        details={"title": conversation.title, "mode": conversation.mode, "topic": conversation.topic},
+    )
     db.commit()
     db.refresh(conversation)
     return conversation
@@ -74,11 +88,52 @@ def list_conversations(current_user: CurrentUser, db: DBSession) -> list[Convers
     return list(
         db.scalars(
             select(Conversation)
-            .where(Conversation.user_id == current_user.id)
+            .where(Conversation.user_id == current_user.id, Conversation.deleted_at.is_(None))
             .options(selectinload(Conversation.messages))
             .order_by(Conversation.updated_at.desc())
         )
     )
+
+
+def _get_user_conversation(
+    db: DBSession, conversation_id: str, user_id: str
+) -> Conversation | None:
+    return db.scalar(
+        select(Conversation)
+        .where(
+            Conversation.id == conversation_id,
+            Conversation.user_id == user_id,
+            Conversation.deleted_at.is_(None),
+        )
+        .options(selectinload(Conversation.messages))
+    )
+
+
+@router.delete("/{conversation_id}")
+def delete_conversation(
+    conversation_id: str,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> dict:
+    conversation = db.scalar(
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.user_id == current_user.id,
+            Conversation.deleted_at.is_(None),
+        )
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    soft_delete_conversation(conversation, deleted_by="user")
+    log_conversation_activity(
+        db,
+        user_id=current_user.id,
+        conversation_id=conversation.id,
+        action="conversation_soft_deleted",
+        details={"deleted_by": "user", "title": conversation.title},
+    )
+    db.commit()
+    return {"deleted": True, "id": conversation_id, "soft": True}
 
 
 @router.get("/{conversation_id}", response_model=ConversationRead)
@@ -87,13 +142,23 @@ def get_conversation(
     current_user: CurrentUser,
     db: DBSession,
 ) -> Conversation:
-    conversation = db.scalar(
-        select(Conversation)
-        .where(Conversation.id == conversation_id, Conversation.user_id == current_user.id)
-        .options(selectinload(Conversation.messages))
-    )
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
+    return conversation
+
+
+def _require_user_conversation(
+    db: DBSession, conversation_id: str, user_id: str
+) -> Conversation:
+    conversation = _get_user_conversation(db, conversation_id, user_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if conversation.moderation_status == "blocked":
+        raise HTTPException(
+            status_code=403,
+            detail="该对话因违规已被限制，无法继续发送消息",
+        )
     return conversation
 
 
@@ -105,13 +170,7 @@ async def send_message(
     db: DBSession,
     quota: QuotaManagerDep,
 ) -> ConversationReply:
-    conversation = db.scalar(
-        select(Conversation)
-        .where(Conversation.id == conversation_id, Conversation.user_id == current_user.id)
-        .options(selectinload(Conversation.messages))
-    )
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    conversation = _require_user_conversation(db, conversation_id, current_user.id)
 
     quota.consume_ai_dialogue(current_user)
 
@@ -229,6 +288,23 @@ async def send_message(
     )
     conversation.updated_at = utc_now()
     db.add_all([user_message, assistant_message])
+    db.flush()
+    mod = moderate_text(payload.content, "conversation_message")
+    flag_conversation_from_result(
+        db,
+        conversation,
+        mod,
+        message_id=user_message.id,
+        user_id=current_user.id,
+    )
+    log_conversation_activity(
+        db,
+        user_id=current_user.id,
+        conversation_id=conversation.id,
+        message_id=user_message.id,
+        action="message_sent",
+        details={"mode": "sync", "flagged": mod.get("flagged", False)},
+    )
     added_patterns = mine_from_analysis(
         db=db,
         user_id=current_user.id,
@@ -272,16 +348,12 @@ async def stream_message(
     payload: MessageCreate,
     current_user: CurrentUser,
     db: DBSession,
+    quota: QuotaManagerDep,
 ):
     import json
-    
-    conversation = db.scalar(
-        select(Conversation)
-        .where(Conversation.id == conversation_id, Conversation.user_id == current_user.id)
-        .options(selectinload(Conversation.messages))
-    )
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    conversation = _require_user_conversation(db, conversation_id, current_user.id)
+    quota.consume_ai_dialogue(current_user)
 
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
     profile_read = ProfileRead.model_validate(profile) if profile else None
@@ -344,10 +416,35 @@ async def stream_message(
 
     started = time.perf_counter()
 
+    user_message = ConversationMessage(
+        conversation_id=conversation.id,
+        user_id=current_user.id,
+        role="user",
+        content=payload.content,
+        content_language=payload.content_language,
+        translated_content="",
+        analysis={"stream_status": "pending"},
+        expression_versions={},
+    )
+    conversation.updated_at = utc_now()
+    db.add(user_message)
+    db.flush()
+    log_conversation_activity(
+        db,
+        user_id=current_user.id,
+        conversation_id=conversation.id,
+        message_id=user_message.id,
+        action="message_started",
+        details={"mode": "stream", "content_length": len(payload.content)},
+    )
+    db.commit()
+    db.refresh(user_message)
+
     async def sse_generator():
+        reply_text = ""
+        assistant_message: ConversationMessage | None = None
         try:
             # ----- Phase 1: fast conversational reply (streamed into the feed) -----
-            reply_text = ""
             async for chunk in reply_provider.chat_reply_stream(
                 user_input=payload.content,
                 profile=profile_read,
@@ -390,24 +487,19 @@ async def stream_message(
 
             yield f"event: hud\ndata: {json.dumps(analysis_data)}\n\n"
 
-            user_message = ConversationMessage(
-                conversation_id=conversation.id,
-                user_id=current_user.id,
-                role="user",
-                content=payload.content,
-                content_language=payload.content_language,
-                translated_content="",
-                analysis={
-                    "corrected_sentence": v2.corrected_sentence,
-                    "mistakes": [m.model_dump() for m in v2.mistakes] if v2.mistakes else [],
-                },
-                expression_versions={},
-            )
+            user_message.translated_content = str(data.get("user_input_translated", "") or "")
+            user_message.analysis = {
+                "user_input_translated": data.get("user_input_translated", ""),
+                "corrected_sentence": v2.corrected_sentence,
+                "mistakes": [m.model_dump() for m in v2.mistakes] if v2.mistakes else [],
+                "stream_status": "complete",
+            }
+            user_message.expression_versions = data.get("user_input_versions") or {}
+
             assistant_message = ConversationMessage(
                 conversation_id=conversation.id,
                 user_id=None,
                 role="assistant",
-                # Conversation feed shows the streamed conversational reply.
                 content=reply_text or v2.meaning_native,
                 content_language=conversation.native_language,
                 translated_content=v2.main_expression,
@@ -415,7 +507,24 @@ async def stream_message(
                 expression_versions=v2.variants,
             )
             conversation.updated_at = utc_now()
-            db.add_all([user_message, assistant_message])
+            db.add(assistant_message)
+            db.flush()
+            mod = moderate_text(payload.content, "conversation_message")
+            flag_conversation_from_result(
+                db,
+                conversation,
+                mod,
+                message_id=user_message.id,
+                user_id=current_user.id,
+            )
+            log_conversation_activity(
+                db,
+                user_id=current_user.id,
+                conversation_id=conversation.id,
+                message_id=user_message.id,
+                action="message_sent",
+                details={"mode": "stream", "flagged": mod.get("flagged", False)},
+            )
 
             added_patterns = mine_from_analysis(db=db, user_id=current_user.id, target_language=conversation.target_language, native_language=conversation.native_language, analysis=analysis_data)
             added_vocabulary = mine_vocabulary_from_analysis(db=db, user_id=current_user.id, target_language=conversation.target_language, topic=conversation.topic, conversation_id=conversation.id, analysis=analysis_data)
@@ -440,6 +549,33 @@ async def stream_message(
 
         except Exception as e:
             logger.error(f"Conversation-First streaming error: {e}", exc_info=True)
+            user_message.analysis = {
+                **(user_message.analysis or {}),
+                "stream_status": "failed",
+                "error": str(e)[:500],
+            }
+            if reply_text.strip():
+                assistant_message = ConversationMessage(
+                    conversation_id=conversation.id,
+                    user_id=None,
+                    role="assistant",
+                    content=reply_text.strip(),
+                    content_language=conversation.native_language,
+                    translated_content="",
+                    analysis={"stream_status": "partial", "error": str(e)[:500]},
+                    expression_versions={},
+                )
+                db.add(assistant_message)
+            log_conversation_activity(
+                db,
+                user_id=current_user.id,
+                conversation_id=conversation.id,
+                message_id=user_message.id,
+                action="message_failed",
+                details={"mode": "stream", "error": str(e)[:500], "partial_reply": bool(reply_text.strip())},
+            )
+            conversation.updated_at = utc_now()
+            db.commit()
             yield f"event: error\ndata: {json.dumps({'detail': str(e)})}\n\n"
 
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
@@ -457,11 +593,7 @@ def switch_target_language(
     if payload.target_language not in allowed:
         raise HTTPException(status_code=400, detail=f"Unsupported language. Allowed: {allowed}")
 
-    conversation = db.scalar(
-        select(Conversation)
-        .where(Conversation.id == conversation_id, Conversation.user_id == current_user.id)
-        .options(selectinload(Conversation.messages))
-    )
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 

@@ -120,20 +120,42 @@ export default function Settings() {
     [languageCodes]
   );
 
+  function applyGlobalLocale(code: string) {
+    if (!isLocaleCode(code) || !languageCodes.includes(code)) return;
+    setLocale(code);
+  }
+
+  function handleNativeLanguageChange(code: string) {
+    setNativeLanguage(code);
+    if (isLocaleCode(code) && languageCodes.includes(code)) {
+      setUiLanguage(code);
+      setExplanationLanguage(code);
+      setLocale(code);
+    }
+  }
+
   async function handleSave() {
     if (!profile) return;
     setSaving(true);
     setSaved(false);
     setError(null);
     const currentLevel = levelFromMasteryIndex(currentLevelIdx);
+    const syncedUiLanguage =
+      isLocaleCode(nativeLanguage) && languageCodes.includes(nativeLanguage)
+        ? nativeLanguage
+        : uiLanguage;
+    const syncedExplanation =
+      isLocaleCode(nativeLanguage) && languageCodes.includes(nativeLanguage)
+        ? nativeLanguage
+        : explanationLanguage;
     try {
       const updated = await apiRequest<Profile>("/api/profile", {
         method: "PUT",
         body: JSON.stringify({
           ...profile,
           username: username.trim() || undefined,
-          ui_language: uiLanguage,
-          explanation_language: explanationLanguage,
+          ui_language: syncedUiLanguage,
+          explanation_language: syncedExplanation,
           native_language: nativeLanguage,
           primary_target_language: targetLanguage,
           target_languages: [targetLanguage],
@@ -152,8 +174,8 @@ export default function Settings() {
       });
       useAuthStore.setState({ profile: updated });
       if (username.trim()) await loadUser();
-      if (isLocaleCode(uiLanguage)) {
-        setLocale(uiLanguage);
+      if (isLocaleCode(syncedUiLanguage)) {
+        setLocale(syncedUiLanguage);
       }
       applyTheme(uiTheme);
       setSaved(true);
@@ -259,7 +281,11 @@ export default function Settings() {
               <select
                 value={uiLanguage}
                 disabled={config?.allow_user_locale_override === false}
-                onChange={(e) => setUiLanguage(e.target.value)}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  setUiLanguage(code);
+                  applyGlobalLocale(code);
+                }}
                 className={selectClass}
               >
                 {languageOptions.map((item) => (
@@ -324,7 +350,7 @@ export default function Settings() {
               </label>
               <select
                 value={nativeLanguage}
-                onChange={(e) => setNativeLanguage(e.target.value)}
+                onChange={(e) => handleNativeLanguageChange(e.target.value)}
                 className={selectClass}
               >
                 {languageOptions.map((item) => (

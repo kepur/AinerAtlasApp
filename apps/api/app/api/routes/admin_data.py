@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, or_, select, update
 
 from app.api.deps import AdminUser, DBSession
 from app.models import (
     Conversation,
+    ConversationActivityLog,
     ConversationMessage,
     ExpressionAsset,
     GameSession,
@@ -19,6 +20,8 @@ from app.models import (
     User,
 )
 from app.services.audit import write_audit_log
+from app.services.conversation_moderation import batch_scan_conversations, block_conversation, scan_conversation
+from app.services.conversation_activity import log_conversation_activity
 from app.services.user_data_purge import (
     delete_conversations_by_ids,
     delete_expression_assets_by_ids,
@@ -35,6 +38,17 @@ MAX_LIMIT = 200
 
 class BatchDeleteRequest(BaseModel):
     ids: list[str] = Field(default_factory=list, min_length=1)
+
+
+class ConversationScanRequest(BaseModel):
+    ids: list[str] = Field(default_factory=list)
+    use_llm: bool = False
+    limit: int = Field(default=100, ge=1, le=500)
+
+
+class ConversationBlockRequest(BaseModel):
+    ids: list[str] = Field(default_factory=list, min_length=1)
+    reason: str = "Blocked by admin for policy violation"
 
 
 class PurgeAllRequest(BaseModel):
@@ -77,18 +91,69 @@ def data_stats(_: AdminUser, db: DBSession) -> dict:
 # Conversations
 # ---------------------------------------------------------------------------
 
+def _conversation_preview(db: DBSession, conversation_id: str) -> str:
+    last = db.scalar(
+        select(ConversationMessage.content)
+        .where(ConversationMessage.conversation_id == conversation_id)
+        .order_by(ConversationMessage.created_at.desc())
+        .limit(1)
+    )
+    if not last:
+        return ""
+    return last[:120]
+
+
+def _serialize_conversation_item(db: DBSession, conversation: Conversation, msg_counts: dict[str, int]) -> dict:
+    return {
+        "id": conversation.id,
+        "user_id": conversation.user_id,
+        "user": _user_brief(db, conversation.user_id),
+        "title": conversation.title,
+        "mode": conversation.mode,
+        "status": conversation.status,
+        "message_count": msg_counts.get(conversation.id, 0),
+        "last_message_preview": _conversation_preview(db, conversation.id),
+        "moderation_status": conversation.moderation_status,
+        "moderation_reason": conversation.moderation_reason,
+        "deleted_at": conversation.deleted_at.isoformat() if conversation.deleted_at else None,
+        "deleted_by": conversation.deleted_by or None,
+        "created_at": conversation.created_at.isoformat(),
+        "updated_at": conversation.updated_at.isoformat(),
+    }
+
+
 @router.get("/conversations")
 def list_conversations(
-    _: AdminUser, db: DBSession,
-    user_id: str | None = None, q: str | None = None,
-    limit: int = DEFAULT_LIMIT, offset: int = 0,
+    _: AdminUser,
+    db: DBSession,
+    user_id: str | None = None,
+    q: str | None = None,
+    moderation_status: str | None = None,
+    include_deleted: bool = False,
+    sensitive_only: bool = False,
+    limit: int = DEFAULT_LIMIT,
+    offset: int = 0,
 ) -> dict:
     lim, off = _paginate(limit, offset)
     stmt = select(Conversation)
     if user_id:
         stmt = stmt.where(Conversation.user_id == user_id)
+    if not include_deleted:
+        stmt = stmt.where(Conversation.deleted_at.is_(None))
+    if moderation_status:
+        stmt = stmt.where(Conversation.moderation_status == moderation_status.strip())
+    if sensitive_only:
+        stmt = stmt.where(Conversation.moderation_status.in_(["flagged", "blocked"]))
     if q:
-        stmt = stmt.where(Conversation.title.ilike(f"%{q.strip()}%"))
+        needle = q.strip()
+        if needle:
+            qpat = f"%{needle}%"
+            msg_match = (
+                select(ConversationMessage.conversation_id)
+                .where(ConversationMessage.content.ilike(qpat))
+                .distinct()
+            )
+            stmt = stmt.where(or_(Conversation.title.ilike(qpat), Conversation.id.in_(msg_match)))
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = list(db.scalars(stmt.order_by(Conversation.updated_at.desc()).offset(off).limit(lim)))
     msg_counts: dict[str, int] = {}
@@ -101,21 +166,199 @@ def list_conversations(
         ):
             msg_counts[cid] = cnt
     return {
-        "items": [{
-            "id": c.id, "user_id": c.user_id, "user": _user_brief(db, c.user_id),
-            "title": c.title, "mode": c.mode, "status": c.status,
-            "message_count": msg_counts.get(c.id, 0),
-            "created_at": c.created_at.isoformat(), "updated_at": c.updated_at.isoformat(),
-        } for c in rows],
-        "total": total, "limit": lim, "offset": off,
+        "items": [_serialize_conversation_item(db, c, msg_counts) for c in rows],
+        "total": total,
+        "limit": lim,
+        "offset": off,
     }
 
+
+@router.get("/conversations/{conversation_id}")
+def get_conversation_detail(conversation_id: str, _: AdminUser, db: DBSession) -> dict:
+    conversation = db.get(Conversation, conversation_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    messages = list(
+        db.scalars(
+            select(ConversationMessage)
+            .where(ConversationMessage.conversation_id == conversation_id)
+            .order_by(ConversationMessage.created_at.asc())
+        )
+    )
+    msg_counts = {conversation.id: len(messages)}
+    item = _serialize_conversation_item(db, conversation, msg_counts)
+    item["messages"] = [
+        {
+            "id": m.id,
+            "role": m.role,
+            "content": m.content,
+            "content_language": m.content_language,
+            "translated_content": m.translated_content,
+            "user_id": m.user_id,
+            "created_at": m.created_at.isoformat(),
+        }
+        for m in messages
+    ]
+    activities = list(
+        db.scalars(
+            select(ConversationActivityLog)
+            .where(ConversationActivityLog.conversation_id == conversation_id)
+            .order_by(ConversationActivityLog.created_at.desc())
+            .limit(100)
+        )
+    )
+    item["activity"] = [
+        {
+            "id": a.id,
+            "user_id": a.user_id,
+            "message_id": a.message_id,
+            "action": a.action,
+            "details": a.details,
+            "created_at": a.created_at.isoformat(),
+        }
+        for a in activities
+    ]
+    return item
+
+
+@router.get("/conversation-activity")
+def list_conversation_activity(
+    _: AdminUser,
+    db: DBSession,
+    conversation_id: str | None = None,
+    user_id: str | None = None,
+    action: str | None = None,
+    limit: int = DEFAULT_LIMIT,
+    offset: int = 0,
+) -> dict:
+    lim, off = _paginate(limit, offset)
+    stmt = select(ConversationActivityLog)
+    if conversation_id:
+        stmt = stmt.where(ConversationActivityLog.conversation_id == conversation_id)
+    if user_id:
+        stmt = stmt.where(ConversationActivityLog.user_id == user_id)
+    if action:
+        stmt = stmt.where(ConversationActivityLog.action == action.strip())
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = list(db.scalars(stmt.order_by(ConversationActivityLog.created_at.desc()).offset(off).limit(lim)))
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "user_id": row.user_id,
+                "conversation_id": row.conversation_id,
+                "message_id": row.message_id,
+                "action": row.action,
+                "details": row.details,
+                "created_at": row.created_at.isoformat(),
+            }
+            for row in rows
+        ],
+        "total": total,
+        "limit": lim,
+        "offset": off,
+    }
+
+
+@router.post("/conversations/batch-scan")
+async def batch_scan_conversations_admin(payload: ConversationScanRequest, admin: AdminUser, db: DBSession) -> dict:
+    ids = payload.ids
+    if not ids:
+        ids = list(
+            db.scalars(
+                select(Conversation.id)
+                .order_by(Conversation.updated_at.desc())
+                .limit(payload.limit)
+            )
+        )
+    result = await batch_scan_conversations(db, ids, use_llm=payload.use_llm)
+    for cid in ids:
+        if db.get(Conversation, cid):
+            log_conversation_activity(
+                db,
+                user_id=admin.id,
+                conversation_id=cid,
+                action="admin_scanned",
+                details={"use_llm": payload.use_llm, "batch": True},
+            )
+    _audit(
+        db,
+        admin,
+        "batch_scan_conversations",
+        "conversation",
+        ",".join(ids[:5]),
+        {**result, "use_llm": payload.use_llm},
+    )
+    db.commit()
+    return result
+
+
+@router.post("/conversations/{conversation_id}/scan")
+async def scan_conversation_admin(
+    conversation_id: str,
+    admin: AdminUser,
+    db: DBSession,
+    use_llm: bool = False,
+) -> dict:
+    result = await scan_conversation(db, conversation_id, use_llm=use_llm)
+    if not result.get("found"):
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    _audit(db, admin, "scan_conversation", "conversation", conversation_id, result)
+    db.commit()
+    return result
+
+
+@router.post("/conversations/batch-block")
+def batch_block_conversations(payload: ConversationBlockRequest, admin: AdminUser, db: DBSession) -> dict:
+    blocked = 0
+    for cid in payload.ids:
+        conversation = db.get(Conversation, cid)
+        if not conversation:
+            continue
+        block_conversation(conversation, payload.reason)
+        log_conversation_activity(
+            db,
+            user_id=admin.id,
+            conversation_id=cid,
+            action="admin_blocked",
+            details={"reason": payload.reason},
+        )
+        db.add(
+            ModerationEvent(
+                user_id=conversation.user_id,
+                content_type="conversation",
+                content_id=cid,
+                action="block",
+                reason=payload.reason[:255],
+                details={"source": "admin_batch_block"},
+            )
+        )
+        blocked += 1
+    _audit(
+        db,
+        admin,
+        "batch_block_conversations",
+        "conversation",
+        ",".join(payload.ids[:5]),
+        {"blocked": blocked, "reason": payload.reason},
+    )
+    db.commit()
+    return {"blocked": blocked}
 
 
 @router.delete("/conversations/{conversation_id}")
 def delete_conversation(conversation_id: str, admin: AdminUser, db: DBSession) -> dict:
-    if not db.get(Conversation, conversation_id):
+    conversation = db.get(Conversation, conversation_id)
+    if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
+    owner_id = conversation.user_id
+    log_conversation_activity(
+        db,
+        user_id=admin.id,
+        conversation_id=conversation_id,
+        action="admin_hard_deleted",
+        details={"owner_user_id": owner_id, "title": conversation.title},
+    )
     delete_conversations_by_ids(db, [conversation_id])
     _audit(db, admin, "delete_conversation", "conversation", conversation_id)
     db.commit()

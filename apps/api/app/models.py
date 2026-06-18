@@ -94,6 +94,10 @@ class Conversation(Base):
     native_language: Mapped[str] = mapped_column(String(20), default="zh")
     target_language: Mapped[str] = mapped_column(String(20), default="en")
     status: Mapped[str] = mapped_column(String(40), default="active")
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    deleted_by: Mapped[str] = mapped_column(String(40), default="")
+    moderation_status: Mapped[str] = mapped_column(String(40), default="clean", index=True)
+    moderation_reason: Mapped[str] = mapped_column(String(512), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
@@ -120,6 +124,18 @@ class ConversationMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
+
+
+class ConversationActivityLog(Base):
+    __tablename__ = "conversation_activity_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    conversation_id: Mapped[str] = mapped_column(String(36), index=True)
+    message_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    action: Mapped[str] = mapped_column(String(60), index=True)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class Thought(Base):

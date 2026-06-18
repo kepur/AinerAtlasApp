@@ -22,6 +22,11 @@ type ListItem = {
   mode?: string;
   status?: string;
   message_count?: number;
+  last_message_preview?: string;
+  moderation_status?: string;
+  moderation_reason?: string;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
   game_type?: string;
   phase?: string;
   turn_count?: number;
@@ -66,6 +71,28 @@ const TABS: { key: TabKey; label: string; purgeAll: boolean; userScoped: boolean
   { key: "reports", label: "举报记录", purgeAll: false, userScoped: true, searchable: false },
 ];
 
+type ConversationDetail = ListItem & {
+  messages?: Array<{
+    id: string;
+    role: string;
+    content: string;
+    content_language?: string;
+    translated_content?: string;
+    created_at: string;
+  }>;
+  activity?: Array<{
+    id: string;
+    action: string;
+    created_at: string;
+    details?: Record<string, unknown>;
+  }>;
+};
+
+const MODERATION_LABELS: Record<string, string> = {
+  clean: "正常",
+  flagged: "敏感",
+  blocked: "已封禁",
+};
 const CONFIRM_ALL = "DELETE_ALL";
 const PAGE_SIZE = 50;
 
@@ -115,6 +142,11 @@ export function DataManagement({ token, onStatus }: Props) {
   const [offset, setOffset] = useState(0);
   const [userFilter, setUserFilter] = useState("");
   const [searchQ, setSearchQ] = useState("");
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [sensitiveOnly, setSensitiveOnly] = useState(false);
+  const [moderationFilter, setModerationFilter] = useState("");
+  const [useLlmScan, setUseLlmScan] = useState(false);
+  const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [purgeConfirm, setPurgeConfirm] = useState("");
@@ -130,9 +162,14 @@ export function DataManagement({ token, onStatus }: Props) {
       const params = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(off) });
       if (userFilter.trim() && meta?.userScoped) params.set("user_id", userFilter.trim());
       if (searchQ.trim() && meta?.searchable) params.set("q", searchQ.trim());
+      if (tabKey === "conversations") {
+        if (includeDeleted) params.set("include_deleted", "true");
+        if (sensitiveOnly) params.set("sensitive_only", "true");
+        if (moderationFilter.trim()) params.set("moderation_status", moderationFilter.trim());
+      }
       return `/api/admin/data/${tabKey}?${params}`;
     },
-    [userFilter, searchQ],
+    [userFilter, searchQ, includeDeleted, sensitiveOnly, moderationFilter],
   );
 
   const loadList = useCallback(
@@ -208,6 +245,49 @@ export function DataManagement({ token, onStatus }: Props) {
     }
   }
 
+  async function batchScanConversations() {
+    if (tab !== "conversations") return;
+    const ids = selected.size > 0 ? [...selected] : undefined;
+    if (!ids && !window.confirm("未勾选记录，将扫描最近 100 条对话，继续？")) return;
+    try {
+      const res = await apiPost<{ scanned: number; flagged_conversations: number; flagged_messages: number }>(
+        "/api/admin/data/conversations/batch-scan",
+        token,
+        { ids: ids ?? [], use_llm: useLlmScan, limit: 100 },
+      );
+      onStatus(`扫描 ${res.scanned} 条，命中 ${res.flagged_conversations} 条对话 / ${res.flagged_messages} 条消息`);
+      await Promise.all([loadList(), loadStats()]);
+    } catch (err) {
+      onStatus(`批量扫描失败：${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function batchBlockConversations() {
+    if (tab !== "conversations" || selected.size === 0) return;
+    const reason = window.prompt("封禁原因（可选）", "违规对话，已由管理员封禁") ?? "";
+    if (reason === null) return;
+    try {
+      const res = await apiPost<{ blocked: number }>(
+        "/api/admin/data/conversations/batch-block",
+        token,
+        { ids: [...selected], reason: reason || "Blocked by admin" },
+      );
+      onStatus(`已封禁 ${res.blocked} 条对话`);
+      await loadList();
+    } catch (err) {
+      onStatus(`批量封禁失败：${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  async function openConversationDetail(id: string) {
+    try {
+      const data = await apiGet<ConversationDetail>(`/api/admin/data/conversations/${id}`, token);
+      setDetail(data);
+    } catch (err) {
+      onStatus(`加载详情失败：${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   async function purgeByUser() {
     const uid = userFilter.trim();
     if (!uid) {
@@ -257,9 +337,10 @@ export function DataManagement({ token, onStatus }: Props) {
           <>
             <td><strong>{item.title || "(无标题)"}</strong></td>
             <td>{fmtUser(item.user, item.user_id)}</td>
-            <td>{item.mode}</td>
+            <td title={item.last_message_preview}>{item.last_message_preview?.slice(0, 48) || "—"}</td>
             <td>{item.message_count ?? 0}</td>
-            <td>{item.status}</td>
+            <td>{MODERATION_LABELS[item.moderation_status || "clean"] ?? item.moderation_status}</td>
+            <td>{item.deleted_at ? `用户已删` : "可见"}</td>
             <td>{fmtDate(item.updated_at ?? item.created_at)}</td>
           </>
         );
@@ -324,7 +405,7 @@ export function DataManagement({ token, onStatus }: Props) {
   const columns = useMemo(() => {
     switch (tab) {
       case "conversations":
-        return ["标题", "用户", "模式", "消息数", "状态", "更新时间"];
+        return ["标题", "用户", "最近消息", "消息数", "审核", "删除状态", "更新时间"];
       case "thoughts":
         return ["标题", "用户", "状态", "对话", "更新时间"];
       case "game-sessions":
@@ -406,10 +487,35 @@ export function DataManagement({ token, onStatus }: Props) {
             关键词
             <input
               value={searchQ}
-              placeholder="标题搜索"
+              placeholder={tab === "conversations" ? "标题或消息内容" : "标题搜索"}
               onChange={(e) => setSearchQ(e.target.value)}
             />
           </label>
+        )}
+        {tab === "conversations" && (
+          <>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={includeDeleted} onChange={(e) => setIncludeDeleted(e.target.checked)} />
+              含用户软删
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={sensitiveOnly} onChange={(e) => setSensitiveOnly(e.target.checked)} />
+              仅敏感/违规
+            </label>
+            <label>
+              审核状态
+              <select value={moderationFilter} onChange={(e) => setModerationFilter(e.target.value)}>
+                <option value="">全部</option>
+                <option value="clean">正常</option>
+                <option value="flagged">敏感</option>
+                <option value="blocked">已封禁</option>
+              </select>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={useLlmScan} onChange={(e) => setUseLlmScan(e.target.checked)} />
+              AI 深度扫描
+            </label>
+          </>
         )}
         {!tabMeta.userScoped && !tabMeta.searchable && (
           <p className="module-copy" style={{ alignSelf: "center", margin: 0 }}>
@@ -423,6 +529,16 @@ export function DataManagement({ token, onStatus }: Props) {
         <button className="btn-secondary" onClick={() => void batchDelete()} disabled={selected.size === 0}>
           批量删除 ({selected.size})
         </button>
+        {tab === "conversations" && (
+          <>
+            <button className="btn-secondary" onClick={() => void batchScanConversations()}>
+              敏感词/AI 扫描
+            </button>
+            <button className="btn-secondary" onClick={() => void batchBlockConversations()} disabled={selected.size === 0}>
+              批量封禁
+            </button>
+          </>
+        )}
         {tabMeta.userScoped && (
           <button className="btn-secondary" onClick={() => void purgeByUser()} disabled={!userFilter.trim()}>
             清空该用户
@@ -480,7 +596,12 @@ export function DataManagement({ token, onStatus }: Props) {
                     />
                   </td>
                   {renderRow(item)}
-                  <td>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    {tab === "conversations" && (
+                      <button className="btn-secondary" style={{ marginRight: 8 }} onClick={() => void openConversationDetail(item.id)}>
+                        详情
+                      </button>
+                    )}
                     <button className="btn-secondary" onClick={() => void deleteOne(item.id)}>删除</button>
                   </td>
                 </tr>
@@ -488,6 +609,66 @@ export function DataManagement({ token, onStatus }: Props) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {detail && tab === "conversations" && (
+        <article className="panel" style={{ marginTop: 16 }}>
+          <div className="panel-header">
+            <div>
+              <span>Conversation Detail</span>
+              <h2>{detail.title || detail.id}</h2>
+            </div>
+            <button className="secondary-button" onClick={() => setDetail(null)}>关闭</button>
+          </div>
+          <p className="module-copy">
+            用户：{fmtUser(detail.user, detail.user_id)} ·
+            审核：{MODERATION_LABELS[detail.moderation_status || "clean"] ?? detail.moderation_status}
+            {detail.moderation_reason ? ` · ${detail.moderation_reason}` : ""}
+            {detail.deleted_at ? ` · 用户已于 ${fmtDate(detail.deleted_at)} 软删除` : ""}
+          </p>
+          {(detail.activity?.length ?? 0) > 0 && (
+            <div className="table-wrap" style={{ marginBottom: 12 }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>操作记录</th>
+                    <th>时间</th>
+                    <th>详情</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.activity!.map((a) => (
+                    <tr key={a.id}>
+                      <td>{a.action}</td>
+                      <td>{fmtDate(a.created_at)}</td>
+                      <td>{JSON.stringify(a.details ?? {})}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>角色</th>
+                  <th>内容</th>
+                  <th>时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(detail.messages ?? []).map((msg) => (
+                  <tr key={msg.id}>
+                    <td>{msg.role}</td>
+                    <td style={{ maxWidth: 520, whiteSpace: "pre-wrap" }}>{msg.content}</td>
+                    <td>{fmtDate(msg.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
       )}
 
       {totalPages > 1 && (

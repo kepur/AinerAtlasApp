@@ -39,6 +39,7 @@ type ChatState = {
 
   loadConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
+  deleteConversation: (id: string) => Promise<void>;
   createConversation: (opts?: {
     title?: string;
     topic?: string;
@@ -218,6 +219,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } catch (e) {
       set({ loading: false, error: e instanceof Error ? e.message : "加载失败" });
     }
+  },
+
+  deleteConversation: async (id) => {
+    await apiRequest<{ deleted: boolean }>(`/api/conversations/${id}`, { method: "DELETE" });
+    set((state) => ({
+      conversations: state.conversations.filter((c) => c.id !== id),
+      currentConversation: state.currentConversation?.id === id ? null : state.currentConversation,
+    }));
   },
 
   createConversation: async (opts) => {

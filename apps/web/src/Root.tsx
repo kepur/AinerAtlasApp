@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
-import { I18nProvider, isLocaleCode, useI18n, type LocaleCode } from "./i18n";
+import { I18nProvider, isLocaleCode, resolveProfileLocale, useI18n, type LocaleCode } from "./i18n";
 import { applyTheme, readStoredTheme, resolveTheme } from "./lib/theme";
 import { enabledLocaleCodes, useAppConfigStore } from "./stores/appConfigStore";
 import { useAuthStore } from "./stores/authStore";
@@ -15,7 +15,7 @@ function LocaleThemeSync() {
 
   useEffect(() => {
     if (!config) return;
-    const preferredLocale = profile?.ui_language || config.default_locale;
+    const preferredLocale = resolveProfileLocale(profile) || config.default_locale;
     if (isLocaleCode(preferredLocale) && config.enabled_locales.includes(preferredLocale)) {
       setLocale(preferredLocale);
     }
@@ -60,7 +60,11 @@ export function Root() {
   }
 
   const enabled = enabledLocaleCodes(config);
-  const initialLocale = resolveInitialLocale(profile?.ui_language, config.default_locale, enabled);
+  const initialLocale = resolveInitialLocale(
+    resolveProfileLocale(profile),
+    config.default_locale,
+    enabled
+  );
 
   return (
     <I18nProvider initialLocale={initialLocale} enabledLocales={enabled}>

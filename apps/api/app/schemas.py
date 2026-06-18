@@ -610,8 +610,21 @@ class UserProfileSummary(BaseModel):
     primary_target_language: str = "en"
     current_level: str = "B1"
     fluency_score: float = 50
+    explanation_language: str = "zh"
+    ui_language: str = "zh"
+    birthday: date | None = None
+    avatar_url: str = ""
+    gender_identity: str = ""
+    gender_custom: str = ""
+    sexual_orientation: str = ""
+    orientation_custom: str = ""
+    lgbtq_visible: bool = False
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminProfileUpdate(ProfileBase):
+    """Admin-editable profile fields (mirrors user PUT /api/profile)."""
 
 
 class UserDetailRead(BaseModel):

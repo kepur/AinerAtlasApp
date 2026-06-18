@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from app.api.router import api_router
@@ -258,6 +258,9 @@ def seed_defaults() -> None:
         sync_demo_user_from_settings(db)
         seed_aliyun_providers(db, settings)
         _repair_provider_api_keys(db, settings)
+        _repair_conversation_schema(db)
+        _repair_conversation_activity_schema(db)
+        _repair_user_profile_schema(db)
         app_settings = db.get(AppSettings, "default")
         if not app_settings:
             db.add(AppSettings(id="default"))
@@ -493,6 +496,71 @@ def _repair_provider_api_keys(db, settings) -> None:
             changed = True
     if changed:
         logger.info("Repaired provider API keys for development plaintext storage")
+
+
+def _repair_conversation_schema(db) -> None:
+    """Ensure conversation moderation/soft-delete columns exist (PostgreSQL dev safety)."""
+    if db.bind is None or db.bind.dialect.name != "postgresql":
+        return
+    db.execute(text("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ"))
+    db.execute(text("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(40) NOT NULL DEFAULT ''"))
+    db.execute(
+        text(
+            "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS moderation_status "
+            "VARCHAR(40) NOT NULL DEFAULT 'clean'"
+        )
+    )
+    db.execute(
+        text(
+            "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS moderation_reason "
+            "VARCHAR(512) NOT NULL DEFAULT ''"
+        )
+    )
+    db.execute(text("CREATE INDEX IF NOT EXISTS ix_conversations_deleted_at ON conversations (deleted_at)"))
+    db.execute(
+        text("CREATE INDEX IF NOT EXISTS ix_conversations_moderation_status ON conversations (moderation_status)")
+    )
+
+
+def _repair_conversation_activity_schema(db) -> None:
+    if db.bind is None or db.bind.dialect.name != "postgresql":
+        return
+    db.execute(
+        text(
+            """
+            CREATE TABLE IF NOT EXISTS conversation_activity_logs (
+                id VARCHAR(36) PRIMARY KEY,
+                user_id VARCHAR(36) NOT NULL REFERENCES users(id),
+                conversation_id VARCHAR(36) NOT NULL,
+                message_id VARCHAR(36),
+                action VARCHAR(60) NOT NULL,
+                details JSON NOT NULL DEFAULT '{}',
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+    )
+    db.execute(
+        text("CREATE INDEX IF NOT EXISTS ix_conversation_activity_logs_conversation_id ON conversation_activity_logs (conversation_id)")
+    )
+    db.execute(
+        text("CREATE INDEX IF NOT EXISTS ix_conversation_activity_logs_user_id ON conversation_activity_logs (user_id)")
+    )
+    db.execute(
+        text("CREATE INDEX IF NOT EXISTS ix_conversation_activity_logs_action ON conversation_activity_logs (action)")
+    )
+
+
+def _repair_user_profile_schema(db) -> None:
+    if db.bind is None or db.bind.dialect.name != "postgresql":
+        return
+    db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS birthday DATE"))
+    db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(512) NOT NULL DEFAULT ''"))
+    db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS gender_identity VARCHAR(40) NOT NULL DEFAULT ''"))
+    db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS gender_custom VARCHAR(120) NOT NULL DEFAULT ''"))
+    db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS sexual_orientation VARCHAR(40) NOT NULL DEFAULT ''"))
+    db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS orientation_custom VARCHAR(120) NOT NULL DEFAULT ''"))
+    db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS lgbtq_visible BOOLEAN NOT NULL DEFAULT FALSE"))
 
 
 app = create_app()

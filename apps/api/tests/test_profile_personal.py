@@ -1,10 +1,13 @@
-"""Tests for personal profile fields and avatar upload."""
+"""Tests for personal profile fields, avatar upload, and admin visibility."""
 
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+from app.db.session import SessionLocal
 from app.main import app
+from app.models import User
 
 # 1x1 PNG
 _TINY_PNG = (
@@ -14,7 +17,7 @@ _TINY_PNG = (
 )
 
 
-def _register_and_login(client: TestClient) -> str:
+def _register_and_login(client: TestClient) -> tuple[str, str]:
     email = f"profile-{uuid4().hex[:8]}@test.com"
     client.post(
         "/api/auth/register",
@@ -25,11 +28,25 @@ def _register_and_login(client: TestClient) -> str:
         json={"email": email, "password": "testpass123"},
     )
     assert resp.status_code == 200, resp.text
-    return resp.json()["access_token"]
+    token = resp.json()["access_token"]
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == email))
+        assert user is not None
+        user_id = user.id
+    return token, user_id
 
 
-def _auth(token: str) -> dict:
+def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+def _admin_headers(client: TestClient) -> dict[str, str]:
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "admin@ainerspeak.com", "password": "ChangeMe123!"},
+    )
+    assert response.status_code == 200
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
 def _tiny_png() -> bytes:
@@ -38,7 +55,7 @@ def _tiny_png() -> bytes:
 
 def test_profile_personal_fields_and_avatar() -> None:
     with TestClient(app) as client:
-        token = _register_and_login(client)
+        token, _user_id = _register_and_login(client)
         headers = _auth(token)
 
         update = client.put(
@@ -72,3 +89,40 @@ def test_profile_personal_fields_and_avatar() -> None:
         )
         assert upload.status_code == 200, upload.text
         assert upload.json()["avatar_url"].startswith("/uploads/avatars/")
+
+
+def test_admin_user_detail_includes_personal_fields() -> None:
+    with TestClient(app) as client:
+        token, user_id = _register_and_login(client)
+        headers = _auth(token)
+
+        client.put(
+            "/api/profile",
+            headers=headers,
+            json={
+                "native_language": "zh",
+                "primary_target_language": "en",
+                "birthday": "1998-05-20",
+                "gender_identity": "non_binary",
+                "sexual_orientation": "queer",
+                "lgbtq_visible": True,
+            },
+        )
+        client.post(
+            "/api/profile/avatar",
+            headers=headers,
+            files={"file": ("avatar.png", _tiny_png(), "image/png")},
+        )
+
+        detail = client.get(
+            f"/api/admin/users/{user_id}",
+            headers=_admin_headers(client),
+        )
+        assert detail.status_code == 200, detail.text
+        profile = detail.json()["profile"]
+        assert profile is not None
+        assert profile["birthday"] == "1998-05-20"
+        assert profile["gender_identity"] == "non_binary"
+        assert profile["sexual_orientation"] == "queer"
+        assert profile["lgbtq_visible"] is True
+        assert profile["avatar_url"].startswith("/uploads/avatars/")

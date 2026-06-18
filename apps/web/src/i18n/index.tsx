@@ -116,6 +116,12 @@ export function useI18n() {
   return ctx;
 }
 
+export function resolveProfileLocale(
+  profile: { ui_language?: string; native_language?: string } | null | undefined
+): string | undefined {
+  return profile?.native_language || profile?.ui_language || undefined;
+}
+
 export function resolveLocaleCode(
   preferred: string | undefined,
   fallback: string,

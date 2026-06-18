@@ -49,10 +49,12 @@ from app.schemas import (
     PromptTemplateUpdate,
     UsageLogRead,
     LLMCallLogRead,
+    AdminProfileUpdate,
     UserDetailRead,
     UserProfileSummary,
     UserRead,
 )
+from app.api.routes.profile import _sync_match_birthday
 from app.services.app_settings import get_app_settings, resolved_default_locale, resolved_enabled_locales
 from app.services.audit import write_audit_log
 from app.services.auth_settings import (
@@ -133,6 +135,39 @@ def get_user_detail(user_id: str, _: AdminUser, db: DBSession) -> UserDetailRead
             "avg_mastery_score": round(float(avg_mastery), 1),
         },
     )
+
+
+@router.put("/users/{user_id}/profile", response_model=UserProfileSummary)
+def admin_update_user_profile(
+    user_id: str,
+    payload: AdminProfileUpdate,
+    admin: AdminUser,
+    db: DBSession,
+) -> UserProfileSummary:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user.id))
+    if not profile:
+        profile = UserProfile(user_id=user.id)
+        db.add(profile)
+
+    for field, value in payload.model_dump().items():
+        setattr(profile, field, value)
+
+    _sync_match_birthday(db, user.id, profile.birthday)
+    write_audit_log(
+        db,
+        admin,
+        action="update_user_profile",
+        resource_type="user",
+        resource_id=user_id,
+        details={"birthday": str(profile.birthday) if profile.birthday else None},
+    )
+    db.commit()
+    db.refresh(profile)
+    return UserProfileSummary.model_validate(profile)
 
 
 @router.put("/users/{user_id}/membership", response_model=UserRead)
