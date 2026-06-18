@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
+from app.core.security import decode_access_token
 from app.models import (
     CircleMember,
     CircleMessage,
@@ -18,6 +19,7 @@ from app.schemas import (
     ROOM_TYPE_OPTIONS,
 )
 from app.services.circle_moderator import generate_room_summary, moderate_message
+from app.services.circle_hub import circle_hub
 from app.services.moderation import moderate_text
 
 router = APIRouter(prefix="/circles", tags=["circles"])
@@ -81,6 +83,51 @@ def get_bookmarks(current_user: CurrentUser, db: DBSession) -> list[dict]:
         for t in thoughts
         if (t.freeze_payload or {}).get("source") == "circle_bookmark"
     ]
+
+
+@router.websocket("/ws/{room_id}")
+async def circle_room_ws(websocket: WebSocket, room_id: str) -> None:
+    """Realtime fan-out for circle / DM rooms."""
+    await websocket.accept()
+    token = websocket.query_params.get("token", "")
+    user_id: str | None = None
+    if token:
+        try:
+            user_id = decode_access_token(token).get("sub")
+        except Exception:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+    if not user_id:
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+
+    from app.db.session import SessionLocal
+
+    with SessionLocal() as db:
+        room = db.get(CircleRoom, room_id)
+        if not room:
+            await websocket.close(code=4004, reason="Room not found")
+            return
+        member = db.scalar(
+            select(CircleMember).where(
+                CircleMember.room_id == room_id,
+                CircleMember.user_id == user_id,
+            )
+        )
+        if not member:
+            await websocket.close(code=4003, reason="Not a room member")
+            return
+
+    await circle_hub.connect(room_id, websocket)
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            if raw.strip().lower() == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await circle_hub.disconnect(room_id, websocket)
 
 
 @router.get("/{room_id}", response_model=CircleRoomRead)
@@ -175,7 +222,8 @@ async def send_message(
     )
     db.add(message)
 
-    if analysis.get("counter_question"):
+    host_msg: CircleMessage | None = None
+    if room.room_type != "dm" and analysis.get("counter_question"):
         host_msg = CircleMessage(
             room_id=room_id,
             user_id=None,
@@ -189,6 +237,19 @@ async def send_message(
 
     db.commit()
     db.refresh(message)
+    if host_msg:
+        db.refresh(host_msg)
+
+    from app.schemas import CircleMessageRead
+
+    for msg in (message, host_msg) if host_msg else (message,):
+        await circle_hub.broadcast(
+            room_id,
+            {
+                "type": "message",
+                "message": CircleMessageRead.model_validate(msg).model_dump(mode="json"),
+            },
+        )
     return message
 
 
