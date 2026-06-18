@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import "../../MessageBubble.css";
 import "../../game.css";
 import GameShell from "../../components/game/GameShell";
 import GameStatusBar from "../../components/game/GameStatusBar";
@@ -13,11 +14,24 @@ import UserSpeechCard from "../../components/game/UserSpeechCard";
 import AIHostCard from "../../components/game/AIHostCard";
 import ActionPanel from "../../components/game/ActionPanel";
 import VotePanel from "../../components/game/VotePanel";
+import VoteResultCard from "../../components/game/VoteResultCard";
+import ContradictionHintCard from "../../components/game/ContradictionHintCard";
 import GameSummary from "../../components/game/GameSummary";
+import { LearningHUD, TokenExplainSheet, TurnSelector, useTts } from "../../components/learning";
 import { apiRequest } from "../../api";
+import { addPatternsToCrush, saveGameToAssets } from "../../lib/gameLearning";
 import { useAudioCacheStore } from "../../stores/audioCacheStore";
+import { normalizeGameHud, useSocialLogicStore } from "../../stores/socialLogicStore";
+import type { HudData } from "../../stores/chatStore";
 
-type UIPhase = "lobby" | "reveal" | "night" | "day" | "vote" | "summary";
+type UIPhase = "lobby" | "reveal" | "night" | "day" | "vote" | "vote_result" | "summary";
+
+type VoteResultView = {
+  eliminatedName: string;
+  revealedRole?: string;
+  votes: { voter: string; target: string }[];
+  nextPhase: string;
+};
 
 const ROLE_CN: Record<string, {
   name: string; nameZh: string; nameEn: string;
@@ -64,12 +78,30 @@ export default function SocialLogicGame() {
   const [busy, setBusy] = useState(false);
   const [actionMode, setActionMode] = useState<"default" | "question">("default");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>();
-  const [learningHud, setLearningHud] = useState<any>(null);
   const [summary, setSummary] = useState<any>(null);
+  const [voteResult, setVoteResult] = useState<VoteResultView | null>(null);
+  const [tokenSheet, setTokenSheet] = useState<{ token: string; context: string } | null>(null);
+  const [crushBusy, setCrushBusy] = useState(false);
+  const [assetsBusy, setAssetsBusy] = useState(false);
+  const [crushDone, setCrushDone] = useState(false);
+  const [assetsDone, setAssetsDone] = useState(false);
   const feedEndRef = useRef<HTMLDivElement>(null);
   const creatingRef = useRef(false);
   const nightRunRef = useRef(false);
   const [nightSec, setNightSec] = useState(0);
+
+  const { speak: ttsSpeak } = useTts();
+  const {
+    turns: learningTurns,
+    activeTurnId,
+    pinnedTurnId,
+    pushTurn,
+    setActiveTurn,
+    pinTurn,
+    unpinTurn,
+    reset: resetLearning,
+    activeHud,
+  } = useSocialLogicStore();
 
   // Resume an existing game from the URL when possible; only create a fresh one
   // when there's no resumable game (entry via /new, a template id, or a game the
@@ -184,16 +216,31 @@ export default function SocialLogicGame() {
 
   const handleQuestion = async (text: string) => {
     if (!gid || !text.trim()) return;
-    // Fall back to the first living AI if no target is explicitly selected.
     const targetId = selectedPlayerId
       || (players.find((p: any) => !p.is_user && p.alive)?.id);
     if (!targetId) return;
+    const target = players.find((p: any) => p.id === targetId);
     const data = await call(`/${gid}/question`, { target_player_id: targetId, content: text.trim() });
     if (data.state) setGame(data.state);
-    if (data.hud) setLearningHud(data.hud);
-    // Stay in question mode so the user can keep speaking this round.
+    if (data.hud) {
+      const hud = normalizeGameHud(data.hud);
+      pushTurn(`问 ${target?.name || "?"}`, hud);
+    }
     setActionMode("question");
   };
+
+  function parseVoteResult(state: any): VoteResultView | null {
+    const vr = [...(state?.feed || [])].reverse().find((f: any) => f.type === "vote_result");
+    if (!vr) return null;
+    const m = String(vr.text || "").match(/^(.+?) 被投票出局/);
+    const roleM = String(vr.text || "").match(/身份揭示：(.+?)。/);
+    return {
+      eliminatedName: m?.[1] || "Unknown",
+      revealedRole: roleM?.[1],
+      votes: (vr.votes || []).map((v: any) => ({ voter: v.voter, target: v.target })),
+      nextPhase: state.phase,
+    };
+  }
 
   const speak = async (text: string, speakerName?: string) => {
     if (!text) return;
@@ -216,6 +263,12 @@ export default function SocialLogicGame() {
     if (!gid) return;
     const data = await call(`/${gid}/vote`, { target_player_id: targetId, reason });
     setGame(data);
+    const vr = parseVoteResult(data);
+    if (vr) {
+      setVoteResult(vr);
+      setUiPhase("vote_result");
+      return;
+    }
     if (data.phase === "ended") {
       const s = await apiRequest<any>(`/api/games/social-logic/${gid}/summary`);
       setSummary(s);
@@ -224,6 +277,47 @@ export default function SocialLogicGame() {
       enterDay(data);
     }
   };
+
+  const handleVoteResultNext = async () => {
+    if (!game) return;
+    if (game.phase === "ended") {
+      const s = await apiRequest<any>(`/api/games/social-logic/${gid}/summary`);
+      setSummary(s);
+      setVoteResult(null);
+      setUiPhase("summary");
+    } else {
+      setVoteResult(null);
+      enterDay(game);
+    }
+  };
+
+  const handleAddToCrush = async () => {
+    if (!summary?.patterns?.length) return;
+    setCrushBusy(true);
+    try {
+      const n = await addPatternsToCrush(summary.patterns as string[]);
+      if (n > 0) setCrushDone(true);
+    } finally {
+      setCrushBusy(false);
+    }
+  };
+
+  const handleSaveToAssets = async () => {
+    if (!summary) return;
+    setAssetsBusy(true);
+    try {
+      const lines = [
+        ...(summary.expressions || []),
+        ...(summary.patterns || []),
+      ] as string[];
+      const ok = await saveGameToAssets("狼人杀 Lite 学习收获", lines);
+      if (ok) setAssetsDone(true);
+    } finally {
+      setAssetsBusy(false);
+    }
+  };
+
+  const hudForDisplay: HudData = activeHud();
 
   if (!game) {
     return (
@@ -327,6 +421,34 @@ export default function SocialLogicGame() {
           {/* Day discussion */}
           {uiPhase === "day" && (
             <div className="flex flex-col h-full">
+              <TurnSelector
+                turns={learningTurns.map((t) => ({
+                  turn_id: t.turn_id,
+                  label: t.label,
+                  focusCount: Array.isArray(t.hud?.patterns_v2) ? t.hud.patterns_v2.length : 0,
+                  pinned: !!t.pinned,
+                  user_message_id: "",
+                  assistant_message_id: "",
+                  user_text: "",
+                  ai_reply: "",
+                  hud: t.hud,
+                  status: "ready" as const,
+                }))}
+                activeTurnId={activeTurnId}
+                pinnedTurnId={pinnedTurnId}
+                onSelect={setActiveTurn}
+                onPin={pinTurn}
+                onUnpin={unpinTurn}
+              />
+
+              {hudForDisplay?.main_expression && (
+                <LearningHUD
+                  hud={hudForDisplay}
+                  speak={ttsSpeak}
+                  onTokenClick={(token, ctx) => setTokenSheet({ token, context: ctx })}
+                />
+              )}
+
               <PlayerStrip
                 players={players.map((p: any) => ({
                   id: p.id, name: p.name, avatarChar: (p.name || "?").charAt(p.name.length - 1),
@@ -345,25 +467,52 @@ export default function SocialLogicGame() {
                 {(game.feed || []).map((f: any, i: number) => {
                   if (f.type === "speech") {
                     const sp = players.find((p: any) => p.name === f.speaker);
-                    return <PlayerSpeechCard key={i} playerName={f.speaker} avatarChar={(f.speaker || "?").slice(-1)} avatarUrl={sp?.avatar_url} englishText={f.text} chineseGloss={f.text_native} onSpeak={() => speak(f.text, f.speaker)} onChallenge={() => { setSelectedPlayerId(sp?.id); setActionMode("question"); }} />;
+                    return (
+                      <PlayerSpeechCard
+                        key={i}
+                        playerName={f.speaker}
+                        avatarChar={(f.speaker || "?").slice(-1)}
+                        avatarUrl={sp?.avatar_url}
+                        englishText={f.text}
+                        chineseGloss={f.text_native}
+                        onSpeak={() => speak(f.text, f.speaker)}
+                        onChallenge={() => {
+                          setSelectedPlayerId(sp?.id);
+                          setActionMode("question");
+                        }}
+                      />
+                    );
                   }
                   if (f.type === "user_question") {
-                    return <UserSpeechCard key={i} englishText={f.text} chineseGloss={f.text_native} onShowLearningPoints={() => learningHud && setActionMode("default")} />;
+                    return (
+                      <UserSpeechCard
+                        key={i}
+                        englishText={f.text}
+                        chineseGloss={f.text_native}
+                        onShowLearningPoints={() => setActionMode("default")}
+                      />
+                    );
+                  }
+                  if (f.type === "contradiction") {
+                    const involved = (f.players_involved || [])[0];
+                    const sp = players.find((p: any) => p.name === involved);
+                    return (
+                      <ContradictionHintCard
+                        key={i}
+                        text={f.text}
+                        targetPlayerId={sp?.id}
+                        targetPlayerName={involved}
+                        onChallenge={() => {
+                          if (sp?.id) {
+                            setSelectedPlayerId(sp.id);
+                            setActionMode("question");
+                          }
+                        }}
+                      />
+                    );
                   }
                   return <AIHostCard key={i} text={f.text || f.text_native || ""} />;
                 })}
-
-                {/* Learning HUD card after a question */}
-                {learningHud?.main_expression && (
-                  <div className="mx-3 my-2 bg-[#1e1b4b]/70 border border-[#7c5cff]/30 rounded-2xl p-3 text-white">
-                    <div className="text-[10px] text-[#a78bfa] font-bold mb-1">🌿 自然表达</div>
-                    <div className="text-[14px] font-bold">{learningHud.main_expression}</div>
-                    <div className="text-[11px] text-white/60 mb-2">{learningHud.meaning_native}</div>
-                    {(learningHud.agents || []).slice(0, 3).map((a: any, i: number) => (
-                      <div key={i} className="text-[10px] text-white/70 mt-1"><span className="text-[#a78bfa] font-bold">{a.agent}：</span>{a.result}</div>
-                    ))}
-                  </div>
-                )}
 
                 {busy && (
                   <div className="flex items-center gap-2 px-4 py-3 text-white/60 text-xs">
@@ -403,14 +552,47 @@ export default function SocialLogicGame() {
             />
           )}
 
+          {uiPhase === "vote_result" && voteResult && (
+            <VoteResultCard
+              eliminatedPlayerName={voteResult.eliminatedName}
+              revealedRole={voteResult.revealedRole}
+              votes={voteResult.votes}
+              onNextRound={() => void handleVoteResultNext()}
+            />
+          )}
+
           {/* Summary */}
           {uiPhase === "summary" && summary && (
             <GameSummary
-              victory={summary.winner === (ROLE_CN[userRole]?.camp.includes("好人") ? "villagers" : "werewolves") || summary.winner === "villagers"}
+              victory={summary.winner === "villagers"}
               score={summary.questions_asked ? Math.min(100, 60 + summary.questions_asked * 8) : 70}
               highlightSpeech={(summary.expressions || [])[0] || ""}
               learnedPatterns={summary.patterns || []}
-              onPlayAgain={() => navigate(0)}
+              onPlayAgain={() => {
+                resetLearning();
+                setCrushDone(false);
+                setAssetsDone(false);
+                setSummary(null);
+                setGame(null);
+                setVoteResult(null);
+                creatingRef.current = false;
+                navigate("/game/social-logic/new", { replace: true });
+              }}
+              onAddToCrush={handleAddToCrush}
+              onSaveToAssets={handleSaveToAssets}
+              crushBusy={crushBusy}
+              assetsBusy={assetsBusy}
+              crushDone={crushDone}
+              assetsDone={assetsDone}
+            />
+          )}
+
+          {tokenSheet && (
+            <TokenExplainSheet
+              token={tokenSheet.token}
+              context={tokenSheet.context}
+              onClose={() => setTokenSheet(null)}
+              speak={ttsSpeak}
             />
           )}
         </div>

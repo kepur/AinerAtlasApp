@@ -119,3 +119,44 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Learning HUD — dark skin inside game shell */
+.game-dark .learning-hud {
+  background: rgba(30, 27, 75, 0.55);
+  border-bottom: 1px solid rgba(124, 92, 255, 0.25);
+  margin: 0;
+}
+
+.game-dark .learning-hud .hud-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.game-dark .learning-hud .hud-card-title,
+.game-dark .learning-hud .hud-expression-text,
+.game-dark .learning-hud .hud-agent-result {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.game-dark .learning-hud .hud-native,
+.game-dark .learning-hud .hud-status,
+.game-dark .learning-hud .hud-why-list li {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.game-dark .turn-selector {
+  background: rgba(11, 10, 31, 0.85);
+  border-bottom: 1px solid rgba(124, 92, 255, 0.2);
+}
+
+.game-dark .turn-chip {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.game-dark .turn-chip.active {
+  background: rgba(124, 92, 255, 0.35);
+  color: #fff;
+}

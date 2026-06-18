@@ -6,9 +6,27 @@ type GameSummaryProps = {
   highlightSpeech: string;
   learnedPatterns: string[];
   onPlayAgain: () => void;
+  onAddToCrush?: () => void | Promise<void>;
+  onSaveToAssets?: () => void | Promise<void>;
+  crushBusy?: boolean;
+  assetsBusy?: boolean;
+  crushDone?: boolean;
+  assetsDone?: boolean;
 };
 
-export default function GameSummary({ victory, score, highlightSpeech, learnedPatterns, onPlayAgain }: GameSummaryProps) {
+export default function GameSummary({
+  victory,
+  score,
+  highlightSpeech,
+  learnedPatterns,
+  onPlayAgain,
+  onAddToCrush,
+  onSaveToAssets,
+  crushBusy = false,
+  assetsBusy = false,
+  crushDone = false,
+  assetsDone = false,
+}: GameSummaryProps) {
   return (
     <div className="flex flex-col gap-6 px-4 py-8 max-w-md mx-auto w-full relative z-10 pb-32">
       {/* Hero Section */}
@@ -75,11 +93,21 @@ export default function GameSummary({ victory, score, highlightSpeech, learnedPa
       {/* Bottom Actions */}
       <div className="fixed bottom-[80px] left-0 w-full px-4 pt-8 pb-4 bg-gradient-to-t from-[#0b0a1f] via-[#0b0a1f]/90 to-transparent z-40 flex flex-col gap-3">
         <div className="flex gap-3 max-w-md mx-auto w-full">
-          <button className="flex-1 h-12 bg-white/10 text-white rounded-full font-bold text-sm border border-white/20 flex items-center justify-center gap-2 hover:bg-white/20 transition-colors">
-            <BookmarkPlus size={18} /> 加入消消乐
+          <button
+            type="button"
+            disabled={crushBusy || crushDone || learnedPatterns.length === 0}
+            onClick={() => void onAddToCrush?.()}
+            className="flex-1 h-12 bg-white/10 text-white rounded-full font-bold text-sm border border-white/20 flex items-center justify-center gap-2 hover:bg-white/20 transition-colors disabled:opacity-50"
+          >
+            <BookmarkPlus size={18} /> {crushDone ? "已加入消消乐" : crushBusy ? "加入中..." : "加入消消乐"}
           </button>
-          <button className="flex-1 h-12 bg-white/10 text-white rounded-full font-bold text-sm border border-white/20 flex items-center justify-center gap-2 hover:bg-white/20 transition-colors">
-            保存到 Assets
+          <button
+            type="button"
+            disabled={assetsBusy || assetsDone}
+            onClick={() => void onSaveToAssets?.()}
+            className="flex-1 h-12 bg-white/10 text-white rounded-full font-bold text-sm border border-white/20 flex items-center justify-center gap-2 hover:bg-white/20 transition-colors disabled:opacity-50"
+          >
+            {assetsDone ? "已保存" : assetsBusy ? "保存中..." : "保存到 Assets"}
           </button>
         </div>
         <button 
