@@ -10,18 +10,21 @@ from app.models import (
     Conversation,
     ConversationMessage,
     ExpressionAsset,
-    ExpressionAssetVersion,
     GameSession,
     GameTemplate,
-    GameTurn,
     ModerationEvent,
     Report,
     Thought,
-    ThoughtVersion,
     UsageLog,
     User,
 )
 from app.services.audit import write_audit_log
+from app.services.user_data_purge import (
+    delete_conversations_by_ids,
+    delete_expression_assets_by_ids,
+    delete_game_sessions_by_ids,
+    delete_thoughts_by_ids,
+)
 
 router = APIRouter(prefix="/admin/data", tags=["admin-data"])
 
@@ -108,31 +111,12 @@ def list_conversations(
     }
 
 
-def _delete_conversations_by_ids(db, ids: list[str]) -> int:
-    if not ids:
-        return 0
-    db.execute(delete(ConversationMessage).where(ConversationMessage.conversation_id.in_(ids)))
-    return db.execute(delete(Conversation).where(Conversation.id.in_(ids))).rowcount
-
-
-def _purge_all_conversations(db) -> int:
-    db.execute(delete(ConversationMessage))
-    return db.execute(delete(Conversation)).rowcount
-
-
-def _purge_conversations_by_user(db, user_id: str) -> int:
-    ids = list(db.scalars(select(Conversation.id).where(Conversation.user_id == user_id)))
-    if not ids:
-        return 0
-    return _delete_conversations_by_ids(db, ids)
-
 
 @router.delete("/conversations/{conversation_id}")
 def delete_conversation(conversation_id: str, admin: AdminUser, db: DBSession) -> dict:
-    conv = db.get(Conversation, conversation_id)
-    if not conv:
+    if not db.get(Conversation, conversation_id):
         raise HTTPException(status_code=404, detail="Conversation not found")
-    db.delete(conv)
+    delete_conversations_by_ids(db, [conversation_id])
     _audit(db, admin, "delete_conversation", "conversation", conversation_id)
     db.commit()
     return {"deleted": True, "id": conversation_id}
@@ -140,7 +124,7 @@ def delete_conversation(conversation_id: str, admin: AdminUser, db: DBSession) -
 
 @router.post("/conversations/batch-delete")
 def batch_delete_conversations(payload: BatchDeleteRequest, admin: AdminUser, db: DBSession) -> dict:
-    count = _delete_conversations_by_ids(db, payload.ids)
+    count = delete_conversations_by_ids(db, payload.ids)
     _audit(db, admin, "batch_delete_conversations", "conversation", ",".join(payload.ids[:5]), {"count": count})
     db.commit()
     return {"deleted": count}
@@ -148,7 +132,8 @@ def batch_delete_conversations(payload: BatchDeleteRequest, admin: AdminUser, db
 
 @router.delete("/conversations/user/{user_id}")
 def purge_conversations_by_user(user_id: str, admin: AdminUser, db: DBSession) -> dict:
-    count = _purge_conversations_by_user(db, user_id)
+    ids = list(db.scalars(select(Conversation.id).where(Conversation.user_id == user_id)))
+    count = delete_conversations_by_ids(db, ids)
     _audit(db, admin, "purge_conversations_by_user", "user", user_id, {"count": count})
     db.commit()
     return {"deleted": count, "user_id": user_id}
@@ -158,7 +143,8 @@ def purge_conversations_by_user(user_id: str, admin: AdminUser, db: DBSession) -
 def purge_all_conversations(payload: PurgeAllRequest, admin: AdminUser, db: DBSession) -> dict:
     if payload.confirm != CONFIRM_ALL:
         raise HTTPException(status_code=400, detail=f"confirm must be {CONFIRM_ALL}")
-    count = _purge_all_conversations(db)
+    conv_ids = list(db.scalars(select(Conversation.id)))
+    count = delete_conversations_by_ids(db, conv_ids)
     _audit(db, admin, "purge_all_conversations", "conversation", "*", {"count": count})
     db.commit()
     return {"deleted": count}
@@ -192,18 +178,13 @@ def list_thoughts(
     }
 
 
-def _delete_thoughts_by_ids(db, ids: list[str]) -> int:
-    if not ids:
-        return 0
-    db.execute(delete(ThoughtVersion).where(ThoughtVersion.thought_id.in_(ids)))
-    return db.execute(delete(Thought).where(Thought.id.in_(ids))).rowcount
 
 
 @router.delete("/thoughts/{thought_id}")
 def delete_thought(thought_id: str, admin: AdminUser, db: DBSession) -> dict:
     if not db.get(Thought, thought_id):
         raise HTTPException(status_code=404, detail="Thought not found")
-    count = _delete_thoughts_by_ids(db, [thought_id])
+    count = delete_thoughts_by_ids(db, [thought_id])
     _audit(db, admin, "delete_thought", "thought", thought_id)
     db.commit()
     return {"deleted": count}
@@ -211,7 +192,7 @@ def delete_thought(thought_id: str, admin: AdminUser, db: DBSession) -> dict:
 
 @router.post("/thoughts/batch-delete")
 def batch_delete_thoughts(payload: BatchDeleteRequest, admin: AdminUser, db: DBSession) -> dict:
-    count = _delete_thoughts_by_ids(db, payload.ids)
+    count = delete_thoughts_by_ids(db, payload.ids)
     _audit(db, admin, "batch_delete_thoughts", "thought", ",".join(payload.ids[:5]), {"count": count})
     db.commit()
     return {"deleted": count}
@@ -220,7 +201,7 @@ def batch_delete_thoughts(payload: BatchDeleteRequest, admin: AdminUser, db: DBS
 @router.delete("/thoughts/user/{user_id}")
 def purge_thoughts_by_user(user_id: str, admin: AdminUser, db: DBSession) -> dict:
     ids = list(db.scalars(select(Thought.id).where(Thought.user_id == user_id)))
-    count = _delete_thoughts_by_ids(db, ids)
+    count = delete_thoughts_by_ids(db, ids)
     _audit(db, admin, "purge_thoughts_by_user", "user", user_id, {"count": count})
     db.commit()
     return {"deleted": count, "user_id": user_id}
@@ -231,7 +212,7 @@ def purge_all_thoughts(payload: PurgeAllRequest, admin: AdminUser, db: DBSession
     if payload.confirm != CONFIRM_ALL:
         raise HTTPException(status_code=400, detail=f"confirm must be {CONFIRM_ALL}")
     ids = list(db.scalars(select(Thought.id)))
-    count = _delete_thoughts_by_ids(db, ids)
+    count = delete_thoughts_by_ids(db, ids)
     _audit(db, admin, "purge_all_thoughts", "thought", "*", {"count": count})
     db.commit()
     return {"deleted": count}
@@ -268,10 +249,9 @@ def list_game_sessions(
 
 @router.delete("/game-sessions/{session_id}")
 def delete_game_session(session_id: str, admin: AdminUser, db: DBSession) -> dict:
-    sess = db.get(GameSession, session_id)
-    if not sess:
+    if not db.get(GameSession, session_id):
         raise HTTPException(status_code=404, detail="Game session not found")
-    db.delete(sess)
+    delete_game_sessions_by_ids(db, [session_id])
     _audit(db, admin, "delete_game_session", "game_session", session_id)
     db.commit()
     return {"deleted": True}
@@ -279,33 +259,30 @@ def delete_game_session(session_id: str, admin: AdminUser, db: DBSession) -> dic
 
 @router.post("/game-sessions/batch-delete")
 def batch_delete_game_sessions(payload: BatchDeleteRequest, admin: AdminUser, db: DBSession) -> dict:
-    db.execute(delete(GameTurn).where(GameTurn.session_id.in_(payload.ids)))
-    result = db.execute(delete(GameSession).where(GameSession.id.in_(payload.ids)))
-    _audit(db, admin, "batch_delete_game_sessions", "game_session", ",".join(payload.ids[:5]), {"count": result.rowcount})
+    count = delete_game_sessions_by_ids(db, payload.ids)
+    _audit(db, admin, "batch_delete_game_sessions", "game_session", ",".join(payload.ids[:5]), {"count": count})
     db.commit()
-    return {"deleted": result.rowcount}
+    return {"deleted": count}
 
 
 @router.delete("/game-sessions/user/{user_id}")
 def purge_game_sessions_by_user(user_id: str, admin: AdminUser, db: DBSession) -> dict:
     ids = list(db.scalars(select(GameSession.id).where(GameSession.user_id == user_id)))
-    if ids:
-        db.execute(delete(GameTurn).where(GameTurn.session_id.in_(ids)))
-    result = db.execute(delete(GameSession).where(GameSession.user_id == user_id))
-    _audit(db, admin, "purge_game_sessions_by_user", "user", user_id, {"count": result.rowcount})
+    count = delete_game_sessions_by_ids(db, ids)
+    _audit(db, admin, "purge_game_sessions_by_user", "user", user_id, {"count": count})
     db.commit()
-    return {"deleted": result.rowcount, "user_id": user_id}
+    return {"deleted": count, "user_id": user_id}
 
 
 @router.post("/game-sessions/purge-all")
 def purge_all_game_sessions(payload: PurgeAllRequest, admin: AdminUser, db: DBSession) -> dict:
     if payload.confirm != CONFIRM_ALL:
         raise HTTPException(status_code=400, detail=f"confirm must be {CONFIRM_ALL}")
-    db.execute(delete(GameTurn))
-    result = db.execute(delete(GameSession))
-    _audit(db, admin, "purge_all_game_sessions", "game_session", "*", {"count": result.rowcount})
+    sess_ids = list(db.scalars(select(GameSession.id)))
+    count = delete_game_sessions_by_ids(db, sess_ids)
+    _audit(db, admin, "purge_all_game_sessions", "game_session", "*", {"count": count})
     db.commit()
-    return {"deleted": result.rowcount}
+    return {"deleted": count}
 
 
 # ---------------------------------------------------------------------------
@@ -336,18 +313,12 @@ def list_expression_assets(
     }
 
 
-def _delete_assets_by_ids(db, ids: list[str]) -> int:
-    if not ids:
-        return 0
-    db.execute(delete(ExpressionAssetVersion).where(ExpressionAssetVersion.asset_id.in_(ids)))
-    return db.execute(delete(ExpressionAsset).where(ExpressionAsset.id.in_(ids))).rowcount
-
 
 @router.delete("/expression-assets/{asset_id}")
 def delete_expression_asset(asset_id: str, admin: AdminUser, db: DBSession) -> dict:
     if not db.get(ExpressionAsset, asset_id):
         raise HTTPException(status_code=404, detail="Asset not found")
-    count = _delete_assets_by_ids(db, [asset_id])
+    count = delete_expression_assets_by_ids(db, [asset_id])
     _audit(db, admin, "delete_expression_asset", "expression_asset", asset_id)
     db.commit()
     return {"deleted": count}
@@ -355,7 +326,7 @@ def delete_expression_asset(asset_id: str, admin: AdminUser, db: DBSession) -> d
 
 @router.post("/expression-assets/batch-delete")
 def batch_delete_expression_assets(payload: BatchDeleteRequest, admin: AdminUser, db: DBSession) -> dict:
-    count = _delete_assets_by_ids(db, payload.ids)
+    count = delete_expression_assets_by_ids(db, payload.ids)
     _audit(db, admin, "batch_delete_expression_assets", "expression_asset", ",".join(payload.ids[:5]), {"count": count})
     db.commit()
     return {"deleted": count}
@@ -364,7 +335,7 @@ def batch_delete_expression_assets(payload: BatchDeleteRequest, admin: AdminUser
 @router.delete("/expression-assets/user/{user_id}")
 def purge_expression_assets_by_user(user_id: str, admin: AdminUser, db: DBSession) -> dict:
     ids = list(db.scalars(select(ExpressionAsset.id).where(ExpressionAsset.user_id == user_id)))
-    count = _delete_assets_by_ids(db, ids)
+    count = delete_expression_assets_by_ids(db, ids)
     _audit(db, admin, "purge_expression_assets_by_user", "user", user_id, {"count": count})
     db.commit()
     return {"deleted": count, "user_id": user_id}

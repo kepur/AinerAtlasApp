@@ -258,7 +258,9 @@ def delete_user(user_id: str, admin: AdminUser, db: DBSession) -> None:
         resource_id=user_id,
         details={"email": user.email, "role": user.role},
     )
-    db.delete(user)
+    from app.services.user_data_purge import delete_user_account
+
+    delete_user_account(db, user_id)
     db.commit()
 
 
