@@ -994,6 +994,7 @@ TASK_MODEL_HINTS = {
     "game_ai_speech": {"prefer": "quality", "fallback": "cheap"},
     "game_ai_answer": {"prefer": "quality", "fallback": "cheap"},
     "game_challenge_hud": {"prefer": "quality", "fallback": "cheap"},
+    "game_question": {"prefer": "quality", "fallback": "cheap"},
     "game_reasoning": {"prefer": "quality", "fallback": "cheap"},
     "game_summary": {"prefer": "quality", "fallback": "cheap"},
     "game_translate": {"prefer": "cheap", "fallback": "quality"},

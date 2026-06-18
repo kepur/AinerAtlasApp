@@ -308,55 +308,61 @@ async def question_player(
 
     native = game["native_language"]
     target_lang = game["target_language"]
-
-    # --- Call 1: the suspect's in-character answer (kept simple & focused) ---
     is_wolf = target["role"] == "werewolf"
-    ans_system = (
-        f"你在狼人杀游戏中扮演玩家 {target['name']}。\n"
-        f"性格：{target['personality']}\n"
-        f"身份：{'狼人，必须隐藏身份并巧妙辩解' if is_wolf else '村民，诚实回应'}\n"
-        "玩家质疑你。用1-2句英文回应，体现你的性格。\n"
-        '返回JSON：{"text":"英文回应","text_native":"' + native + '翻译","emotion":"calm/nervous/defensive/confident"}'
-    )
-    ans_user = (
-        f"质疑内容（可能是{native}）：{content}\n"
-        f"你之前说过：{target.get('public_claim', '无')}"
-    )
-    try:
-        from app.services.game_prompts import get_game_prompt
-        provider = _provider_for("game_ai_answer", db)
-        ans_system = get_game_prompt(db, "social_logic.answer", ans_system)
-        answer = await provider.complete_json(ans_system, ans_user, temperature=0.85, max_tokens=400)
-        if not isinstance(answer, dict):
-            answer = {}
-    except Exception as exc:
-        logger.warning("social-logic answer LLM failed: %s", exc)
-        answer = {"text": "I have nothing to hide.", "text_native": "我没什么好隐瞒的。"}
 
-    # --- Call 2: the learning HUD (flat template, same proven shape as other games) ---
-    hud_system = (
-        f"你是英语表达教练。用户在狼人杀游戏中用{native}或英文质疑了另一名玩家。"
-        f"生成学习HUD帮助用户学习如何用{target_lang}更好地质疑、推理与表态。\n\n"
-        "返回JSON：\n"
-        '{"main_expression":"用户质疑的标准英文表达，1句不超18词",'
-        f'"meaning_native":"{native}翻译",'
-        '"variants":{"natural":"自然口语","assertive":"强硬质疑","polite":"委婉质疑","deductive":"推理式"},'
-        f'"why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],'
-        '"patterns_v2":[{"pattern":"句型","example":"例句","add_to_crush":true}],'
-        '"vocabulary":["词1","词2","词3"],'
-        f'"agents":[{{"agent":"Logic Agent","result":"{native}分析质疑逻辑"}},{{"agent":"Language Coach","result":"{native}点评表达"}},{{"agent":"Game Coach","result":"{native}给策略建议"}}]'
+    combined_system = (
+        f"你是狼人杀游戏引擎兼英语表达教练。用户质疑玩家 {target['name']}，"
+        f"你必须在一次 JSON 响应中同时产出两部分：\n\n"
+        f"【answer】{target['name']} 以游戏角色身份用英文回应（1-2句，体现性格，不暴露隐藏身份）\n"
+        f"  - 性格：{target['personality']}\n"
+        f"  - 身份：{'狼人，必须隐藏并巧妙辩解' if is_wolf else '村民，诚实回应'}\n\n"
+        f"【hud】帮助用户学习如何用{target_lang}更好地质疑、推理与表态\n"
+        f"  - why_this_expression / agents 的解释一律用{native}\n\n"
+        "返回 JSON（严格嵌套，不要省略字段）：\n"
+        "{\n"
+        '  "answer": {"text":"英文回应","text_native":"中文翻译","emotion":"calm|nervous|defensive|confident"},\n'
+        '  "hud": {\n'
+        '    "main_expression":"用户质疑的标准英文表达，1句不超18词",\n'
+        f'    "meaning_native":"{native}翻译",\n'
+        '    "variants":{"natural":"自然口语","assertive":"强硬质疑","polite":"委婉质疑","deductive":"推理式"},\n'
+        f'    "why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],\n'
+        '    "patterns_v2":[{"pattern":"句型","example":"例句","add_to_crush":true}],\n'
+        '    "vocabulary":["词1","词2","词3"],\n'
+        f'    "agents":[{{"agent":"Logic Agent","result":"{native}分析质疑逻辑"}},'
+        f'{{"agent":"Language Coach","result":"{native}点评表达"}},'
+        f'{{"agent":"Game Coach","result":"{native}给策略建议"}}]\n'
+        "  }\n"
         "}"
     )
-    hud_user = f"用户的质疑：{content}\n目标玩家：{target['name']}（{target.get('public_claim', '')}）"
+    combined_user = (
+        f"用户质疑（可能是{native}）：{content}\n"
+        f"目标玩家 {target['name']} 之前说过：{target.get('public_claim', '无')}"
+    )
+
+    answer: dict = {}
+    hud: dict = {}
     try:
-        provider = _provider_for("game_challenge_hud", db)
-        hud_system = get_game_prompt(db, "social_logic.hud", hud_system)
-        hud = await provider.complete_json(hud_system, hud_user, temperature=0.7, max_tokens=900)
-        if not isinstance(hud, dict):
-            hud = {}
+        from app.services.game_prompts import get_game_prompt
+        provider = _provider_for("game_question", db)
+        combined_system = get_game_prompt(db, "social_logic.question", combined_system)
+        raw = await provider.complete_json(
+            combined_system, combined_user, temperature=0.75, max_tokens=1200,
+        )
+        if isinstance(raw, dict):
+            answer = raw.get("answer") if isinstance(raw.get("answer"), dict) else {}
+            hud = raw.get("hud") if isinstance(raw.get("hud"), dict) else {}
+            # Legacy flat shape: hud keys at top level alongside answer
+            if not hud and raw.get("main_expression"):
+                hud = {k: v for k, v in raw.items() if k != "answer"}
     except Exception as exc:
-        logger.warning("social-logic HUD LLM failed: %s", exc)
-        hud = {}
+        logger.warning("social-logic question LLM failed: %s", exc)
+
+    if not (answer.get("text") or "").strip():
+        answer = {
+            "text": "I have nothing to hide.",
+            "text_native": "我没什么好隐瞒的。",
+            "emotion": "calm",
+        }
 
     game["feed"].append({
         "type": "user_question", "speaker": "You", "round": game["round"],

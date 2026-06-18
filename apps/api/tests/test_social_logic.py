@@ -1,5 +1,7 @@
 """Social Logic Lite API — lobby/deal/start/vote/summary flow."""
 
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -17,6 +19,65 @@ def _token(client: TestClient) -> str:
         )
     assert resp.status_code == 200, resp.text
     return resp.json()["access_token"]
+
+
+def _start_discussion(client: TestClient, headers: dict) -> tuple[str, dict]:
+    create = client.post(
+        "/api/games/social-logic",
+        headers=headers,
+        json={"difficulty": "easy", "target_language": "en", "native_language": "zh"},
+    )
+    assert create.status_code == 200, create.text
+    gid = create.json()["game_id"]
+    client.post(f"/api/games/social-logic/{gid}/deal", headers=headers)
+    start = client.post(f"/api/games/social-logic/{gid}/start", headers=headers)
+    assert start.status_code == 200, start.text
+    return gid, start.json()
+
+
+def test_question_uses_single_llm_call() -> None:
+    """question_player must call complete_json exactly once (HUD + answer merged)."""
+    mock_provider = AsyncMock()
+    mock_provider.complete_json = AsyncMock(return_value={
+        "answer": {
+            "text": "I was near the gate, checking the perimeter.",
+            "text_native": "我在大门附近巡逻。",
+            "emotion": "calm",
+        },
+        "hud": {
+            "main_expression": "Where were you last night?",
+            "meaning_native": "你昨晚在哪里？",
+            "variants": {
+                "natural": "Where were you last night?",
+                "assertive": "Tell me exactly where you were.",
+                "polite": "Could you share where you were?",
+                "deductive": "If you were innocent, where were you?",
+            },
+            "why_this_expression": [{"point": "定位", "explanation": "先锁定时间地点"}],
+            "patterns_v2": [{"pattern": "Where were you...", "example": "Where were you?", "add_to_crush": True}],
+            "vocabulary": ["last night"],
+            "agents": [{"agent": "Logic Agent", "result": "先问位置再比对发言"}],
+        },
+    })
+
+    with patch("app.services.social_logic_engine._provider_for", return_value=mock_provider):
+        with TestClient(app) as client:
+            headers = {"Authorization": f"Bearer {_token(client)}"}
+            gid, state = _start_discussion(client, headers)
+            if state["phase"] != "day_discussion":
+                return
+            target = next(p for p in state["players"] if not p["is_user"] and p["alive"])
+            q = client.post(
+                f"/api/games/social-logic/{gid}/question",
+                headers=headers,
+                json={"target_player_id": target["id"], "content": "你昨晚在哪里？"},
+            )
+            assert q.status_code == 200, q.text
+            body = q.json()
+            assert mock_provider.complete_json.await_count == 1
+            assert body["answer"]["text"] == "I was near the gate, checking the perimeter."
+            assert body["hud"]["main_expression"] == "Where were you last night?"
+            assert body["hud"]["detected_intent"] == "expression_learning"
 
 
 def test_social_logic_full_flow_structure() -> None:
