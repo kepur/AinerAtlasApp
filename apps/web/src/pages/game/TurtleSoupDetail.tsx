@@ -116,8 +116,8 @@ export default function TurtleSoupDetail() {
             <button onClick={() => setParty(false)} className={`flex-1 py-2.5 rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors ${!party ? "bg-indigo-50 text-indigo-600" : "text-gray-400 hover:text-gray-700"}`}>
               <User size={16} /> Solo
             </button>
-            <button onClick={() => setParty(true)} title="多人模式开发中" className={`flex-1 py-2.5 rounded-xl font-medium text-[13px] flex items-center justify-center gap-1.5 transition-colors ${party ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-400 hover:text-gray-700"}`}>
-              <Users size={16} /> Party{party ? " · 敬请期待" : ""}
+            <button onClick={() => setParty(true)} className={`flex-1 py-2.5 rounded-xl font-medium text-[13px] flex items-center justify-center gap-1.5 transition-colors ${party ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-400 hover:text-gray-700"}`}>
+              <Users size={16} /> Party
             </button>
           </div>
           <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-50">
@@ -236,7 +236,13 @@ export default function TurtleSoupDetail() {
       >
         <div className="max-w-md mx-auto flex gap-3 pointer-events-auto">
           <button 
-            onClick={() => navigate("/game/play/turtle_soup/" + (id || "passenger") + (voiceMode ? "?voice=1" : ""))}
+            onClick={() => {
+              if (party) {
+                navigate("/game/party-room/new");
+                return;
+              }
+              navigate("/game/play/turtle_soup/" + (id || "passenger") + (voiceMode ? "?voice=1" : ""));
+            }}
             className="flex-[2] bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           >
             <span className="text-[16px]">开始游戏</span>

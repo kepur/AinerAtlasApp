@@ -2576,53 +2576,68 @@ function AdminApp() {
             {prompts.length === 0 ? (
               <p className="module-copy">正在加载 Prompt 模板...</p>
             ) : (
-              <div className="module-grid">
-                {prompts.map((p) => (
-                  <article className="module-card" key={p.id}>
-                    <strong>{p.name}</strong>
-                    <span>{p.task_type} · {p.version} · {p.enabled ? "✓ enabled" : "✗ disabled"}</span>
-                    {editingPromptId === p.id ? (
-                      <div className="prompt-edit-form">
-                        <label>
-                          Version
-                          <input
-                            value={promptForm.version}
-                            onChange={(e) => setPromptForm({ ...promptForm, version: e.target.value })}
-                          />
-                        </label>
-                        <label>
-                          Content
-                          <textarea
-                            value={promptForm.content}
-                            rows={6}
-                            onChange={(e) => setPromptForm({ ...promptForm, content: e.target.value })}
-                          />
-                        </label>
-                        <label className="toggle-label">
-                          <span>Enabled</span>
-                          <button
-                            type="button"
-                            className={`toggle-switch ${promptForm.enabled ? "on" : "off"}`}
-                            onClick={() => setPromptForm({ ...promptForm, enabled: !promptForm.enabled })}
-                          >
-                            <span className="toggle-knob" />
-                          </button>
-                        </label>
-                        <div className="prompt-edit-actions">
-                          <button onClick={() => void savePrompt()}>保存</button>
-                          <button className="secondary-button" onClick={cancelEditPrompt}>取消</button>
-                        </div>
+              <>
+                {(["game", "other"] as const).map((group) => {
+                  const items = prompts.filter((p) =>
+                    group === "game" ? p.task_type.startsWith("game.") : !p.task_type.startsWith("game."),
+                  );
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={group} style={{ marginBottom: 24 }}>
+                      <h3 className="section-subtitle" style={{ marginBottom: 12 }}>
+                        {group === "game" ? "游戏 Prompt (game.*)" : "其他 Prompt"}
+                      </h3>
+                      <div className="module-grid">
+                        {items.map((p) => (
+                          <article className="module-card" key={p.id}>
+                            <strong>{p.name}</strong>
+                            <span>{p.task_type} · {p.version} · {p.enabled ? "✓ enabled" : "✗ disabled"}</span>
+                            {editingPromptId === p.id ? (
+                              <div className="prompt-edit-form">
+                                <label>
+                                  Version
+                                  <input
+                                    value={promptForm.version}
+                                    onChange={(e) => setPromptForm({ ...promptForm, version: e.target.value })}
+                                  />
+                                </label>
+                                <label>
+                                  Content
+                                  <textarea
+                                    value={promptForm.content}
+                                    rows={6}
+                                    onChange={(e) => setPromptForm({ ...promptForm, content: e.target.value })}
+                                  />
+                                </label>
+                                <label className="toggle-label">
+                                  <span>Enabled</span>
+                                  <button
+                                    type="button"
+                                    className={`toggle-switch ${promptForm.enabled ? "on" : "off"}`}
+                                    onClick={() => setPromptForm({ ...promptForm, enabled: !promptForm.enabled })}
+                                  >
+                                    <span className="toggle-knob" />
+                                  </button>
+                                </label>
+                                <div className="prompt-edit-actions">
+                                  <button onClick={() => void savePrompt()}>保存</button>
+                                  <button className="secondary-button" onClick={cancelEditPrompt}>取消</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <p>{p.content.length > 120 ? p.content.slice(0, 120) + "..." : p.content}</p>
+                                <span>Updated: {new Date(p.updated_at).toLocaleDateString()}</span>
+                                <button className="ghost-button prompt-edit-btn" onClick={() => startEditPrompt(p)}>编辑</button>
+                              </>
+                            )}
+                          </article>
+                        ))}
                       </div>
-                    ) : (
-                      <>
-                        <p>{p.content.length > 120 ? p.content.slice(0, 120) + "..." : p.content}</p>
-                        <span>Updated: {new Date(p.updated_at).toLocaleDateString()}</span>
-                        <button className="ghost-button prompt-edit-btn" onClick={() => startEditPrompt(p)}>编辑</button>
-                      </>
-                    )}
-                  </article>
-                ))}
-              </div>
+                    </div>
+                  );
+                })}
+              </>
             )}
           </section>
         )}

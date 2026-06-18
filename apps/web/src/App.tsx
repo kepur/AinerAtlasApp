@@ -23,6 +23,7 @@ import GameDetail from "./pages/game/GameDetail";
 import CustomStoryBuilder from "./pages/game/CustomStoryBuilder";
 import InterrogationRoom from "./pages/game/InterrogationRoom";
 import PartyRoom from "./pages/game/PartyRoom";
+import LuminaForge from "./pages/game/LuminaForge";
 import GameSummaryScreen from "./pages/game/GameSummaryScreen";
 import RoleplayStorylineList from "./pages/game/RoleplayStorylineList";
 import StoryPublisher from "./pages/admin/StoryPublisher";
@@ -99,6 +100,8 @@ function AppLayout() {
           <Route path="/game/detail/:id" element={<GameDetail />} />
           <Route path="/game/roleplay-setup" element={<RoleplaySetup />} />
           <Route path="/game/custom-story-builder" element={<CustomStoryBuilder />} />
+          <Route path="/game/lumina-forge" element={<LuminaForge />} />
+          <Route path="/game/party-room/:id" element={<PartyRoom />} />
           <Route path="/game/detective-board" element={<DetectiveBoard />} />
           <Route path="/game/detective-board/:id" element={<DetectiveBoard />} />
           <Route path="/game/detective/interrogation/:id" element={<DetectiveInterrogation />} />
