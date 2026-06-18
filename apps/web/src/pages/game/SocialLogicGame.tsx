@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import "../../game.css";
 import GameShell from "../../components/game/GameShell";
@@ -58,6 +58,7 @@ const ROLE_CN: Record<string, {
 
 export default function SocialLogicGame() {
   const navigate = useNavigate();
+  const { id: routeId } = useParams<{ id: string }>();
   const [game, setGame] = useState<any>(null);
   const [uiPhase, setUiPhase] = useState<UIPhase>("lobby");
   const [busy, setBusy] = useState(false);
@@ -70,19 +71,54 @@ export default function SocialLogicGame() {
   const nightRunRef = useRef(false);
   const [nightSec, setNightSec] = useState(0);
 
-  // Create a real backend game on mount.
+  // Resume an existing game from the URL when possible; only create a fresh one
+  // when there's no resumable game (entry via /new, a template id, or a game the
+  // server no longer holds). After creating, rewrite the URL to the real game id
+  // so refresh / back resumes instead of starting over.
   useEffect(() => {
     if (creatingRef.current) return;
     creatingRef.current = true;
     (async () => {
+      if (routeId && routeId !== "new") {
+        try {
+          const existing = await apiRequest<any>(`/api/games/social-logic/${routeId}`);
+          setGame(existing);
+          restorePhase(existing);
+          return;
+        } catch { /* not a live game id → create a new one below */ }
+      }
       try {
         const data = await apiRequest<any>("/api/games/social-logic", {
           method: "POST", body: JSON.stringify({ difficulty: "easy" }),
         });
         setGame(data);
+        if (data?.game_id) navigate(`/game/social-logic/${data.game_id}`, { replace: true });
       } catch (e) { console.error(e); }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeId]);
+
+  // Map a resumed backend phase to the right UI screen.
+  function restorePhase(data: any) {
+    switch (data?.phase) {
+      case "role_reveal": setUiPhase("reveal"); break;
+      case "night": setUiPhase("night"); break;
+      case "day_discussion": {
+        const firstAI = (data?.players || []).find((p: any) => !p.is_user && p.alive);
+        setSelectedPlayerId(firstAI?.id);
+        setActionMode(firstAI ? "question" : "default");
+        setUiPhase("day");
+        break;
+      }
+      case "result":
+      case "ended":
+        apiRequest<any>(`/api/games/social-logic/${data.game_id}/summary`)
+          .then(setSummary).catch(() => {});
+        setUiPhase("summary");
+        break;
+      default: setUiPhase("lobby");
+    }
+  }
 
   useEffect(() => {
     feedEndRef.current?.scrollIntoView({ behavior: "smooth" });

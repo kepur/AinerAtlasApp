@@ -54,6 +54,7 @@ export default function MatchRadar() {
   const [loading, setLoading] = useState(false);
   const [scanIdx, setScanIdx] = useState(0);
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
+  const [err, setErr] = useState("");
 
   useEffect(() => {
     apiRequest<{ completeness: number; soulmate_ready: boolean }>("/api/connect/readiness")
@@ -107,9 +108,12 @@ export default function MatchRadar() {
         method: "POST",
         body: JSON.stringify({ partner_user_id: rec.target_user_id, icebreaker: rec.icebreaker }),
       });
+      if (!room?.id) throw new Error("no room id");
       navigate(`/trio-chat?room=${room.id}`);
     } catch {
-      navigate("/trio-chat");
+      // Don't drop the user into a roomless chat — keep them here with a hint.
+      setErr("发起对话失败，请稍后重试");
+      window.setTimeout(() => setErr(""), 2600);
     }
   }
 
@@ -119,6 +123,11 @@ export default function MatchRadar() {
 
   return (
     <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-y-auto pb-28 no-scrollbar">
+      {err && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-full bg-[#1f2937]/90 text-white text-[13px] font-bold shadow-lg whitespace-nowrap">
+          {err}
+        </div>
+      )}
       {/* Background */}
       <div className="fixed top-0 left-0 w-full h-[300px] bg-gradient-to-br from-[#eef2ff] via-[#f5f3ff] to-transparent opacity-70 pointer-events-none z-0" />
 

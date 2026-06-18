@@ -134,6 +134,17 @@ export default function Assets() {
 
         {/* Asset Grid */}
         <div className="mt-6 grid grid-cols-1 gap-5">
+          {filtered.length === 0 && (
+            <div className="asset-card-shadow bg-white rounded-2xl p-8 flex flex-col items-center text-center gap-3">
+              <span className="material-symbols-outlined text-[40px] text-on-surface-variant/50">library_books</span>
+              <p className="font-headline-md text-[16px] text-on-surface">还没有表达资产</p>
+              <p className="text-body-md text-on-surface-variant">在对话里冻结一句精彩表达，它就会出现在这里。</p>
+              <button onClick={() => navigate("/chat")} className="mt-1 px-5 py-2.5 bg-primary text-white rounded-full font-bold text-[14px] active:scale-95 transition-transform">
+                去对话
+              </button>
+            </div>
+          )}
+
           {featured && (
             <div
               onClick={() => open(featured)}

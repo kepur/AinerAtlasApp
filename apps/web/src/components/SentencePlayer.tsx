@@ -1,5 +1,6 @@
 import { BookOpen, ChevronDown, Loader, Mic, Play, Sparkles, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { API_BASE_URL } from "../api";
 
 type SentencePlayerProps = {
   text: string;
@@ -31,7 +32,7 @@ const DEFAULT_VOICES: VoiceOption[] = [
 async function playTTSApi(text: string, voice: string, speed = 1.0): Promise<void> {
   const got = speakWithBrowser(text, speed);
   if (got) return;
-  const response = await fetch("/api/voice/tts", {
+  const response = await fetch(`${API_BASE_URL}/api/voice/tts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, voice, speed }),
@@ -48,7 +49,7 @@ async function playTTSApi(text: string, voice: string, speed = 1.0): Promise<voi
 async function playWordTTSApi(word: string, voice: string): Promise<void> {
   const got = speakWithBrowser(word, 0.85);
   if (got) return;
-  const response = await fetch("/api/voice/word-tts", {
+  const response = await fetch(`${API_BASE_URL}/api/voice/word-tts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ word, voice }),
@@ -119,7 +120,7 @@ export default function SentencePlayer({ text, voice = "nova", onVoiceChange, sh
   const [ttsPitch, setTtsPitch] = useState(1.1);
 
   useEffect(() => {
-    fetch("/api/config/tts")
+    fetch(`${API_BASE_URL}/api/config/tts`)
       .then(r => r.json())
       .then((cfg: { tts_provider?: string; tts_voice?: string; tts_speed?: number; tts_pitch?: number }) => {
         if (cfg.tts_provider) setTtsProvider(cfg.tts_provider);
@@ -134,7 +135,7 @@ export default function SentencePlayer({ text, voice = "nova", onVoiceChange, sh
   const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    fetch("/api/voice/voices")
+    fetch(`${API_BASE_URL}/api/voice/voices`)
       .then(r => r.json())
       .then((data: VoiceOption[]) => { if (Array.isArray(data) && data.length) setVoices(data); })
       .catch(() => {});
@@ -200,7 +201,7 @@ export default function SentencePlayer({ text, voice = "nova", onVoiceChange, sh
     const blob = new Blob(chunksRef.current, { type: "audio/webm" });
     chunksRef.current = [];
     const audio_base64 = await blobToBase64(blob);
-    const response = await fetch("/api/voice/evaluate", {
+    const response = await fetch(`${API_BASE_URL}/api/voice/evaluate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ audio_base64, reference_text: text }),

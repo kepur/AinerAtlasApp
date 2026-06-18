@@ -1,5 +1,6 @@
 import { Mic, Square } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { API_BASE_URL } from "../api";
 
 type VoiceInputProps = {
   onTranscript: (text: string) => void;
@@ -45,7 +46,7 @@ export default function VoiceInput({ onTranscript, disabled = false }: VoiceInpu
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
       chunksRef.current = [];
       const audioBase64 = await blobToBase64(blob);
-      const response = await fetch("/api/voice/transcribe", {
+      const response = await fetch(`${API_BASE_URL}/api/voice/transcribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ audio_base64: audioBase64, language: "en" }),

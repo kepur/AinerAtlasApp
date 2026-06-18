@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getToken, addCrushCandidate } from "../api";
+import { getToken, addCrushCandidate, API_BASE_URL } from "../api";
 import { useI18n } from "../i18n";
 import { startPcmCapture, type PcmCaptureHandle } from "../lib/pcmCapture";
 
@@ -58,11 +58,13 @@ export default function VoiceChat() {
 
   const connect = useCallback(() => {
     const token = getToken();
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host;
+    // Derive the WS origin from the configured API base so prod (API on a
+    // different host) works; fall back to the page origin when base is relative.
+    const apiOrigin = API_BASE_URL || window.location.origin;
+    const wsBase = apiOrigin.replace(/^http/, "ws");
     // activeMode 2 = 面试练习 → interview persona; others use free conversation.
     const wsMode = activeMode === 2 ? "interview" : "free";
-    const ws = new WebSocket(`${protocol}//${host}/api/voice/realtime?token=${token}&mode=${wsMode}`);
+    const ws = new WebSocket(`${wsBase}/api/voice/realtime?token=${token}&mode=${wsMode}`);
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);
@@ -201,7 +203,7 @@ export default function VoiceChat() {
   async function speakRouted(text: string, language = "en") {
     if (!text) return;
     try {
-      const resp = await fetch("/api/voice/tts", {
+      const resp = await fetch(`${API_BASE_URL}/api/voice/tts`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
         body: JSON.stringify({ text, language, speed: 0.95 }),
@@ -232,7 +234,7 @@ export default function VoiceChat() {
     if (karaokeTimer.current) clearInterval(karaokeTimer.current);
     karaokeAudioRef.current?.pause();
     try {
-      const resp = await fetch("/api/voice/tts", {
+      const resp = await fetch(`${API_BASE_URL}/api/voice/tts`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) },
         body: JSON.stringify({ text, language: "en", speed: 0.95 }),

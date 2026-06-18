@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiRequest, getToken } from "../../api";
+import { apiRequest, getToken, API_BASE_URL } from "../../api";
 
 type Thought = { id: string; title: string; status: string };
 
@@ -39,7 +39,7 @@ export default function ExportCenter() {
     setExporting(fmt.key);
     try {
       const token = getToken();
-      const url = `/api/thoughts/${selected}/export?format=${fmt.key}`;
+      const url = `${API_BASE_URL}/api/thoughts/${selected}/export?format=${fmt.key}`;
       const resp = await fetch(url, { headers: { Authorization: `Bearer ${token ?? ""}` } });
       if (!resp.ok) throw new Error("export failed");
       const blob = await resp.blob();

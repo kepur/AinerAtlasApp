@@ -6,7 +6,7 @@ import {
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Asset, Message, ChatV2WhyItem, ChatV2PatternItem, ChatV2AgentItem, ChatV2NextQuestion, TokenExplain } from "../api";
-import { freezeConversation, explainToken, addCrushCandidate } from "../api";
+import { freezeConversation, explainToken, addCrushCandidate, API_BASE_URL } from "../api";
 import FreezeResult from "../components/FreezeResult";
 import { useI18n } from "../i18n";
 import { useChatStore, type DialogueTurn, type HudData } from "../stores/chatStore";
@@ -20,7 +20,7 @@ function useTts() {
   const cacheRef = useRef(new Map<string, string>());
 
   useEffect(() => {
-    fetch("/api/config/tts")
+    fetch(`${API_BASE_URL}/api/config/tts`)
       .then(r => r.json())
       .then((c: any) => setCfg({ voice: c.tts_voice || "Cherry", speed: c.tts_speed || 0.9, pitch: c.tts_pitch || 1.1, provider: c.tts_provider || "browser" }))
       .catch(() => {});
@@ -48,7 +48,7 @@ function useTts() {
       abortRef.current = ctrl;
       pendingKeyRef.current = key;
       try {
-        const resp = await fetch("/api/voice/tts", {
+        const resp = await fetch(`${API_BASE_URL}/api/voice/tts`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text, voice: cfg.voice, speed: cfg.speed, language: lang || "" }),
           signal: ctrl.signal,
