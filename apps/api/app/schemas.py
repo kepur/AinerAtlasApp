@@ -431,6 +431,13 @@ class MasteryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PracticeExercisePublic(BaseModel):
+    exercise_type: str
+    prompt: str
+    hint: str = ""
+    options: list[str] = Field(default_factory=list)
+
+
 class PracticeExercise(BaseModel):
     exercise_type: str
     prompt: str
@@ -441,7 +448,20 @@ class PracticeExercise(BaseModel):
 
 class PracticeSubmit(BaseModel):
     answer: str = ""
+    exercise_token: str = ""
     exercise_type: str = ""
+    prompt: str = ""
+    hint: str = ""
+    options: list[str] = Field(default_factory=list)
+    correct_answer: str = ""
+
+
+class PracticeResponse(BaseModel):
+    item: MasteryRead
+    exercise: PracticeExercisePublic | None = None
+    exercise_token: str = ""
+    correct: bool | None = None
+    message: str
 
 
 class CrushCandidateCreate(BaseModel):
@@ -464,13 +484,6 @@ class TokenExplainResponse(BaseModel):
     usage: str = ""
     example: str = ""
     part_of_speech: str = ""
-
-
-class PracticeResponse(BaseModel):
-    item: MasteryRead
-    exercise: PracticeExercise | None = None
-    correct: bool | None = None
-    message: str
 
 
 class PracticeResult(BaseModel):
@@ -612,6 +625,11 @@ class UserProfileSummary(BaseModel):
     fluency_score: float = 50
     explanation_language: str = "zh"
     ui_language: str = "zh"
+    learning_goals: list[str] = Field(default_factory=list)
+    favorite_topics: list[str] = Field(default_factory=list)
+    grammar_level_score: float = 50
+    vocabulary_level_score: float = 50
+    speaking_confidence_score: float = 50
     birthday: date | None = None
     avatar_url: str = ""
     gender_identity: str = ""
@@ -619,6 +637,40 @@ class UserProfileSummary(BaseModel):
     sexual_orientation: str = ""
     orientation_custom: str = ""
     lgbtq_visible: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MatchProfileSummary(BaseModel):
+    bio: str = ""
+    interests: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    values: list[str] = Field(default_factory=list)
+    lifestyle: str = ""
+    target_languages: list[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CommunicationProfileSummary(BaseModel):
+    reasoning_depth: float = 50
+    knowledge_breadth: float = 50
+    emotional_maturity: float = 50
+    communication_quality: float = 50
+    response_style: str = "balanced"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AnalysisSummary(BaseModel):
+    id: str
+    report_type: str
+    summary: str
+    match_score: float
+    personality_type: str = ""
+    match_tags: list[str] = Field(default_factory=list)
+    details: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -637,6 +689,10 @@ class UserDetailRead(BaseModel):
     membership_expires_at: datetime | None = None
     created_at: datetime
     profile: UserProfileSummary | None = None
+    match_profile: MatchProfileSummary | None = None
+    communication_profile: CommunicationProfileSummary | None = None
+    latest_analysis: AnalysisSummary | None = None
+    ai_memory_preview: list[str] = Field(default_factory=list)
     stats: dict[str, int | float] = Field(default_factory=dict)
 
     model_config = ConfigDict(from_attributes=True)

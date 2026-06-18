@@ -5,6 +5,7 @@ import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
 import { apiRequest } from "../api";
+import { motion } from "framer-motion";
 
 const MODE_ICONS: Record<string, string> = {
   socratic: "psychology",
@@ -72,7 +73,7 @@ const FILTER_TABS: { key: FilterType; label: string }[] = [
 ];
 
 export default function Chat() {
-  const { conversations, loading, loadConversations, createConversation, deleteConversation } = useChatStore();
+  const { conversations, loading, loadConversations, createConversation, deleteConversation, archiveConversation } = useChatStore();
   const user = useAuthStore((s) => s.user);
   const { t, locale } = useI18n();
   const navigate = useNavigate();
@@ -152,7 +153,7 @@ export default function Chat() {
 
       <main className="px-margin-mobile pb-8">
         {/* Search */}
-        <section className="mt-4 mb-8">
+        <section className="mt-2 mb-4">
           <div className="relative group">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
               <span className="material-symbols-outlined text-[20px]">search</span>
@@ -166,40 +167,40 @@ export default function Chat() {
         </section>
 
         {/* Active Circles */}
-        <section className="mb-8">
-          <div className="flex justify-between items-end mb-4">
+        <section className="mb-4">
+          <div className="flex justify-between items-end mb-2">
             <h2 className="font-label-sm text-label-sm text-outline uppercase tracking-widest">Active Circles</h2>
             <button onClick={() => navigate("/home#today-topics")} className="text-primary font-label-sm text-[12px] font-bold">
               View All
             </button>
           </div>
-          <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 -mx-margin-mobile px-margin-mobile">
+          <div className="flex gap-[18px] overflow-x-auto hide-scrollbar pb-1.5 -mx-margin-mobile px-margin-mobile">
             {circles.map((c, i) => (
-              <button key={c.id} onClick={() => navigate(`/circles/${c.id}`)} className="flex-shrink-0 w-16 flex flex-col items-center gap-1.5">
-                <div className="w-16 h-16 rounded-full p-[3px] border-2 border-primary-container relative">
+              <button key={c.id} onClick={() => navigate(`/circles/${c.id}`)} className="flex-shrink-0 w-12 flex flex-col items-center gap-1.5">
+                <div className="w-12 h-12 rounded-full p-[2px] border-2 border-primary-container relative">
                   <div className={`w-full h-full rounded-full bg-gradient-to-br ${CIRCLE_TINTS[i % CIRCLE_TINTS.length]}`} />
                   {!!c.member_count && (
-                    <div className="absolute -bottom-1 -right-1 bg-on-primary-fixed-variant text-[9px] text-white px-1.5 py-0.5 rounded-full font-bold border border-white">
+                    <div className="absolute -bottom-0.5 -right-0.5 bg-on-primary-fixed-variant text-[8px] text-white px-1 py-0.5 rounded-full font-bold border border-white leading-none">
                       {c.member_count}
                     </div>
                   )}
                 </div>
-                <span className="font-label-sm text-[11px] text-on-surface truncate w-full text-center">{c.title}</span>
+                <span className="font-label-sm text-[10px] text-on-surface truncate w-full text-center leading-tight">{c.title}</span>
               </button>
             ))}
-            <button onClick={() => navigate("/topics/new")} className="flex-shrink-0 w-16 flex flex-col items-center gap-1.5">
-              <div className="w-16 h-16 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center text-outline">
-                <span className="material-symbols-outlined text-[24px]">add</span>
+            <button onClick={() => navigate("/topics/new")} className="flex-shrink-0 w-12 flex flex-col items-center gap-1.5">
+              <div className="w-12 h-12 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center text-outline">
+                <span className="material-symbols-outlined text-[20px]">add</span>
               </div>
-              <span className="font-label-sm text-[11px] text-outline truncate w-full text-center">Create</span>
+              <span className="font-label-sm text-[10px] text-outline truncate w-full text-center leading-tight">Create</span>
             </button>
           </div>
         </section>
 
         {/* Conversations — with tab switcher */}
-        <section className="mb-4">
+        <section className="mb-2">
           {/* Tab Switcher - Moved up and made bigger */}
-          <div className="flex bg-surface-container/60 p-1 rounded-2xl mb-5 w-full">
+          <div className="flex bg-surface-container/60 p-1 rounded-2xl mb-3.5 w-full">
             <button
               onClick={() => setChatTab("ai")}
               className={`flex-1 py-2.5 rounded-xl text-[14px] font-bold transition-all ${
@@ -243,45 +244,65 @@ export default function Chat() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-2">
-                {conversations.map((conv) => {
+              <div className="space-y-3.5">
+                {conversations.filter(c => c.status !== "archived").map((conv) => {
                   const last = conv.messages?.[conv.messages.length - 1];
                   return (
                     <div
                       key={conv.id}
-                      className="flex items-center gap-1.5 rounded-2xl hover:bg-surface-container transition-colors"
+                      className="relative overflow-hidden rounded-2xl bg-surface-container select-none"
                     >
-                      <button
-                        onClick={() => navigate(`/chat/${conv.id}`)}
-                        className="flex-1 flex items-center gap-3 p-2.5 active:scale-[0.98] text-left min-w-0"
-                      >
-                        <div className="w-11 h-11 rounded-xl resonance-indicator flex items-center justify-center text-white flex-shrink-0">
-                          <span className="material-symbols-outlined text-[22px]">{MODE_ICONS[conv.mode] ?? "chat"}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-end mb-0.5">
-                            <h4 className="text-[14px] font-bold text-on-surface truncate m-0 leading-tight">{conv.title}</h4>
-                            <span className="text-[10px] text-outline flex-shrink-0 ml-2 leading-none">{formatTime(conv.created_at)}</span>
-                          </div>
-                          <p className="text-[12px] text-on-surface-variant truncate m-0 leading-normal">
-                            {last?.content?.slice(0, 60) || t("chat.newConversation")}
-                          </p>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="删除对话"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!window.confirm("删除后将不在列表中显示，确定删除这条对话？")) return;
-                          void deleteConversation(conv.id).catch(() => {
-                            window.alert("删除失败，请稍后重试");
-                          });
+                      {/* Swipe Underlays */}
+                      {/* Left Underlay (revealed when swiping right -> Archive) */}
+                      <div className="absolute inset-y-0 left-0 w-1/2 bg-emerald-500/10 flex items-center pl-4 text-emerald-600 font-bold text-xs gap-1.5 z-0">
+                        <span className="material-symbols-outlined text-[20px]">archive</span>
+                        <span>归档</span>
+                      </div>
+                      
+                      {/* Right Underlay (revealed when swiping left -> Delete) */}
+                      <div className="absolute inset-y-0 right-0 w-1/2 bg-rose-500/10 flex items-center justify-end pr-4 text-rose-600 font-bold text-xs gap-1.5 z-0">
+                        <span>删除</span>
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </div>
+
+                      {/* Foreground Content Card */}
+                      <motion.div
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={{ left: 0.5, right: 0.5 }}
+                        onDragEnd={(event, info) => {
+                          if (info.offset.x < -85) {
+                            if (window.confirm("确定删除这条对话？")) {
+                              void deleteConversation(conv.id).catch(() => {
+                                window.alert("删除失败，请稍后重试");
+                              });
+                            }
+                          } else if (info.offset.x > 85) {
+                            void archiveConversation(conv.id).catch(() => {
+                              window.alert("归档失败，请稍后重试");
+                            });
+                          }
                         }}
-                        className="mr-2 w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-outline hover:text-red-500 hover:bg-red-50 active:scale-95 transition-all"
+                        className="bg-surface hover:bg-surface-container/30 transition-colors relative z-10 w-full"
                       >
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                      </button>
+                        <button
+                          onClick={() => navigate(`/chat/${conv.id}`)}
+                          className="w-full flex items-center gap-3 p-2.5 active:scale-[0.98] text-left min-w-0"
+                        >
+                          <div className="w-11 h-11 rounded-xl resonance-indicator flex items-center justify-center text-white flex-shrink-0">
+                            <span className="material-symbols-outlined text-[22px]">{MODE_ICONS[conv.mode] ?? "chat"}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-end mb-0.5">
+                              <h4 className="text-[14px] font-bold text-on-surface truncate m-0 leading-tight">{conv.title}</h4>
+                              <span className="text-[10px] text-outline flex-shrink-0 ml-2 leading-none">{formatTime(conv.created_at)}</span>
+                            </div>
+                            <p className="text-[12px] text-on-surface-variant truncate m-0 leading-normal">
+                              {last?.content?.slice(0, 60) || t("chat.newConversation")}
+                            </p>
+                          </div>
+                        </button>
+                      </motion.div>
                     </div>
                   );
                 })}

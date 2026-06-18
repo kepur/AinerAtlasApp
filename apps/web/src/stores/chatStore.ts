@@ -40,6 +40,7 @@ type ChatState = {
   loadConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
+  archiveConversation: (id: string) => Promise<void>;
   createConversation: (opts?: {
     title?: string;
     topic?: string;
@@ -226,6 +227,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       conversations: state.conversations.filter((c) => c.id !== id),
       currentConversation: state.currentConversation?.id === id ? null : state.currentConversation,
+    }));
+  },
+
+  archiveConversation: async (id) => {
+    await apiRequest<Conversation>(`/api/conversations/${id}/archive`, { method: "POST" });
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === id ? { ...c, status: "archived" } : c
+      ),
+      currentConversation:
+        state.currentConversation?.id === id
+          ? { ...state.currentConversation, status: "archived" }
+          : state.currentConversation,
     }));
   },
 

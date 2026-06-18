@@ -6,12 +6,14 @@ from app.models import GrammarPattern, UserMastery, utc_now
 from app.schemas import (
     CrushCandidateCreate,
     MasteryRead,
+    PracticeExercise,
+    PracticeExercisePublic,
     PracticeResponse,
     PracticeResult,
     PracticeSubmit,
 )
 from app.services.pattern_mining import _upsert_mastery_item
-from app.services.practice import generate_exercise, grade_answer
+from app.services.practice import generate_exercise, grade_answer, stash_exercise, take_exercise
 
 router = APIRouter(prefix="/grammar", tags=["grammar"])
 
@@ -116,11 +118,47 @@ def get_practice_exercise(
 ) -> PracticeResponse:
     item = get_item(item_id, current_user.id, db)
     exercise = generate_exercise(item)
+    token = stash_exercise(current_user.id, item_id, exercise)
     return PracticeResponse(
         item=item,
-        exercise=exercise,
+        exercise=_public_exercise(exercise),
+        exercise_token=token,
         message="Practice exercise generated",
     )
+
+
+def _public_exercise(exercise: PracticeExercise) -> PracticeExercisePublic:
+    return PracticeExercisePublic(
+        exercise_type=exercise.exercise_type,
+        prompt=exercise.prompt,
+        hint=exercise.hint,
+        options=exercise.options,
+    )
+
+
+def _resolve_submitted_exercise(
+    *,
+    user_id: str,
+    item_id: str,
+    payload: PracticeSubmit,
+    item: UserMastery,
+) -> PracticeExercise:
+    if payload.exercise_token.strip():
+        exercise = take_exercise(user_id, item_id, payload.exercise_token.strip())
+        if exercise:
+            return exercise
+        raise HTTPException(status_code=400, detail="练习已过期，请重新获取题目")
+
+    if payload.correct_answer.strip():
+        return PracticeExercise(
+            exercise_type=payload.exercise_type or "translate",
+            prompt=payload.prompt,
+            hint=payload.hint,
+            options=payload.options,
+            correct_answer=payload.correct_answer,
+        )
+
+    return generate_exercise(item)
 
 
 @router.post("/{item_id}/practice", response_model=PracticeResponse)
@@ -134,15 +172,20 @@ def practice_item(
 
     if not payload.answer.strip():
         exercise = generate_exercise(item)
+        token = stash_exercise(current_user.id, item_id, exercise)
         return PracticeResponse(
             item=item,
-            exercise=exercise,
+            exercise=_public_exercise(exercise),
+            exercise_token=token,
             message="Practice exercise generated",
         )
 
-    exercise = generate_exercise(item)
-    if payload.exercise_type:
-        exercise.exercise_type = payload.exercise_type
+    exercise = _resolve_submitted_exercise(
+        user_id=current_user.id,
+        item_id=item_id,
+        payload=payload,
+        item=item,
+    )
 
     correct = grade_answer(exercise, payload.answer)
     if correct:
@@ -168,7 +211,7 @@ def practice_item(
     db.refresh(item)
     return PracticeResponse(
         item=item,
-        exercise=exercise,
+        exercise=_public_exercise(exercise),
         correct=correct,
         message=message,
     )

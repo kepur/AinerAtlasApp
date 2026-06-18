@@ -816,6 +816,36 @@ async def freeze_conversation(
     return asset
 
 
+@router.post("/{conversation_id}/archive", response_model=ConversationRead)
+def archive_conversation(
+    conversation_id: str,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> Conversation:
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    conversation.status = "archived"
+    db.commit()
+    db.refresh(conversation)
+    return conversation
+
+
+@router.post("/{conversation_id}/unarchive", response_model=ConversationRead)
+def unarchive_conversation(
+    conversation_id: str,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> Conversation:
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    conversation.status = "active"
+    db.commit()
+    db.refresh(conversation)
+    return conversation
+
+
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------

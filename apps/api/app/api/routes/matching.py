@@ -31,6 +31,7 @@ from app.services.matching import (
     compute_profile_completeness,
     generate_icebreaker,
 )
+from app.services.user_profile_analysis import latest_analysis_details
 
 router = APIRouter(prefix="/connect", tags=["matching"])
 
@@ -186,6 +187,7 @@ def get_recommendations(
     user_values = db.scalar(
         select(UserValueProfile).where(UserValueProfile.user_id == current_user.id)
     )
+    user_analysis = latest_analysis_details(db, current_user.id)
 
     candidates = list(
         db.scalars(
@@ -206,9 +208,12 @@ def get_recommendations(
         target_values = db.scalar(
             select(UserValueProfile).where(UserValueProfile.user_id == candidate.id)
         )
+        target_analysis = latest_analysis_details(db, candidate.id)
         score, reasons = compute_match_score(
             user_profile, user_match, user_values,
             target_profile, target_match, target_values,
+            user_analysis=user_analysis,
+            target_analysis=target_analysis,
         )
         if score < 30:
             continue
