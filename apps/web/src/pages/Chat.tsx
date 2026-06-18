@@ -1,19 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ConversationModePicker from "../components/ConversationModePicker";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
 import { apiRequest } from "../api";
-
-const MODES = [
-  { key: "socratic", icon: "🧠" },
-  { key: "devils_advocate", icon: "😈" },
-  { key: "information_collector", icon: "📋" },
-  { key: "debate_training", icon: "⚔️" },
-  { key: "role_simulation", icon: "🎭" },
-  { key: "coach", icon: "💪" },
-  { key: "free-talk", icon: "💬" }
-] as const;
 
 const MODE_ICONS: Record<string, string> = {
   socratic: "psychology",
@@ -387,63 +378,11 @@ export default function Chat() {
         <span className="material-symbols-outlined text-[28px]">edit_square</span>
       </button>
 
-      {/* Mode picker */}
-      {showModePicker && (
-        <div className="premium fixed inset-0 z-[200] flex items-end justify-center bg-black/30 backdrop-blur-sm" onClick={() => setShowModePicker(false)}>
-          <div
-            className="w-[min(100%,430px)] bg-surface rounded-t-3xl p-5 pb-8 max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-headline-md text-headline-md text-on-surface">{t("chat.selectMode")}</h3>
-              <button onClick={() => setShowModePicker(false)} className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              {MODES.map((m) => (
-                <button
-                  key={m.key}
-                  onClick={() => handleNewConversation(m.key)}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-surface-container-low hover:bg-primary/10 transition-colors text-left active:scale-[0.98]"
-                >
-                  <span className="text-2xl">{m.icon}</span>
-                  <div className="min-w-0">
-                    <strong className="block font-body-md font-semibold text-on-surface">{modeLabel(t, m.key)}</strong>
-                    <span className="text-[12px] text-on-surface-variant line-clamp-1">{modeDesc(t, m.key)}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <ConversationModePicker
+        open={showModePicker}
+        onClose={() => setShowModePicker(false)}
+        onSelect={(mode) => void handleNewConversation(mode)}
+      />
     </div>
   );
-}
-
-function modeLabel(t: (k: string) => string, key: string) {
-  const map: Record<string, string> = {
-    socratic: t("chat.modeSocratic"),
-    devils_advocate: t("chat.modeDevilsAdvocate"),
-    information_collector: t("chat.modeInfoCollector"),
-    debate_training: t("chat.modeDebateTraining"),
-    role_simulation: t("chat.modeRoleSimulation"),
-    coach: t("chat.modeCoach"),
-    "free-talk": t("chat.modeFreeTalk")
-  };
-  return map[key] || key;
-}
-
-function modeDesc(t: (k: string) => string, key: string) {
-  const map: Record<string, string> = {
-    socratic: t("chat.modeSocraticDesc"),
-    devils_advocate: t("chat.modeDevilsAdvocateDesc"),
-    information_collector: t("chat.modeInfoCollectorDesc"),
-    debate_training: t("chat.modeDebateTrainingDesc"),
-    role_simulation: t("chat.modeRoleSimulationDesc"),
-    coach: t("chat.modeCoachDesc"),
-    "free-talk": t("chat.modeFreeTalkDesc")
-  };
-  return map[key] || "";
 }
