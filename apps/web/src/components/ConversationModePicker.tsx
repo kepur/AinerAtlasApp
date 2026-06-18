@@ -1,4 +1,5 @@
 import { useI18n } from "../i18n";
+import type { DailyResonanceContent } from "../lib/dailyResonance";
 
 export const CONVERSATION_MODES = [
   { key: "socratic", icon: "🧠" },
@@ -40,9 +41,11 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onSelect: (mode: string) => void;
+  /** When set, shows Daily Resonance prompt + bilingual quote above mode list. */
+  dailyResonance?: DailyResonanceContent | null;
 };
 
-export default function ConversationModePicker({ open, onClose, onSelect }: Props) {
+export default function ConversationModePicker({ open, onClose, onSelect, dailyResonance }: Props) {
   const { t } = useI18n();
   if (!open) return null;
 
@@ -52,7 +55,7 @@ export default function ConversationModePicker({ open, onClose, onSelect }: Prop
       onClick={onClose}
     >
       <div
-        className="w-[min(100%,430px)] bg-surface rounded-t-3xl p-5 pb-8 max-h-[80vh] overflow-y-auto"
+        className="w-[min(100%,430px)] bg-surface rounded-t-3xl p-5 pb-8 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -64,6 +67,30 @@ export default function ConversationModePicker({ open, onClose, onSelect }: Prop
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
+
+        {dailyResonance && (
+          <div className="mb-4 rounded-2xl bg-primary/5 border border-primary/10 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-primary uppercase tracking-wide">Daily Resonance</span>
+              <span className="material-symbols-outlined text-primary/50 text-[18px]">lightbulb</span>
+            </div>
+            <p className="text-[13px] text-on-surface-variant leading-relaxed">{dailyResonance.promptTarget}</p>
+            {dailyResonance.promptNative !== dailyResonance.promptTarget && (
+              <p className="text-[12px] text-on-surface-variant/80 leading-relaxed">{dailyResonance.promptNative}</p>
+            )}
+            <div className="pt-2 border-t border-primary/10 space-y-2">
+              <p className="text-[11px] font-bold text-outline">{dailyResonance.targetLabel}</p>
+              <p className="text-[15px] text-on-surface italic leading-snug">"{dailyResonance.quoteTarget}"</p>
+              {dailyResonance.quoteNative !== dailyResonance.quoteTarget && (
+                <>
+                  <p className="text-[11px] font-bold text-outline pt-1">{dailyResonance.nativeLabel}</p>
+                  <p className="text-[14px] text-on-surface-variant leading-snug">"{dailyResonance.quoteNative}"</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-2">
           {CONVERSATION_MODES.map((m) => (
             <button

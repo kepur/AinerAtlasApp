@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { apiRequest, type Conversation } from "../api";
 import ConversationModePicker from "../components/ConversationModePicker";
 import TodayTopicsSection, { type TodayTopic } from "../components/TodayTopicsSection";
+import { buildDailyResonance } from "../lib/dailyResonance";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
 
 export default function Home() {
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const { createConversation } = useChatStore();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -54,6 +56,7 @@ export default function Home() {
   }
 
   const greetingName = user?.username || "Language Architect";
+  const dailyResonance = buildDailyResonance(profile);
 
   return (
     <div className="premium min-h-full bg-surface text-on-surface">
@@ -90,13 +93,10 @@ export default function Home() {
                     </span>
                   </div>
                   <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                    How would you translate today's sentiment into your target language's formal register?
+                    选一种对话模式，围绕今日金句开始表达
                   </p>
                 </div>
               </div>
-              <blockquote className="font-headline-lg text-headline-lg text-on-surface mb-5 italic px-1 leading-snug">
-                "The art of silence is as expressive as the choice of words."
-              </blockquote>
               <button
                 onClick={() => setShowModePicker(true)}
                 className="w-full h-11 bg-primary text-white rounded-xl font-label-sm text-[14px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md shadow-primary/20"
@@ -150,6 +150,7 @@ export default function Home() {
         open={showModePicker}
         onClose={() => setShowModePicker(false)}
         onSelect={(mode) => void handleNewConversation(mode)}
+        dailyResonance={dailyResonance}
       />
     </div>
   );
