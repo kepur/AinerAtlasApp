@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useI18n } from "../i18n";
 import type { DailyResonanceContent } from "../lib/dailyResonance";
 
@@ -42,99 +41,83 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onSelect: (mode: string) => void;
-  /** When set, shows Daily Resonance prompt + bilingual quote above mode list. */
   dailyResonance?: DailyResonanceContent | null;
 };
 
+function DailyResonanceBlock({ content }: { content: DailyResonanceContent }) {
+  return (
+    <div className="mb-2.5 rounded-xl bg-primary/5 border border-primary/10 px-3 py-2.5 space-y-2">
+      <div className="flex items-center gap-1.5">
+        <span className="material-symbols-outlined text-primary/70 text-[16px]">lightbulb</span>
+        <span className="text-[11px] font-bold text-primary uppercase tracking-wide">Daily Resonance</span>
+      </div>
+      <p className="text-[12px] text-on-surface-variant leading-snug break-words">{content.promptTarget}</p>
+      {content.promptNative !== content.promptTarget && (
+        <p className="text-[11px] text-on-surface-variant/85 leading-snug break-words">{content.promptNative}</p>
+      )}
+      <div className="pt-1.5 border-t border-primary/10 space-y-1.5">
+        <p className="text-[10px] font-bold text-outline">{content.targetLabel}</p>
+        <p className="text-[13px] text-on-surface italic leading-snug break-words">"{content.quoteTarget}"</p>
+        {content.quoteNative !== content.quoteTarget && (
+          <>
+            <p className="text-[10px] font-bold text-outline pt-0.5">{content.nativeLabel}</p>
+            <p className="text-[12px] text-on-surface-variant leading-snug break-words">"{content.quoteNative}"</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ConversationModePicker({ open, onClose, onSelect, dailyResonance }: Props) {
   const { t } = useI18n();
-  const [resonanceOpen, setResonanceOpen] = useState(false);
-
-  useEffect(() => {
-    if (open) setResonanceOpen(false);
-  }, [open]);
-
   if (!open) return null;
 
   return (
-    <div
-      className="premium fixed inset-0 z-[200] flex items-end justify-center bg-black/30 backdrop-blur-sm pb-[env(safe-area-inset-bottom,0px)]"
-      onClick={onClose}
-    >
+    <div className="premium fixed inset-0 z-[200] flex flex-col justify-end">
+      {/* 点击遮罩关闭；高度随内容收缩，不再占满上半屏 */}
+      <button
+        type="button"
+        aria-label="Close"
+        className="flex-1 min-h-[8vh] w-full bg-black/30 backdrop-blur-sm border-0 p-0 cursor-default"
+        onClick={onClose}
+      />
+
       <div
-        className="w-[min(100%,430px)] bg-surface rounded-t-2xl px-4 pt-3 pb-[max(env(safe-area-inset-bottom,12px),12px)] max-h-[min(92vh,780px)] overflow-y-auto"
+        className="w-full max-w-[430px] mx-auto bg-surface rounded-t-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.12)] max-h-[min(90vh,820px)] overflow-y-auto overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-2.5">
-          <h3 className="text-[15px] font-bold text-on-surface">{t("chat.selectMode")}</h3>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+        <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm px-4 pt-2 pb-2 border-b border-outline-variant/15">
+          <div className="w-8 h-1 rounded-full bg-outline-variant/40 mx-auto mb-2" />
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-[15px] font-bold text-on-surface">{t("chat.selectMode")}</h3>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant flex-shrink-0"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
         </div>
 
-        {dailyResonance && (
-          <div className="mb-2.5 rounded-xl bg-primary/5 border border-primary/10 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setResonanceOpen((v) => !v)}
-              className="w-full flex items-center justify-between gap-2 p-3.5 text-left active:bg-primary/10 transition-colors"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="material-symbols-outlined text-primary/70 text-[18px] flex-shrink-0">lightbulb</span>
-                <span className="text-[12px] font-bold text-primary leading-tight">Daily Resonance</span>
-              </div>
-              <span
-                className={`material-symbols-outlined text-primary/60 text-[20px] flex-shrink-0 transition-transform ${resonanceOpen ? "rotate-180" : ""}`}
-              >
-                expand_more
-              </span>
-            </button>
-            {resonanceOpen && (
-              <div className="px-3.5 pb-3.5 pt-0 space-y-3 border-t border-primary/10">
-                <p className="text-[13px] text-on-surface-variant leading-relaxed break-words pt-3">
-                  {dailyResonance.promptTarget}
-                </p>
-                {dailyResonance.promptNative !== dailyResonance.promptTarget && (
-                  <p className="text-[12px] text-on-surface-variant/80 leading-relaxed break-words">
-                    {dailyResonance.promptNative}
-                  </p>
-                )}
-                <div className="pt-2 border-t border-primary/10 space-y-2">
-                  <p className="text-[11px] font-bold text-outline">{dailyResonance.targetLabel}</p>
-                  <p className="text-[14px] text-on-surface italic leading-relaxed break-words">
-                    "{dailyResonance.quoteTarget}"
-                  </p>
-                  {dailyResonance.quoteNative !== dailyResonance.quoteTarget && (
-                    <>
-                      <p className="text-[11px] font-bold text-outline pt-1">{dailyResonance.nativeLabel}</p>
-                      <p className="text-[13px] text-on-surface-variant leading-relaxed break-words">
-                        "{dailyResonance.quoteNative}"
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="px-4 pt-2 pb-[max(env(safe-area-inset-bottom,12px),12px)]">
+          {dailyResonance && <DailyResonanceBlock content={dailyResonance} />}
 
-        <div className="grid grid-cols-1 gap-1.5">
-          {CONVERSATION_MODES.map((m) => (
-            <button
-              key={m.key}
-              onClick={() => onSelect(m.key)}
-              className="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface-container-low hover:bg-primary/10 transition-colors text-left active:scale-[0.98]"
-            >
-              <span className="text-xl">{m.icon}</span>
-              <div className="min-w-0">
-                <strong className="block text-[14px] font-semibold text-on-surface">{modeLabel(t, m.key)}</strong>
-                <span className="text-[11px] text-on-surface-variant line-clamp-1">{modeDesc(t, m.key)}</span>
-              </div>
-            </button>
-          ))}
+          <div className="grid grid-cols-1 gap-1.5">
+            {CONVERSATION_MODES.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => onSelect(m.key)}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface-container-low hover:bg-primary/10 transition-colors text-left active:scale-[0.98]"
+              >
+                <span className="text-xl">{m.icon}</span>
+                <div className="min-w-0">
+                  <strong className="block text-[14px] font-semibold text-on-surface">{modeLabel(t, m.key)}</strong>
+                  <span className="text-[11px] text-on-surface-variant line-clamp-1">{modeDesc(t, m.key)}</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
