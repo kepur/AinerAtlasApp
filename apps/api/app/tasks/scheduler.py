@@ -1,97 +1,77 @@
 import logging
-import asyncio
-from datetime import datetime, UTC
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from app.db.session import SessionLocal
-from app.models import User, UserMatchProfile, MatchAnalysisReport, Conversation, Topic
 from app.services.llm import get_llm_provider
+from app.services.runtime_config import resolve_default_llm_provider
+from app.services.user_profile_analysis import analyze_user_for_matching, users_due_for_analysis
 
 logger = logging.getLogger(__name__)
 
 scheduler = AsyncIOScheduler()
 
-async def run_match_radar_analysis():
-    """Runs a weekly/monthly match radar analysis for all active users with a MatchProfile."""
-    logger.info("Starting scheduled match radar analysis...")
-    
+
+async def run_daily_user_analysis() -> None:
+    """Daily batch: analyze user profile + chat data for matching."""
+    logger.info("Starting daily user profile analysis...")
     with SessionLocal() as db:
-        users = db.scalars(
-            select(User)
-            .join(UserMatchProfile, User.id == UserMatchProfile.user_id)
-            .where(User.status == "active")
-        ).all()
-        
-        provider = get_llm_provider(db)
-        
-        for user in users:
+        provider = get_llm_provider(
+            resolve_default_llm_provider(db),
+            db,
+            allow_mock_fallback=True,
+        )
+        user_ids = users_due_for_analysis(db, limit=200)
+        ok = 0
+        for user_id in user_ids:
             try:
-                # Collect user data for LLM
-                match_profile = db.scalar(select(UserMatchProfile).where(UserMatchProfile.user_id == user.id))
-                
-                # Collect conversations (last 10)
-                conversations = db.scalars(
-                    select(Conversation)
-                    .options(selectinload(Conversation.messages))
-                    .where(Conversation.user_id == user.id)
-                    .order_by(Conversation.updated_at.desc())
-                    .limit(10)
-                ).all()
-                
-                # Collect topics (last 10)
-                topics = db.scalars(
-                    select(Topic)
-                    .where(Topic.creator_id == user.id)
-                    .order_by(Topic.created_at.desc())
-                    .limit(10)
-                ).all()
-                
-                user_data = f"User Bio: {match_profile.bio}\nInterests: {match_profile.interests}\n"
-                user_data += "Recent Topics:\n"
-                for t in topics:
-                    user_data += f"- {t.title}: {t.pro_view} / {t.con_view}\n"
-                
-                user_data += "Recent Conversation Summary:\n"
-                for c in conversations:
-                    user_data += f"- {c.title} (Mode: {c.mode})\n"
-                
-                system_prompt = (
-                    "You are an expert AI Matchmaker. Analyze the user's data (bio, topics, conversations). "
-                    "Output a comprehensive analysis of the user's personality, communication style, and dating/friendship preferences. "
-                    "You must output JSON exactly in this format: "
-                    '{"summary": "A 2-paragraph summary", "match_score": 85, "details": {"communication_style": "...", "preferences": "..."}}'
-                )
-                
-                # Analyze with LLM
-                analysis = await provider.analyze_user_profile(user_data)
-                
-                # Save report
-                report = MatchAnalysisReport(
-                    user_id=user.id,
-                    report_type="weekly",
-                    summary=analysis.get("summary", ""),
-                    match_score=analysis.get("match_score", 0),
-                    details=analysis.get("details", {})
-                )
-                db.add(report)
-                db.commit()
-                logger.info(f"Successfully analyzed user {user.id}")
-            except Exception as e:
+                report = await analyze_user_for_matching(db, user_id, provider, report_type="daily")
+                if report:
+                    db.commit()
+                    ok += 1
+                else:
+                    db.rollback()
+            except Exception as exc:
                 db.rollback()
-                logger.error(f"Error analyzing user {user.id}: {e}")
-                
-    logger.info("Finished scheduled match radar analysis.")
+                logger.error("Daily analysis failed for user %s: %s", user_id, exc)
+    logger.info("Daily user analysis finished: %s/%s users", ok, len(user_ids))
 
-def start_scheduler():
-    if not scheduler.running:
-        # Schedule it to run every week on Sunday
-        scheduler.add_job(run_match_radar_analysis, 'cron', day_of_week='sun', hour=2)
-        scheduler.start()
-        logger.info("APScheduler started.")
 
-def stop_scheduler():
+async def run_match_radar_analysis() -> None:
+    """Weekly deep pass — same pipeline, weekly report label."""
+    logger.info("Starting weekly match radar analysis...")
+    with SessionLocal() as db:
+        provider = get_llm_provider(
+            resolve_default_llm_provider(db),
+            db,
+            allow_mock_fallback=True,
+        )
+        user_ids = users_due_for_analysis(db, limit=500)
+        ok = 0
+        for user_id in user_ids:
+            try:
+                report = await analyze_user_for_matching(db, user_id, provider, report_type="weekly")
+                if report:
+                    db.commit()
+                    ok += 1
+                else:
+                    db.rollback()
+            except Exception as exc:
+                db.rollback()
+                logger.error("Weekly analysis failed for user %s: %s", user_id, exc)
+    logger.info("Weekly match radar analysis finished: %s/%s users", ok, len(user_ids))
+
+
+def start_scheduler() -> None:
+    if scheduler.running:
+        return
+    scheduler.add_job(run_daily_user_analysis, "cron", hour=3, minute=0)
+    scheduler.add_job(run_match_radar_analysis, "cron", day_of_week="sun", hour=2, minute=0)
+    scheduler.start()
+    logger.info("APScheduler started (daily 03:00 + weekly Sun 02:00 user analysis).")
+
+
+def stop_scheduler() -> None:
     if scheduler.running:
         scheduler.shutdown()
         logger.info("APScheduler stopped.")

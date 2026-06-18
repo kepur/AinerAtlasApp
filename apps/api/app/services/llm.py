@@ -81,6 +81,7 @@ class LLMProvider(ABC):
     async def analyze_user_profile(
         self,
         user_data: str,
+        **kwargs,
     ) -> dict:
         raise NotImplementedError
 
@@ -425,8 +426,26 @@ class MockLLMProvider(LLMProvider):
     async def analyze_user_profile(
         self,
         user_data: str,
+        **kwargs,
     ) -> dict:
-        return {"summary": "Mock profile analysis"}
+        return {
+            "summary": "该用户偏好结构化表达，乐于探讨跨文化话题，适合与同样目标明确的学习者匹配。",
+            "match_score": 72,
+            "personality_type": "理性探索者",
+            "mbti": "INTJ",
+            "age_group": "25-34",
+            "hobbies": ["阅读", "旅行", "摄影"],
+            "match_tags": ["跨文化", "英语提升", "深度对话", "理性表达"],
+            "details": {
+                "communication_style": "清晰直接",
+                "social_preference": "小圈子深聊",
+                "learning_style": "场景化练习",
+                "reasoning_depth": 68,
+                "emotional_maturity": 62,
+                "knowledge_breadth": 70,
+                "values_summary": "重视成长与真实表达",
+            },
+        }
 
 
 class FallbackLLMProvider(LLMProvider):

@@ -1,6 +1,38 @@
-"""Match scoring algorithm based on interests, languages, and values."""
+"""Match scoring algorithm based on interests, languages, values, and AI analysis."""
 
 from app.models import UserMatchProfile, UserProfile, UserValueProfile
+
+
+def _analysis_bonus(
+    user_details: dict | None,
+    target_details: dict | None,
+) -> tuple[float, list[str]]:
+    if not user_details or not target_details:
+        return 0.0, []
+
+    score = 0.0
+    reasons: list[str] = []
+
+    user_tags = set(user_details.get("match_tags") or [])
+    target_tags = set(target_details.get("match_tags") or [])
+    tag_overlap = user_tags & target_tags
+    if tag_overlap:
+        score += 20
+        reasons.append(f"AI 标签契合: {', '.join(sorted(tag_overlap))}")
+
+    user_type = str(user_details.get("personality_type") or "").strip()
+    target_type = str(target_details.get("personality_type") or "").strip()
+    if user_type and target_type and user_type == target_type:
+        score += 15
+        reasons.append(f"性格类型相近: {user_type}")
+
+    user_style = str((user_details.get("details") or {}).get("communication_style") or user_details.get("communication_style") or "")
+    target_style = str((target_details.get("details") or {}).get("communication_style") or target_details.get("communication_style") or "")
+    if user_style and target_style and user_style == target_style:
+        score += 10
+        reasons.append(f"沟通风格相似: {user_style}")
+
+    return min(30.0, score), reasons
 
 
 def compute_match_score(
@@ -10,6 +42,9 @@ def compute_match_score(
     target_profile: UserProfile | None,
     target_match: UserMatchProfile | None,
     target_values: UserValueProfile | None,
+    *,
+    user_analysis: dict | None = None,
+    target_analysis: dict | None = None,
 ) -> tuple[float, list[str]]:
     score = 0.0
     reasons: list[str] = []
@@ -51,6 +86,10 @@ def compute_match_score(
         if value_overlap:
             score += 15
             reasons.append(f"价值观契合: {', '.join(sorted(value_overlap))}")
+
+    bonus, bonus_reasons = _analysis_bonus(user_analysis, target_analysis)
+    score += bonus
+    reasons.extend(bonus_reasons)
 
     return min(100.0, score), reasons
 
