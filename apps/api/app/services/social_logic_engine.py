@@ -377,6 +377,15 @@ async def question_player(
         if "name" in a and "agent" not in a:
             a["agent"] = a.pop("name")
 
+    # Normalize legacy keys → chat_v2 / LearningHUD shape
+    if not hud.get("patterns_v2") and hud.get("patterns"):
+        raw = hud.pop("patterns")
+        if isinstance(raw, list):
+            hud["patterns_v2"] = [
+                p if isinstance(p, dict) else {"pattern": str(p), "example": "", "add_to_crush": True}
+                for p in raw
+            ]
+
     # Guarantee the learning card always has content even if the model was terse.
     if not hud.get("main_expression"):
         hud["main_expression"] = hud.get("expression") or content
@@ -385,6 +394,11 @@ async def question_player(
         hud["agents"] = [
             {"agent": "Logic Agent", "result": "质疑要有逻辑：先指出矛盾，再要求对方解释。"},
             {"agent": "Language Coach", "result": "可用 \"Why were you...\" / \"That doesn't add up.\" 等句型。"},
+        ]
+    if not hud.get("patterns_v2"):
+        hud["patterns_v2"] = [
+            {"pattern": "Why were you...", "example": "Why were you near the gate last night?", "add_to_crush": True},
+            {"pattern": "That doesn't add up.", "example": "That doesn't add up with what you said earlier.", "add_to_crush": True},
         ]
     hud["v2"] = True
     hud["detected_intent"] = "expression_learning"
