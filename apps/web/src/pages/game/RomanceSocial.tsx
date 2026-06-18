@@ -466,12 +466,9 @@ export default function RomanceSocial() {
             );
           })}
         </div>
-      </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-44 no-scrollbar relative z-10">
         {/* Learning HUD cards */}
-        <div className="px-4 pt-2 grid grid-cols-2 gap-3">
+        <div className="px-4 pb-3 grid grid-cols-2 gap-3">
           {/* 自然表达 */}
           <div className={`bg-white rounded-2xl border ${th.accentBorder} p-3 shadow-sm`}>
             <div className="flex items-center gap-1.5 mb-2">
@@ -521,6 +518,10 @@ export default function RomanceSocial() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pb-44 no-scrollbar relative z-10">
 
         {/* Scene bar */}
         <div className={`mx-4 mt-3 bg-white/70 rounded-2xl border ${th.accentBorder} px-3 py-2.5 flex items-center gap-3`}>
