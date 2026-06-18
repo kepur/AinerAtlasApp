@@ -385,7 +385,7 @@ async def question_player(
 
     target["suspicion"] = min(95, target["suspicion"] + random.randint(6, 14))
 
-    hud = _finalize_hud(hud, content, native)
+    hud = _finalize_hud(hud, content, native, db=db)
     game["learning_turns"].append(hud)
     _save_game(db, game)
 
@@ -442,11 +442,11 @@ async def help_express(
     except Exception as exc:
         logger.warning("social-logic help-express failed: %s", exc)
 
-    hud = _finalize_hud(hud, content, native)
+    hud = _finalize_hud(hud, content, native, db=db)
     return {"hud": hud}
 
 
-def _finalize_hud(hud: dict, content: str, native: str) -> dict:
+def _finalize_hud(hud: dict, content: str, native: str, *, db: Session | None = None) -> dict:
     for a in (hud.get("agents") or []):
         if "name" in a and "agent" not in a:
             a["agent"] = a.pop("name")
@@ -476,10 +476,14 @@ def _finalize_hud(hud: dict, content: str, native: str) -> dict:
             {"agent": "Language Coach", "result": "可用 \"Why were you...\" / \"That doesn't add up.\" 等句型。"},
         ]
     if not hud.get("patterns_v2"):
-        hud["patterns_v2"] = [
-            {"pattern": "Why were you...", "example": "Why were you near the gate last night?", "add_to_crush": True},
-            {"pattern": "That doesn't add up.", "example": "That doesn't add up with what you said earlier.", "add_to_crush": True},
-        ]
+        if db is not None:
+            from app.services.game_learning_pack_service import patterns_for_game
+            hud["patterns_v2"] = patterns_for_game(db, "social_logic")
+        else:
+            hud["patterns_v2"] = [
+                {"pattern": "Why were you...", "example": "Why were you near the gate last night?", "add_to_crush": True},
+                {"pattern": "That doesn't add up.", "example": "That doesn't add up with what you said earlier.", "add_to_crush": True},
+            ]
     hud["v2"] = True
     hud["detected_intent"] = "expression_learning"
     return hud

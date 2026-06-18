@@ -1048,3 +1048,43 @@ class GameAsset(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
+
+
+class PartyRoom(Base):
+    """Multiplayer party room for detective / story party modes (REST polling MVP)."""
+
+    __tablename__ = "party_rooms"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    host_user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    template_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    title: Mapped[str] = mapped_column(String(255), default="侦探之夜")
+    invite_code: Mapped[str] = mapped_column(String(8), unique=True, index=True)
+    max_players: Mapped[int] = mapped_column(Integer, default=8)
+    phase: Mapped[str] = mapped_column(String(40), default="waiting")
+    state: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(20), default="open")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class GameLearningPack(Base):
+    """Curated vocabulary / pattern packs maintained by ops for game learning HUD."""
+
+    __tablename__ = "game_learning_packs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    game_type: Mapped[str] = mapped_column(String(40), index=True)
+    pack_type: Mapped[str] = mapped_column(String(20), default="pattern")
+    label: Mapped[str] = mapped_column(String(120), default="")
+    content: Mapped[str] = mapped_column(String(500), default="")
+    example: Mapped[str] = mapped_column(Text, default="")
+    difficulty: Mapped[str] = mapped_column(String(20), default="B1")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=100)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )

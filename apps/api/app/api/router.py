@@ -13,6 +13,7 @@ from app.api.routes import (
     games,
     grammar,
     matching,
+    party_room,
     privacy,
     profile,
     reports,
@@ -44,3 +45,4 @@ api_router.include_router(reports.router)
 api_router.include_router(gamification.router)
 api_router.include_router(games.router)
 api_router.include_router(social_logic.router)
+api_router.include_router(party_room.router)

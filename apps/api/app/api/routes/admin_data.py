@@ -748,6 +748,85 @@ def batch_delete_game_templates(payload: BatchDeleteRequest, admin: AdminUser, d
 
 
 # ---------------------------------------------------------------------------
+# Game learning packs (curated patterns / vocabulary)
+# ---------------------------------------------------------------------------
+
+class LearningPackRequest(BaseModel):
+    game_type: str
+    pack_type: str = "pattern"
+    label: str = ""
+    content: str
+    example: str = ""
+    difficulty: str = "B1"
+    enabled: bool = True
+    sort_order: int = 100
+
+
+class LearningPackUpdateRequest(BaseModel):
+    label: str | None = None
+    content: str | None = None
+    example: str | None = None
+    difficulty: str | None = None
+    enabled: bool | None = None
+    sort_order: int | None = None
+    pack_type: str | None = None
+
+
+@router.get("/game-learning-packs")
+def list_learning_packs_admin(
+    _: AdminUser, db: DBSession,
+    game_type: str | None = None, limit: int = DEFAULT_LIMIT, offset: int = 0,
+) -> dict:
+    from app.models import GameLearningPack
+    lim, off = _paginate(limit, offset)
+    stmt = select(GameLearningPack)
+    if game_type:
+        stmt = stmt.where(GameLearningPack.game_type == game_type)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = list(db.scalars(stmt.order_by(GameLearningPack.sort_order).offset(off).limit(lim)))
+    return {
+        "items": [{
+            "id": r.id, "game_type": r.game_type, "pack_type": r.pack_type,
+            "label": r.label, "content": r.content, "example": r.example,
+            "difficulty": r.difficulty, "enabled": r.enabled, "sort_order": r.sort_order,
+        } for r in rows],
+        "total": total, "limit": lim, "offset": off,
+    }
+
+
+@router.post("/game-learning-packs")
+def create_learning_pack_admin(payload: LearningPackRequest, admin: AdminUser, db: DBSession) -> dict:
+    from app.services import game_learning_pack_service as packs
+    row = packs.create_pack(db, payload.model_dump())
+    _audit(db, admin, "create_learning_pack", "game_learning_pack", row["id"])
+    return row
+
+
+@router.patch("/game-learning-packs/{pack_id}")
+def update_learning_pack_admin(
+    pack_id: str, payload: LearningPackUpdateRequest, admin: AdminUser, db: DBSession,
+) -> dict:
+    from app.services import game_learning_pack_service as packs
+    try:
+        row = packs.update_pack(db, pack_id, payload.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    _audit(db, admin, "update_learning_pack", "game_learning_pack", pack_id)
+    return row
+
+
+@router.delete("/game-learning-packs/{pack_id}")
+def delete_learning_pack_admin(pack_id: str, admin: AdminUser, db: DBSession) -> dict:
+    from app.services import game_learning_pack_service as packs
+    try:
+        packs.delete_pack(db, pack_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    _audit(db, admin, "delete_learning_pack", "game_learning_pack", pack_id)
+    return {"deleted": True}
+
+
+# ---------------------------------------------------------------------------
 # Reports
 # ---------------------------------------------------------------------------
 

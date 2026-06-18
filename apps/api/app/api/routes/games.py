@@ -252,6 +252,16 @@ def list_voices() -> list[dict]:
     return game_assets.list_voices()
 
 
+@router.get("/learning-packs")
+def list_learning_packs(
+    game_type: str,
+    db: DBSession,
+    pack_type: str | None = None,
+) -> list[dict]:
+    from app.services import game_learning_pack_service as packs
+    return packs.list_packs(db, game_type, pack_type)
+
+
 @router.post("/assets")
 def create_asset(payload: AssetRequest, current_user: AdminUser, db: DBSession) -> dict:
     from app.services import game_assets
