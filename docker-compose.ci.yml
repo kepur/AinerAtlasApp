@@ -1,0 +1,47 @@
+# Minimal stack for CI release-smoke (admin regression). No .env required.
+services:
+  api:
+    build:
+      context: ./apps/api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://ainerwise:ainerwise@postgres:5432/ainerwise
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ci-test-secret-key-32chars-min
+      ENCRYPTION_KEY: ci-encryption-key-for-tests-only
+      CORS_ORIGINS: http://localhost:7075
+    ports:
+      - "7070:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 25s
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ainerwise
+      POSTGRES_USER: ainerwise
+      POSTGRES_PASSWORD: ainerwise
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ainerwise -d ainerwise"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 3s
