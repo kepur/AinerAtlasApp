@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { apiRequest } from "../api";
+import { apiRequest, API_BASE_URL, getToken } from "../api";
 
 type CircleMsg = {
   id: string;
@@ -35,8 +35,55 @@ export default function AiTrioChat() {
   useEffect(() => {
     if (!roomId) return;
     loadRoom();
-    const interval = setInterval(loadRoom, 4000);
-    return () => clearInterval(interval);
+
+    let ws: WebSocket | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (pollTimer) return;
+      pollTimer = setInterval(loadRoom, 4000);
+    };
+
+    const token = getToken();
+    if (token) {
+      const wsBase = (API_BASE_URL || window.location.origin).replace(/^http/i, "ws");
+      const wsUrl = `${wsBase}/api/circles/ws/${encodeURIComponent(roomId)}?token=${encodeURIComponent(token)}`;
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+          }
+        };
+        ws.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data) as { type?: string; message?: CircleMsg };
+            if (data.type === "message" && data.message) {
+              const msg = data.message;
+              setRoom((prev) => {
+                if (!prev) return prev;
+                if (prev.messages.some((m) => m.id === msg.id)) return prev;
+                return { ...prev, messages: [...prev.messages, msg] };
+              });
+            }
+          } catch {
+            /* ignore malformed frames */
+          }
+        };
+        ws.onerror = () => startPolling();
+        ws.onclose = () => startPolling();
+      } catch {
+        startPolling();
+      }
+    } else {
+      startPolling();
+    }
+
+    return () => {
+      ws?.close();
+      if (pollTimer) clearInterval(pollTimer);
+    };
   }, [roomId]);
 
   useEffect(() => {
@@ -89,7 +136,6 @@ export default function AiTrioChat() {
         body: JSON.stringify({ content: text, content_language: "en" }),
       });
       setInput("");
-      loadRoom();
     } catch { /* ignore */ }
     setSending(false);
   }
