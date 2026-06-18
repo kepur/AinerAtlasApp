@@ -75,7 +75,7 @@ export default function DetectiveInterrogation() {
 
   return (
     <div
-      className="w-full h-screen flex flex-col font-sans overflow-hidden"
+      className="detective-interrogation immersive-layout w-full h-full min-h-0 flex flex-col font-sans overflow-hidden"
       style={{ background: "linear-gradient(180deg, #f5f3ff 0%, #faf9ff 100%)" }}
     >
       {/* ── Header ── */}
@@ -102,7 +102,7 @@ export default function DetectiveInterrogation() {
       </header>
 
       {/* ── Case Banner ── */}
-      <div className="shrink-0 mx-4 mt-3 bg-white rounded-3xl border border-purple-100/60 shadow-[0_4px_16px_rgba(124,58,237,0.03)] flex items-center gap-3 px-4 py-3">
+      <div className="detective-glass-surface shrink-0 mx-4 mt-3 flex items-center gap-3 px-4 py-3">
         <div className="w-12 h-10 rounded-xl bg-purple-900 shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
           <span className="text-xl">☕</span>
         </div>
@@ -123,77 +123,73 @@ export default function DetectiveInterrogation() {
         <ChevronRight size={16} className="text-[#9ca3af] shrink-0" />
       </div>
 
-      {/* ── Suspect Card ── */}
-      <div className="shrink-0 mx-4 mt-3 bg-white rounded-3xl border border-purple-100/60 shadow-[0_4px_16px_rgba(124,58,237,0.04)] overflow-hidden">
-        <div className="flex gap-4 p-3.5">
-          <div className="w-20 h-24 rounded-2xl bg-gradient-to-b from-purple-100 to-purple-50 shrink-0 flex items-center justify-center overflow-hidden border border-purple-100/50 shadow-sm">
-            <div className="w-full h-full bg-gradient-to-b from-[#c4b5fd] to-[#a78bfa] flex items-center justify-center">
-              <span className="text-white font-extrabold text-3xl">{initial}</span>
-            </div>
+      {/* ── Suspect Card (compact) ── */}
+      <div className="detective-glass-surface shrink-0 mx-4 mt-2 overflow-hidden">
+        <div className="flex items-center gap-2.5 px-3 py-2.5">
+          <div className="w-14 h-14 rounded-[16px] shrink-0 overflow-hidden border border-white/60 shadow-sm bg-gradient-to-br from-[#c4b5fd] to-[#a78bfa] flex items-center justify-center">
+            <span className="text-white font-extrabold text-xl leading-none">{initial}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-bold text-[15px] text-[#111827]">{suspect.role} {suspect.name}</h2>
-                <div className="flex gap-1.5 mt-1 flex-wrap">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border ${
-                    suspicionColor === "red" ? "bg-red-50 text-red-600 border-red-100"
-                    : suspicionColor === "orange" ? "bg-orange-50 text-orange-600 border-orange-100"
-                    : "bg-green-50 text-green-600 border-green-100"}`}>
-                    <AlertTriangle size={9} /> 信任度 {suspect.trust ?? 50}
-                  </span>
-                  {suspect.interrogated && (
-                    <span className="bg-purple-50 border border-purple-100/60 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full">已审问</span>
-                  )}
-                </div>
-                <p className="text-[11px] text-[#6b7280] mt-1.5">{suspect.role}</p>
-              </div>
-              <button className="flex items-center gap-1 text-[#ec4899] bg-pink-50 border border-pink-100 px-2 py-0.5 rounded-full text-[10px] font-bold hover:bg-pink-100/80 transition-colors shrink-0">
-                <Heart size={10} fill="currentColor" /> 关注
-              </button>
+            <div className="flex items-center gap-1 flex-wrap">
+              <h2 className="font-bold text-[13px] text-[#111827] truncate">{suspect.role} {suspect.name}</h2>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 border shrink-0 ${
+                suspicionColor === "red" ? "bg-red-50/90 text-red-600 border-red-100"
+                : suspicionColor === "orange" ? "bg-orange-50/90 text-orange-600 border-orange-100"
+                : "bg-green-50/90 text-green-600 border-green-100"}`}>
+                <AlertTriangle size={8} /> {suspect.trust ?? 50}
+              </span>
+              {suspect.interrogated && (
+                <span className="bg-purple-50/90 border border-purple-100/60 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">已审问</span>
+              )}
             </div>
-            <div className="flex gap-1.5 mt-2.5 flex-wrap">
-              <button className="flex items-center gap-1 bg-purple-50 hover:bg-purple-100/70 border border-purple-100/40 text-purple-700 text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors">
-                <span>📋</span> 查看不在场证明
-              </button>
-              <button className="flex items-center gap-1 bg-purple-50 hover:bg-purple-100/70 border border-purple-100/40 text-purple-700 text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors">
-                <Link size={10} /> 关联线索
-              </button>
-            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
+            <button type="button" className="detective-glass-chip detective-glass-chip--sm whitespace-nowrap">
+              <span>📋</span> 不在场证明
+            </button>
+            <button type="button" className="detective-glass-icon-btn w-7 h-7" title="关联线索">
+              <Link size={12} className="text-purple-600" />
+            </button>
+            <button type="button" className="detective-glass-icon-btn w-7 h-7 text-[#ec4899]" title="关注">
+              <Heart size={12} fill="currentColor" />
+            </button>
           </div>
         </div>
       </div>
 
       {/* ── Learning Hint ── */}
-      <div className="shrink-0 mx-4 mt-3 bg-[#fbfaff] border border-purple-100/80 rounded-3xl shadow-[0_4px_16px_rgba(124,58,237,0.03)] overflow-hidden">
+      <div className="detective-glass-surface detective-hint-panel shrink-0 mx-4 mt-2">
         <button
-          className="w-full flex items-center justify-between px-4.5 py-2.5"
+          type="button"
+          className="detective-hint-header"
           onClick={() => setHintCollapsed(!hintCollapsed)}
         >
           <div className="flex items-center gap-1.5">
-            <Lightbulb size={14} className="text-purple-500" />
+            <span className="detective-glass-icon-btn w-6 h-6">
+              <Lightbulb size={12} className="text-purple-500" />
+            </span>
             <span className="text-purple-700 font-bold text-[12px]">学习提示</span>
             <span className="text-[#9ca3af] text-[11px] font-medium">Learning Hint</span>
           </div>
-          <span className="text-purple-400 text-[11px] font-bold">{hintCollapsed ? "展开 ∨" : "收起 ∧"}</span>
+          <span className="detective-collapse-pill">{hintCollapsed ? "展开 ∨" : "收起 ∧"}</span>
         </button>
         {!hintCollapsed && (
-          <div className="px-4.5 pb-3.5 flex flex-col gap-2.5">
+          <div className="detective-hint-body">
             <div className="flex items-center gap-2">
-              <span className="text-[15px] font-bold text-[#111827]">{hintEn}</span>
-              <TTSButton text={hintEn} lang="en" voice="neutral_narrator" size={12} className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shrink-0 hover:bg-purple-200 transition-colors" />
+              <span className="detective-hint-en">{hintEn}</span>
+              <TTSButton text={hintEn} lang="en" voice="neutral_narrator" size={12} className="detective-glass-icon-btn" />
             </div>
-            <span className="text-[12px] text-[#6b7280] leading-snug">{hintZh}</span>
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="detective-hint-zh">{hintZh}</span>
+            <div className="detective-chip-row">
               {hintChips.map((c, i) => (
-                <button key={i} onClick={() => setInput(typeof c === "string" ? c : "")} className="bg-white border border-purple-100 shadow-sm text-purple-700 text-[10px] font-semibold px-3 py-1 rounded-full hover:bg-purple-50 transition-colors">{c}</button>
+                <button key={i} type="button" onClick={() => setInput(typeof c === "string" ? c : "")} className="detective-glass-chip">{c}</button>
               ))}
-              <button className="ml-auto flex items-center gap-1 text-purple-500 text-[10px] font-bold hover:text-purple-700">
-                <RefreshCcw size={10} /> 换一句
+              <button type="button" className="detective-glass-refresh">
+                <RefreshCcw size={11} /> 换一句
               </button>
             </div>
-            <div className="bg-white rounded-2xl border border-purple-100/55 px-3 py-2 mt-0.5">
-              <p className="text-[10px] text-[#6b7280]"><span className="font-bold text-purple-600">句型：</span>{firstPattern}</p>
+            <div className="detective-glass-inset">
+              <p><b>句型：</b>{firstPattern}</p>
             </div>
           </div>
         )}
@@ -249,8 +245,8 @@ export default function DetectiveInterrogation() {
       </div>
 
       {/* ── Input Bar ── */}
-      <div className="shrink-0 bg-white border-t border-purple-100/60 px-4 py-3.5 shadow-[0_-4px_16px_rgba(0,0,0,0.015)]">
-        <div className="flex items-center gap-3 bg-[#f5f3ff] rounded-3xl px-5 py-3.5 border border-purple-100/70 shadow-inner">
+      <div className="detective-glass-input-bar shrink-0 px-4 py-3.5">
+        <div className="detective-glass-input-wrap">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -259,13 +255,14 @@ export default function DetectiveInterrogation() {
             className="flex-1 bg-transparent text-[14px] text-[#374151] border-none outline-none placeholder-[#9ca3af]"
             style={{ border: "none", outline: "none", boxShadow: "none" }}
           />
-          <button className="w-8 h-8 rounded-full flex items-center justify-center text-purple-400 hover:bg-purple-100/50 hover:text-purple-600 transition-colors shrink-0">
+          <button type="button" className="detective-glass-icon-btn w-9 h-9 text-purple-400 hover:text-purple-600">
             <Mic size={18} />
           </button>
           <button
+            type="button"
             onClick={handleSend}
             disabled={turnLoading || !input.trim()}
-            className="w-10 h-10 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#6366f1] flex items-center justify-center shadow-[0_4px_12px_rgba(124,58,237,0.3)] shrink-0 disabled:opacity-40 active:scale-95 transition-transform"
+            className="w-10 h-10 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#6366f1] flex items-center justify-center shadow-[0_4px_14px_rgba(124,58,237,0.32),inset_0_1px_0_rgba(255,255,255,0.25)] shrink-0 disabled:opacity-40 active:scale-95 transition-all duration-200"
           >
             {turnLoading ? <Loader2 size={16} className="text-white animate-spin" /> : <Send size={15} className="text-white" />}
           </button>
@@ -273,23 +270,23 @@ export default function DetectiveInterrogation() {
       </div>
 
       {/* ── Action Buttons ── */}
-      <div className="shrink-0 bg-white border-t border-purple-50/50 px-4 pb-6 pt-3">
+      <div className="detective-glass-action-bar shrink-0 px-4 pt-3 pb-[max(env(safe-area-inset-bottom,12px),12px)]">
         <div className="grid grid-cols-4 gap-3">
-          <button onClick={() => setInput("Can you explain why ")} className="flex flex-col items-center gap-1.5 bg-[#f5f3ff] border border-purple-100/60 text-purple-700 hover:bg-[#ede9fe] rounded-2xl py-3 px-1 transition-all active:scale-95 duration-150 shadow-sm">
+          <button type="button" onClick={() => setInput("Can you explain why ")} className="detective-glass-action detective-glass-action--purple">
             <HelpCircle size={16} className="text-purple-500" />
-            <span className="text-[10px] font-bold text-purple-700">追问问题</span>
+            <span>追问问题</span>
           </button>
-          <button onClick={() => setInput("That doesn't add up. ")} className="flex flex-col items-center gap-1.5 bg-[#fff7ed] border border-orange-100/60 text-orange-700 hover:bg-[#ffedd5] rounded-2xl py-3 px-1 transition-all active:scale-95 duration-150 shadow-sm">
+          <button type="button" onClick={() => setInput("That doesn't add up. ")} className="detective-glass-action detective-glass-action--orange">
             <AlertTriangle size={16} className="text-orange-500" />
-            <span className="text-[10px] font-bold text-orange-700">指出矛盾</span>
+            <span>指出矛盾</span>
           </button>
-          <button onClick={() => navigate(-1)} className="flex flex-col items-center gap-1.5 bg-[#eff6ff] border border-blue-100/60 text-blue-700 hover:bg-[#dbeafe] rounded-2xl py-3 px-1 transition-all active:scale-95 duration-150 shadow-sm">
+          <button type="button" onClick={() => navigate(-1)} className="detective-glass-action detective-glass-action--blue">
             <Search size={16} className="text-blue-500" />
-            <span className="text-[10px] font-bold text-blue-700">查看线索</span>
+            <span>查看线索</span>
           </button>
-          <button onClick={() => navigate(-1)} className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-[#7c3aed] to-[#6366f1] text-white rounded-2xl py-3 px-1 shadow-[0_4px_14px_rgba(124,58,237,0.25)] hover:opacity-95 transition-all active:scale-95 duration-150">
-            <Lightbulb size={16} className="text-white" />
-            <span className="text-[10px] font-bold text-white">提交推理</span>
+          <button type="button" onClick={() => navigate(-1)} className="detective-glass-action detective-glass-action--accent">
+            <Lightbulb size={16} />
+            <span>提交推理</span>
           </button>
         </div>
       </div>
