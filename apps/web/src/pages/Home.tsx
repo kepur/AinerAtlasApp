@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiRequest, type Conversation, type MasteryItem } from "../api";
+import { apiRequest, type Asset, type Conversation, type MasteryItem } from "../api";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
@@ -13,10 +13,10 @@ type Topic = {
 
 // Mock placeholders for sections without a backend feed yet.
 // TODO(backend): GET /api/assets?type=freeze for the Thought Freeze carousel.
-const MOCK_FREEZE_ASSETS = [
-  { id: "fa1", title: "Nostalgia vs Sehnsucht", time: "2 hours ago", tint: "from-[#7c3aed] to-[#0058be]" },
-  { id: "fa2", title: "Formal Greetings", time: "Yesterday", tint: "from-[#005b3d] to-[#0058be]" },
-  { id: "fa3", title: "Abstract Metaphor", time: "Oct 24", tint: "from-[#732ee4] to-[#d2bbff]" }
+const FREEZE_TINTS = [
+  "from-[#7c3aed] to-[#0058be]",
+  "from-[#005b3d] to-[#0058be]",
+  "from-[#732ee4] to-[#d2bbff]",
 ];
 
 export default function Home() {
@@ -29,6 +29,7 @@ export default function Home() {
   const [recentConversations, setRecentConversations] = useState<Conversation[]>([]);
   const [queue, setQueue] = useState<MasteryItem[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
 
   useEffect(() => {
     // Use real data only — no mock fallbacks (a mock conversation id would make
@@ -44,6 +45,10 @@ export default function Home() {
     apiRequest<Topic[]>("/api/topics")
       .then((data) => setTopics(data && data.length > 0 ? data.slice(0, 5) : []))
       .catch(() => setTopics([]));
+
+    apiRequest<Asset[]>("/api/assets")
+      .then((data) => setAssets(Array.isArray(data) ? data.slice(0, 6) : []))
+      .catch(() => setAssets([]));
   }, []);
 
   async function startThought() {
@@ -209,15 +214,18 @@ export default function Home() {
             </button>
           </div>
           <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-margin-mobile px-margin-mobile">
-            {MOCK_FREEZE_ASSETS.map((asset) => (
+            {assets.length === 0 && (
+              <p className="text-on-surface-variant font-body-md py-4">还没有冻结的表达资产，去对话里沉淀第一条吧。</p>
+            )}
+            {assets.map((asset, i) => (
               <button
                 key={asset.id}
-                onClick={() => navigate("/assets")}
+                onClick={() => navigate(`/assets/${asset.id}`)}
                 className="flex-shrink-0 w-40 p-4 bg-white rounded-2xl premium-shadow border border-surface-variant/20 text-left"
               >
-                <div className={`w-full aspect-square rounded-xl mb-3 bg-gradient-to-br ${asset.tint}`} />
+                <div className={`w-full aspect-square rounded-xl mb-3 bg-gradient-to-br ${FREEZE_TINTS[i % FREEZE_TINTS.length]}`} />
                 <p className="font-label-sm text-label-sm font-bold text-on-surface truncate">{asset.title}</p>
-                <p className="font-label-sm text-label-sm text-on-surface-variant">{asset.time}</p>
+                <p className="font-label-sm text-label-sm text-on-surface-variant truncate">{asset.target_language?.toUpperCase() || "EN"}</p>
               </button>
             ))}
           </div>

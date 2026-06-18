@@ -14,31 +14,6 @@ type Topic = {
   created_at: string;
 };
 
-const MOCK_TOPICS: Topic[] = [
-  {
-    id: "mock1",
-    title: "Is AI replacing human creativity?",
-    background: "In the era of generative AI, many artists and writers are concerned about the future of human creativity. Are we losing our creative edge or is AI just a new tool?",
-    pro_view: "AI enhances creativity.",
-    con_view: "AI suppresses true art.",
-    tags: ["Technology", "Art", "Debate"],
-    status: "open",
-    view_count: 1240,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: "mock2",
-    title: "The ethics of space exploration",
-    background: "As billionaires race to space, should we prioritize Earth's problems first?",
-    pro_view: "Space is the future.",
-    con_view: "Fix Earth first.",
-    tags: ["Space", "Ethics", "Hot"],
-    status: "open",
-    view_count: 890,
-    created_at: new Date().toISOString()
-  }
-];
-
 const FILTERS = [
   { key: "all", label: "全部" },
   { key: "hot", label: "热门" },
@@ -55,8 +30,8 @@ export default function TopicExplore() {
 
   useEffect(() => {
     apiRequest<Topic[]>("/api/topics")
-      .then((data) => setTopics(data?.length > 0 ? data : MOCK_TOPICS))
-      .catch(() => setTopics(MOCK_TOPICS))
+      .then((data) => setTopics(data?.length ? data : []))
+      .catch(() => setTopics([]))
       .finally(() => setLoading(false));
   }, []);
 

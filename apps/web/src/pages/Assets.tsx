@@ -17,22 +17,6 @@ type LibraryItem = {
 const FILTERS = ["All", "Drafts", "Frozen", "Published"] as const;
 type Filter = (typeof FILTERS)[number];
 
-// Placeholder library so the layout is meaningful before assets exist.
-// TODO(backend): assets need a `status` + `word_count` field for full fidelity.
-const MOCK_ITEMS: LibraryItem[] = [
-  {
-    id: "mock-a1",
-    title: "Why I want to move to Europe v4",
-    summary: "Exploring the intersection of cultural density, urban walkability, and the psychological impact of historic architecture...",
-    status: "Frozen",
-    date: "Oct 24, 2023",
-    words: 1240,
-    target: "EN"
-  },
-  { id: "mock-a2", title: "Career Pivot: Design & AI", summary: "", status: "Draft", date: "Nov 02", words: 1200, target: "EN" },
-  { id: "mock-a3", title: "The Stoic's Guide to Digital Noise", summary: "", status: "Collected", date: "Medium.com", words: 0, target: "EN" },
-  { id: "mock-a4", title: "Morning Coffee Reflections", summary: "", status: "Draft", date: "Updated 2h ago", words: 0, target: "EN" }
-];
 
 function toLibraryItem(asset: Asset): LibraryItem {
   const variants = Object.keys(asset.variants ?? {}).length;
@@ -63,8 +47,8 @@ export default function Assets() {
 
   useEffect(() => {
     apiRequest<Asset[]>("/api/assets")
-      .then((data) => setItems(data && data.length > 0 ? data.map(toLibraryItem) : MOCK_ITEMS))
-      .catch(() => setItems(MOCK_ITEMS))
+      .then((data) => setItems(data && data.length > 0 ? data.map(toLibraryItem) : []))
+      .catch(() => setItems([]))
       .finally(() => setLoading(false));
   }, []);
 
