@@ -75,7 +75,7 @@ export default function Home() {
         </button>
       </nav>
 
-      <main className="pt-2 pb-8 px-margin-mobile space-y-8">
+      <main className="pt-2 pb-8 px-margin-mobile space-y-5">
         {/* 1. Express Your Thought — 主卡片 */}
         <section>
           <div className="relative overflow-hidden rounded-[20px] p-5 ai-glow glass-card border border-primary/10">

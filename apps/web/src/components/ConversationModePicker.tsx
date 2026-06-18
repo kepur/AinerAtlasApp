@@ -48,25 +48,25 @@ type Props = {
 
 export default function ConversationModePicker({ open, onClose, onSelect, dailyResonance }: Props) {
   const { t } = useI18n();
-  const [resonanceOpen, setResonanceOpen] = useState(true);
+  const [resonanceOpen, setResonanceOpen] = useState(false);
 
   useEffect(() => {
-    if (open) setResonanceOpen(true);
+    if (open) setResonanceOpen(false);
   }, [open]);
 
   if (!open) return null;
 
   return (
     <div
-      className="premium fixed inset-0 z-[200] flex items-end justify-center bg-black/30 backdrop-blur-sm"
+      className="premium fixed inset-0 z-[200] flex items-end justify-center bg-black/30 backdrop-blur-sm pb-[env(safe-area-inset-bottom,0px)]"
       onClick={onClose}
     >
       <div
-        className="w-[min(100%,430px)] bg-surface rounded-t-3xl p-5 pb-8 max-h-[85vh] overflow-y-auto"
+        className="w-[min(100%,430px)] bg-surface rounded-t-2xl px-4 pt-3 pb-[max(env(safe-area-inset-bottom,12px),12px)] max-h-[min(92vh,780px)] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-headline-md text-headline-md text-on-surface">{t("chat.selectMode")}</h3>
+        <div className="flex items-center justify-between mb-2.5">
+          <h3 className="text-[15px] font-bold text-on-surface">{t("chat.selectMode")}</h3>
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant"
@@ -76,7 +76,7 @@ export default function ConversationModePicker({ open, onClose, onSelect, dailyR
         </div>
 
         {dailyResonance && (
-          <div className="mb-4 rounded-2xl bg-primary/5 border border-primary/10 overflow-hidden">
+          <div className="mb-2.5 rounded-xl bg-primary/5 border border-primary/10 overflow-hidden">
             <button
               type="button"
               onClick={() => setResonanceOpen((v) => !v)}
@@ -121,17 +121,17 @@ export default function ConversationModePicker({ open, onClose, onSelect, dailyR
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-1 gap-1.5">
           {CONVERSATION_MODES.map((m) => (
             <button
               key={m.key}
               onClick={() => onSelect(m.key)}
-              className="flex items-center gap-3 p-3 rounded-2xl bg-surface-container-low hover:bg-primary/10 transition-colors text-left active:scale-[0.98]"
+              className="flex items-center gap-2.5 p-2.5 rounded-xl bg-surface-container-low hover:bg-primary/10 transition-colors text-left active:scale-[0.98]"
             >
-              <span className="text-2xl">{m.icon}</span>
+              <span className="text-xl">{m.icon}</span>
               <div className="min-w-0">
-                <strong className="block font-body-md font-semibold text-on-surface">{modeLabel(t, m.key)}</strong>
-                <span className="text-[12px] text-on-surface-variant line-clamp-1">{modeDesc(t, m.key)}</span>
+                <strong className="block text-[14px] font-semibold text-on-surface">{modeLabel(t, m.key)}</strong>
+                <span className="text-[11px] text-on-surface-variant line-clamp-1">{modeDesc(t, m.key)}</span>
               </div>
             </button>
           ))}
