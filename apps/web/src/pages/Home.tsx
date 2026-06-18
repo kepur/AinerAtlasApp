@@ -73,61 +73,68 @@ export default function Home() {
       </nav>
 
       <main className="pt-2 pb-8 px-margin-mobile space-y-8">
-        {/* 1. Express Your Thought — 主页首位 */}
-        <section className="relative overflow-hidden rounded-[1.5rem] premium-shadow bg-surface-container-lowest p-6 border border-primary/5">
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-primary/5 rounded-full blur-3xl" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <span className="px-3 py-1 bg-primary/10 text-primary font-label-sm text-label-sm rounded-full">Daily Resonance</span>
-              <span className="material-symbols-outlined text-primary/40">lightbulb</span>
+        {/* 1. Express Your Thought — 主卡片 */}
+        <section>
+          <div className="relative overflow-hidden rounded-[20px] p-5 ai-glow glass-card border border-primary/10">
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl" />
+            <div className="relative z-10">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl resonance-indicator flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                  <span className="material-symbols-outlined fill text-[24px]">edit_note</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">Express Your Thought</h2>
+                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] rounded-full font-bold flex-shrink-0">
+                      Daily Resonance
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-on-surface-variant leading-relaxed">
+                    How would you translate today's sentiment into your target language's formal register?
+                  </p>
+                </div>
+              </div>
+              <blockquote className="font-headline-lg text-headline-lg text-on-surface mb-5 italic px-1 leading-snug">
+                "The art of silence is as expressive as the choice of words."
+              </blockquote>
+              <button
+                onClick={() => setShowModePicker(true)}
+                className="w-full h-11 bg-primary text-white rounded-xl font-label-sm text-[14px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md shadow-primary/20"
+              >
+                <span className="material-symbols-outlined text-[20px]">forum</span>
+                选择模式并开始表达
+              </button>
             </div>
-            <h2 className="font-headline-lg text-headline-lg text-on-surface mb-2 italic">
-              "The art of silence is as expressive as the choice of words."
-            </h2>
-            <p className="font-body-md text-on-surface-variant mb-6">
-              How would you translate this sentiment into your target language's formal register?
-            </p>
-            <button
-              onClick={() => setShowModePicker(true)}
-              className="w-full h-12 bg-primary text-on-primary rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined">edit_note</span>
-              Express Your Thought
-            </button>
           </div>
         </section>
 
-        {/* 2. AinerWise Coach */}
+        {/* 2. AinerWise Coach — 紧凑小卡片 */}
         <section>
-          <div className="relative overflow-hidden rounded-[20px] p-4 ai-glow glass-card border border-primary/10">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl" />
-            <div className="flex items-start gap-3 relative z-10">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-xl resonance-indicator flex items-center justify-center text-white shadow-lg">
-                  <span className="material-symbols-outlined fill text-[24px]">psychology</span>
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-tertiary-fixed-dim border-2 border-surface rounded-full" />
+          <div className="flex items-center gap-3 p-3.5 rounded-2xl premium-shadow bg-surface-container-lowest border border-primary/5">
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined fill text-[20px]">psychology</span>
               </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center mb-1">
-                  <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">AinerWise Coach</h2>
-                  <span className="font-label-sm text-[10px] text-primary font-bold">LIVE</span>
-                </div>
-                <p className="text-[13px] text-on-surface-variant line-clamp-2 leading-relaxed">
-                  "You've expressed new nuances today. Ready to refine your philosophical vocabulary?"
-                </p>
-              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-tertiary-fixed-dim border-2 border-surface rounded-full" />
             </div>
-            <div className="mt-3 pt-3 border-t border-outline-variant/30 flex gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-[14px] text-on-surface truncate">AinerWise Coach</h3>
+                <span className="text-[9px] text-primary font-bold uppercase tracking-wide">Live</span>
+              </div>
+              <p className="text-[12px] text-on-surface-variant truncate">继续上次对话或进入语音教练</p>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               <button
                 onClick={continueSession}
-                className="flex-1 h-9 bg-primary text-white rounded-xl font-label-sm text-[13px] font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                className="h-8 px-3 bg-primary text-white rounded-lg text-[12px] font-bold active:scale-95 transition-transform"
               >
-                Continue Session
+                继续
               </button>
               <button
                 onClick={() => navigate("/voice")}
-                className="w-9 h-9 flex items-center justify-center text-primary bg-primary-fixed/30 rounded-xl active:scale-95 transition-transform"
+                className="w-8 h-8 flex items-center justify-center text-primary bg-primary-fixed/40 rounded-lg active:scale-95 transition-transform"
+                aria-label="Voice Coach"
               >
                 <span className="material-symbols-outlined text-[18px]">settings_voice</span>
               </button>
