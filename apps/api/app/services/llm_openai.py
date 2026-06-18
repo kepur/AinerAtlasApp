@@ -967,15 +967,14 @@ class OpenAICompatibleLLMProvider(LLMProvider):
             logger.error("LLM plain-mode API error: %s", exc)
             raise
 
-    async def analyze_user_profile(self, user_data: str) -> dict:
+    async def analyze_user_profile(self, user_data: str, **kwargs) -> dict:
+        extra = kwargs.get("analysis_hint") or ""
         system_prompt = (
             "You are an expert AI Matchmaker and user profiler. "
-            "Analyze the following user data (bio, topics, conversations) and output a comprehensive analysis of their personality, "
-            "communication style, and dating/friendship preferences.\n"
-            "You must respond in pure JSON format containing exactly these keys:\n"
-            "- summary: A 2-paragraph summary string.\n"
-            "- match_score: An integer score from 0-100 indicating profile completeness/attractiveness.\n"
-            "- details: A dictionary containing key traits and preferences."
+            "Analyze the following user data (profile, chat excerpts, topics, memories) and output "
+            "personality type and match tags for friend/language-partner matching.\n"
+            f"{extra}\n"
+            "You must respond in pure JSON."
         )
         safe_prompt = _ensure_json_instruction(system_prompt)
         started = time.perf_counter()
@@ -1005,7 +1004,9 @@ class OpenAICompatibleLLMProvider(LLMProvider):
             return {
                 "summary": data.get("summary", ""),
                 "match_score": float(data.get("match_score", 0)),
-                "details": data.get("details", {})
+                "personality_type": data.get("personality_type", ""),
+                "match_tags": data.get("match_tags") or [],
+                "details": data.get("details", {}),
             }
         except Exception as e:
             logger.error(f"Error in analyze_user_profile: {e}")

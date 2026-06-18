@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models import UserProfile
 from app.schemas import ConversationAIResult, ProfileRead
-from app.services.llm import LLMUnavailableError, require_llm_provider
+from app.services.llm import LLMUnavailableError, get_llm_provider
 from app.services.runtime_config import resolve_default_llm_provider
 
 
@@ -79,7 +79,11 @@ async def generate_voice_dialogue_response(
     target_language = profile.primary_target_language if profile else "en"
 
     try:
-        llm = require_llm_provider(resolve_default_llm_provider(db), db)
+        llm = get_llm_provider(
+            resolve_default_llm_provider(db),
+            db,
+            allow_mock_fallback=True,
+        )
     except LLMUnavailableError as exc:
         return {"type": "error", "message": exc.message}
 

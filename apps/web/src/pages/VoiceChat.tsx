@@ -56,71 +56,73 @@ export default function VoiceChat() {
     }, 280);
   }, []);
 
-  const connect = useCallback(() => {
+  const connect = useCallback((): Promise<WebSocket> => {
     const token = getToken();
-    // Derive the WS origin from the configured API base so prod (API on a
-    // different host) works; fall back to the page origin when base is relative.
     const apiOrigin = API_BASE_URL || window.location.origin;
     const wsBase = apiOrigin.replace(/^http/, "ws");
-    // activeMode 2 = 面试练习 → interview persona; others use free conversation.
     const wsMode = activeMode === 2 ? "interview" : "free";
     const ws = new WebSocket(`${wsBase}/api/voice/realtime?token=${token}&mode=${wsMode}`);
     wsRef.current = ws;
 
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => {
-      setConnected(false);
-      setListening(false);
-      captureRef.current?.stop();
-      captureRef.current = null;
-    };
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data) as Record<string, unknown>;
-      if (data.type === "session") {
+    return new Promise((resolve, reject) => {
+      ws.onopen = () => {
         setConnected(true);
-        setSessionInfo({
-          provider: typeof data.provider === "string" ? data.provider : undefined,
-          asr_engine: typeof data.asr_engine === "string" ? data.asr_engine : undefined,
-          model: typeof data.model === "string" ? data.model : undefined
-        });
-      }
-      if (data.type === "transcript" && typeof data.text === "string") {
-        if (data.is_final) {
-          finalTranscriptRef.current = finalTranscriptRef.current
-            ? `${finalTranscriptRef.current} ${data.text}`
-            : data.text;
-          setTranscript(finalTranscriptRef.current);
-        } else {
-          setTranscript(
-            finalTranscriptRef.current
-              ? `${finalTranscriptRef.current} ${data.text}`
-              : data.text
-          );
+        resolve(ws);
+      };
+      ws.onerror = () => reject(new Error("语音连接失败，请检查网络或重新登录"));
+      ws.onclose = () => {
+        setConnected(false);
+        setListening(false);
+        captureRef.current?.stop();
+        captureRef.current = null;
+      };
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data) as Record<string, unknown>;
+        if (data.type === "session") {
+          setConnected(true);
+          setSessionInfo({
+            provider: typeof data.provider === "string" ? data.provider : undefined,
+            asr_engine: typeof data.asr_engine === "string" ? data.asr_engine : undefined,
+            model: typeof data.model === "string" ? data.model : undefined
+          });
         }
-      }
-      if (data.type === "thinking") {
-        setThinking(true);
-        setResponse(t("chat.thinking"));
-        setGrammarTips([]);
-      }
-      if (data.type === "response" && typeof data.text === "string") {
-        setThinking(false);
-        setResponse(data.text);
-        const tips = (data.grammar_tips as GrammarTip[]) || [];
-        setGrammarTips(tips);
-        const rewrite = typeof data.natural_rewrite === "string" ? data.natural_rewrite : "";
-        setNaturalRewrite(rewrite);
-        setKaraokeIdx(-1);
-        if (rewrite) startKaraoke(rewrite);
-        // Accumulate this turn for the post-session layered report.
-        turnsRef.current.push({ transcript: finalTranscriptRef.current, rewrite, tips });
-      }
-      if (data.type === "error" && typeof data.message === "string") {
-        setThinking(false);
-        setResponse(data.message);
-        setGrammarTips([]);
-      }
-    };
+        if (data.type === "transcript" && typeof data.text === "string") {
+          if (data.is_final) {
+            finalTranscriptRef.current = finalTranscriptRef.current
+              ? `${finalTranscriptRef.current} ${data.text}`
+              : data.text;
+            setTranscript(finalTranscriptRef.current);
+          } else {
+            setTranscript(
+              finalTranscriptRef.current
+                ? `${finalTranscriptRef.current} ${data.text}`
+                : data.text
+            );
+          }
+        }
+        if (data.type === "thinking") {
+          setThinking(true);
+          setResponse(t("chat.thinking"));
+          setGrammarTips([]);
+        }
+        if (data.type === "response" && typeof data.text === "string") {
+          setThinking(false);
+          setResponse(data.text);
+          const tips = (data.grammar_tips as GrammarTip[]) || [];
+          setGrammarTips(tips);
+          const rewrite = typeof data.natural_rewrite === "string" ? data.natural_rewrite : "";
+          setNaturalRewrite(rewrite);
+          setKaraokeIdx(-1);
+          if (rewrite) startKaraoke(rewrite);
+          turnsRef.current.push({ transcript: finalTranscriptRef.current, rewrite, tips });
+        }
+        if (data.type === "error" && typeof data.message === "string") {
+          setThinking(false);
+          setResponse(data.message);
+          setGrammarTips([]);
+        }
+      };
+    });
   }, [t, activeMode]);
 
   useEffect(() => () => {
@@ -131,46 +133,59 @@ export default function VoiceChat() {
 
   async function startListening() {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    finalTranscriptRef.current = "";
-    setTranscript("");
-    setResponse("");
-    setGrammarTips([]);
-    setThinking(false);
-    wsRef.current.send(JSON.stringify({ type: "audio", action: "start" }));
-    const capture = await startPcmCapture(({ base64, sampleRate }) => {
-      wsRef.current?.send(JSON.stringify({
-        type: "audio",
-        format: "pcm16",
-        sample_rate: sampleRate,
-        data: base64
-      }));
-    });
-    captureRef.current = capture;
-    setListening(true);
+    try {
+      finalTranscriptRef.current = "";
+      setTranscript("");
+      setResponse("");
+      setGrammarTips([]);
+      setThinking(false);
+      wsRef.current.send(JSON.stringify({ type: "audio", action: "start" }));
+      const capture = await startPcmCapture(({ base64, sampleRate }) => {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+        wsRef.current.send(JSON.stringify({
+          type: "audio",
+          format: "pcm16",
+          sample_rate: sampleRate,
+          data: base64
+        }));
+      });
+      captureRef.current = capture;
+      setListening(true);
+    } catch (err) {
+      setListening(false);
+      setResponse(err instanceof Error ? err.message : "无法访问麦克风，请检查浏览器权限");
+    }
   }
 
-  function stopListening() {
+  async function stopListening() {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "audio", action: "end" }));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 120));
     captureRef.current?.stop();
     captureRef.current = null;
-    wsRef.current?.send(JSON.stringify({ type: "audio", action: "end" }));
     setListening(false);
   }
 
   async function toggleListen() {
-    if (!connected) {
-      connect();
-      return;
-    }
-    if (listening) {
-      stopListening();
-    } else {
-      await startListening();
+    try {
+      if (!connected || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        await connect();
+      }
+      if (listening) {
+        await stopListening();
+      } else {
+        await startListening();
+      }
+    } catch (err) {
+      setThinking(false);
+      setResponse(err instanceof Error ? err.message : "语音连接失败");
     }
   }
 
-  function interrupt() {
+  async function interrupt() {
     wsRef.current?.send(JSON.stringify({ type: "interrupt" }));
-    stopListening();
+    await stopListening();
   }
 
   function buildReport() {
@@ -187,8 +202,8 @@ export default function VoiceChat() {
     setReportSaved(false);
   }
 
-  function disconnect() {
-    stopListening();
+  async function disconnect() {
+    await stopListening();
     wsRef.current?.send(JSON.stringify({ type: "close" }));
     wsRef.current?.close();
     setConnected(false);
@@ -416,7 +431,7 @@ export default function VoiceChat() {
       <div className="flex-shrink-0 px-margin-mobile py-5 bg-surface/80 backdrop-blur-xl border-t border-white/20 flex items-center justify-center gap-6">
         {connected && (
           <button
-            onClick={interrupt}
+            onClick={() => void interrupt()}
             className="w-12 h-12 rounded-full glass-panel flex items-center justify-center text-on-surface-variant active:scale-90 transition-transform"
           >
             <span className="material-symbols-outlined">stop</span>

@@ -24,6 +24,27 @@ try:
     DASHSCOPE_AVAILABLE = True
 except ImportError:  # pragma: no cover
     DASHSCOPE_AVAILABLE = False
+    RecognitionResult = None  # type: ignore[misc, assignment]
+
+
+def _extract_asr_error(message: Any) -> str:
+    """Safely format DashScope ASR callback errors without touching RecognitionResult.__str__."""
+    if message is None:
+        return "ASR recognition error"
+    if isinstance(message, str):
+        return message or "ASR recognition error"
+    for attr in ("message", "error_msg", "code", "detail", "status_code"):
+        val = getattr(message, attr, None)
+        if val:
+            return str(val)
+    if RecognitionResult is not None and isinstance(message, RecognitionResult):
+        try:
+            sentence = message.get_sentence()
+            if isinstance(sentence, dict) and sentence.get("text"):
+                return f"ASR event error: {sentence.get('text')}"
+        except Exception:
+            pass
+    return "ASR recognition error"
 
 
 def dashscope_asr_enabled(db: Session | None = None) -> bool:
@@ -105,37 +126,41 @@ class DashScopeRecognitionBridge:
                 bridge._emit({"type": "asr_complete", "status": "ok"})
 
             def on_error(self, message) -> None:
-                detail = getattr(message, "message", str(message))
+                detail = _extract_asr_error(message)
                 bridge._error = detail
                 bridge._emit({"type": "error", "message": detail})
 
             def on_event(self, result: RecognitionResult) -> None:
-                sentence = result.get_sentence()
-                if not isinstance(sentence, dict):
-                    return
-                text = sentence.get("text")
-                if not text:
-                    return
-                payload: dict[str, Any] = {
-                    "type": "transcript",
-                    "text": text,
-                    "is_final": RecognitionResult.is_sentence_end(sentence),
-                    "request_id": result.get_request_id(),
-                }
-                begin_time = sentence.get("begin_time")
-                end_time = sentence.get("end_time")
-                if begin_time is not None:
-                    payload["begin_time_ms"] = begin_time
-                if end_time is not None:
-                    payload["end_time_ms"] = end_time
-                words = sentence.get("words")
-                if words:
-                    payload["words"] = words
-                emo_tag = sentence.get("emo_tag")
-                if emo_tag:
-                    payload["emotion"] = emo_tag
-                    payload["emotion_confidence"] = sentence.get("emo_confidence")
-                bridge._emit(payload)
+                try:
+                    sentence = result.get_sentence()
+                    if not isinstance(sentence, dict):
+                        return
+                    text = sentence.get("text")
+                    if not text:
+                        return
+                    payload: dict[str, Any] = {
+                        "type": "transcript",
+                        "text": text,
+                        "is_final": RecognitionResult.is_sentence_end(sentence),
+                        "request_id": result.get_request_id(),
+                    }
+                    begin_time = sentence.get("begin_time")
+                    end_time = sentence.get("end_time")
+                    if begin_time is not None:
+                        payload["begin_time_ms"] = begin_time
+                    if end_time is not None:
+                        payload["end_time_ms"] = end_time
+                    words = sentence.get("words")
+                    if words:
+                        payload["words"] = words
+                    emo_tag = sentence.get("emo_tag")
+                    if emo_tag:
+                        payload["emotion"] = emo_tag
+                        payload["emotion_confidence"] = sentence.get("emo_confidence")
+                    bridge._emit(payload)
+                except Exception as exc:  # pragma: no cover - SDK edge cases
+                    logger.warning("DashScope ASR on_event failed: {}", exc)
+                    bridge._emit({"type": "error", "message": _extract_asr_error(exc)})
 
         kwargs: dict[str, Any] = {
             "model": self._model,

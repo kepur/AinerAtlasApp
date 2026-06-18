@@ -203,16 +203,7 @@ class DashScopeRealtimeAdapter(RealtimeAdapterBase):
                 return [{"type": "asr_started", "status": "ok", "provider": self.provider_name}, *ready]
             if action == "end":
                 self._listening = False
-                bridge = self._bridge
-                trailing: list[dict[str, Any]] = []
-                if bridge:
-                    bridge.stop()
-                    trailing = await self._collect_bridge_events(timeout=0.3)
-                utterance = self._compose_utterance()
-                if utterance:
-                    trailing.extend(await self._llm_followups(utterance))
-                    self._reset_utterance()
-                return trailing
+                return await self._finalize_after_stop()
             pcm = decode_audio_payload(data)
             if pcm:
                 bridge = self._ensure_bridge()
@@ -242,6 +233,28 @@ class DashScopeRealtimeAdapter(RealtimeAdapterBase):
         for event in events:
             self._note_transcript_event(event)
         return events
+
+    async def _finalize_after_stop(self) -> list[dict[str, Any]]:
+        """Stop ASR and wait briefly for final transcript before LLM follow-up."""
+        trailing: list[dict[str, Any]] = []
+        bridge = self._bridge
+        if bridge:
+            bridge.stop()
+            for attempt in range(8):
+                batch = await self._collect_bridge_events(timeout=0.25)
+                trailing.extend(batch)
+                if self._compose_utterance():
+                    break
+                if not batch and attempt >= 2:
+                    break
+                await asyncio.sleep(0.05)
+        utterance = self._compose_utterance()
+        if utterance:
+            trailing.extend(await self._llm_followups(utterance))
+            self._reset_utterance()
+        elif not any(e.get("type") in {"transcript", "response", "thinking"} for e in trailing):
+            trailing.append({"type": "error", "message": "未识别到语音，请再试一次"})
+        return trailing
 
     async def drain_events(self, timeout: float = 0.2) -> list[dict[str, Any]]:
         return await self._collect_bridge_events(timeout=timeout)

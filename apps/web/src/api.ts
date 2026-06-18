@@ -309,6 +309,22 @@ export type MasteryItem = {
   examples: string[];
 };
 
+export type PracticeExercise = {
+  exercise_type: string;
+  prompt: string;
+  hint?: string;
+  options?: string[];
+  correct_answer?: string;
+};
+
+export type GrammarPracticeResponse = {
+  item: MasteryItem;
+  exercise: PracticeExercise | null;
+  exercise_token?: string;
+  correct?: boolean | null;
+  message: string;
+};
+
 export type PracticeResult = {
   item: MasteryItem;
   message: string;
@@ -497,6 +513,23 @@ export async function fetchVocabulary(): Promise<VocabItem[]> {
     } catch { /* ignore */ }
     return MOCK_VOCAB;
   }
+}
+
+export async function fetchGrammarPractice(id: string): Promise<GrammarPracticeResponse> {
+  return apiRequest<GrammarPracticeResponse>(`/api/grammar/${id}/practice`);
+}
+
+export async function submitGrammarPractice(
+  id: string,
+  payload: { answer: string; exercise_token: string }
+): Promise<GrammarPracticeResponse> {
+  return apiRequest<GrammarPracticeResponse>(`/api/grammar/${id}/practice`, {
+    method: "POST",
+    body: JSON.stringify({
+      answer: payload.answer,
+      exercise_token: payload.exercise_token,
+    }),
+  });
 }
 
 export async function practiceVocabulary(id: string): Promise<PracticeResult | VocabItem> {

@@ -539,11 +539,16 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
             db.refresh(realtime_log)
 
         pump_stop = asyncio.Event()
+        pump_resume = asyncio.Event()
+        pump_resume.set()
 
         async def pump_asr_events() -> None:
             while not pump_stop.is_set():
+                await pump_resume.wait()
                 events = await adapter.drain_events(timeout=0.2)
                 for event in events:
+                    if event.get("type") in {"asr_ready", "asr_closed", "asr_complete"}:
+                        continue
                     await websocket.send_json(event)
                 if adapter.is_active():
                     continue
@@ -562,8 +567,12 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
                 if data.get("type") == "close":
                     break
 
-                responses = await adapter.handle_client_message(data)
-                await _send_adapter_messages(websocket, responses)
+                pump_resume.clear()
+                try:
+                    responses = await adapter.handle_client_message(data)
+                    await _send_adapter_messages(websocket, responses)
+                finally:
+                    pump_resume.set()
         except WebSocketDisconnect:
             pass
         except Exception as e:
@@ -583,10 +592,11 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
                 realtime_log.duration_seconds = elapsed
                 db.commit()
             if user_id:
+                elapsed = int((datetime.now(UTC) - session_started).total_seconds())
                 session = VoiceSession(
                     user_id=user_id,
                     provider=session_info.get("provider", resolve_default_voice_provider(db)),
-                    duration_seconds=60,
+                    duration_seconds=max(1, elapsed),
                     analysis={"mode": "realtime-ws", "asr_engine": session_info.get("asr_engine", "mock")},
                 )
                 db.add(session)
