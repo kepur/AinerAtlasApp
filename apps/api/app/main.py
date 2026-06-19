@@ -18,6 +18,7 @@ from app.db.session import Base, SessionLocal, engine
 from app.models import AIProvider, AppSettings, AuthSettings, GameTemplate, MembershipPlan, PromptTemplate, User, UserProfile
 from app.services.demo_user import sync_demo_user_from_settings
 from app.services.seed_aliyun import seed_aliyun_providers
+from app.services.startup_bootstrap import schedule_api_startup_bootstrap
 from app.tasks.scheduler import start_scheduler, stop_scheduler
 
 
@@ -29,6 +30,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     Base.metadata.create_all(bind=engine)
     seed_defaults()
     start_scheduler()
+    schedule_api_startup_bootstrap()
     logger.info("AinerSpeak API started")
     yield
     stop_scheduler()
@@ -261,10 +263,13 @@ def seed_defaults() -> None:
 
         auth_settings = db.get(AuthSettings, "default")
         if not auth_settings:
-            db.add(AuthSettings(id="default"))
+            auth_settings = AuthSettings(id="default")
+            db.add(auth_settings)
             logger.info("Seeded auth settings")
 
-        sync_demo_user_from_settings(db)
+        demo_user = sync_demo_user_from_settings(db, auth_settings)
+        if demo_user:
+            logger.info("Seeded demo account: {}", demo_user.email)
         seed_aliyun_providers(db, settings)
         _repair_provider_api_keys(db, settings)
         _repair_conversation_schema(db)

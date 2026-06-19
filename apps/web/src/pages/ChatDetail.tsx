@@ -1,12 +1,14 @@
 import "../MessageBubble.css";
+import "../components/ambient/ambient.css";
 import {
   ArrowLeft, Loader, Send, Volume2, VolumeX, Lightbulb,
   MessageSquare, Flame, X, Mic, Sparkles, Pin,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Asset, Message } from "../api";
 import { freezeConversation } from "../api";
+import { AmbientScene, CompanionPet, deriveChatSceneMood } from "../components/ambient";
 import FreezeResult from "../components/FreezeResult";
 import { LearningHUD, TokenExplainSheet, TurnSelector, useTts } from "../components/learning";
 import { useI18n } from "../i18n";
@@ -235,10 +237,19 @@ export default function ChatDetail() {
 
   const messages = currentConversation.messages;
 
+  const petMood = useMemo(
+    () => deriveChatSceneMood({ sending, streamPhase, turns, draft }),
+    [sending, streamPhase, turns, draft],
+  );
+  const sceneEnergized = sending || draft.trim().length > 0;
+
   return (
     <div
-      className={`chat-detail-layout chat-font-${fontSize} chat-density-${bubbleDensity}`}
+      className={`chat-detail-layout ambient-shell chat-font-${fontSize} chat-density-${bubbleDensity}`}
     >
+      <AmbientScene mood={petMood} energized={sceneEnergized} />
+
+      <div className="chat-detail-ambient-body">
       {/* Header */}
       <header className="chat-detail-header-rich">
         <div className="header-left">
@@ -282,6 +293,7 @@ export default function ChatDetail() {
       <CorrectionBanner hud={hud} speak={speak} />
 
       {/* Mode indicator + Composer */}
+      <CompanionPet mood={petMood} compact />
       <ModeIndicator hud={hud} />
       <div className="chat-composer-rich">
         <button className="composer-voice-btn" disabled={sending}><Mic size={20} /></button>
@@ -295,6 +307,7 @@ export default function ChatDetail() {
           />
         </div>
         <button onClick={handleSend} disabled={!draft.trim() || sending} className="composer-send-btn"><Send size={18} /></button>
+      </div>
       </div>
 
       {showFreeze && <FreezeResult asset={freezeAsset} loading={freezing} error={freezeError} onClose={() => { setShowFreeze(false); setFreezeAsset(null); setFreezeError(null); }} />}

@@ -1,14 +1,14 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-
-export type VoiceSceneMood = "idle" | "listening" | "speaking" | "thinking";
+import type { SceneMood } from "./types";
 
 type Props = {
-  mood: VoiceSceneMood;
-  inCall: boolean;
+  mood: SceneMood;
+  /** Faster particles / stronger motion — voice in-call or active chat */
+  energized?: boolean;
 };
 
-export default function VoiceAmbientScene({ mood, inCall }: Props) {
+export default function AmbientScene({ mood, energized = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function VoiceAmbientScene({ mood, inCall }: Props) {
       const pulse = 0.5 + Math.sin(t * 0.0015) * 0.5;
 
       for (const p of particles) {
-        p.y -= p.speed * (inCall ? 1.6 : 0.8);
+        p.y -= p.speed * (energized ? 1.6 : 0.8);
         if (p.y < -0.05) {
           p.y = 1.05;
           p.x = Math.random();
@@ -70,31 +70,31 @@ export default function VoiceAmbientScene({ mood, inCall }: Props) {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, [inCall, mood]);
+  }, [energized, mood]);
 
   return (
-    <div className="voice-ambient-scene" aria-hidden>
-      <canvas ref={canvasRef} className="voice-ambient-canvas" />
-      <div className="voice-ambient-mesh" />
+    <div className="ambient-scene" aria-hidden>
+      <canvas ref={canvasRef} className="ambient-canvas" />
+      <div className="ambient-mesh" />
       <motion.div
-        className="voice-ambient-orb voice-ambient-orb-a"
+        className="ambient-orb ambient-orb-a"
         animate={{
           x: mood === "speaking" ? [0, 24, -12, 0] : [0, 12, -8, 0],
           y: mood === "thinking" ? [0, -18, 8, 0] : [0, -10, 6, 0],
-          scale: inCall ? [1, 1.08, 1] : [1, 1.03, 1],
+          scale: energized ? [1, 1.08, 1] : [1, 1.03, 1],
         }}
         transition={{ duration: mood === "speaking" ? 4 : 8, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="voice-ambient-orb voice-ambient-orb-b"
+        className="ambient-orb ambient-orb-b"
         animate={{
           x: [0, -16, 10, 0],
           y: [0, 14, -6, 0],
-          scale: inCall ? [1, 1.12, 1] : [1, 1.04, 1],
+          scale: energized ? [1, 1.12, 1] : [1, 1.04, 1],
         }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
-      <div className="voice-ambient-grid" />
+      <div className="ambient-grid" />
     </div>
   );
 }

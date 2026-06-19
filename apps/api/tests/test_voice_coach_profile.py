@@ -104,3 +104,27 @@ def test_bootstrap_when_no_prior_row(fresh_test_database, voice_user) -> None:
         assert ctx["coach_briefing"]
         brief = profile_to_briefing(row)
         assert brief["opening_greeting"]
+
+
+def test_users_due_for_voice_coach_vip_only(fresh_test_database, voice_user) -> None:
+    from app.models import AppSettings
+    from app.services.voice_coach_profile import users_due_for_voice_coach
+
+    with SessionLocal() as db:
+        vip_user = db.get(User, voice_user)
+        assert vip_user is not None
+        vip_user.membership_level = "vip"
+        settings = db.get(AppSettings, "default") or AppSettings(id="default")
+        settings.voice_platform_config = {
+            "voice_coach_vip_only": True,
+            "voice_coach_profile_ttl_hours": 1,
+        }
+        db.add(settings)
+        free = User(email="freevc@example.com", username="freevc", password_hash="x", membership_level="free")
+        db.add(free)
+        db.flush()
+        db.add(UserProfile(user_id=free.id))
+        db.commit()
+        due = users_due_for_voice_coach(db, limit=50)
+        assert voice_user in due
+        assert free.id not in due

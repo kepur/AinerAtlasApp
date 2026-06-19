@@ -13,6 +13,8 @@
     "docker:up": "docker compose up -d --build",
     "docker:rebuild": "docker compose build --no-cache api web admin && docker compose up -d --force-recreate",
     "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
+    "snapshot:export": "bash scripts/export-deploy-snapshot.sh",
+    "snapshot:import": "bash scripts/import-deploy-snapshot.sh",
     "build": "npm --workspaces --if-present run build",
     "lint": "npm --workspaces --if-present run lint"
   },

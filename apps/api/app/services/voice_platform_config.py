@@ -18,6 +18,13 @@ DEFAULT_OMNI_MODELS: tuple[str, ...] = (
     "qwen-omni-turbo-realtime",
 )
 
+RECOMMENDED_VAD_PATCH: dict[str, Any] = {
+    "omni_silence_ms": 1200,
+    "omni_vad_threshold": 0.68,
+    "omni_vad_type": "semantic_vad",
+    "omni_tap_to_end": True,
+}
+
 DEFAULT_VOICE_PLATFORM_CONFIG: dict[str, Any] = {
     # fun-asr | qwen-omni
     "realtime_engine": "fun-asr",
@@ -46,6 +53,14 @@ DEFAULT_VOICE_PLATFORM_CONFIG: dict[str, Any] = {
     "crush_llm_model": "qwen3.5-omni-flash",
     "explain_llm_model": "qwen3.5-omni-flash",
     "crush_llm_enabled": True,
+    # Voice Coach batch (Admin-controlled)
+    "voice_coach_schedule": "daily",  # daily | weekly | off
+    "voice_coach_vip_only": True,
+    "voice_coach_cron_hour": 3,
+    "voice_coach_cron_minute": 30,
+    "voice_coach_weekly_day": "sun",
+    "voice_coach_profile_ttl_hours": 36,
+    "voice_coach_startup_bootstrap": True,
 }
 
 
@@ -64,6 +79,29 @@ def merge_voice_platform_config(raw: dict | None) -> dict[str, Any]:
         merged["omni_silence_ms"] = int(merged["omni_silence_ms"])
     if "omni_tap_to_end" in merged and not isinstance(merged["omni_tap_to_end"], bool):
         merged["omni_tap_to_end"] = str(merged["omni_tap_to_end"]).lower() in {"1", "true", "yes", "on"}
+    if "voice_coach_cron_hour" in merged:
+        merged["voice_coach_cron_hour"] = max(0, min(23, int(merged["voice_coach_cron_hour"])))
+    if "voice_coach_cron_minute" in merged:
+        merged["voice_coach_cron_minute"] = max(0, min(59, int(merged["voice_coach_cron_minute"])))
+    if "voice_coach_profile_ttl_hours" in merged:
+        merged["voice_coach_profile_ttl_hours"] = max(6, min(168, int(merged["voice_coach_profile_ttl_hours"])))
+    schedule = str(merged.get("voice_coach_schedule", "daily")).lower().strip()
+    if schedule not in {"daily", "weekly", "off"}:
+        schedule = "daily"
+    merged["voice_coach_schedule"] = schedule
+    day = str(merged.get("voice_coach_weekly_day", "sun")).lower().strip()[:3]
+    if day not in {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}:
+        day = "sun"
+    merged["voice_coach_weekly_day"] = day
+    if "voice_coach_vip_only" in merged and not isinstance(merged["voice_coach_vip_only"], bool):
+        merged["voice_coach_vip_only"] = str(merged["voice_coach_vip_only"]).lower() in {"1", "true", "yes", "on"}
+    if "voice_coach_startup_bootstrap" in merged and not isinstance(merged["voice_coach_startup_bootstrap"], bool):
+        merged["voice_coach_startup_bootstrap"] = str(merged["voice_coach_startup_bootstrap"]).lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
     return merged
 
 
@@ -81,6 +119,39 @@ def pick_omni_model(config: dict[str, Any]) -> tuple[str, int]:
         models = list(DEFAULT_OMNI_MODELS)
     idx = int(config.get("omni_model_index", 0) or 0) % len(models)
     return models[idx], (idx + 1) % len(models)
+
+
+def needs_recommended_vad_patch(config: dict[str, Any]) -> bool:
+    return (
+        int(config.get("omni_silence_ms", 0)) != int(RECOMMENDED_VAD_PATCH["omni_silence_ms"])
+        or str(config.get("omni_vad_type", "")) != str(RECOMMENDED_VAD_PATCH["omni_vad_type"])
+        or abs(float(config.get("omni_vad_threshold", 0)) - float(RECOMMENDED_VAD_PATCH["omni_vad_threshold"]))
+        > 0.001
+        or bool(config.get("omni_tap_to_end")) != bool(RECOMMENDED_VAD_PATCH["omni_tap_to_end"])
+    )
+
+
+def apply_recommended_vad_patch(db: Session) -> bool:
+    """Write recommended VAD defaults when DB still has legacy values."""
+    cfg = get_voice_platform_config(db)
+    if not needs_recommended_vad_patch(cfg):
+        return False
+    save_voice_platform_config(db, RECOMMENDED_VAD_PATCH)
+    return True
+
+
+def get_voice_coach_batch_settings(db: Session | None = None) -> dict[str, Any]:
+    """Admin-controlled Voice Coach cron / eligibility."""
+    cfg = get_voice_platform_config(db)
+    return {
+        "schedule": str(cfg.get("voice_coach_schedule", "daily")),
+        "vip_only": bool(cfg.get("voice_coach_vip_only", True)),
+        "cron_hour": int(cfg.get("voice_coach_cron_hour", 3)),
+        "cron_minute": int(cfg.get("voice_coach_cron_minute", 30)),
+        "weekly_day": str(cfg.get("voice_coach_weekly_day", "sun")),
+        "profile_ttl_hours": int(cfg.get("voice_coach_profile_ttl_hours", 36)),
+        "startup_bootstrap": bool(cfg.get("voice_coach_startup_bootstrap", True)),
+    }
 
 
 def save_voice_platform_config(db: Session, patch: dict[str, Any]) -> dict[str, Any]:

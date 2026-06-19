@@ -213,7 +213,15 @@ def get_voice_coach_profile(db: Session, user_id: str) -> UserVoiceCoachProfile 
     return db.scalar(select(UserVoiceCoachProfile).where(UserVoiceCoachProfile.user_id == user_id))
 
 
-def is_profile_fresh(profile: UserVoiceCoachProfile | None, max_age_hours: int = PROFILE_MAX_AGE_HOURS) -> bool:
+def is_profile_fresh(
+    profile: UserVoiceCoachProfile | None,
+    max_age_hours: int | None = None,
+    db: Session | None = None,
+) -> bool:
+    if max_age_hours is None:
+        from app.services.voice_platform_config import get_voice_coach_batch_settings
+
+        max_age_hours = get_voice_coach_batch_settings(db)["profile_ttl_hours"]
     if not profile or not profile.analyzed_at:
         return False
     age = datetime.now(UTC) - profile.analyzed_at.replace(tzinfo=UTC)
@@ -328,13 +336,34 @@ async def analyze_user_voice_coach(
             "session_directives": bootstrap.session_directives,
         }, source=source)
     else:
-        if hasattr(provider, "analyze_voice_coach"):
-            analysis = await provider.analyze_voice_coach(payload, analysis_hint=VOICE_COACH_JSON_HINT)
-        else:
-            analysis = await provider.analyze_user_profile(payload, analysis_hint=VOICE_COACH_JSON_HINT)
-            details = analysis.get("details") if isinstance(analysis.get("details"), dict) else {}
-            analysis = {**details, **analysis}
-        _apply_analysis_to_row(row, analysis, source=source)
+        try:
+            if hasattr(provider, "analyze_voice_coach"):
+                analysis = await provider.analyze_voice_coach(payload, analysis_hint=VOICE_COACH_JSON_HINT)
+            else:
+                analysis = await provider.analyze_user_profile(payload, analysis_hint=VOICE_COACH_JSON_HINT)
+                details = analysis.get("details") if isinstance(analysis.get("details"), dict) else {}
+                analysis = {**details, **analysis}
+            _apply_analysis_to_row(row, analysis, source=source)
+        except Exception as exc:
+            logger.warning("Voice coach LLM analysis failed for %s, using bootstrap: %s", user_id, exc)
+            bootstrap = _bootstrap_profile(db, user_id, source=source)
+            _apply_analysis_to_row(
+                row,
+                {
+                    "user_summary": bootstrap.user_summary,
+                    "coach_identity": bootstrap.coach_identity,
+                    "user_context_prompt": bootstrap.user_context_prompt,
+                    "ability_snapshot": bootstrap.ability_snapshot,
+                    "strengths": bootstrap.strengths,
+                    "weaknesses_to_improve": bootstrap.weaknesses_to_improve,
+                    "interests": bootstrap.interests,
+                    "focus_topics": bootstrap.focus_topics,
+                    "opening_greeting": bootstrap.opening_greeting,
+                    "opening_questions": bootstrap.opening_questions,
+                    "session_directives": bootstrap.session_directives,
+                },
+                source=source,
+            )
         if not row.opening_greeting:
             bootstrap = _bootstrap_profile(db, user_id, source=source)
             row.opening_greeting = bootstrap.opening_greeting
@@ -354,7 +383,7 @@ async def ensure_voice_coach_profile(
     topic: str = "voice chat",
 ) -> UserVoiceCoachProfile:
     existing = get_voice_coach_profile(db, user_id)
-    if existing and is_profile_fresh(existing) and not force:
+    if existing and is_profile_fresh(existing, db=db) and not force:
         return existing
     analyzed = await analyze_user_voice_coach(
         db, user_id, provider, source="on_demand" if force else "daily", mode=mode, topic=topic
@@ -370,7 +399,12 @@ async def ensure_voice_coach_profile(
 
 
 def users_due_for_voice_coach(db: Session, limit: int = 300) -> list[str]:
-    """Users with VIP access or recent voice/chat activity."""
+    """Users due for Voice Coach batch per Admin schedule settings."""
+    from app.services.membership_access import has_voice_coach_access
+    from app.services.voice_platform_config import get_voice_coach_batch_settings
+
+    batch = get_voice_coach_batch_settings(db)
+    max_age_hours = batch["profile_ttl_hours"]
     since = datetime.now(UTC) - timedelta(days=45)
     voice_ids = set(
         db.scalars(
@@ -393,7 +427,7 @@ def users_due_for_voice_coach(db: Session, limit: int = 300) -> list[str]:
     if not candidate_ids:
         return []
 
-    stale_cutoff = datetime.now(UTC) - timedelta(hours=PROFILE_MAX_AGE_HOURS)
+    stale_cutoff = datetime.now(UTC) - timedelta(hours=max_age_hours)
     fresh_ids = set(
         db.scalars(
             select(UserVoiceCoachProfile.user_id).where(
@@ -401,11 +435,11 @@ def users_due_for_voice_coach(db: Session, limit: int = 300) -> list[str]:
             )
         )
     )
-    due = [uid for uid in candidate_ids if uid not in fresh_ids]
+    due_ids = [uid for uid in candidate_ids if uid not in fresh_ids]
 
     users = list(
-        db.scalars(
-            select(User.id).where(User.id.in_(due), User.status == "active").limit(limit)
-        )
+        db.scalars(select(User).where(User.id.in_(due_ids), User.status == "active").limit(limit * 2))
     )
-    return users
+    if batch["vip_only"]:
+        users = [u for u in users if has_voice_coach_access(u)]
+    return [u.id for u in users[:limit]]

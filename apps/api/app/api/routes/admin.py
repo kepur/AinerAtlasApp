@@ -74,7 +74,7 @@ from app.services.voice_coach_profile import (
     analyze_user_voice_coach,
     profile_to_briefing,
 )
-from app.tasks.scheduler import run_daily_voice_coach_analysis
+from app.tasks.scheduler import reschedule_voice_coach_job, run_daily_voice_coach_analysis
 from app.services.app_settings import get_app_settings, resolved_default_locale, resolved_enabled_locales
 from app.services.auth_settings import (
     demo_password_configured,
@@ -318,25 +318,24 @@ async def admin_run_daily_voice_coach(_: AdminUser) -> dict:
 @router.post("/voice-platform/apply-recommended-vad")
 def apply_recommended_vad(admin: AdminUser, db: DBSession) -> dict:
     """One-click: set omni_silence_ms=1200 and recommended VAD defaults in DB."""
-    from app.services.voice_platform_config import get_voice_platform_config, save_voice_platform_config
-
-    updates = {
-        "omni_silence_ms": 1200,
-        "omni_vad_threshold": 0.68,
-        "omni_vad_type": "semantic_vad",
-        "omni_tap_to_end": True,
-    }
-    save_voice_platform_config(db, updates)
-    write_audit_log(
-        db,
-        admin,
-        action="apply_recommended_vad",
-        resource_type="app_settings",
-        resource_id="default",
-        details=updates,
+    from app.services.voice_platform_config import (
+        RECOMMENDED_VAD_PATCH,
+        apply_recommended_vad_patch,
+        get_voice_platform_config,
     )
-    db.commit()
-    return {"ok": True, "voice_platform_config": get_voice_platform_config(db)}
+
+    applied = apply_recommended_vad_patch(db)
+    if applied:
+        write_audit_log(
+            db,
+            admin,
+            action="apply_recommended_vad",
+            resource_type="app_settings",
+            resource_id="default",
+            details=RECOMMENDED_VAD_PATCH,
+        )
+        db.commit()
+    return {"ok": True, "applied": applied, "voice_platform_config": get_voice_platform_config(db)}
 
 
 @router.put("/users/{user_id}/profile", response_model=UserProfileSummary)
@@ -960,6 +959,7 @@ def update_app_settings(
     )
     db.commit()
     db.refresh(settings)
+    reschedule_voice_coach_job()
     return _app_settings_read(settings)
 
 

@@ -1,18 +1,44 @@
-.DS_Store
+# ── Secrets (never commit) ──
 .env
 .env.local
+.env.development
+.env.production
+apps/api/.env
+
+# ── Local SQLite DBs (dev fallback; Docker deploy uses Postgres named volume) ──
+*.sqlite3
+*.db
+ainerspeak.db
+ainerwise.db
+apps/api/*.db
+
+# ── Runtime bind-mount data (lives OUTSIDE Docker images; restore via deploy-snapshot/) ──
+/storage/
+/apps/api/uploads/
+
+# ── Docker named volumes (never in repo; only Postgres/Redis live data) ──
+postgres_data/
+redis_data/
+
+# ── Python ──
 .venv/
 __pycache__/
 *.pyc
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.egg-info/
+
+# ── Node / frontend build ──
 node_modules/
 dist/
 build/
 .vite/
 coverage/
-*.sqlite3
-*.db
-uploads/
-storage/
+
+# ── OS / IDE ──
+.DS_Store
+.idea/
+*.swp
+
+# deploy-snapshot/ IS tracked intentionally — full environment replication package for agents

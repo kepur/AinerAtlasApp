@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getToken, addCrushCandidate, submitRealtimeCallSummary, API_BASE_URL, type RealtimeCallSummary } from "../api";
 import { LearningHUD, TokenExplainSheet, TurnSelector, useTts } from "../components/learning";
 import VipVoicePrompt from "../components/VipVoicePrompt";
-import VoiceAmbientScene, { type VoiceSceneMood } from "../components/voice/VoiceAmbientScene";
-import VoiceCompanionPet from "../components/voice/VoiceCompanionPet";
+import { AmbientScene, CompanionPet, deriveVoiceSceneMood, type SceneMood } from "../components/ambient";
 import VoiceConversationFeed, { type VoiceBubble } from "../components/voice/VoiceConversationFeed";
 import {
   countFocusPoints,
@@ -188,11 +187,12 @@ export default function VoiceChat() {
   const displayHud = hudTurn?.hud ?? null;
   const displayPhase = hudTurn?.status === "analyzing" ? "analyzing" as const : null;
 
-  const petMood = useMemo((): VoiceSceneMood => {
-    if (!inCall) return "idle";
-    if (turns.some((t) => t.status === "analyzing")) return "thinking";
-    if (messages.some((m) => m.role === "assistant" && m.status === "streaming")) return "speaking";
-    return "listening";
+  const petMood = useMemo((): SceneMood => {
+    return deriveVoiceSceneMood({
+      inCall,
+      turns,
+      assistantStreaming: messages.some((m) => m.role === "assistant" && m.status === "streaming"),
+    });
   }, [inCall, turns, messages]);
 
   const setActiveTurn = useCallback((turnId: string) => {
@@ -667,7 +667,7 @@ export default function VoiceChat() {
 
   return (
     <div className="premium voice-chat-shell fixed inset-0 bg-surface text-on-surface flex flex-col overflow-hidden">
-      <VoiceAmbientScene mood={petMood} inCall={inCall} />
+      <AmbientScene mood={petMood} energized={inCall} />
 
       <header className="flex-shrink-0 flex items-center justify-between px-margin-mobile h-16 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/20 z-40 relative">
         <div className="flex items-center gap-3">
@@ -745,17 +745,9 @@ export default function VoiceChat() {
         </div>
       )}
 
-      {!inCall && (
-        <div className="voice-pet-zone">
-          <VoiceCompanionPet mood="idle" />
-        </div>
-      )}
+      {!inCall && <CompanionPet mood="idle" />}
 
-      {inCall && (
-        <div className="voice-pet-zone compact">
-          <VoiceCompanionPet mood={petMood} compact />
-        </div>
-      )}
+      {inCall && <CompanionPet mood={petMood} compact />}
 
       <div className="voice-chat-layout chat-detail-layout flex-1 min-h-0 flex flex-col">
         {(inCall || turns.length > 0) && (

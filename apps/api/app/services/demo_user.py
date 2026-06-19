@@ -28,13 +28,31 @@ def ensure_demo_user(db: Session, email: str, password: str) -> User:
         )
         db.add(user)
         db.flush()
-        db.add(UserProfile(user_id=user.id))
+        db.add(
+            UserProfile(
+                user_id=user.id,
+                native_language="zh",
+                primary_target_language="en",
+                current_level="B1",
+                favorite_topics=["欧洲生活", "职业发展", "移民规划"],
+                grammar_level_score=62,
+                vocabulary_level_score=58,
+                fluency_score=55,
+                speaking_confidence_score=52,
+            )
+        )
         return user
 
     user.password_hash = password_hash
     user.status = "active"
     user.membership_level = "vip"
     user.membership_expires_at = None
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == user.id))
+    if profile and not profile.favorite_topics:
+        profile.native_language = profile.native_language or "zh"
+        profile.primary_target_language = profile.primary_target_language or "en"
+        profile.current_level = profile.current_level or "B1"
+        profile.favorite_topics = ["欧洲生活", "职业发展", "移民规划"]
     return user
 
 

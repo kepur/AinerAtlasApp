@@ -584,6 +584,15 @@ function AdminApp() {
       omni_vad_threshold: 0.68,
       omni_silence_ms: 1200,
       omni_tap_to_end: true,
+      omni_instructions:
+        "You are AinerWise, a warm English expression coach. Keep spoken replies short (1-3 sentences). Gently correct grammar when helpful.",
+      voice_coach_schedule: "daily",
+      voice_coach_vip_only: true,
+      voice_coach_cron_hour: 3,
+      voice_coach_cron_minute: 30,
+      voice_coach_weekly_day: "sun",
+      voice_coach_profile_ttl_hours: 36,
+      voice_coach_startup_bootstrap: true,
       nls_app_key: "",
       nls_access_key_id: "",
       nls_access_key_secret: "",
@@ -2576,6 +2585,24 @@ function AdminApp() {
                   />
                 </label>
                 <label>
+                  Omni 教练人设（omni_instructions）
+                  <textarea
+                    rows={5}
+                    value={String(appForm.voice_platform_config?.omni_instructions ?? "")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          omni_instructions: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="写入实时语音教练的基础人设；会与每日画像中的 coach_identity 合并注入 Omni。"
+                    style={{ width: "100%", fontFamily: "inherit", fontSize: 13 }}
+                  />
+                </label>
+                <label>
                   Omni VAD 类型
                   <select
                     value={String(appForm.voice_platform_config?.omni_vad_type ?? "semantic_vad")}
@@ -2727,16 +2754,144 @@ function AdminApp() {
                   />
                 </label>
                 <div className="module-card wide" style={{ marginTop: 8 }}>
-                  <strong>语音教练日更画像</strong>
+                  <strong>语音教练画像批处理</strong>
                   <p className="module-copy" style={{ margin: "8px 0" }}>
-                    每天 03:30 自动分析用户学习数据，写入 DB；通话时直接读取，不重复调用 LLM。
+                    定时分析用户学习数据写入 DB；通话时直接读取，不重复调 LLM。保存下方设置后自动重载定时任务。
                   </p>
-                  <button type="button" className="secondary-button" onClick={() => void runDailyVoiceCoachJob()}>
-                    立即执行全员日更任务
-                  </button>
-                  <button type="button" className="secondary-button" onClick={() => void applyRecommendedVad()} style={{ marginLeft: 8 }}>
-                    一键应用推荐 VAD（1200ms）
-                  </button>
+                  <div className="grid two-col" style={{ gap: 12 }}>
+                    <label>
+                      批处理频率
+                      <select
+                        value={String(appForm.voice_platform_config?.voice_coach_schedule ?? "daily")}
+                        onChange={(e) =>
+                          setAppForm({
+                            ...appForm,
+                            voice_platform_config: {
+                              ...appForm.voice_platform_config,
+                              voice_coach_schedule: e.target.value,
+                            },
+                          })
+                        }
+                      >
+                        <option value="daily">每日</option>
+                        <option value="weekly">每周</option>
+                        <option value="off">关闭自动批处理</option>
+                      </select>
+                    </label>
+                    <label>
+                      每周执行日（仅 weekly）
+                      <select
+                        value={String(appForm.voice_platform_config?.voice_coach_weekly_day ?? "sun")}
+                        onChange={(e) =>
+                          setAppForm({
+                            ...appForm,
+                            voice_platform_config: {
+                              ...appForm.voice_platform_config,
+                              voice_coach_weekly_day: e.target.value,
+                            },
+                          })
+                        }
+                      >
+                        {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      执行时刻（时）
+                      <input
+                        type="number"
+                        min={0}
+                        max={23}
+                        value={Number(appForm.voice_platform_config?.voice_coach_cron_hour ?? 3)}
+                        onChange={(e) =>
+                          setAppForm({
+                            ...appForm,
+                            voice_platform_config: {
+                              ...appForm.voice_platform_config,
+                              voice_coach_cron_hour: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      执行时刻（分）
+                      <input
+                        type="number"
+                        min={0}
+                        max={59}
+                        value={Number(appForm.voice_platform_config?.voice_coach_cron_minute ?? 30)}
+                        onChange={(e) =>
+                          setAppForm({
+                            ...appForm,
+                            voice_platform_config: {
+                              ...appForm.voice_platform_config,
+                              voice_coach_cron_minute: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      画像有效期（小时）
+                      <input
+                        type="number"
+                        min={6}
+                        max={168}
+                        value={Number(appForm.voice_platform_config?.voice_coach_profile_ttl_hours ?? 36)}
+                        onChange={(e) =>
+                          setAppForm({
+                            ...appForm,
+                            voice_platform_config: {
+                              ...appForm.voice_platform_config,
+                              voice_coach_profile_ttl_hours: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="flex items-center gap-2" style={{ alignSelf: "end" }}>
+                      <input
+                        type="checkbox"
+                        checked={appForm.voice_platform_config?.voice_coach_vip_only !== false}
+                        onChange={(e) =>
+                          setAppForm({
+                            ...appForm,
+                            voice_platform_config: {
+                              ...appForm.voice_platform_config,
+                              voice_coach_vip_only: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                      仅 VIP/Pro 用户参与自动批处理
+                    </label>
+                    <label className="flex items-center gap-2" style={{ alignSelf: "end" }}>
+                      <input
+                        type="checkbox"
+                        checked={appForm.voice_platform_config?.voice_coach_startup_bootstrap !== false}
+                        onChange={(e) =>
+                          setAppForm({
+                            ...appForm,
+                            voice_platform_config: {
+                              ...appForm.voice_platform_config,
+                              voice_coach_startup_bootstrap: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                      API 启动时自动补跑缺失画像
+                    </label>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <button type="button" className="secondary-button" onClick={() => void runDailyVoiceCoachJob()}>
+                      立即执行全员批处理
+                    </button>
+                    <button type="button" className="secondary-button" onClick={() => void applyRecommendedVad()} style={{ marginLeft: 8 }}>
+                      一键应用推荐 VAD（1200ms）
+                    </button>
+                  </div>
                 </div>
                 <label>
                   默认 Embedding Provider

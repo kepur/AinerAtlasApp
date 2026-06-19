@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "exported_at": "2026-06-19T17:46:31Z",
+  "git_commit": "227dcb7570c5c4dd68cc473cbcbbbeee44c45240",
+  "git_branch": "fix/docker-7075-roleplay-game-home",
+  "stack": {
+    "api_port": 7070,
+    "web_port": 7075,
+    "admin_port": 7072,
+    "postgres_port": 7073,
+    "redis_port": 7074
+  },
+  "database": {
+    "engine": "postgresql",
+    "name": "ainerwise",
+    "user": "ainerwise",
+    "dump_file": "database/ainerwise.sql.gz"
+  },
+  "persistent_bind_mounts": {
+    "storage": "files/storage → ./storage",
+    "uploads": "files/uploads → ./apps/api/uploads"
+  },
+  "redis": {
+    "dump_file": "redis/dump.rdb",
+    "note": "Quotas; optional"
+  },
+  "table_counts": {
+    "users": 13,
+    "conversations": 46,
+    "ai_providers": 4,
+    "membership_plans": 4,
+    "game_templates": 15,
+    "voice_sessions": 50,
+    "user_voice_coach_profiles": 9
+  },
+  "default_accounts": {
+    "admin": {
+      "email": "admin@ainerspeak.com",
+      "password": "ChangeMe123!"
+    },
+    "demo": {
+      "email": "demo@ainerspeak.com",
+      "password": "Demo123!",
+      "membership": "vip"
+    }
+  }
+}

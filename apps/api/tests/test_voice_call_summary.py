@@ -80,6 +80,11 @@ def test_apply_recommended_vad_admin_endpoint() -> None:
 
         resp = client.post("/api/admin/voice-platform/apply-recommended-vad", headers=headers, json={})
         assert resp.status_code == 200
-        cfg = resp.json()["voice_platform_config"]
+        body = resp.json()
+        cfg = body["voice_platform_config"]
         assert cfg["omni_silence_ms"] == 1200
         assert cfg["omni_vad_type"] == "semantic_vad"
+        # Second call is idempotent
+        again = client.post("/api/admin/voice-platform/apply-recommended-vad", headers=headers, json={})
+        assert again.status_code == 200
+        assert again.json().get("applied") is False
