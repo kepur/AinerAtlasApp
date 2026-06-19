@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../i18n";
+import WechatMembershipModal from "../components/WechatMembershipModal";
 
 const CONTACTS = {
   wechat: "wolihi",
@@ -27,6 +28,7 @@ export default function Help() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const [copied, setCopied] = useState<string | null>(null);
+  const [wechatOpen, setWechatOpen] = useState(false);
 
   async function handleCopy(key: string, value: string) {
     try {
@@ -75,6 +77,8 @@ export default function Help() {
               copyLabel={t("help.copy")}
               copiedLabel={t("help.copied")}
               onCopy={() => handleCopy("wechat", `@${CONTACTS.wechat}`)}
+              actionLabel="扫码添加"
+              onAction={() => setWechatOpen(true)}
             />
 
             <ContactRow
@@ -120,6 +124,7 @@ export default function Help() {
           </ul>
         </section>
       </main>
+      <WechatMembershipModal open={wechatOpen} onClose={() => setWechatOpen(false)} />
     </div>
   );
 }

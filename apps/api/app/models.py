@@ -757,6 +757,33 @@ class MatchAnalysisReport(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class UserVoiceCoachProfile(Base):
+    """Daily-cached personalized context for Voice Coach (Omni instructions + opener)."""
+
+    __tablename__ = "user_voice_coach_profiles"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True, index=True)
+    user_summary: Mapped[str] = mapped_column(Text, default="")
+    coach_identity: Mapped[str] = mapped_column(Text, default="")
+    user_context_prompt: Mapped[str] = mapped_column(Text, default="")
+    ability_snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    strengths: Mapped[list] = mapped_column(JSON, default=list)
+    weaknesses_to_improve: Mapped[list] = mapped_column(JSON, default=list)
+    interests: Mapped[list] = mapped_column(JSON, default=list)
+    focus_topics: Mapped[list] = mapped_column(JSON, default=list)
+    opening_greeting: Mapped[str] = mapped_column(Text, default="")
+    opening_questions: Mapped[list] = mapped_column(JSON, default=list)
+    session_directives: Mapped[str] = mapped_column(Text, default="")
+    session_instructions: Mapped[str] = mapped_column(Text, default="")
+    analysis_source: Mapped[str] = mapped_column(String(40), default="daily")
+    analyzed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
 class MatchRequest(Base):
     __tablename__ = "match_requests"
 

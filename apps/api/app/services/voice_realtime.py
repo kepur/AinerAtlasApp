@@ -284,6 +284,8 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
         self._listening = False
         self._platform_cfg = get_voice_platform_config(db)
         self._omni_model: str | None = None
+        self._side_events: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        self._analysis_inflight: set[str] = set()
 
     @property
     def provider_name(self) -> str:
@@ -306,12 +308,16 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
             bridge = self._ensure_bridge()
             if not bridge.started:
                 await asyncio.to_thread(bridge.start)
+            if self._session_config.get("opening_greeting"):
+                await asyncio.sleep(0.35)
+                await asyncio.to_thread(bridge.trigger_proactive_greeting)
         except Exception as exc:  # noqa: BLE001
             from loguru import logger
 
             logger.warning("Omni pre-warm failed: {}", exc)
-        silence_ms = int(self._platform_cfg.get("omni_silence_ms", 550) or 550)
+        silence_ms = int(self._platform_cfg.get("omni_silence_ms", 1200) or 1200)
         tap_to_end = self._platform_cfg.get("omni_tap_to_end", True) is not False
+        briefing = self._session_config.get("coach_briefing")
         return {
             "provider": self.provider_name,
             "session_id": config.get("session_id", "omni-session"),
@@ -325,6 +331,7 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
                 "server_vad",
                 "full_duplex",
                 "tap_to_end",
+                "proactive_greeting",
             ],
             "asr_engine": "qwen-omni",
             "model": model,
@@ -336,6 +343,8 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
                 "vad_type": str(self._platform_cfg.get("omni_vad_type") or "semantic_vad"),
                 "tap_to_end": tap_to_end,
             },
+            "coach_briefing": briefing,
+            "opening_greeting": self._session_config.get("opening_greeting") or "",
         }
 
     def _ensure_bridge(self) -> OmniRealtimeBridge:
@@ -343,7 +352,10 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
             return self._bridge
         loop = self._loop or asyncio.get_running_loop()
         self._loop = loop
-        self._bridge = build_omni_bridge(loop, db=self._db, model=self._omni_model)
+        instructions = str(self._session_config.get("coach_instructions") or "").strip() or None
+        self._bridge = build_omni_bridge(
+            loop, db=self._db, model=self._omni_model, instructions=instructions
+        )
         return self._bridge
 
     async def handle_client_message(self, data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -390,16 +402,53 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
             return [{"type": "error", "message": "Omni mode only supports audio input"}]
         return [{"type": "error", "message": f"Unknown type: {msg_type}"}]
 
+    def _schedule_learning_analysis(self, utterance: str) -> None:
+        key = utterance.strip().lower()
+        if not key or key in self._analysis_inflight:
+            return
+        self._analysis_inflight.add(key)
+        loop = self._loop or asyncio.get_running_loop()
+
+        async def _run() -> None:
+            try:
+                from app.services.voice_realtime_dialogue import iter_voice_learning_events
+
+                async for event in iter_voice_learning_events(
+                    self._db,
+                    self._session_config.get("user_id"),
+                    utterance,
+                    topic=str(self._session_config.get("topic") or "voice chat"),
+                ):
+                    event_type = event.get("type")
+                    if event_type == "learning_hud_partial" and not event.get("hud"):
+                        continue
+                    if event_type in {"learning_analyzing", "learning_hud_partial", "learning_hud"}:
+                        await self._side_events.put(event)
+            finally:
+                self._analysis_inflight.discard(key)
+
+        loop.create_task(_run())
+
     async def _collect_bridge_events(self, timeout: float) -> list[dict[str, Any]]:
         if not self._bridge:
             return []
         events = await self._bridge.drain_events(timeout=timeout)
         for event in events:
             self._note_transcript_event(event)
+            if event.get("type") == "transcript" and event.get("is_final"):
+                text = str(event.get("text") or "").strip()
+                if text:
+                    self._schedule_learning_analysis(text)
         return events
 
     async def drain_events(self, timeout: float = 0.2) -> list[dict[str, Any]]:
-        return await self._collect_bridge_events(timeout=timeout)
+        events = await self._collect_bridge_events(timeout)
+        while True:
+            try:
+                events.append(self._side_events.get_nowait())
+            except asyncio.QueueEmpty:
+                break
+        return events
 
     async def close(self) -> None:
         self._listening = False

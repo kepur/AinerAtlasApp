@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { membershipDisplayName } from "../lib/membership";
 import { useAuthStore } from "../stores/authStore";
+import WechatMembershipModal from "../components/WechatMembershipModal";
 
 const PLANS = [
   {
@@ -59,6 +61,24 @@ export default function Membership() {
   const membership = useAuthStore((s) => s.user?.membership_level ?? "free");
   const displayName = membershipDisplayName(membership);
   const isPaid = displayName === "VIP" || displayName === "Pro";
+  const [wechatOpen, setWechatOpen] = useState(false);
+  const contactRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (window.location.hash === "#wechat") {
+      setWechatOpen(true);
+      contactRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.history.replaceState(null, "", "/membership");
+    }
+  }, []);
+
+  function scrollToContact() {
+    contactRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function openTelegram() {
+    window.open("https://t.me/ainerwise", "_blank", "noopener,noreferrer");
+  }
 
   return (
     <div className="premium min-h-full bg-surface text-on-surface">
@@ -91,7 +111,11 @@ export default function Membership() {
               </p>
             </div>
             {!isPaid && (
-              <button className="bg-primary text-white h-10 px-5 rounded-full text-[13px] font-bold active:scale-95 transition-transform shadow-md flex-shrink-0">
+              <button
+                type="button"
+                onClick={scrollToContact}
+                className="bg-primary text-white h-10 px-5 rounded-full text-[13px] font-bold active:scale-95 transition-transform shadow-md flex-shrink-0"
+              >
                 升级会员
               </button>
             )}
@@ -131,7 +155,11 @@ export default function Membership() {
                   ))}
                 </ul>
 
-                <button className={`w-full h-11 rounded-xl text-[13px] font-bold active:scale-95 transition-all ${plan.ctaBg}`}>
+                <button
+                  type="button"
+                  onClick={() => setWechatOpen(true)}
+                  className={`w-full h-11 rounded-xl text-[13px] font-bold active:scale-95 transition-all ${plan.ctaBg}`}
+                >
                   联系开通
                 </button>
               </div>
@@ -166,28 +194,38 @@ export default function Membership() {
           <p className="text-[11px] text-center text-outline mt-2 opacity-60">普通用户 / VIP / Pro 权益对比</p>
         </section>
 
-        <section className="bg-primary/5 border border-primary/10 rounded-2xl p-5 space-y-4">
+        <section ref={contactRef} id="contact" className="bg-primary/5 border border-primary/10 rounded-2xl p-5 space-y-4 scroll-mt-24">
           <div>
             <h3 className="font-bold text-[18px] text-on-surface mb-1">人工开通会员</h3>
-            <p className="text-[14px] text-on-surface-variant">暂不集成支付，请通过 Telegram 或微信联系开通 VIP / Pro。</p>
+            <p className="text-[14px] text-on-surface-variant">暂不集成支付。点微信扫码添加客服，备注「AinerWise」即可开通 VIP / Pro。</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 bg-surface-container-lowest/80 text-on-surface h-11 rounded-xl border border-outline-variant/30 active:scale-95 transition-transform">
+            <button
+              type="button"
+              onClick={openTelegram}
+              className="flex items-center justify-center gap-2 bg-surface-container-lowest/80 text-on-surface h-11 rounded-xl border border-outline-variant/30 active:scale-95 transition-transform"
+            >
               <span className="material-symbols-outlined text-primary text-[20px]">send</span>
               <span className="text-[13px] font-medium">Telegram</span>
             </button>
-            <button className="flex items-center justify-center gap-2 bg-surface-container-lowest/80 text-on-surface h-11 rounded-xl border border-outline-variant/30 active:scale-95 transition-transform">
+            <button
+              type="button"
+              onClick={() => setWechatOpen(true)}
+              className="flex items-center justify-center gap-2 bg-surface-container-lowest/80 text-on-surface h-11 rounded-xl border border-outline-variant/30 active:scale-95 transition-transform"
+            >
               <span className="material-symbols-outlined text-tertiary-container text-[20px]">chat</span>
               <span className="text-[13px] font-medium">微信</span>
             </button>
           </div>
           <div className="text-[12px] text-on-surface-variant space-y-1 pt-1">
-            <p>📮 Telegram: @AinerSpeak</p>
-            <p>💬 微信: AinerSpeak_Official</p>
-            <p>📧 Email: hello@ainerspeak.com</p>
+            <p>📮 Telegram: @ainerwise</p>
+            <p>💬 微信: @wolihi（扫码添加）</p>
+            <p>📧 Email: info@ainerwise.com</p>
           </div>
         </section>
       </main>
+
+      <WechatMembershipModal open={wechatOpen} onClose={() => setWechatOpen(false)} />
     </div>
   );
 }

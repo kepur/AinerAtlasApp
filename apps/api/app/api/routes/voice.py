@@ -18,6 +18,8 @@ from datetime import UTC, datetime
 from app.models import AIProvider, AppSettings, PronunciationScore, RealtimeSessionLog, UsageLog, User, VoiceSession
 from app.services.membership_access import has_voice_coach_access
 from app.schemas import (
+    RealtimeCallSummaryRead,
+    RealtimeCallSummaryRequest,
     TranscribeRequest,
     TranscribeResponse,
     VoiceReportRead,
@@ -25,6 +27,12 @@ from app.schemas import (
     VoiceSessionRead,
 )
 from app.services.voice import get_voice_provider
+from app.services.voice_call_summary import generate_realtime_call_summary
+from app.services.voice_coach_profile import (
+    build_session_coach_context,
+    get_voice_coach_profile,
+    profile_to_briefing,
+)
 from app.services.voice_realtime import get_realtime_adapter
 from app.services.voice_report import generate_voice_report
 
@@ -441,6 +449,55 @@ def complete_voice_session(
     return VoiceReportRead(**report)
 
 
+@router.post("/realtime/summary", response_model=RealtimeCallSummaryRead)
+def create_realtime_call_summary(
+    payload: RealtimeCallSummaryRequest,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> RealtimeCallSummaryRead:
+    """Persist a post-call summary for realtime Voice Coach (not a Freeze asset)."""
+    if not payload.turns and payload.duration_seconds <= 0:
+        raise HTTPException(status_code=400, detail="No call data to summarize")
+
+    provider = payload.provider or resolve_default_voice_provider(db)
+    turns_data = [t.model_dump() for t in payload.turns]
+
+    session = VoiceSession(
+        user_id=current_user.id,
+        provider=provider,
+        duration_seconds=max(1, payload.duration_seconds),
+        transcript="\n".join(
+            f"User: {t.user_text}\nCoach: {t.ai_reply}".strip()
+            for t in payload.turns
+            if t.user_text or t.ai_reply
+        ),
+        analysis={"mode": payload.mode, "realtime_summary": True, "turns": turns_data},
+    )
+    db.add(session)
+    db.flush()
+
+    report = generate_realtime_call_summary(
+        session_id=session.id,
+        provider=provider,
+        duration_seconds=payload.duration_seconds,
+        turns=turns_data,
+        mode=payload.mode,
+    )
+    session.analysis = {**(session.analysis or {}), "report": report}
+    db.add(
+        UsageLog(
+            user_id=current_user.id,
+            task_type="voice_report",
+            voice_seconds=payload.duration_seconds,
+            cost_estimate=round(max(1, payload.duration_seconds) * 0.0002, 4),
+            status="ok",
+        )
+    )
+    db.commit()
+    db.refresh(session)
+    return RealtimeCallSummaryRead(**report)
+
+
 @router.get("/session/{session_id}/report", response_model=VoiceReportRead)
 def get_voice_report(
     session_id: str,
@@ -508,6 +565,17 @@ async def realtime_tts_ws(websocket: WebSocket) -> None:
         pass
 
 
+@router.get("/coach-profile")
+def get_my_voice_coach_profile(current_user: CurrentUser, db: DBSession) -> dict:
+    """Return cached Voice Coach daily profile (no LLM on read)."""
+    row = get_voice_coach_profile(db, current_user.id)
+    if not row:
+        ctx = build_session_coach_context(db, current_user.id, mode="free", topic="voice chat")
+        db.commit()
+        return {"profile": ctx.get("coach_briefing"), "cached": False}
+    return {"profile": profile_to_briefing(row), "cached": True}
+
+
 @router.websocket("/realtime")
 async def realtime_voice_ws(websocket: WebSocket) -> None:
     """WebSocket endpoint for bidirectional realtime voice + DashScope ASR."""
@@ -549,7 +617,15 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
                 return
 
         adapter = get_realtime_adapter(resolve_realtime_asr_provider(db), db=db)
-        session_info = await adapter.create_session({"user_id": user_id, "mode": mode, "topic": session_topic})
+        coach_ctx = build_session_coach_context(db, user_id, mode=mode, topic=session_topic) if user_id else {}
+        if user_id:
+            db.commit()
+        session_info = await adapter.create_session({
+            "user_id": user_id,
+            "mode": mode,
+            "topic": session_topic,
+            **coach_ctx,
+        })
         await websocket.send_json({"type": "session", **session_info})
 
         session_started = datetime.now(UTC)

@@ -45,9 +45,12 @@ export type PcmCaptureHandle = {
   sampleRate: number;
 };
 
+import { assertMicrophoneAvailable } from "./microphone";
+
 export async function startPcmCapture(
   onChunk: (payload: { base64: string; sampleRate: number }) => void
 ): Promise<PcmCaptureHandle> {
+  assertMicrophoneAvailable();
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
       channelCount: 1,

@@ -234,6 +234,16 @@ class OmniRealtimeBridge:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Omni commit_user_turn failed: {}", exc)
 
+    def trigger_proactive_greeting(self) -> None:
+        """Ask Omni to speak first (session opener) without waiting for user audio."""
+        with self._lock:
+            if not self._conv:
+                return
+            try:
+                self._conv.create_response()
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Omni proactive greeting failed: {}", exc)
+
     def stop(self) -> None:
         with self._lock:
             if self._conv:
@@ -288,21 +298,24 @@ def build_omni_bridge(
     db: Session | None = None,
     *,
     model: str | None = None,
+    instructions: str | None = None,
 ) -> OmniRealtimeBridge:
     cfg = get_voice_platform_config(db)
     if not model:
         model, _ = pick_omni_model(cfg)
     ws_url = resolve_omni_realtime_url(db)
     vad_type = resolve_omni_vad_type(model, cfg)
+    base_instructions = str(cfg.get("omni_instructions") or "").strip()
+    merged_instructions = (instructions or "").strip() or base_instructions
     return OmniRealtimeBridge(
         loop=loop,
         model=model,
         voice=str(cfg.get("omni_voice") or "Tina"),
-        instructions=str(cfg.get("omni_instructions") or ""),
+        instructions=merged_instructions,
         url=ws_url,
         enable_turn_detection=bool(cfg.get("omni_turn_detection", True)),
         vad_type=vad_type,
         vad_threshold=float(cfg.get("omni_vad_threshold", 0.68) or 0.68),
-        silence_ms=int(cfg.get("omni_silence_ms", 550) or 550),
+        silence_ms=int(cfg.get("omni_silence_ms", 1200) or 1200),
         db=db,
     )

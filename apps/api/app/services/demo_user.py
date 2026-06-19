@@ -33,8 +33,7 @@ def ensure_demo_user(db: Session, email: str, password: str) -> User:
 
     user.password_hash = password_hash
     user.status = "active"
-    if user.membership_level in {"", "free", "expired"}:
-        user.membership_level = "vip"
+    user.membership_level = "vip"
     user.membership_expires_at = None
     return user
 

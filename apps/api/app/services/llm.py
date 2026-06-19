@@ -85,6 +85,14 @@ class LLMProvider(ABC):
     ) -> dict:
         raise NotImplementedError
 
+    async def analyze_voice_coach(
+        self,
+        user_data: str,
+        **kwargs,
+    ) -> dict:
+        """Voice Coach daily profile analysis. Falls back to analyze_user_profile."""
+        return await self.analyze_user_profile(user_data, **kwargs)
+
     async def chat_reply_stream(
         self,
         user_input: str,
@@ -447,6 +455,42 @@ class MockLLMProvider(LLMProvider):
             },
         }
 
+    async def analyze_voice_coach(self, user_data: str, **kwargs) -> dict:
+        return {
+            "user_summary": "用户正在提升英语口语，关注自然表达与跨文化话题，适合场景化对练。",
+            "coach_identity": (
+                "You are AinerSpeak Voice Coach — warm, proactive, and culturally aware. "
+                "Lead with curiosity and help the user speak more naturally."
+            ),
+            "user_context_prompt": (
+                "B1 English learner from China. Wants confident spoken English for work and travel. "
+                "Responds well to follow-up questions and gentle corrections."
+            ),
+            "ability_snapshot": {
+                "grammar": 62,
+                "vocabulary": 58,
+                "fluency": 55,
+                "expression": 60,
+                "overall_level": "B1",
+            },
+            "strengths": ["思路清晰", "愿意表达观点", "学习动力强"],
+            "weaknesses_to_improve": ["时态一致性", "介词搭配", "口语流利度", "连接词使用"],
+            "interests": ["欧洲生活", "职业发展", "旅行", "文化差异"],
+            "focus_topics": ["daily conversation", "opinion expression", "work scenarios"],
+            "opening_greeting": (
+                "Hey! Good to see you — I've been thinking about our practice on expressing opinions. "
+                "How has your week been?"
+            ),
+            "opening_questions": [
+                "What's something interesting that happened to you recently?",
+                "Is there a topic you'd like to debate or explore in English today?",
+            ],
+            "session_directives": (
+                "Speak first. One question at a time. Recast errors naturally. "
+                "Push slightly on grammar weak spots while keeping flow."
+            ),
+        }
+
 
 class FallbackLLMProvider(LLMProvider):
     """Wraps multiple providers and tries them in order until one succeeds."""
@@ -575,6 +619,9 @@ class FallbackLLMProvider(LLMProvider):
 
     async def analyze_user_profile(self, *args, **kwargs) -> dict:
         return await self._try_all("analyze_user_profile", *args, **kwargs)
+
+    async def analyze_voice_coach(self, *args, **kwargs) -> dict:
+        return await self._try_all("analyze_voice_coach", *args, **kwargs)
 
     async def thought_dialogue_stream(self, *args, **kwargs) -> AsyncGenerator[str, None]:
         last_exc: Exception | None = None
@@ -876,6 +923,7 @@ def wrap_provider_with_logging(provider: LLMProvider, db: Session) -> LLMProvide
         "complete_json",
         "complete_json_stream",
         "analyze_user_profile",
+        "analyze_voice_coach",
         "thought_dialogue_stream",
         "chat_reply_stream",
     ]

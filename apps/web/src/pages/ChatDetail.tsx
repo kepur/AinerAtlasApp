@@ -249,6 +249,16 @@ export default function ChatDetail() {
           </div>
         </div>
         <div className="header-actions">
+          <button
+            type="button"
+            className="freeze-header-btn"
+            onClick={() => void handleFreeze()}
+            disabled={freezing || messages.length < 2}
+            title={t("chat.freezeTitle")}
+          >
+            <Pin size={16} />
+            <span>{freezing ? t("chat.freezing") : t("chat.freeze")}</span>
+          </button>
           <button className={`auto-tts-toggle ${autoTts ? "on" : "off"}`} onClick={() => setAutoTts(v => !v)} title={autoTts ? "自动语音已开启" : "自动语音已关闭"}>
             {autoTts ? <Volume2 size={16} /> : <VolumeX size={16} />}
           </button>
@@ -259,7 +269,10 @@ export default function ChatDetail() {
       {/* Turn selector */}
       <TurnSelector turns={turns} activeTurnId={activeTurnId} pinnedTurnId={pinnedTurnId} onSelect={setActiveTurn} onPin={pinTurn} onUnpin={unpinTurn} />
 
-      {/* Learning HUD */}
+      {/* Learning HUD — per-turn tips, not the Freeze report */}
+      <p className="chat-hud-hint px-4 text-[11px] text-on-surface-variant">
+        本轮学习要点（实时）· 完整思想资产请点右上角 Freeze
+      </p>
       <LearningHUD hud={hud} streamPhase={streamPhase} speak={speak} onTokenClick={(token, ctx) => setTokenSheet({ token, context: ctx })} />
 
       {/* Conversation feed */}

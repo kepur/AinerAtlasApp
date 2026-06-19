@@ -262,6 +262,19 @@ type UserDetail = AdminUserRead & {
     match_tags?: string[];
     created_at: string;
   } | null;
+  voice_coach_profile?: {
+    user_summary: string;
+    coach_identity: string;
+    ability_snapshot: Record<string, number | string>;
+    strengths: string[];
+    weaknesses_to_improve: string[];
+    interests: string[];
+    focus_topics: string[];
+    opening_greeting: string;
+    opening_questions: string[];
+    analyzed_at?: string | null;
+    analysis_source: string;
+  } | null;
   ai_memory_preview?: string[];
   stats: Record<string, number>;
 };
@@ -569,7 +582,7 @@ function AdminApp() {
       omni_voice: "Tina",
       omni_vad_type: "semantic_vad",
       omni_vad_threshold: 0.68,
-      omni_silence_ms: 550,
+      omni_silence_ms: 1200,
       omni_tap_to_end: true,
       nls_app_key: "",
       nls_access_key_id: "",
@@ -704,7 +717,7 @@ function AdminApp() {
         omni_voice: "Tina",
         omni_vad_type: "semantic_vad",
         omni_vad_threshold: 0.68,
-        omni_silence_ms: 550,
+        omni_silence_ms: 1200,
         omni_tap_to_end: true,
         nls_app_key: "",
         nls_access_key_id: "",
@@ -1482,6 +1495,50 @@ function AdminApp() {
     }
   }
 
+  async function triggerVoiceCoachAnalysis(userId: string) {
+    if (!token) return;
+    try {
+      setStatus("正在生成语音教练日更画像（可能需要几十秒）...");
+      await apiPost(`/api/admin/users/${userId}/analyze-voice-coach`, token, {});
+      await loadUserDetail(userId);
+      setStatus("语音教练画像已更新。");
+    } catch (error) {
+      setStatus(`语音教练分析失败：${errorMessage(error)}`);
+    }
+  }
+
+  async function runDailyVoiceCoachJob() {
+    if (!token) return;
+    try {
+      setStatus("正在执行全员语音教练日更任务…");
+      await apiPost("/api/admin/voice-coach/run-daily", token, {});
+      setStatus("语音教练日更任务已完成。");
+    } catch (error) {
+      setStatus(`日更任务失败：${errorMessage(error)}`);
+    }
+  }
+
+  async function applyRecommendedVad() {
+    if (!token) return;
+    try {
+      setStatus("正在写入推荐 VAD 配置（silence_ms=1200）…");
+      const res = await apiPost<{ voice_platform_config?: Record<string, unknown> }>(
+        "/api/admin/voice-platform/apply-recommended-vad",
+        token,
+        {},
+      );
+      if (res.voice_platform_config) {
+        setAppForm((prev) => ({
+          ...prev,
+          voice_platform_config: { ...prev.voice_platform_config, ...res.voice_platform_config },
+        }));
+      }
+      setStatus("已应用推荐 VAD：omni_silence_ms=1200。");
+    } catch (error) {
+      setStatus(`VAD 配置失败：${errorMessage(error)}`);
+    }
+  }
+
   async function saveMembershipPlan() {
     if (!token || !planForm) return;
     try {
@@ -2054,6 +2111,32 @@ function AdminApp() {
                       <label className="wide">兴趣话题（逗号分隔）<input value={profileForm.favorite_topics} onChange={(e) => setProfileForm({ ...profileForm, favorite_topics: e.target.value })} /></label>
                       <label><input type="checkbox" checked={profileForm.lgbtq_visible} onChange={(e) => setProfileForm({ ...profileForm, lgbtq_visible: e.target.checked })} /> LGBTQ+ 可见</label>
                     </div>
+                    {userDetail?.voice_coach_profile && (
+                      <article className="module-card wide" style={{ marginTop: 16 }}>
+                        <strong>语音教练画像 · {userDetail.voice_coach_profile.analysis_source}</strong>
+                        <p style={{ margin: "8px 0", opacity: 0.85, whiteSpace: "pre-wrap" }}>{userDetail.voice_coach_profile.user_summary}</p>
+                        <p style={{ fontSize: 13, opacity: 0.75 }}>
+                          能力：语法 {userDetail.voice_coach_profile.ability_snapshot?.grammar ?? "—"} ·
+                          词汇 {userDetail.voice_coach_profile.ability_snapshot?.vocabulary ?? "—"} ·
+                          流利 {userDetail.voice_coach_profile.ability_snapshot?.fluency ?? "—"} ·
+                          等级 {userDetail.voice_coach_profile.ability_snapshot?.overall_level ?? "—"}
+                        </p>
+                        <p style={{ fontSize: 13, opacity: 0.75 }}>
+                          待加强：{(userDetail.voice_coach_profile.weaknesses_to_improve ?? []).join(" · ") || "—"}
+                        </p>
+                        <p style={{ fontSize: 13, opacity: 0.75 }}>
+                          兴趣：{(userDetail.voice_coach_profile.interests ?? []).join(" · ") || "—"}
+                        </p>
+                        <p style={{ fontSize: 12, opacity: 0.65, fontStyle: "italic" }}>
+                          开场白：{userDetail.voice_coach_profile.opening_greeting}
+                        </p>
+                        {userDetail.voice_coach_profile.analyzed_at && (
+                          <p style={{ fontSize: 12, opacity: 0.6 }}>
+                            更新于 {new Date(userDetail.voice_coach_profile.analyzed_at).toLocaleString("zh-CN")}
+                          </p>
+                        )}
+                      </article>
+                    )}
                     {userDetail?.latest_analysis && (
                       <article className="module-card wide" style={{ marginTop: 16 }}>
                         <strong>最新 AI 分析 · {userDetail.latest_analysis.personality_type || "未分类"}</strong>
@@ -2068,6 +2151,7 @@ function AdminApp() {
                     <div className="prompt-edit-actions" style={{ marginTop: 16 }}>
                       <button type="button" onClick={() => void saveUserProfile(selectedUserId)}>保存资料</button>
                       <button type="button" className="secondary-button" onClick={() => void triggerUserAnalysis(selectedUserId)}>立即 AI 分析</button>
+                      <button type="button" className="secondary-button" onClick={() => void triggerVoiceCoachAnalysis(selectedUserId)}>生成语音教练画像</button>
                     </div>
                   </>
                 )}
@@ -2535,7 +2619,7 @@ function AdminApp() {
                     min={300}
                     max={3000}
                     step={50}
-                    value={Number(appForm.voice_platform_config?.omni_silence_ms ?? 550)}
+                    value={Number(appForm.voice_platform_config?.omni_silence_ms ?? 1200)}
                     onChange={(e) =>
                       setAppForm({
                         ...appForm,
@@ -2642,6 +2726,18 @@ function AdminApp() {
                     }
                   />
                 </label>
+                <div className="module-card wide" style={{ marginTop: 8 }}>
+                  <strong>语音教练日更画像</strong>
+                  <p className="module-copy" style={{ margin: "8px 0" }}>
+                    每天 03:30 自动分析用户学习数据，写入 DB；通话时直接读取，不重复调用 LLM。
+                  </p>
+                  <button type="button" className="secondary-button" onClick={() => void runDailyVoiceCoachJob()}>
+                    立即执行全员日更任务
+                  </button>
+                  <button type="button" className="secondary-button" onClick={() => void applyRecommendedVad()} style={{ marginLeft: 8 }}>
+                    一键应用推荐 VAD（1200ms）
+                  </button>
+                </div>
                 <label>
                   默认 Embedding Provider
                   <select

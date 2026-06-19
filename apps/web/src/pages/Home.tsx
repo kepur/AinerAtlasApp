@@ -5,13 +5,16 @@ import ConversationModePicker from "../components/ConversationModePicker";
 import TodayTopicsSection, { type TodayTopic } from "../components/TodayTopicsSection";
 import VipVoicePrompt from "../components/VipVoicePrompt";
 import { buildDailyResonance } from "../lib/dailyResonance";
-import { hasVoiceCoachAccess } from "../lib/membership";
+import { hasVoiceCoachAccess, isMembershipReady, isVoiceCoachBlocked } from "../lib/membership";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
 
 export default function Home() {
   const user = useAuthStore((s) => s.user);
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const userHydrated = useAuthStore((s) => s.userHydrated);
+  const loadUser = useAuthStore((s) => s.loadUser);
   const profile = useAuthStore((s) => s.profile);
   const { createConversation } = useChatStore();
   const { t } = useI18n();
@@ -22,7 +25,13 @@ export default function Home() {
   const [showModePicker, setShowModePicker] = useState(false);
   const [showVipVoicePrompt, setShowVipVoicePrompt] = useState(false);
 
+  const membershipReady = isMembershipReady(isLoggedIn, userHydrated);
   const voiceAccess = hasVoiceCoachAccess(user);
+  const voiceBlocked = isVoiceCoachBlocked(isLoggedIn, userHydrated, user);
+
+  useEffect(() => {
+    if (isLoggedIn && !userHydrated) void loadUser();
+  }, [isLoggedIn, userHydrated, loadUser]);
 
   useEffect(() => {
     if (window.location.hash !== "#today-topics") return;
@@ -50,8 +59,10 @@ export default function Home() {
     }
   }
 
-  function openVoiceCoach() {
-    if (!voiceAccess) {
+  async function openVoiceCoach() {
+    if (isLoggedIn && !userHydrated) await loadUser();
+    const fresh = useAuthStore.getState();
+    if (isVoiceCoachBlocked(fresh.isLoggedIn, fresh.userHydrated, fresh.user)) {
       setShowVipVoicePrompt(true);
       return;
     }
@@ -130,9 +141,9 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-[14px] text-on-surface truncate">AinerWise Coach</h3>
                 <span className="text-[9px] text-primary font-bold uppercase tracking-wide">Live</span>
-                {!voiceAccess && (
+                {!membershipReady ? null : !voiceAccess ? (
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-tertiary-fixed/25 text-tertiary-container font-bold">VIP</span>
-                )}
+                ) : null}
               </div>
               <p className="text-[12px] text-on-surface-variant truncate">{t("home.coachDesc")}</p>
             </div>

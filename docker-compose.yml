@@ -69,6 +69,7 @@ services:
         condition: service_healthy
     environment:
       VITE_API_PROXY: http://api:8000
+      VITE_DEV_HTTPS: "true"
     volumes:
       # 开发：挂载源码，Vite HMR 即时反映前端改动
       - ./apps/web:/app
@@ -76,7 +77,7 @@ services:
     ports:
       - "7075:7075"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:7075/ || exit 1"]
+      test: ["CMD-SHELL", "wget --no-check-certificate -q -O /dev/null https://127.0.0.1:7075/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

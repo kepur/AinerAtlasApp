@@ -1,15 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
-import { getToken, addCrushCandidate, API_BASE_URL } from "../api";
+import { getToken, addCrushCandidate, submitRealtimeCallSummary, API_BASE_URL, type RealtimeCallSummary } from "../api";
+import { LearningHUD, TokenExplainSheet, TurnSelector, useTts } from "../components/learning";
 import VipVoicePrompt from "../components/VipVoicePrompt";
-import { hasVoiceCoachAccess } from "../lib/membership";
+import VoiceAmbientScene, { type VoiceSceneMood } from "../components/voice/VoiceAmbientScene";
+import VoiceCompanionPet from "../components/voice/VoiceCompanionPet";
+import VoiceConversationFeed, { type VoiceBubble } from "../components/voice/VoiceConversationFeed";
+import {
+  countFocusPoints,
+  deriveTurnLabel,
+  mergeHudData,
+  type VoiceDialogueTurn,
+} from "../lib/voiceTurnHelpers";
+import { hasVoiceCoachAccess, isMembershipReady, isVoiceCoachBlocked } from "../lib/membership";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
+import type { DialogueTurn, HudData } from "../stores/chatStore";
+import { toWebSocketBase } from "../lib/microphone";
 import { startPcmCapture, type PcmCaptureHandle } from "../lib/pcmCaptureVad";
+import "../MessageBubble.css";
+import "../components/voice/VoiceChat.css";
 
 type GrammarTip = { pattern: string; explanation: string };
-type SessionTurn = { transcript: string; rewrite: string; tips: GrammarTip[] };
-type SessionReport = { turns: number; grammarIssues: number; naturalnessSuggestions: number; patterns: string[] };
+type SessionReport = RealtimeCallSummary;
 
 type RealtimeSessionInfo = {
   provider?: string;
@@ -21,18 +34,22 @@ type RealtimeSessionInfo = {
     vad_type?: string;
     tap_to_end?: boolean;
   };
+  coach_briefing?: CoachBriefing | null;
+  opening_greeting?: string;
 };
 
-type VoiceBubble = {
-  id: string;
-  role: "user" | "assistant" | "system";
-  text: string;
-  status: "streaming" | "final" | "error";
-  tips?: GrammarTip[];
-  rewrite?: string;
+type CoachBriefing = {
+  user_summary?: string;
+  ability_snapshot?: Record<string, number | string>;
+  strengths?: string[];
+  weaknesses_to_improve?: string[];
+  interests?: string[];
+  focus_topics?: string[];
+  opening_greeting?: string;
+  analyzed_at?: string | null;
 };
 
-const MODES = ["自由对话", "跟读训练", "面试练习", "小组语音"];
+type VoiceBubbleMsg = VoiceBubble;
 
 function bubbleId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -44,26 +61,84 @@ function formatCallDuration(totalSec: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+const MODES = ["自由对话", "跟读训练", "面试练习", "小组语音"];
+
+function patchAssistantBubble(
+  setMessages: Dispatch<SetStateAction<VoiceBubbleMsg[]>>,
+  tips: GrammarTip[],
+  rewrite: string,
+) {
+  setMessages((prev) => {
+    const next = [...prev];
+    for (let i = next.length - 1; i >= 0; i -= 1) {
+      if (next[i].role === "assistant" && next[i].status === "final") {
+        next[i] = {
+          ...next[i],
+          tips: tips.length ? tips : next[i].tips,
+          rewrite: rewrite || next[i].rewrite,
+        };
+        break;
+      }
+    }
+    return next;
+  });
+}
+
+function voiceTurnsToSelector(turns: VoiceDialogueTurn[]): DialogueTurn[] {
+  return turns.map((t) => ({
+    turn_id: t.turn_id,
+    user_message_id: t.userBubbleId,
+    assistant_message_id: t.assistantBubbleId ?? "",
+    user_text: t.user_text,
+    ai_reply: t.ai_reply,
+    hud: t.hud,
+    status: t.status,
+    label: t.label,
+    pinned: t.pinned,
+    focusCount: t.focusCount,
+  }));
+}
+
 export default function VoiceChat() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const userHydrated = useAuthStore((s) => s.userHydrated);
+  const loadUser = useAuthStore((s) => s.loadUser);
+  const membershipReady = isMembershipReady(isLoggedIn, userHydrated);
   const voiceAccess = hasVoiceCoachAccess(user);
-  const [showVipVoicePrompt, setShowVipVoicePrompt] = useState(!voiceAccess);
+  const voiceBlocked = isVoiceCoachBlocked(isLoggedIn, userHydrated, user);
+  const [showVipVoicePrompt, setShowVipVoicePrompt] = useState(false);
   const [connected, setConnected] = useState(false);
   const [inCall, setInCall] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [messages, setMessages] = useState<VoiceBubble[]>([]);
+  const [messages, setMessages] = useState<VoiceBubbleMsg[]>([]);
+  const [turns, setTurns] = useState<VoiceDialogueTurn[]>([]);
+  const [activeTurnId, setActiveTurnId] = useState<string | null>(null);
+  const [pinnedTurnId, setPinnedTurnId] = useState<string | null>(null);
   const [sessionInfo, setSessionInfo] = useState<RealtimeSessionInfo | null>(null);
   const [activeMode, setActiveMode] = useState(0);
   const [report, setReport] = useState<SessionReport | null>(null);
   const [reportSaved, setReportSaved] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
   const [tapAck, setTapAck] = useState(false);
+  const [explainToken, setExplainToken] = useState<{ token: string; context: string } | null>(null);
+  const [coachBriefing, setCoachBriefing] = useState<CoachBriefing | null>(null);
+  const { speak } = useTts();
 
   const wsRef = useRef<WebSocket | null>(null);
   const captureRef = useRef<PcmCaptureHandle | null>(null);
-  const turnsRef = useRef<SessionTurn[]>([]);
+  const currentTurnIdRef = useRef<string | null>(null);
+  const turnsSnapshotRef = useRef(turns);
+  turnsSnapshotRef.current = turns;
+  const callSecondsRef = useRef(callSeconds);
+  callSecondsRef.current = callSeconds;
+  const sessionInfoRef = useRef(sessionInfo);
+  sessionInfoRef.current = sessionInfo;
+  const activeModeRef = useRef(activeMode);
+  activeModeRef.current = activeMode;
   const omniAudioCtxRef = useRef<AudioContext | null>(null);
   const omniPlayTimeRef = useRef(0);
   const omniModeRef = useRef(false);
@@ -76,7 +151,7 @@ export default function VoiceChat() {
   const tapAckTimerRef = useRef<number | null>(null);
   const sessionVoiceUiRef = useRef<RealtimeSessionInfo["voice_ui"]>(undefined);
 
-  const upsertBubble = useCallback((bubble: VoiceBubble) => {
+  const upsertBubble = useCallback((bubble: VoiceBubbleMsg) => {
     setMessages((prev) => {
       const idx = prev.findIndex((m) => m.id === bubble.id);
       if (idx >= 0) {
@@ -88,7 +163,7 @@ export default function VoiceChat() {
     });
   }, []);
 
-  const appendBubble = useCallback((bubble: VoiceBubble) => {
+  const appendBubble = useCallback((bubble: VoiceBubbleMsg) => {
     setMessages((prev) => [...prev, bubble]);
   }, []);
 
@@ -102,7 +177,66 @@ export default function VoiceChat() {
 
   useEffect(() => {
     scrollFeedToBottom();
-  }, [messages, scrollFeedToBottom]);
+  }, [messages, turns, scrollFeedToBottom]);
+
+  const selectorTurns = useMemo(() => voiceTurnsToSelector(turns), [turns]);
+  const hudTurn = useMemo(() => {
+    if (pinnedTurnId) return turns.find((t) => t.turn_id === pinnedTurnId) ?? null;
+    if (activeTurnId) return turns.find((t) => t.turn_id === activeTurnId) ?? null;
+    return turns[turns.length - 1] ?? null;
+  }, [turns, activeTurnId, pinnedTurnId]);
+  const displayHud = hudTurn?.hud ?? null;
+  const displayPhase = hudTurn?.status === "analyzing" ? "analyzing" as const : null;
+
+  const petMood = useMemo((): VoiceSceneMood => {
+    if (!inCall) return "idle";
+    if (turns.some((t) => t.status === "analyzing")) return "thinking";
+    if (messages.some((m) => m.role === "assistant" && m.status === "streaming")) return "speaking";
+    return "listening";
+  }, [inCall, turns, messages]);
+
+  const setActiveTurn = useCallback((turnId: string) => {
+    setActiveTurnId(turnId);
+  }, []);
+
+  const pinTurn = useCallback((turnId: string) => {
+    setPinnedTurnId(turnId);
+    setTurns((prev) => prev.map((t) => ({ ...t, pinned: t.turn_id === turnId })));
+  }, []);
+
+  const unpinTurn = useCallback(() => {
+    setPinnedTurnId(null);
+    setTurns((prev) => prev.map((t) => ({ ...t, pinned: false })));
+  }, []);
+
+  const patchCurrentTurn = useCallback((patch: Partial<VoiceDialogueTurn>) => {
+    const turnId = currentTurnIdRef.current;
+    if (!turnId) return;
+    setTurns((prev) => prev.map((t) => (t.turn_id === turnId ? { ...t, ...patch } : t)));
+  }, []);
+
+  const applyHudToCurrentTurn = useCallback((incoming: HudData, naturalRewrite: string, finalize: boolean) => {
+    const turnId = currentTurnIdRef.current;
+    if (!turnId || !incoming) return;
+    setTurns((prev) => {
+      const idx = prev.findIndex((t) => t.turn_id === turnId);
+      if (idx < 0) return prev;
+      const cur = prev[idx];
+      const hud = mergeHudData(cur.hud, incoming);
+      const next = [...prev];
+      next[idx] = {
+        ...cur,
+        hud,
+        status: finalize ? "ready" : "analyzing",
+        focusCount: countFocusPoints(hud),
+        label: deriveTurnLabel(hud, cur.user_text, idx),
+      };
+      return next;
+    });
+    const tips = (incoming.grammar_tips as GrammarTip[]) || [];
+    const rewrite = naturalRewrite || incoming.corrected_sentence || incoming.main_expression || "";
+    patchAssistantBubble(setMessages, tips, rewrite);
+  }, []);
 
   useEffect(() => {
     if (!inCall) return;
@@ -111,8 +245,16 @@ export default function VoiceChat() {
   }, [inCall]);
 
   useEffect(() => {
-    if (!voiceAccess) setShowVipVoicePrompt(true);
-  }, [voiceAccess]);
+    if (isLoggedIn && !userHydrated) void loadUser();
+  }, [isLoggedIn, userHydrated, loadUser]);
+
+  useEffect(() => {
+    if (!membershipReady) {
+      setShowVipVoicePrompt(false);
+      return;
+    }
+    setShowVipVoicePrompt(voiceBlocked);
+  }, [membershipReady, voiceBlocked]);
 
   const connect = useCallback((): Promise<WebSocket> => {
     const token = getToken();
@@ -120,7 +262,7 @@ export default function VoiceChat() {
       return Promise.reject(new Error("请先登录后再使用 Voice Coach"));
     }
     const apiOrigin = API_BASE_URL || window.location.origin;
-    const wsBase = apiOrigin.replace(/^http/, "ws");
+    const wsBase = toWebSocketBase(apiOrigin);
     const wsMode = activeMode === 2 ? "interview" : "free";
     const ws = new WebSocket(`${wsBase}/api/voice/realtime?token=${token}&mode=${wsMode}`);
     wsRef.current = ws;
@@ -180,7 +322,41 @@ export default function VoiceChat() {
             asr_engine: typeof data.asr_engine === "string" ? data.asr_engine : undefined,
             model: typeof data.model === "string" ? data.model : undefined,
             voice_ui: voiceUi,
+            coach_briefing: (data.coach_briefing && typeof data.coach_briefing === "object")
+              ? (data.coach_briefing as CoachBriefing)
+              : null,
+            opening_greeting: typeof data.opening_greeting === "string" ? data.opening_greeting : undefined,
           });
+          if (data.coach_briefing && typeof data.coach_briefing === "object") {
+            setCoachBriefing(data.coach_briefing as CoachBriefing);
+          }
+          return;
+        }
+
+        if (data.type === "learning_analyzing") {
+          patchCurrentTurn({ status: "analyzing" });
+          return;
+        }
+
+        if (data.type === "learning_hud_partial") {
+          const partial = (data.hud && typeof data.hud === "object") ? (data.hud as HudData) : null;
+          if (partial) {
+            const rewrite = typeof data.natural_rewrite === "string" ? data.natural_rewrite : "";
+            applyHudToCurrentTurn(partial, rewrite, false);
+          }
+          return;
+        }
+
+        if (data.type === "learning_hud") {
+          const hud = (data.hud && typeof data.hud === "object") ? (data.hud as HudData) : null;
+          if (hud) {
+            const rewrite = typeof data.natural_rewrite === "string"
+              ? data.natural_rewrite
+              : (hud.corrected_sentence || hud.main_expression || "");
+            applyHudToCurrentTurn(hud, rewrite, true);
+          } else {
+            patchCurrentTurn({ status: "ready" });
+          }
           return;
         }
 
@@ -198,14 +374,33 @@ export default function VoiceChat() {
           if (!userBubbleIdRef.current) {
             userBubbleIdRef.current = bubbleId("user");
           }
+          const uid = userBubbleIdRef.current;
           upsertBubble({
-            id: userBubbleIdRef.current,
+            id: uid,
             role: "user",
             text,
             status: isFinal ? "final" : "streaming",
           });
           if (isFinal) {
             lastUserTextRef.current = text;
+            const turnId = bubbleId("turn");
+            currentTurnIdRef.current = turnId;
+            setTurns((prev) => [
+              ...prev,
+              {
+                turn_id: turnId,
+                userBubbleId: uid,
+                assistantBubbleId: null,
+                user_text: text,
+                ai_reply: "",
+                hud: null,
+                status: "replying",
+                label: deriveTurnLabel(null, text, prev.length),
+                pinned: false,
+                focusCount: 0,
+              },
+            ]);
+            setActiveTurnId(turnId);
             userBubbleIdRef.current = null;
           }
           return;
@@ -213,6 +408,7 @@ export default function VoiceChat() {
 
         if (data.type === "thinking") {
           assistantBubbleIdRef.current = bubbleId("ai");
+          patchCurrentTurn({ assistantBubbleId: assistantBubbleIdRef.current, status: "replying" });
           upsertBubble({
             id: assistantBubbleIdRef.current,
             role: "assistant",
@@ -225,6 +421,7 @@ export default function VoiceChat() {
         if (data.type === "response_partial" && typeof data.text === "string") {
           if (!assistantBubbleIdRef.current) {
             assistantBubbleIdRef.current = bubbleId("ai");
+            patchCurrentTurn({ assistantBubbleId: assistantBubbleIdRef.current, status: "replying" });
           }
           upsertBubble({
             id: assistantBubbleIdRef.current,
@@ -247,12 +444,12 @@ export default function VoiceChat() {
             tips,
             rewrite,
           });
-          assistantBubbleIdRef.current = null;
-          turnsRef.current.push({
-            transcript: lastUserTextRef.current,
-            rewrite,
-            tips,
+          patchCurrentTurn({
+            assistantBubbleId: id,
+            ai_reply: data.text,
+            status: "replying",
           });
+          assistantBubbleIdRef.current = null;
           return;
         }
 
@@ -276,7 +473,7 @@ export default function VoiceChat() {
         }
       };
     });
-  }, [activeMode, appendBubble, t, upsertBubble]);
+  }, [activeMode, appendBubble, applyHudToCurrentTurn, patchCurrentTurn, t, upsertBubble]);
 
   async function playOmniPcmChunk(b64: string, sampleRate: number) {
     try {
@@ -336,11 +533,18 @@ export default function VoiceChat() {
 
   async function startCall() {
     if (connecting || inCall) return;
-    if (!voiceAccess) {
+    if (isLoggedIn && !userHydrated) await loadUser();
+    const fresh = useAuthStore.getState();
+    if (isVoiceCoachBlocked(fresh.isLoggedIn, fresh.userHydrated, fresh.user)) {
       setShowVipVoicePrompt(true);
       return;
     }
     setConnecting(true);
+    setTurns([]);
+    setActiveTurnId(null);
+    setPinnedTurnId(null);
+    currentTurnIdRef.current = null;
+    setCoachBriefing(null);
     appendBubble({
       id: bubbleId("sys"),
       role: "system",
@@ -352,7 +556,7 @@ export default function VoiceChat() {
       await startMicStream();
       setInCall(true);
       setCallSeconds(0);
-      const silenceSec = ((sessionVoiceUiRef.current?.silence_ms ?? 550) / 1000).toFixed(1);
+      const silenceSec = ((sessionVoiceUiRef.current?.silence_ms ?? 1200) / 1000).toFixed(1);
       const tapHint = sessionVoiceUiRef.current?.tap_to_end !== false
         ? `说完可轻点屏幕，或停顿约 ${silenceSec} 秒`
         : `说完后停顿约 ${silenceSec} 秒即可`;
@@ -376,18 +580,60 @@ export default function VoiceChat() {
     }
   }
 
-  function buildReport() {
-    const turns = turnsRef.current;
-    if (!turns.length) return;
-    const grammarIssues = turns.reduce((n, t2) => n + t2.tips.length, 0);
-    const naturalnessSuggestions = turns.filter(
-      (t2) => t2.rewrite && t2.rewrite.trim() && t2.rewrite.trim() !== t2.transcript.trim()
-    ).length;
-    const patterns = Array.from(
-      new Set(turns.flatMap((t2) => t2.tips.map((tip) => tip.pattern)).filter(Boolean))
-    );
-    setReport({ turns: turns.length, grammarIssues, naturalnessSuggestions, patterns });
+  async function fetchCallSummary() {
+    const snapshot = turnsSnapshotRef.current;
+    if (!snapshot.length && callSecondsRef.current <= 0) return;
+
+    setReportLoading(true);
+    setReport(null);
     setReportSaved(false);
+
+    const wsMode = activeModeRef.current === 2 ? "interview" : "free";
+    const payload = {
+      duration_seconds: Math.max(1, callSecondsRef.current),
+      mode: wsMode,
+      provider: sessionInfoRef.current?.provider ?? "qwen-omni-realtime",
+      turns: snapshot.map((t) => ({
+        user_text: t.user_text,
+        ai_reply: t.ai_reply,
+        hud: (t.hud ?? {}) as Record<string, unknown>,
+      })),
+    };
+
+    try {
+      const summary = await submitRealtimeCallSummary(payload);
+      setReport(summary);
+    } catch {
+      const grammarIssues = snapshot.reduce((n, t2) => n + (t2.hud?.grammar_tips?.length ?? 0), 0);
+      const naturalnessSuggestions = snapshot.filter(
+        (t2) => t2.hud?.corrected_sentence && t2.hud.corrected_sentence.trim() !== t2.user_text.trim()
+      ).length;
+      const patterns = Array.from(
+        new Set(
+          snapshot.flatMap((t2) => (t2.hud?.patterns_v2 ?? []).map((p) => p.pattern)).filter(Boolean)
+        )
+      );
+      setReport({
+        session_id: "",
+        provider: payload.provider,
+        duration_seconds: payload.duration_seconds,
+        transcript: "",
+        scores: {},
+        top_corrections: [],
+        highlights: ["小结生成失败，以下为本地统计。"],
+        filler_words: [],
+        pause_feedback: [],
+        recommended_practice: [],
+        summary: `共 ${snapshot.length} 轮对话（离线统计）`,
+        turn_count: snapshot.length,
+        grammar_issues: grammarIssues,
+        naturalness_suggestions: naturalnessSuggestions,
+        patterns_for_crush: patterns,
+        mode: wsMode,
+      });
+    } finally {
+      setReportLoading(false);
+    }
   }
 
   async function endCall() {
@@ -404,27 +650,26 @@ export default function VoiceChat() {
     setInCall(false);
     setConnected(false);
     setConnecting(false);
-    buildReport();
+    void fetchCallSummary();
   }
 
   function interruptAi() {
     wsRef.current?.send(JSON.stringify({ type: "interrupt" }));
   }
 
-  const engineLabel = sessionInfo?.provider === "qwen-omni-realtime"
-    ? `Omni · ${sessionInfo.model ?? "realtime"}`
-    : sessionInfo?.asr_engine === "dashscope"
-    ? `ASR · ${sessionInfo.model ?? "fun-asr"}`
-    : sessionInfo?.provider;
+  const statusLabel = connecting
+    ? "连接中…"
+    : inCall
+    ? "通话中"
+    : connected
+    ? "已连接"
+    : "未连接";
 
   return (
-    <div className="premium fixed inset-0 bg-surface text-on-surface flex flex-col overflow-hidden">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-primary/8 blur-3xl" />
-        <div className="absolute bottom-1/4 -left-20 w-60 h-60 rounded-full bg-tertiary-fixed/15 blur-2xl" />
-      </div>
+    <div className="premium voice-chat-shell fixed inset-0 bg-surface text-on-surface flex flex-col overflow-hidden">
+      <VoiceAmbientScene mood={petMood} inCall={inCall} />
 
-      <header className="flex-shrink-0 flex items-center justify-between px-margin-mobile h-16 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 z-40">
+      <header className="flex-shrink-0 flex items-center justify-between px-margin-mobile h-16 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/20 z-40 relative">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -446,7 +691,7 @@ export default function VoiceChat() {
             {inCall ? "call" : connecting ? "sync" : "call_end"}
           </span>
           <span className={`text-[12px] font-bold ${inCall ? "text-error" : "text-primary"}`}>
-            {connecting ? "连接中…" : inCall ? (engineLabel ?? "通话中") : connected ? "已连接" : "未连接"}
+            {statusLabel}
           </span>
         </div>
       </header>
@@ -473,87 +718,86 @@ export default function VoiceChat() {
         </nav>
       )}
 
+      {inCall && coachBriefing && (
+        <div className="flex-shrink-0 mx-margin-mobile mt-2 px-3 py-2.5 rounded-xl bg-tertiary-fixed/10 border border-tertiary-fixed/20">
+          <p className="text-[11px] font-bold text-tertiary-container uppercase tracking-wide mb-1">今日教练已了解你</p>
+          {coachBriefing.user_summary && (
+            <p className="text-[12px] text-on-surface leading-snug mb-1.5">{coachBriefing.user_summary}</p>
+          )}
+          <div className="flex flex-wrap gap-1">
+            {(coachBriefing.interests ?? []).slice(0, 4).map((tag) => (
+              <span key={tag} className="px-2 py-0.5 rounded-full bg-surface-container text-[10px] text-on-surface-variant">{tag}</span>
+            ))}
+          </div>
+          <p className="text-[11px] text-primary/80 mt-1.5 italic">教练会先开口打招呼，请听完后回应</p>
+        </div>
+      )}
+
       {inCall && (
         <div className="flex-shrink-0 mx-margin-mobile mt-2 px-3 py-2 rounded-xl bg-primary/8 border border-primary/15 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-[18px]">touch_app</span>
           <p className="text-[12px] text-on-surface leading-snug flex-1">
             {sessionInfo?.voice_ui?.tap_to_end !== false
-              ? `说完轻点屏幕，或停顿约 ${((sessionInfo?.voice_ui?.silence_ms ?? 550) / 1000).toFixed(1)} 秒`
-              : `说完后停顿约 ${((sessionInfo?.voice_ui?.silence_ms ?? 550) / 1000).toFixed(1)} 秒`}
+              ? `说完轻点屏幕，或停顿约 ${((sessionInfo?.voice_ui?.silence_ms ?? 1200) / 1000).toFixed(1)} 秒`
+              : `说完后停顿约 ${((sessionInfo?.voice_ui?.silence_ms ?? 1200) / 1000).toFixed(1)} 秒`}
             {tapAck && <span className="ml-2 text-primary font-bold">· 已发送</span>}
           </p>
         </div>
       )}
 
-      {/* Danmaku / tile message feed — scrollable history, no page refresh */}
-      <div
-        ref={feedRef}
-        onClick={() => {
-          if (inCall && sessionVoiceUiRef.current?.tap_to_end !== false) signalTurnComplete();
-        }}
-        onScroll={() => {
-          const el = feedRef.current;
-          if (!el) return;
-          stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
-        }}
-        className={`flex-1 min-h-0 overflow-y-auto hide-scrollbar px-margin-mobile py-4 space-y-3 ${inCall && sessionInfo?.voice_ui?.tap_to_end !== false ? "cursor-pointer" : ""}`}
-      >
-        {messages.length === 0 && !inCall && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-primary/20 to-tertiary-fixed/20 flex items-center justify-center mb-4 voice-call-pulse">
-              <span className="material-symbols-outlined text-primary text-[48px]">mic</span>
-            </div>
-            <p className="font-bold text-[16px] text-primary">点击下方开始通话</p>
-            <p className="text-[12px] text-outline mt-2 max-w-[240px]">接通后麦克风常开，全双工对话，只有手动挂断才会结束</p>
+      {!inCall && (
+        <div className="voice-pet-zone">
+          <VoiceCompanionPet mood="idle" />
+        </div>
+      )}
+
+      {inCall && (
+        <div className="voice-pet-zone compact">
+          <VoiceCompanionPet mood={petMood} compact />
+        </div>
+      )}
+
+      <div className="voice-chat-layout chat-detail-layout flex-1 min-h-0 flex flex-col">
+        {(inCall || turns.length > 0) && (
+          <div className="voice-hud-strip">
+            <TurnSelector
+              turns={selectorTurns}
+              activeTurnId={activeTurnId}
+              pinnedTurnId={pinnedTurnId}
+              onSelect={setActiveTurn}
+              onPin={pinTurn}
+              onUnpin={unpinTurn}
+              minTurns={1}
+            />
+            <p className="voice-hud-hint">本轮学习要点（横滑）· 点击色块回顾历史轮次</p>
+            <LearningHUD
+              hud={displayHud}
+              streamPhase={displayPhase}
+              speak={speak}
+              onTokenClick={(token, context) => setExplainToken({ token, context })}
+              className="voice-learning-hud"
+            />
           </div>
         )}
 
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`voice-bubble-in flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={
-                "max-w-[88%] rounded-2xl px-4 py-3 shadow-sm " +
-                (msg.role === "user"
-                  ? "bg-primary text-white rounded-br-md"
-                  : msg.role === "assistant"
-                  ? "bg-surface-container-lowest border border-outline-variant/20 text-on-surface rounded-bl-md"
-                  : msg.status === "error"
-                  ? "bg-error/10 border border-error/20 text-error text-[13px]"
-                  : "bg-surface-container text-on-surface-variant text-[13px] italic")
-              }
-            >
-              {msg.role === "assistant" && (
-                <p className="text-[10px] font-bold text-primary/70 uppercase tracking-wider mb-1">AI Coach</p>
-              )}
-              {msg.role === "user" && (
-                <p className="text-[10px] font-bold text-white/70 uppercase tracking-wider mb-1 text-right">You</p>
-              )}
-              <p className={`text-[15px] leading-relaxed ${msg.status === "streaming" ? "opacity-80" : ""}`}>
-                {msg.text}
-                {msg.status === "streaming" && msg.role === "assistant" && (
-                  <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary/50 animate-pulse align-middle" />
-                )}
-              </p>
-              {msg.rewrite && msg.rewrite !== msg.text && msg.status === "final" && (
-                <p className="mt-2 pt-2 border-t border-outline-variant/20 text-[13px] text-primary/80">
-                  💡 {msg.rewrite}
-                </p>
-              )}
-              {msg.tips && msg.tips.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {msg.tips.slice(0, 3).map((tip, i) => (
-                    <span key={i} className="px-2 py-0.5 bg-primary/10 text-primary text-[11px] rounded-full">
-                      {tip.pattern}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+        <VoiceConversationFeed
+          messages={messages}
+          turns={turns}
+          activeTurnId={activeTurnId}
+          inCall={inCall}
+          onTurnClick={setActiveTurn}
+          speak={speak}
+          feedRef={feedRef}
+          onFeedScroll={() => {
+            const el = feedRef.current;
+            if (!el) return;
+            stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+          }}
+          onFeedTap={() => {
+            if (inCall && sessionVoiceUiRef.current?.tap_to_end !== false) signalTurnComplete();
+          }}
+          tapToEnd={sessionInfo?.voice_ui?.tap_to_end !== false}
+        />
       </div>
 
       {/* Bottom call controls — phone metaphor */}
@@ -562,7 +806,7 @@ export default function VoiceChat() {
           <button
             type="button"
             onClick={() => void startCall()}
-            disabled={connecting || !voiceAccess}
+            disabled={connecting || !membershipReady || voiceBlocked}
             className="flex flex-col items-center gap-2 touch-manipulation disabled:opacity-60"
           >
             <span className="w-[72px] h-[72px] rounded-full bg-primary text-white flex items-center justify-center shadow-[0_8px_32px_rgba(99,14,212,0.45)] active:scale-95 transition-transform">
@@ -615,43 +859,78 @@ export default function VoiceChat() {
         )}
       </div>
 
-      {report && (
+      {reportLoading && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <div className="rounded-2xl bg-surface-container-lowest px-6 py-4 text-on-surface text-[14px]">
+            正在生成本次通话小结…
+          </div>
+        </div>
+      )}
+
+      {report && !reportLoading && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end justify-center" onClick={() => setReport(null)}>
-          <div className="w-full max-w-md bg-surface-container-lowest rounded-t-3xl p-6 animate-[fadeInUp_0.3s_ease-out]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-[18px] text-on-surface">本次语音报告</h3>
+          <div className="w-full max-w-md bg-surface-container-lowest rounded-t-3xl p-6 animate-[fadeInUp_0.3s_ease-out] max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-[18px] text-on-surface">本次通话小结</h3>
               <button type="button" onClick={() => setReport(null)} className="material-symbols-outlined text-on-surface-variant">close</button>
             </div>
+            <p className="text-[11px] text-outline mb-3">通话练习报告，非 Thought Freeze 思想资产</p>
+            {report.summary && (
+              <p className="text-[14px] text-on-surface-variant leading-relaxed mb-4">{report.summary}</p>
+            )}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="rounded-2xl bg-primary/8 p-4 text-center">
-                <p className="text-[28px] font-bold text-primary leading-none">{report.turns}</p>
+                <p className="text-[28px] font-bold text-primary leading-none">{report.turn_count}</p>
                 <p className="text-[12px] text-on-surface-variant mt-1">对话轮次</p>
               </div>
               <div className="rounded-2xl bg-primary/8 p-4 text-center">
-                <p className="text-[28px] font-bold text-primary leading-none">{report.grammarIssues}</p>
+                <p className="text-[28px] font-bold text-primary leading-none">{report.grammar_issues}</p>
                 <p className="text-[12px] text-on-surface-variant mt-1">语法问题</p>
               </div>
               <div className="rounded-2xl bg-primary/8 p-4 text-center">
-                <p className="text-[28px] font-bold text-primary leading-none">{report.naturalnessSuggestions}</p>
+                <p className="text-[28px] font-bold text-primary leading-none">{report.naturalness_suggestions}</p>
                 <p className="text-[12px] text-on-surface-variant mt-1">自然表达建议</p>
               </div>
               <div className="rounded-2xl bg-tertiary-fixed/20 p-4 text-center">
-                <p className="text-[28px] font-bold text-tertiary-container leading-none">{report.patterns.length}</p>
+                <p className="text-[28px] font-bold text-tertiary-container leading-none">{report.patterns_for_crush.length}</p>
                 <p className="text-[12px] text-on-surface-variant mt-1">可进消消乐</p>
               </div>
             </div>
-            {report.patterns.length > 0 && (
+            {report.highlights.length > 0 && (
+              <div className="mb-4">
+                <p className="text-[12px] font-semibold text-on-surface mb-2">亮点</p>
+                <ul className="space-y-1">
+                  {report.highlights.map((h, i) => (
+                    <li key={i} className="text-[13px] text-on-surface-variant">· {h}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {report.recommended_practice.length > 0 && (
+              <div className="mb-4">
+                <p className="text-[12px] font-semibold text-on-surface mb-2">建议练习</p>
+                <ul className="space-y-1">
+                  {report.recommended_practice.map((p, i) => (
+                    <li key={i} className="text-[13px] text-on-surface-variant">· {p}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {report.patterns_for_crush.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
-                {report.patterns.map((p, i) => (
+                {report.patterns_for_crush.map((p, i) => (
                   <span key={i} className="px-3 py-1 bg-primary/10 text-primary text-[12px] rounded-full font-medium">{p}</span>
                 ))}
               </div>
             )}
             <button
               type="button"
-              disabled={reportSaved || report.patterns.length === 0}
+              disabled={reportSaved || report.patterns_for_crush.length === 0}
               onClick={async () => {
-                try { await Promise.all(report.patterns.map((p) => addCrushCandidate(p))); setReportSaved(true); } catch { /* ignore */ }
+                try {
+                  await Promise.all(report.patterns_for_crush.map((p) => addCrushCandidate(p)));
+                  setReportSaved(true);
+                } catch { /* ignore */ }
               }}
               className="w-full py-3 rounded-2xl bg-primary text-white font-semibold active:scale-[0.98] transition-transform disabled:opacity-40"
             >
@@ -662,6 +941,14 @@ export default function VoiceChat() {
       )}
 
       <VipVoicePrompt open={showVipVoicePrompt} onClose={() => setShowVipVoicePrompt(false)} />
+      {explainToken && (
+        <TokenExplainSheet
+          token={explainToken.token}
+          context={explainToken.context}
+          onClose={() => setExplainToken(null)}
+          speak={speak}
+        />
+      )}
     </div>
   );
 }

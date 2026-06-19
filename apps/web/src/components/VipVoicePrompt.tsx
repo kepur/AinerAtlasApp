@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../i18n";
+import WechatMembershipModal from "./WechatMembershipModal";
+import { useState } from "react";
 
 type Props = {
   open: boolean;
@@ -9,6 +11,7 @@ type Props = {
 export default function VipVoicePrompt({ open, onClose }: Props) {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const [wechatOpen, setWechatOpen] = useState(false);
   if (!open) return null;
 
   return (
@@ -41,11 +44,18 @@ export default function VipVoicePrompt({ open, onClose }: Props) {
             type="button"
             onClick={() => {
               onClose();
-              navigate("/membership");
+              navigate("/membership#wechat");
             }}
             className="w-full h-11 rounded-xl bg-primary text-white text-[14px] font-bold active:scale-[0.98] transition-transform"
           >
             {t("home.vipVoiceCta")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setWechatOpen(true)}
+            className="w-full h-10 rounded-xl border border-outline-variant/30 text-[13px] font-semibold text-on-surface"
+          >
+            微信扫码开通
           </button>
           <button
             type="button"
@@ -56,6 +66,7 @@ export default function VipVoicePrompt({ open, onClose }: Props) {
           </button>
         </div>
       </div>
+      <WechatMembershipModal open={wechatOpen} onClose={() => setWechatOpen(false)} />
     </div>
   );
 }

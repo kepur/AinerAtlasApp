@@ -1012,6 +1012,41 @@ class OpenAICompatibleLLMProvider(LLMProvider):
             logger.error(f"Error in analyze_user_profile: {e}")
             raise
 
+    async def analyze_voice_coach(self, user_data: str, **kwargs) -> dict:
+        extra = kwargs.get("analysis_hint") or ""
+        system_prompt = (
+            "You are an expert language-coaching strategist. "
+            "Analyze user learning data and produce a Voice Coach briefing for realtime spoken practice.\n"
+            f"{extra}\n"
+            "You must respond in pure JSON."
+        )
+        safe_prompt = _ensure_json_instruction(system_prompt)
+        started = time.perf_counter()
+        messages = [
+            {"role": "system", "content": safe_prompt},
+            {"role": "user", "content": user_data},
+        ]
+        try:
+            response = await self._client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=0.6,
+                max_tokens=2048,
+                response_format={"type": "json_object"},
+            )
+            latency_ms = int((time.perf_counter() - started) * 1000)
+            usage = response.usage
+            self._record_usage(
+                tokens_input=usage.prompt_tokens if usage else 0,
+                tokens_output=usage.completion_tokens if usage else 0,
+                latency_ms=latency_ms,
+            )
+            raw = response.choices[0].message.content or "{}"
+            return _parse_json(raw)
+        except Exception as e:
+            logger.error("Error in analyze_voice_coach: %s", e)
+            raise
+
 
 # ------------------------------------------------------------------
 # JSON parsing helpers

@@ -34,7 +34,7 @@ def main() -> int:
         "omni_voice": "Tina",
         "omni_vad_type": "semantic_vad",
         "omni_vad_threshold": 0.68,
-        "omni_silence_ms": 550,
+        "omni_silence_ms": 1200,
         "crush_llm_model": "qwen3.5-omni-flash",
         "explain_llm_model": "qwen3.5-omni-flash",
         "crush_llm_enabled": True,

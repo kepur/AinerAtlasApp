@@ -29,6 +29,7 @@ from app.models import (
     UserMastery,
     UserMatchProfile,
     UserProfile,
+    UserVoiceCoachProfile,
     VoiceSession,
     LLMCallLog,
 )
@@ -58,6 +59,7 @@ from app.schemas import (
     LLMCallLogRead,
     AdminProfileUpdate,
     AnalysisSummary,
+    VoiceCoachProfileSummary,
     UserDetailRead,
     UserProfileSummary,
     UserRead,
@@ -68,6 +70,11 @@ from app.api.routes.profile import _sync_match_birthday
 from app.services.llm import get_llm_provider
 from app.services.runtime_config import resolve_default_llm_provider
 from app.services.user_profile_analysis import analyze_user_for_matching
+from app.services.voice_coach_profile import (
+    analyze_user_voice_coach,
+    profile_to_briefing,
+)
+from app.tasks.scheduler import run_daily_voice_coach_analysis
 from app.services.app_settings import get_app_settings, resolved_default_locale, resolved_enabled_locales
 from app.services.auth_settings import (
     demo_password_configured,
@@ -186,6 +193,26 @@ def get_user_detail(user_id: str, _: AdminUser, db: DBSession) -> UserDetailRead
             created_at=latest_report.created_at,
         )
 
+    voice_coach = db.scalar(
+        select(UserVoiceCoachProfile).where(UserVoiceCoachProfile.user_id == user.id)
+    )
+    voice_coach_summary = None
+    if voice_coach:
+        brief = profile_to_briefing(voice_coach)
+        voice_coach_summary = VoiceCoachProfileSummary(
+            user_summary=brief.get("user_summary", ""),
+            coach_identity=brief.get("coach_identity", ""),
+            ability_snapshot=brief.get("ability_snapshot") or {},
+            strengths=brief.get("strengths") or [],
+            weaknesses_to_improve=brief.get("weaknesses_to_improve") or [],
+            interests=brief.get("interests") or [],
+            focus_topics=brief.get("focus_topics") or [],
+            opening_greeting=brief.get("opening_greeting", ""),
+            opening_questions=brief.get("opening_questions") or [],
+            analyzed_at=voice_coach.analyzed_at,
+            analysis_source=voice_coach.analysis_source,
+        )
+
     return UserDetailRead(
         id=user.id,
         email=user.email,
@@ -201,6 +228,7 @@ def get_user_detail(user_id: str, _: AdminUser, db: DBSession) -> UserDetailRead
             CommunicationProfileSummary.model_validate(comm_profile) if comm_profile else None
         ),
         latest_analysis=latest_analysis,
+        voice_coach_profile=voice_coach_summary,
         ai_memory_preview=[f"[{m.memory_type}] {m.content[:120]}" for m in memory_rows],
         stats={
             "conversations": conversation_count,
@@ -244,6 +272,71 @@ async def trigger_user_analysis(user_id: str, admin: AdminUser, db: DBSession) -
         "personality_type": details.get("personality_type", ""),
         "match_tags": details.get("match_tags") or [],
     }
+
+
+@router.post("/users/{user_id}/analyze-voice-coach")
+async def trigger_voice_coach_analysis(user_id: str, admin: AdminUser, db: DBSession) -> dict:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    from app.services.runtime_config import resolve_llm_provider_for_task
+    from app.services.llm import require_llm_provider
+
+    try:
+        provider = require_llm_provider(
+            resolve_llm_provider_for_task("voice_coach_analysis", db), db=db
+        )
+    except Exception:
+        provider = get_llm_provider(
+            resolve_default_llm_provider(db),
+            db,
+            allow_mock_fallback=True,
+        )
+    row = await analyze_user_voice_coach(db, user_id, provider, source="manual")
+    if not row:
+        raise HTTPException(status_code=400, detail="无法生成语音教练画像")
+    write_audit_log(
+        db,
+        admin,
+        action="trigger_voice_coach_analysis",
+        resource_type="user",
+        resource_id=user_id,
+        details={"profile_id": row.id},
+    )
+    db.commit()
+    db.refresh(row)
+    return {"ok": True, "profile": profile_to_briefing(row)}
+
+
+@router.post("/voice-coach/run-daily")
+async def admin_run_daily_voice_coach(_: AdminUser) -> dict:
+    """Manually trigger the daily Voice Coach batch (same as cron 03:30)."""
+    await run_daily_voice_coach_analysis()
+    return {"ok": True, "message": "Daily Voice Coach analysis job completed"}
+
+
+@router.post("/voice-platform/apply-recommended-vad")
+def apply_recommended_vad(admin: AdminUser, db: DBSession) -> dict:
+    """One-click: set omni_silence_ms=1200 and recommended VAD defaults in DB."""
+    from app.services.voice_platform_config import get_voice_platform_config, save_voice_platform_config
+
+    updates = {
+        "omni_silence_ms": 1200,
+        "omni_vad_threshold": 0.68,
+        "omni_vad_type": "semantic_vad",
+        "omni_tap_to_end": True,
+    }
+    save_voice_platform_config(db, updates)
+    write_audit_log(
+        db,
+        admin,
+        action="apply_recommended_vad",
+        resource_type="app_settings",
+        resource_id="default",
+        details=updates,
+    )
+    db.commit()
+    return {"ok": True, "voice_platform_config": get_voice_platform_config(db)}
 
 
 @router.put("/users/{user_id}/profile", response_model=UserProfileSummary)

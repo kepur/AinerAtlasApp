@@ -675,6 +675,22 @@ class AnalysisSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class VoiceCoachProfileSummary(BaseModel):
+    user_summary: str = ""
+    coach_identity: str = ""
+    ability_snapshot: dict[str, Any] = Field(default_factory=dict)
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses_to_improve: list[str] = Field(default_factory=list)
+    interests: list[str] = Field(default_factory=list)
+    focus_topics: list[str] = Field(default_factory=list)
+    opening_greeting: str = ""
+    opening_questions: list[str] = Field(default_factory=list)
+    analyzed_at: datetime | None = None
+    analysis_source: str = ""
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AdminProfileUpdate(ProfileBase):
     """Admin-editable profile fields (mirrors user PUT /api/profile)."""
 
@@ -692,6 +708,7 @@ class UserDetailRead(BaseModel):
     match_profile: MatchProfileSummary | None = None
     communication_profile: CommunicationProfileSummary | None = None
     latest_analysis: AnalysisSummary | None = None
+    voice_coach_profile: VoiceCoachProfileSummary | None = None
     ai_memory_preview: list[str] = Field(default_factory=list)
     stats: dict[str, int | float] = Field(default_factory=dict)
 
@@ -768,6 +785,27 @@ class VoiceReportRead(BaseModel):
     pause_feedback: list[str] = Field(default_factory=list)
     recommended_practice: list[str] = Field(default_factory=list)
     summary: str
+
+
+class RealtimeTurnSummary(BaseModel):
+    user_text: str = ""
+    ai_reply: str = ""
+    hud: dict[str, Any] = Field(default_factory=dict)
+
+
+class RealtimeCallSummaryRequest(BaseModel):
+    duration_seconds: int = 0
+    mode: str = "free"
+    provider: str = "qwen-omni-realtime"
+    turns: list[RealtimeTurnSummary] = Field(default_factory=list)
+
+
+class RealtimeCallSummaryRead(VoiceReportRead):
+    turn_count: int = 0
+    grammar_issues: int = 0
+    naturalness_suggestions: int = 0
+    patterns_for_crush: list[str] = Field(default_factory=list)
+    mode: str = "free"
 
 
 class TargetLanguageUpdate(BaseModel):

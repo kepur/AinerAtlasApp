@@ -14,6 +14,8 @@ type AuthState = {
   user: AuthUser | null;
   profile: Profile | null;
   isLoggedIn: boolean;
+  /** True after /api/auth/me (or login) has finished — avoids false VIP gate while hydrating. */
+  userHydrated: boolean;
   loading: boolean;
   error: string | null;
 
@@ -31,6 +33,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   isLoggedIn: !!getToken(),
+  userHydrated: !getToken(),
   loading: false,
   error: null,
 
@@ -42,7 +45,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         body: JSON.stringify({ email, password })
       });
       setToken(data.access_token);
-      set({ token: data.access_token, user: data.user, isLoggedIn: true, loading: false });
+      set({
+        token: data.access_token,
+        user: data.user,
+        isLoggedIn: true,
+        userHydrated: true,
+        loading: false,
+      });
     } catch (e) {
       set({ loading: false, error: e instanceof Error ? e.message : "登录失败" });
       throw e;
@@ -57,7 +66,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         body: JSON.stringify({ email, password, username, verification_code: verificationCode })
       });
       setToken(data.access_token);
-      set({ token: data.access_token, user: data.user, isLoggedIn: true, loading: false });
+      set({
+        token: data.access_token,
+        user: data.user,
+        isLoggedIn: true,
+        userHydrated: true,
+        loading: false,
+      });
     } catch (e) {
       set({ loading: false, error: e instanceof Error ? e.message : "注册失败" });
       throw e;
@@ -66,17 +81,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     clearToken();
-    set({ token: null, user: null, profile: null, isLoggedIn: false });
+    set({ token: null, user: null, profile: null, isLoggedIn: false, userHydrated: true });
   },
 
   loadUser: async () => {
-    if (!get().token) return;
+    if (!get().token) {
+      set({ userHydrated: true, user: null, isLoggedIn: false });
+      return;
+    }
     try {
       const user = await apiRequest<AuthUser>("/api/auth/me");
-      set({ user, isLoggedIn: true });
+      set({ user, isLoggedIn: true, userHydrated: true });
     } catch {
       clearToken();
-      set({ token: null, user: null, isLoggedIn: false });
+      set({ token: null, user: null, isLoggedIn: false, userHydrated: true });
     }
   },
 

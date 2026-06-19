@@ -284,6 +284,13 @@ export default {
     modeFreeTalk: "Free Talk",
     modeFreeTalkDesc: "Natural conversation, relaxed practice"
   },
+  membership: {
+    wechatModalTitle: "Scan WeChat to upgrade",
+    wechatModalHint: "Add our WeChat and note「AinerWise」for manual VIP / Pro activation",
+    wechatQrAlt: "WeChat support QR code",
+    wechatIdLabel: "WeChat ID",
+    wechatModalDone: "Got it",
+  },
   assets: {
     title: "Expression assets",
     empty: "No frozen assets yet",

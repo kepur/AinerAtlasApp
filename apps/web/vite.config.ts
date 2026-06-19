@@ -1,13 +1,16 @@
 import react from "@vitejs/plugin-react";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import { defineConfig } from "vite";
 
 const apiProxy = process.env.VITE_API_PROXY || "http://localhost:7070";
+const devHttps = process.env.VITE_DEV_HTTPS !== "false";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), ...(devHttps ? [basicSsl()] : [])],
   server: {
     host: "0.0.0.0",
     port: 7075,
+    https: devHttps,
     proxy: {
       "/api": {
         target: apiProxy,

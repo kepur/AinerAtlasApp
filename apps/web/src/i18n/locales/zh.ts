@@ -284,6 +284,13 @@ export default {
     modeFreeTalk: "自由聊天",
     modeFreeTalkDesc: "自然对话，轻松练习"
   },
+  membership: {
+    wechatModalTitle: "微信扫码开通会员",
+    wechatModalHint: "扫一扫添加客服，备注「AinerWise」即可人工开通 VIP / Pro",
+    wechatQrAlt: "微信客服二维码",
+    wechatIdLabel: "微信号",
+    wechatModalDone: "我知道了",
+  },
   assets: {
     title: "表达资产",
     empty: "还没有冻结的表达资产",

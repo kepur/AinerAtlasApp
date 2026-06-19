@@ -29,7 +29,7 @@ from app.schemas import (
     UserRead,
 )
 from app.services.auth_settings import get_auth_settings
-from app.services.demo_user import resolve_demo_credentials, sync_demo_user_from_settings
+from app.services.demo_user import ensure_demo_user, resolve_demo_credentials, sync_demo_user_from_settings
 from app.services.email_service import send_password_reset_email, send_verification_email, smtp_configured
 from app.services.trial import apply_registration_benefits, expire_user_if_needed, registration_preview
 from app.services.verification_code import generate_verification_code, get_code_store
@@ -163,6 +163,13 @@ def login(payload: UserLogin, db: DBSession, request: Request) -> AuthToken:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="账号已停用，请联系客服。",
         )
+
+    settings = get_auth_settings(db)
+    demo_email, demo_password = resolve_demo_credentials(settings)
+    if email == demo_email:
+        ensure_demo_user(db, demo_email, demo_password)
+        db.commit()
+        db.refresh(user)
 
     _record_login(db, user.id, request, True)
     token = create_access_token(user.id, {"role": user.role})

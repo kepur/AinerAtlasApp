@@ -8,10 +8,12 @@ type Props = {
   onSelect: (id: string) => void;
   onPin: (id: string) => void;
   onUnpin: () => void;
+  /** Show bar when turns.length >= this (default 2). Voice uses 1. */
+  minTurns?: number;
 };
 
-export function TurnSelector({ turns, activeTurnId, pinnedTurnId, onSelect, onPin, onUnpin }: Props) {
-  if (turns.length <= 1) return null;
+export function TurnSelector({ turns, activeTurnId, pinnedTurnId, onSelect, onPin, onUnpin, minTurns = 2 }: Props) {
+  if (turns.length < minTurns) return null;
   return (
     <div className="turn-selector">
       {turns.map((turn, idx) => (

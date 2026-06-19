@@ -28,6 +28,7 @@ LLM_ROUTE_CATALOG: tuple[LlmRouteEntry, ...] = (
     LlmRouteEntry("thought_dialogue_role_simulation", "Thought · 角色模拟", "对话", "conversational_reply"),
     # ── 学习分析 ──
     LlmRouteEntry("grammar_analysis", "语法 / Chat HUD 分析", "学习分析", "learning_analysis", "Chat 第二阶段：学习 HUD（chat_v2）"),
+    LlmRouteEntry("voice_coach_analysis", "语音教练日更画像", "学习分析", "learning_analysis", "每日分析用户状态，生成 Voice Coach 提示词"),
     LlmRouteEntry("learning_analysis", "学习要点分析", "学习分析", "learning_analysis", "广义学习分析回退"),
     LlmRouteEntry("expression_agent", "表达 Agent", "学习分析", "learning_analysis", "流式对话中的表达建议"),
     LlmRouteEntry("coach_agent", "教练 Agent", "学习分析", "learning_analysis", "流式对话中的教练反馈"),
@@ -73,6 +74,7 @@ def fallback_bucket_for_task(task_type: str) -> str:
         return "conversational_reply"
     if task_type in {
         "grammar_analysis", "grammar_agent", "expression_agent", "coach_agent",
+        "voice_coach_analysis",
         "pattern_mining", "vocabulary_mining", "learning_analysis", "review_queue",
     }:
         return "learning_analysis"

@@ -197,6 +197,37 @@ export async function addCrushCandidate(
   });
 }
 
+export type RealtimeCallSummary = {
+  session_id: string;
+  provider: string;
+  duration_seconds: number;
+  transcript: string;
+  scores: Record<string, number>;
+  top_corrections: Array<{ word: string; suggestion: string }>;
+  highlights: string[];
+  filler_words: Array<{ phrase: string; count: number }>;
+  pause_feedback: string[];
+  recommended_practice: string[];
+  summary: string;
+  turn_count: number;
+  grammar_issues: number;
+  naturalness_suggestions: number;
+  patterns_for_crush: string[];
+  mode: string;
+};
+
+export async function submitRealtimeCallSummary(payload: {
+  duration_seconds: number;
+  mode?: string;
+  provider?: string;
+  turns: Array<{ user_text: string; ai_reply: string; hud?: Record<string, unknown> | null }>;
+}): Promise<RealtimeCallSummary> {
+  return apiRequest<RealtimeCallSummary>("/api/voice/realtime/summary", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function explainToken(
   token: string,
   context = "",

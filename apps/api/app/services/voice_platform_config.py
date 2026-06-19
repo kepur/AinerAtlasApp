@@ -26,13 +26,15 @@ DEFAULT_VOICE_PLATFORM_CONFIG: dict[str, Any] = {
     "omni_voice": "Tina",
     "omni_instructions": (
         "You are AinerWise, a warm English expression coach. "
-        "Keep replies short (1-3 sentences) for spoken dialogue. "
-        "Respond promptly after the user pauses. Gently correct grammar when helpful."
+        "Keep spoken replies short (1-3 sentences). "
+        "Wait until the user has clearly finished speaking before you respond. "
+        "Leave a brief natural pause (about one second) after they stop talking. "
+        "Gently correct grammar when helpful."
     ),
     "omni_turn_detection": True,
     "omni_vad_type": "semantic_vad",
     "omni_vad_threshold": 0.68,
-    "omni_silence_ms": 550,
+    "omni_silence_ms": 1200,
     "omni_tap_to_end": True,
     # Aliyun Intelligent Speech Interaction (口语评测)
     "speech_assessment_enabled": True,
