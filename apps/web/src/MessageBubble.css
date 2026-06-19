@@ -1287,6 +1287,25 @@
   justify-content: center;
   color: var(--text-primary);
   cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.composer-voice-btn.recording {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+  animation: composer-mic-pulse 1.4s ease-in-out infinite;
+}
+
+.composer-voice-btn.processing {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@keyframes composer-mic-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.35); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
 }
 
 .composer-input-wrapper {

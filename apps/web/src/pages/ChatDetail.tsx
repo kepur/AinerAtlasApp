@@ -2,7 +2,7 @@ import "../MessageBubble.css";
 import "../components/ambient/ambient.css";
 import {
   ArrowLeft, Loader, Send, Volume2, VolumeX, Lightbulb,
-  MessageSquare, Flame, X, Mic, Sparkles, Pin,
+  MessageSquare, Flame, X, Sparkles, Pin,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -14,6 +14,7 @@ import { LearningHUD, TokenExplainSheet, TurnSelector, useTts } from "../compone
 import { useI18n } from "../i18n";
 import { useChatStore, type DialogueTurn, type HudData } from "../stores/chatStore";
 import { useChatPrefsStore } from "../stores/chatPrefsStore";
+import VoiceInput from "../components/VoiceInput";
 
 /* ─── Conversation Feed (pure chat bubbles grouped by turn) ─── */
 function ConversationFeed({ messages, turns, activeTurnId, sending, streamPhase, speak, onTurnClick }: {
@@ -214,11 +215,16 @@ export default function ChatDetail() {
   );
   const sceneEnergized = sending || draft.trim().length > 0;
 
-  async function handleSend() {
-    const text = draft.trim();
+  async function handleSend(overrideText?: string) {
+    const text = (overrideText ?? draft).trim();
     if (!text || !id || sending) return;
     setDraft("");
     try { await streamMessage(id, text); } catch { setDraft(text); }
+  }
+
+  function handleVoiceTranscript(text: string) {
+    if (!text.trim() || sending) return;
+    void handleSend(text);
   }
 
   async function handleFreeze() {
@@ -296,7 +302,14 @@ export default function ChatDetail() {
       <CompanionPet mood={petMood} compact />
       <ModeIndicator hud={hud} />
       <div className="chat-composer-rich">
-        <button className="composer-voice-btn" disabled={sending}><Mic size={20} /></button>
+        <VoiceInput
+          className="composer-voice-btn"
+          iconSize={20}
+          disabled={sending}
+          mode="hold"
+          onTranscript={handleVoiceTranscript}
+          title="按住说话，松开发送 · 上滑取消"
+        />
         <div className="composer-input-wrapper">
           <input
             value={draft}

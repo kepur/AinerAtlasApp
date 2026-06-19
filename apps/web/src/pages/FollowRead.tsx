@@ -1,6 +1,9 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../api";
+import { attachSilenceMonitor, type SilenceMonitorHandle } from "../lib/audioSilenceMonitor";
+
+const FOLLOW_READ_SILENCE_MS = 1200;
 
 type EvalResult = {
   fluency_score: number;
@@ -26,35 +29,24 @@ export default function FollowRead() {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<EvalResult | null>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const silenceRef = useRef<SilenceMonitorHandle | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const stoppingRef = useRef(false);
 
   const sentence = SAMPLE_SENTENCES[sentenceIdx];
 
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => chunksRef.current.push(e.data);
-      mr.onstop = () => void handleSubmit(stream);
-      mr.start();
-      mediaRef.current = mr;
-      setRecording(true);
-      setResult(null);
-    } catch {
-      alert("无法访问麦克风，请检查权限设置");
-    }
-  }
+  const cleanupStream = useCallback(() => {
+    silenceRef.current?.stop();
+    silenceRef.current = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
 
-  function stopRecording() {
-    mediaRef.current?.stop();
-    setRecording(false);
-    setProcessing(true);
-  }
-
-  async function handleSubmit(stream: MediaStream) {
+  const handleSubmit = useCallback(async (stream: MediaStream) => {
     try {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      chunksRef.current = [];
       const base64 = await blobToBase64(blob);
       const res = await apiRequest<EvalResult>("/api/voice/evaluate", {
         method: "POST",
@@ -66,6 +58,48 @@ export default function FollowRead() {
     } finally {
       stream.getTracks().forEach((t) => t.stop());
       setProcessing(false);
+      stoppingRef.current = false;
+    }
+  }, [sentence.text]);
+
+  const stopRecording = useCallback(() => {
+    if (stoppingRef.current) return;
+    const mr = mediaRef.current;
+    const stream = streamRef.current;
+    if (!mr || mr.state === "inactive" || !stream) return;
+
+    stoppingRef.current = true;
+    silenceRef.current?.stop();
+    silenceRef.current = null;
+    setRecording(false);
+    setProcessing(true);
+    mr.onstop = () => void handleSubmit(stream);
+    mr.stop();
+    mediaRef.current = null;
+  }, [handleSubmit]);
+
+  async function startRecording() {
+    if (recording || processing) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      mr.start(200);
+      mediaRef.current = mr;
+      setRecording(true);
+      setResult(null);
+
+      silenceRef.current = attachSilenceMonitor(stream, {
+        silenceMs: FOLLOW_READ_SILENCE_MS,
+        onSilence: () => stopRecording(),
+      });
+    } catch {
+      cleanupStream();
+      alert("无法访问麦克风，请检查权限设置");
     }
   }
 
@@ -106,12 +140,11 @@ export default function FollowRead() {
         <button onClick={() => navigate(-1)} className="material-symbols-outlined text-primary">arrow_back</button>
         <div>
           <h1 className="font-bold text-[16px] text-on-surface">跟读练习</h1>
-          <p className="text-[11px] text-on-surface-variant">朗读句子 · AI 评分</p>
+          <p className="text-[11px] text-on-surface-variant">朗读句子 · 停顿 1.2 秒自动评分</p>
         </div>
       </header>
 
       <main className="px-margin-mobile pt-6 pb-32 space-y-5">
-        {/* Sentence card */}
         <section className="glass-card premium-shadow rounded-2xl p-6 text-center space-y-3">
           <span className="px-3 py-1 bg-primary/10 text-primary text-[11px] font-bold rounded-full">{sentence.topic}</span>
           <p className="font-bold text-[18px] text-on-surface leading-relaxed">{sentence.text}</p>
@@ -124,7 +157,6 @@ export default function FollowRead() {
           </button>
         </section>
 
-        {/* Recording control */}
         <section className="flex flex-col items-center gap-4 py-4">
           {!recording && !processing && !result && (
             <button
@@ -137,7 +169,7 @@ export default function FollowRead() {
           {recording && (
             <button
               onClick={stopRecording}
-              className="w-20 h-20 rounded-full bg-error shadow-[0_8px_30px_rgba(211,47,47,0.3)] flex items-center justify-center text-white active:scale-95 transition-all"
+              className="w-20 h-20 rounded-full bg-error shadow-[0_8px_30px_rgba(211,47,47,0.3)] flex items-center justify-center text-white active:scale-95 transition-all animate-pulse"
             >
               <span className="material-symbols-outlined text-[36px]">stop</span>
             </button>
@@ -147,8 +179,14 @@ export default function FollowRead() {
               <div className="w-10 h-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
             </div>
           )}
-          <p className="text-[13px] text-on-surface-variant">
-            {recording ? "录音中... 点击停止" : processing ? "AI 分析中..." : result ? "再次朗读" : "点击开始朗读"}
+          <p className="text-[14px] font-semibold text-on-surface-variant text-center max-w-[280px]">
+            {recording
+              ? "朗读中… 读完停顿约 1.2 秒将自动提交"
+              : processing
+                ? "AI 分析中..."
+                : result
+                  ? "再次朗读"
+                  : "点击开始 · 无需手动点停止"}
           </p>
           {recording && (
             <div className="flex gap-1">
@@ -163,7 +201,6 @@ export default function FollowRead() {
           )}
         </section>
 
-        {/* Result card */}
         {result && (
           <section className="glass-card premium-shadow rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
@@ -221,16 +258,15 @@ export default function FollowRead() {
           </section>
         )}
 
-        {/* Tips */}
         <section className="glass-card premium-shadow rounded-2xl p-4">
           <h4 className="font-bold text-[13px] text-on-surface mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[18px]">tips_and_updates</span>
             朗读建议
           </h4>
           <ul className="space-y-2 text-[12px] text-on-surface-variant">
-            <li>• 保持语速均匀，不要过快或过慢</li>
+            <li>• 读完句子后自然停顿，约 1.2 秒自动提交评分</li>
+            <li>• 也可随时点击红色停止键手动提交</li>
             <li>• 注意单词重音和句子语调</li>
-            <li>• 连读时保持自然流畅</li>
             <li>• 在安静环境中录音效果更好</li>
           </ul>
         </section>

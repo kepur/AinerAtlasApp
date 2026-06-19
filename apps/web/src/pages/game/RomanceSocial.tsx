@@ -2,13 +2,14 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ChevronLeft, Heart, Coffee, Sparkles, HeartHandshake,
-  Send, Mic, Flame, Loader2,
+  Send, Flame, Loader2,
   Handshake, TrendingUp, Scale, FileText,
   Plane, Hotel, Map, Compass,
   MapPin, Home, Users, CheckCircle,
 } from "lucide-react";
 import { useGameStore, FeedItem } from "../../stores/gameStore";
 import TTSButton from "../../components/TTSButton";
+import VoiceInput from "../../components/VoiceInput";
 import { LearningHUD, useTts } from "../../components/learning";
 import { useChatPrefsStore } from "../../stores/chatPrefsStore";
 import type { HudData } from "../../stores/chatStore";
@@ -596,9 +597,14 @@ export default function RomanceSocial() {
           ))}
         </div>
         <div className={`flex items-center gap-2 bg-white rounded-2xl pl-3 pr-2 py-2 border ${th.accentBorderStrong} ${th.shadow}`}>
-          <button className={`w-9 h-9 rounded-xl flex items-center justify-center ${th.micBg} transition-colors shrink-0`}>
-            <Mic size={18} />
-          </button>
+          <VoiceInput
+            className={`w-9 h-9 rounded-xl flex items-center justify-center ${th.micBg} transition-colors shrink-0 border-0 shadow-none`}
+            iconSize={18}
+            disabled={turnLoading}
+            mode="hold"
+            onTranscript={(text) => { if (text.trim()) send(text); }}
+            title="按住说话，松开发送 · 上滑取消"
+          />
           <input
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}

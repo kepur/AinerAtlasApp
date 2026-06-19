@@ -1153,6 +1153,73 @@ button, input, select, textarea {
   animation: pulse-orb 1.5s infinite;
 }
 
+/* WeChat-style hold-to-talk overlay */
+.voice-hold-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.35);
+  animation: voice-hold-fade-in 0.15s ease-out;
+}
+
+.voice-hold-panel {
+  min-width: 160px;
+  padding: 24px 28px;
+  border-radius: 20px;
+  background: rgba(30, 30, 30, 0.92);
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  animation: voice-hold-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.voice-hold-panel--cancel {
+  background: rgba(120, 30, 30, 0.94);
+}
+
+.voice-hold-icon-active {
+  color: #a78bfa;
+  margin-bottom: 8px;
+  animation: voice-hold-mic-pulse 0.8s ease-in-out infinite;
+}
+
+.voice-hold-icon-cancel {
+  color: #fca5a5;
+  margin-bottom: 8px;
+}
+
+.voice-hold-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.voice-hold-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+@keyframes voice-hold-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes voice-hold-pop {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes voice-hold-mic-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: 0.85; }
+}
+
 @keyframes pulse-orb {
   0% { box-shadow: 0 8px 20px rgba(124, 58, 237, 0.12); }
   70% { box-shadow: 0 8px 20px rgba(124, 58, 237, 0.12); }
