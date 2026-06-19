@@ -28,6 +28,7 @@ import { MatchRadar } from "./MatchRadar";
 import { TopicManagement } from "./TopicManagement";
 import { CircleManagement } from "./CircleManagement";
 import { ExpressionAssetsPanel } from "./ExpressionAssetsPanel";
+import { LearningPackManagement } from "./LearningPackManagement";
 
 const navGroups = [
   {
@@ -53,6 +54,7 @@ const navGroups = [
     items: [
       { key: "AI Providers", label: "模型供应商", icon: Bot },
       { key: "Prompts", label: "Prompt 模板", icon: FileText },
+      { key: "Learning Packs", label: "学习包", icon: BookOpen },
       { key: "Patterns", label: "语法模式", icon: Puzzle },
       { key: "Usage Logs", label: "用量日志", icon: Activity },
       { key: "LLM Logs", label: "LLM日志", icon: ClipboardList }
@@ -888,6 +890,7 @@ function AdminApp() {
       "Voice Sessions": "正在加载实时语音会话...",
       "AI Providers": "正在加载 Provider...",
       Prompts: "正在加载 Prompt 模板...",
+      "Learning Packs": "学习包管理",
       Patterns: "正在加载语法模式...",
       "Usage Logs": "正在加载用量日志...",
       "LLM Logs": "正在加载LLM调用日志...",
@@ -2640,6 +2643,10 @@ function AdminApp() {
               </>
             )}
           </section>
+        )}
+
+        {activeNav === "Learning Packs" && token && (
+          <LearningPackManagement token={token} onStatus={setStatus} />
         )}
 
         {activeNav === "Patterns" && (

@@ -4,7 +4,7 @@ import {
   Star, Settings, Mic, MicOff, Crown, HelpCircle, FileText, BarChart2,
   MoreHorizontal, Volume2, ChevronRight, Play, Lightbulb, ArrowLeft, Send,
 } from "lucide-react";
-import { apiRequest } from "../../api";
+import { apiRequest, API_BASE_URL, getToken } from "../../api";
 
 type PartyRoomState = {
   room_id: string;
@@ -44,12 +44,18 @@ export default function PartyRoom() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [wsConnected, setWsConnected] = useState(false);
   const feedEndRef = useRef<HTMLDivElement>(null);
   const creatingRef = useRef(false);
 
   const currentTurnName = room?.players.find(
     (p) => p.user_id === room?.current_turn_user_id,
   )?.name?.replace(" (你)", "") || "—";
+
+  const reloadRoom = async (roomId: string) => {
+    const data = await apiRequest<PartyRoomState>(`/api/games/party-rooms/${roomId}`);
+    setRoom(data);
+  };
 
   useEffect(() => {
     if (creatingRef.current) return;
@@ -84,14 +90,61 @@ export default function PartyRoom() {
   }, [routeId, searchParams, navigate]);
 
   useEffect(() => {
-    if (!room?.room_id) return;
-    const timer = setInterval(async () => {
+    const roomId = room?.room_id;
+    if (!roomId) return;
+
+    let ws: WebSocket | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (pollTimer) return;
+      setWsConnected(false);
+      pollTimer = setInterval(() => {
+        void reloadRoom(roomId).catch(() => {});
+      }, 4000);
+    };
+
+    const token = getToken();
+    if (token) {
+      const wsBase = (API_BASE_URL || window.location.origin).replace(/^http/i, "ws");
+      const wsUrl = `${wsBase}/api/games/party-rooms/ws/${encodeURIComponent(roomId)}?token=${encodeURIComponent(token)}`;
       try {
-        const data = await apiRequest<PartyRoomState>(`/api/games/party-rooms/${room.room_id}`);
-        setRoom(data);
-      } catch { /* ignore poll errors */ }
-    }, 3000);
-    return () => clearInterval(timer);
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          setWsConnected(true);
+          if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+          }
+        };
+        ws.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data) as { type?: string; data?: PartyRoomState };
+            if (data.type === "room" && data.data) {
+              setRoom(data.data);
+            } else if (data.type === "room_sync") {
+              void reloadRoom(roomId);
+            }
+          } catch { /* ignore */ }
+        };
+        ws.onerror = () => startPolling();
+        ws.onclose = () => startPolling();
+      } catch {
+        startPolling();
+      }
+    } else {
+      startPolling();
+    }
+
+    const pingTimer = setInterval(() => {
+      if (ws?.readyState === WebSocket.OPEN) ws.send("ping");
+    }, 25000);
+
+    return () => {
+      clearInterval(pingTimer);
+      if (pollTimer) clearInterval(pollTimer);
+      ws?.close();
+    };
   }, [room?.room_id]);
 
   useEffect(() => {
@@ -166,7 +219,7 @@ export default function PartyRoom() {
               <span>|</span>
               <span>{room.player_count}/{room.max_players} 人</span>
               <span>|</span>
-              <span>{room.phase}</span>
+              <span>{wsConnected ? "实时" : "同步中…"}</span>
             </div>
           </div>
         </div>

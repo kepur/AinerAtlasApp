@@ -35,6 +35,16 @@ export async function apiPut<T>(path: string, token: string, body: unknown): Pro
   return res.json() as Promise<T>;
 }
 
+export async function apiPatch<T>(path: string, token: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
 export async function apiDelete<T>(path: string, token: string): Promise<T> {
   const res = await fetch(path, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
