@@ -325,6 +325,7 @@ export type Asset = {
   variants: Record<string, string>;
   keywords: string[];
   patterns: string[];
+  thought_id?: string | null;
   created_at: string;
 };
 
@@ -443,6 +444,60 @@ export async function freezeConversation(
   return apiRequest<Asset>(`/api/conversations/${conversationId}/freeze`, {
     method: "POST",
     body: JSON.stringify({ title: title ?? null }),
+  });
+}
+
+export type TopicDraft = {
+  title: string;
+  background: string;
+  pro_view: string;
+  con_view: string;
+  suggested_tags: string[];
+  thought_id?: string | null;
+};
+
+export async function analyzeTopicDraft(body: {
+  title?: string;
+  background?: string;
+  pro_view?: string;
+  con_view?: string;
+}): Promise<TopicDraft> {
+  return apiRequest<TopicDraft>("/api/topics/analyze", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchTopicDraftFromThought(thoughtId: string): Promise<TopicDraft> {
+  return apiRequest<TopicDraft>(`/api/topics/from-thought/${thoughtId}/draft`);
+}
+
+export async function createTopic(body: {
+  title: string;
+  background?: string;
+  pro_view?: string;
+  con_view?: string;
+  tags?: string[];
+  thought_id?: string | null;
+}): Promise<{ id: string }> {
+  return apiRequest("/api/topics", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function endCircleDiscussion(roomId: string) {
+  return apiRequest(`/api/circles/${roomId}/end`, { method: "POST" });
+}
+
+export async function freezeCircleDiscussion(roomId: string) {
+  return apiRequest<{ thought_id: string }>(`/api/circles/${roomId}/freeze`, { method: "POST" });
+}
+
+export async function publishCircleTopic(roomId: string, body?: { title?: string; thought_id?: string }) {
+  return apiRequest<{ topic_id: string }>(`/api/circles/${roomId}/publish-topic`, {
+    method: "POST",
+    body: JSON.stringify(body ?? {}),
   });
 }
 

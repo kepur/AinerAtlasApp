@@ -53,7 +53,7 @@ def _db_dashscope_api_key(db: Session) -> str | None:
         elif isinstance(app.global_api_keys, dict):
             dash_key = app.global_api_keys.get("dashscope_api_key", "")
             if dash_key: return dash_key
-    for name in ("dashscope", "dashscope-embedding", "qwen"):
+    for name in ("qwen", "dashscope", "dashscope-embedding"):
         provider = db.scalar(
             select(AIProvider)
             .where(AIProvider.provider_name == name, AIProvider.enabled.is_(True))

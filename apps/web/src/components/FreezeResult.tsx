@@ -1,5 +1,6 @@
-import { Bookmark, Loader, Volume2, X } from "lucide-react";
+import { Bookmark, Loader, Share2, Volume2, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Asset } from "../api";
 import { orderedVariantKeys, variantLabel } from "../api";
 
@@ -11,12 +12,21 @@ type Props = {
 };
 
 export default function FreezeResult({ asset, loading, error, onClose }: Props) {
+  const navigate = useNavigate();
   const variants = asset?.variants ?? {};
   const keys = useMemo(() => orderedVariantKeys(variants), [variants]);
   const [activeTab, setActiveTab] = useState(keys[0] ?? "");
   const [saved, setSaved] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const currentKey = keys.includes(activeTab) ? activeTab : keys[0] ?? "";
+
+  async function handlePublishTopic() {
+    if (!asset?.thought_id || publishing) return;
+    setPublishing(true);
+    onClose();
+    navigate(`/topics/new?thought=${encodeURIComponent(asset.thought_id)}`);
+  }
 
   if (!loading && !asset && !error) return null;
 
@@ -96,7 +106,20 @@ export default function FreezeResult({ asset, loading, error, onClose }: Props) 
 
             <div className="freeze-footer">
               <span>{keys.length} 个表达版本已生成</span>
-              <button className="primary-btn" onClick={onClose}>完成</button>
+              <div className="flex flex-col gap-2 w-full mt-2">
+                {asset.thought_id && (
+                  <button
+                    type="button"
+                    className="ghost-btn w-full justify-center"
+                    disabled={publishing}
+                    onClick={() => void handlePublishTopic()}
+                  >
+                    <Share2 size={16} />
+                    发表为话题（AI 填标题与标签）
+                  </button>
+                )}
+                <button className="primary-btn w-full" onClick={onClose}>完成</button>
+              </div>
             </div>
           </>
         )}

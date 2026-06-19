@@ -6,9 +6,11 @@ type Props = {
   mood: SceneMood;
   /** Faster particles / stronger motion — voice in-call or active chat */
   energized?: boolean;
+  /** Live voice call connected — green + purple ambient */
+  live?: boolean;
 };
 
-export default function AmbientScene({ mood, energized = false }: Props) {
+export default function AmbientScene({ mood, energized = false, live = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -40,7 +42,15 @@ export default function AmbientScene({ mood, energized = false }: Props) {
     resize();
     window.addEventListener("resize", resize);
 
-    const moodHue = mood === "speaking" ? 280 : mood === "thinking" ? 220 : mood === "listening" ? 260 : 250;
+    const moodHue = live
+      ? 152
+      : mood === "speaking"
+        ? 280
+        : mood === "thinking"
+          ? 220
+          : mood === "listening"
+            ? 260
+            : 250;
 
     const draw = (t: number) => {
       ctx.clearRect(0, 0, w, h);
@@ -70,10 +80,10 @@ export default function AmbientScene({ mood, energized = false }: Props) {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, [energized, mood]);
+  }, [energized, live, mood]);
 
   return (
-    <div className="ambient-scene" aria-hidden>
+    <div className={`ambient-scene${live ? " ambient-scene--live" : ""}`} aria-hidden>
       <canvas ref={canvasRef} className="ambient-canvas" />
       <div className="ambient-mesh" />
       <motion.div

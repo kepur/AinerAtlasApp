@@ -1,14 +1,17 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  ChevronLeft, Volume2, Heart, Coffee, Sparkles, HeartHandshake, Leaf,
-  Lightbulb, Send, Mic, Flame, Loader2,
+  ChevronLeft, Heart, Coffee, Sparkles, HeartHandshake,
+  Send, Mic, Flame, Loader2,
   Handshake, TrendingUp, Scale, FileText,
   Plane, Hotel, Map, Compass,
   MapPin, Home, Users, CheckCircle,
 } from "lucide-react";
 import { useGameStore, FeedItem } from "../../stores/gameStore";
 import TTSButton from "../../components/TTSButton";
+import { LearningHUD, useTts } from "../../components/learning";
+import { useChatPrefsStore } from "../../stores/chatPrefsStore";
+import type { HudData } from "../../stores/chatStore";
 
 const getCategoryTabs = (category: string) => {
   if (category === "商务谈判") {
@@ -57,8 +60,6 @@ const ACTION_PRESETS: Record<string, string> = {
   幽默一点: "Careful, you might make me blush! 😄",
   更进一步: "I've really started to fall for you. Want to be more than friends?",
 };
-
-interface HintCard { title?: string; en?: string; zh?: string; breakdown?: string[] }
 
 // Fallback emotion → emoji when the model didn't return emotion_emoji.
 function emotionEmoji(emotion?: string): string {
@@ -298,6 +299,11 @@ export default function RomanceSocial() {
   const [inputText, setInputText] = useState("");
   const [creating, setCreating] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const prevTurnLoadingRef = useRef(false);
+
+  const { speak } = useTts();
+  const autoReadMode = useChatPrefsStore((s) => s.autoReadMode);
+  const shouldAutoRead = autoReadMode === "always" || autoReadMode === "target_only";
 
   useEffect(() => {
     const isUuid = id && /^[0-9a-fA-F-]{36}$/.test(id);
@@ -326,19 +332,31 @@ export default function RomanceSocial() {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [feedItems, turnLoading]);
 
+  useEffect(() => {
+    if (prevTurnLoadingRef.current && !turnLoading && shouldAutoRead) {
+      const lastChar = [...feedItems].reverse().find((f) => f.type === "char_msg");
+      const text = lastChar?.text ? String(lastChar.text).trim() : "";
+      if (text) speak(text, "en-US");
+    }
+    prevTurnLoadingRef.current = turnLoading;
+  }, [turnLoading, feedItems, shouldAutoRead, speak]);
+
   const view = (currentSession?.view || {}) as Record<string, any>;
-  const target = view.target || { name: "Mia", age: 25, role: "咖啡店常客", initial_scene: "咖啡店初次见面" };
+  const target = view.target || { name: "Mia", age: 25, role: "咖啡店常客", initial_scene: "咖啡店初次见面", gender: "female" };
+  const characterVoice = (target.voice as string) || (target.gender === "male" ? "male_warm" : "female_warm");
   const score = (currentHud?.relationship_score as number) ?? view.relationship_score ?? 0;
   const phase = currentSession?.phase || "icebreaker";
 
-  // Latest hint card for the learning HUD
-  const lastHint = [...feedItems].reverse().find((f) => f.type === "hint_card") as (FeedItem & HintCard) | undefined;
-  const lastChar = [...feedItems].reverse().find((f) => f.type === "char_msg");
-  const learningPoint = (lastChar?.learning_point || null) as { title?: string; desc?: string } | null;
+  const learningHud = useMemo((): HudData => {
+    if (!currentHud) return null;
+    if (currentHud.main_expression || currentHud.v2) return currentHud as HudData;
+    return null;
+  }, [currentHud]);
 
-  const phraseEn = lastHint?.en || "You seem really easy to talk to.";
-  const phraseZh = lastHint?.zh || "你感觉很容易相处。";
-  const breakdown = lastHint?.breakdown || [];
+  const lastFeed = feedItems[feedItems.length - 1];
+  const streamPhase = turnLoading
+    ? ((lastFeed as FeedItem & { _streaming?: boolean })?._streaming ? "replying" : "analyzing")
+    : null;
 
   const send = (text: string) => {
     if (!currentSession || !text.trim()) return;
@@ -467,56 +485,14 @@ export default function RomanceSocial() {
           })}
         </div>
 
-        {/* Learning HUD cards */}
-        <div className="px-4 pb-3 grid grid-cols-2 gap-3">
-          {/* 自然表达 */}
-          <div className={`bg-white rounded-2xl border ${th.accentBorder} p-3 shadow-sm`}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${category === "商务谈判" ? "from-blue-100 to-blue-200" : category === "移民生活" ? "from-teal-100 to-teal-200" : category === "旅游出差" ? "from-violet-100 to-violet-200" : "from-pink-100 to-pink-200"} flex items-center justify-center`}><Leaf size={12} className={category === "商务谈判" ? "text-blue-500" : category === "移民生活" ? "text-teal-500" : category === "旅游出差" ? "text-violet-500" : "text-pink-500"} /></div>
-              <span className={`text-[11px] font-bold ${th.accent}`}>自然表达</span>
-            </div>
-            <div className="text-[12px] font-extrabold text-[#1f2937] leading-snug">{phraseEn}</div>
-            <div className="text-[10px] text-[#9ca3af] mt-1">{phraseZh}</div>
-            <div className="flex items-center gap-2 mt-3">
-              <TTSButton 
-                text={phraseEn} 
-                lang="en" 
-                voice="neutral_narrator" 
-                size={12} 
-                className={`w-7 h-7 rounded-full bg-gradient-to-br ${th.ttsPlayGradient} flex items-center justify-center text-white shadow-sm ${th.shadowBtn} active:scale-95 transition-transform`} 
-              />
-              <button 
-                onClick={() => setInputText(phraseEn)} 
-                className={`px-2.5 py-1 bg-${category === "商务谈判" ? "blue" : category === "移民生活" ? "teal" : category === "旅游出差" ? "violet" : "pink"}-500/10 hover:bg-${category === "商务谈判" ? "blue" : category === "移民生活" ? "teal" : category === "旅游出差" ? "violet" : "pink"}-500/15 ${th.bubbleText} rounded-full text-[10px] font-bold backdrop-blur-md active:scale-95 transition-all flex items-center gap-1`}
-                style={{ border: `1px solid ${category === "商务谈判" ? "rgba(59, 130, 246, 0.2)" : category === "移民生活" ? "rgba(20, 184, 166, 0.2)" : category === "旅游出差" ? "rgba(139, 92, 246, 0.2)" : "rgba(236, 72, 153, 0.2)"}` }}
-              >
-                <Sparkles size={10} className={category === "商务谈判" ? "text-blue-500" : category === "移民生活" ? "text-teal-500" : category === "旅游出差" ? "text-violet-500" : "text-pink-500"} />
-                <span>套用</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 为什么这么说 */}
-          <div className={`bg-white rounded-2xl border ${th.accentBorder} p-3 shadow-sm`}>
-            <div className="flex items-center gap-1.5 mb-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center"><Lightbulb size={12} className="text-amber-500" /></div>
-              <span className="text-[11px] font-bold text-[#b45309]">为什么这么说</span>
-            </div>
-            {breakdown.length > 0 ? (
-              <div className="flex flex-col gap-1">
-                {breakdown.slice(0, 3).map((b, i) => (
-                  <p key={i} className="text-[10px] text-[#4b5563] leading-snug">• {b}</p>
-                ))}
-              </div>
-            ) : learningPoint ? (
-              <div>
-                <p className="text-[11px] font-bold text-[#1f2937]">{learningPoint.title}</p>
-                <p className="text-[10px] text-[#6b7280] mt-0.5 leading-snug">{learningPoint.desc}</p>
-              </div>
-            ) : (
-              <p className="text-[10px] text-[#9ca3af]">开始对话，AI 会拆解你的表达技巧。</p>
-            )}
-          </div>
+        {/* Learning HUD — same chat_v2 pipeline as Chat */}
+        <div className="px-4 pb-3">
+          <LearningHUD
+            hud={learningHud}
+            streamPhase={streamPhase}
+            speak={speak}
+            className="romance-learning-hud"
+          />
         </div>
       </div>
 
@@ -550,7 +526,7 @@ export default function RomanceSocial() {
               和 {target.name} 打个招呼吧，用中文或英文都可以 💬
             </div>
           )}
-          {feedItems.map((msg, i) => {
+          {feedItems.filter((f) => f.type === "user_msg" || f.type === "char_msg").map((msg, i) => {
             if (msg.type === "user_msg") {
               return (
                 <div key={i} className="flex justify-end">
@@ -563,7 +539,6 @@ export default function RomanceSocial() {
             if (msg.type === "char_msg") {
               const emoji = (msg.emotion_emoji as string) || emotionEmoji(msg.emotion as string);
               const delta = Number(msg.relationship_change ?? 0);
-              const lp = msg.learning_point as { title?: string; desc?: string } | undefined;
               return (
                 <div key={i} className="flex flex-col gap-1.5">
                   <div className="flex gap-2 items-end">
@@ -584,7 +559,7 @@ export default function RomanceSocial() {
                         {delta !== 0 && (
                           <span className={`text-[9px] font-bold ${delta > 0 ? "text-rose-500" : "text-slate-400"}`}>{delta > 0 ? `+${delta} ${dimension}` : `${delta} ${dimension}`}</span>
                         )}
-                        <TTSButton text={String(msg.text || "")} lang="en" voice={target.voice || "female_warm"} size={10} className={`w-5 h-5 rounded-full ${th.ttsBg} flex items-center justify-center ${th.bubbleText}`} />
+                        <TTSButton text={String(msg.text || "")} lang="en" voice={characterVoice} size={10} className={`w-5 h-5 rounded-full ${th.ttsBg} flex items-center justify-center ${th.bubbleText}`} />
                       </div>
                       <div className={`bg-white rounded-[18px] rounded-tl-[4px] px-4 py-2.5 shadow-sm border ${th.accentBorderLight}`}>
                         <p className="text-[13px] text-[#1f2937] leading-snug">{msg.text}</p>
@@ -592,27 +567,6 @@ export default function RomanceSocial() {
                       </div>
                     </div>
                   </div>
-                  {lp?.title && (
-                    <div className={`ml-11 max-w-[80%] rounded-xl px-3 py-2 ${th.tagBgLight}`}>
-                      <p className="text-[10px] font-bold flex items-center gap-1"><Lightbulb size={10} /> 本轮要点 · {lp.title}</p>
-                      {lp.desc ? <p className="text-[10px] text-[#6b7280] mt-0.5 leading-snug">{lp.desc}</p> : null}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            if (msg.type === "hint_card") {
-              const h = msg as unknown as HintCard;
-              return (
-                <div key={i} className={`ml-11 max-w-[82%] rounded-xl px-3 py-2 bg-white border ${th.accentBorderLight} shadow-sm`}>
-                  <p className={`text-[10px] font-bold flex items-center gap-1 ${th.accent}`}><Leaf size={10} /> {h.title || "自然表达"}</p>
-                  {h.en ? <p className="text-[12px] font-bold text-[#1f2937] mt-1">{h.en}</p> : null}
-                  {h.zh ? <p className="text-[10px] text-[#9ca3af]">{h.zh}</p> : null}
-                  {Array.isArray(h.breakdown) && h.breakdown.length > 0 && (
-                    <ul className="mt-1 flex flex-col gap-0.5">
-                      {h.breakdown.slice(0, 3).map((b, j) => <li key={j} className="text-[10px] text-[#6b7280]">• {b}</li>)}
-                    </ul>
-                  )}
                 </div>
               );
             }

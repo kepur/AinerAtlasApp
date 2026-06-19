@@ -130,6 +130,7 @@ function AppLayout() {
           <Route path="/topics/new" element={<CreateTopic />} />
           <Route path="/circles/:roomId" element={<CircleRoom />} />
           <Route path="/circles/summary/:roomId" element={<CircleSummary />} />
+          <Route path="/circles/:roomId/summary" element={<CircleSummary />} />
           <Route path="/match" element={<MatchRadar />} />
           <Route path="/match/:id" element={<MatchDetail />} />
           <Route path="/voice" element={<VoiceChat />} />

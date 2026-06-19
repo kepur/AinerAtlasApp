@@ -4,8 +4,9 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
-from app.models import ExpressionAsset, Thought, ThoughtVersion
+from app.models import ExpressionAsset, Thought, ThoughtVersion, Topic
 from app.schemas import ThoughtDetailRead, ThoughtRead, ThoughtVersionDiffRead, ThoughtVersionRead
+from app.services.topic_compose import draft_topic_from_thought
 
 router = APIRouter(prefix="/thoughts", tags=["thoughts"])
 
@@ -164,29 +165,29 @@ def get_mind_graph(
 
 
 @router.post("/{thought_id}/convert-to-topic")
-def convert_thought_to_topic(
+async def convert_thought_to_topic(
     thought_id: str,
     current_user: CurrentUser,
     db: DBSession,
 ) -> dict:
-    from app.models import Topic, utc_now
     thought = _get_thought(thought_id, current_user.id, db)
-    freeze = thought.freeze_payload or {}
-    title = thought.title or "未命名思想"
-    background = freeze.get("golden_quote", "") or thought.summary or ""
-    keywords = freeze.get("keywords", [])
-    pro_view = freeze.get("arguments", ["同意"])[0] if freeze.get("arguments") else ""
-    con_view = freeze.get("values", ["反对"])[0] if freeze.get("values") else ""
+    draft = await draft_topic_from_thought(db, thought)
+
+    existing = db.scalar(
+        select(Topic).where(Topic.thought_id == thought.id, Topic.creator_id == current_user.id)
+    )
+    if existing:
+        return {"id": existing.id, "title": existing.title, "message": "该思想已发布为话题"}
 
     topic = Topic(
-        title=title,
+        title=draft["title"],
         creator_id=current_user.id,
         thought_id=thought.id,
-        category="converted",
-        background=background,
-        tags=keywords[:5],
-        pro_view=pro_view,
-        con_view=con_view,
+        category="from_thought",
+        background=draft.get("background", ""),
+        tags=(draft.get("suggested_tags") or [])[:6],
+        pro_view=draft.get("pro_view", ""),
+        con_view=draft.get("con_view", ""),
         status="published",
         language="zh",
         heat="0",
@@ -194,7 +195,7 @@ def convert_thought_to_topic(
     db.add(topic)
     db.commit()
     db.refresh(topic)
-    return {"id": topic.id, "title": topic.title, "message": "思想已转换为公开话题"}
+    return {"id": topic.id, "title": topic.title, "message": "思想已发布为公开话题"}
 
 
 @router.get("/{thought_id}/export")

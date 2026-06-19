@@ -84,6 +84,132 @@ def test_circles_flow() -> None:
         assert msg.json()["content"] == "我认为远程工作提高了效率"
 
 
+def test_join_topic_discussion_shared_room() -> None:
+    """Two users joining the same topic must land in one public room."""
+    with TestClient(app) as client:
+        token_a = _register_and_login(client, "topic_join_a")
+        token_b = _register_and_login(client, "topic_join_b")
+        headers_a = _auth_headers(token_a)
+        headers_b = _auth_headers(token_b)
+
+        topic = client.post(
+            "/api/topics",
+            json={
+                "title": "AI 会取代创意工作吗？",
+                "background": "生成式 AI 快速发展",
+                "pro_view": "提升效率",
+                "con_view": "削弱原创",
+                "tags": ["AI"],
+            },
+            headers=headers_a,
+        )
+        assert topic.status_code == 201, topic.text
+        topic_id = topic.json()["id"]
+
+        room_a = client.post(
+            "/api/circles/join-topic",
+            json={"topic_id": topic_id},
+            headers=headers_a,
+        )
+        assert room_a.status_code == 200, room_a.text
+        room_id = room_a.json()["id"]
+
+        room_b = client.post(
+            "/api/circles/join-topic",
+            json={"topic_id": topic_id},
+            headers=headers_b,
+        )
+        assert room_b.status_code == 200, room_b.text
+        assert room_b.json()["id"] == room_id
+        assert len(room_b.json()["members"]) >= 2
+
+        listing = client.get("/api/topics", headers=headers_a)
+        assert listing.status_code == 200
+        row = next(t for t in listing.json() if t["id"] == topic_id)
+        assert row["active_room_id"] == room_id
+        assert row["member_count"] >= 2
+
+
+def test_circle_message_uses_chat_v2_hud(monkeypatch) -> None:
+    """Circle messages should store full chat_v2 analysis shape."""
+    from unittest.mock import AsyncMock, patch
+
+    from app.schemas import ChatV2NextQuestion, ChatV2Response
+
+    mock_v2 = ChatV2Response(
+        main_expression="I believe remote work improves focus.",
+        meaning_native="我认为远程工作能提高专注力。",
+        variants={"natural_spoken": "I believe remote work improves focus."},
+        vocabulary=["remote work", "focus"],
+    )
+    mock_data = {
+        "user_input_translated": "I believe remote work improves focus.",
+        "conversational_reply": "",
+        **mock_v2.model_dump(),
+    }
+
+    mock_provider = AsyncMock()
+    mock_provider.chat_v2 = AsyncMock(return_value=mock_data)
+
+    with patch("app.services.circle_learning.require_llm_provider", return_value=mock_provider):
+        with TestClient(app) as client:
+            token = _register_and_login(client, "circle_v2")
+            headers = _auth_headers(token)
+
+            topic = client.post(
+                "/api/topics",
+                json={"title": "远程工作", "background": "test"},
+                headers=headers,
+            )
+            topic_id = topic.json()["id"]
+            room = client.post(
+                "/api/circles/join-topic",
+                json={"topic_id": topic_id},
+                headers=headers,
+            )
+            room_id = room.json()["id"]
+
+            msg = client.post(
+                f"/api/circles/{room_id}/messages",
+                json={"content": "我觉得远程办公更高效", "content_language": "zh"},
+                headers=headers,
+            )
+            assert msg.status_code == 200, msg.text
+            analysis = msg.json()["analysis"]
+            assert analysis.get("v2") is True
+            assert analysis.get("main_expression")
+            assert "patterns_v2" in analysis
+
+
+def test_topic_analyze_returns_tags() -> None:
+    from unittest.mock import AsyncMock, patch
+
+    mock_provider = AsyncMock()
+    mock_provider.complete_json = AsyncMock(
+        return_value={
+            "title": "远程办公更好吗",
+            "background": "疫情后远程办公成为常态。",
+            "pro_view": "更灵活",
+            "con_view": "协作变难",
+            "suggested_tags": ["职场", "远程", "辩论"],
+        }
+    )
+
+    with patch("app.services.topic_compose.require_llm_provider", return_value=mock_provider):
+        with TestClient(app) as client:
+            token = _register_and_login(client, "topic_analyze")
+            headers = _auth_headers(token)
+            resp = client.post(
+                "/api/topics/analyze",
+                json={"title": "远程办公更好吗"},
+                headers=headers,
+            )
+            assert resp.status_code == 200, resp.text
+            body = resp.json()
+            assert body["title"]
+            assert "远程" in body["suggested_tags"] or len(body["suggested_tags"]) >= 1
+
+
 def test_matching_enable_and_recommendations() -> None:
     with TestClient(app) as client:
         token_a = _register_and_login(client, "match_a")

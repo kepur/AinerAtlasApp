@@ -19,7 +19,7 @@ DEFAULT_OMNI_MODELS: tuple[str, ...] = (
 )
 
 RECOMMENDED_VAD_PATCH: dict[str, Any] = {
-    "omni_silence_ms": 1200,
+    "omni_silence_ms": 1000,
     "omni_vad_threshold": 0.68,
     "omni_vad_type": "semantic_vad",
     "omni_tap_to_end": True,
@@ -41,8 +41,10 @@ DEFAULT_VOICE_PLATFORM_CONFIG: dict[str, Any] = {
     "omni_turn_detection": True,
     "omni_vad_type": "semantic_vad",
     "omni_vad_threshold": 0.68,
-    "omni_silence_ms": 1200,
+    "omni_silence_ms": 1000,
     "omni_tap_to_end": True,
+    # Qwen-Omni-Realtime must use Beijing; Singapore MAAS is for Fun-ASR only.
+    "omni_realtime_url": "wss://dashscope.aliyuncs.com/api-ws/v1/realtime",
     # Aliyun Intelligent Speech Interaction (口语评测)
     "speech_assessment_enabled": True,
     "nls_app_key": "",

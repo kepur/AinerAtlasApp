@@ -405,7 +405,7 @@ async def evaluate_pronunciation(
         spoken_text=transcript,
         fluency_score=result.get("fluency_score", voice_analysis.get("fluency_score", 50)),
         accuracy_score=result.get("accuracy_score", 50),
-        completeness_score=result.get("pronunciation_score", result.get("accuracy_score", 50)),
+        completeness_score=result.get("completeness_score", result.get("pronunciation_score", result.get("accuracy_score", 50))),
         analysis={**result, "voice_analysis": voice_analysis},
     )
     db.add(score)

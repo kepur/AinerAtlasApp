@@ -276,6 +276,7 @@ def seed_defaults() -> None:
         _repair_conversation_activity_schema(db)
         _repair_user_profile_schema(db)
         _repair_app_settings_schema(db)
+        _ensure_default_llm_routing(db)
         app_settings = db.get(AppSettings, "default")
         if not app_settings:
             db.add(AppSettings(id="default"))
@@ -290,6 +291,7 @@ def seed_defaults() -> None:
 
         _seed_game_templates(db)
         _seed_romance_templates_if_missing(db)
+        _seed_ethan_romance_if_missing(db)
         try:
             from app.services.game_assets import seed_assets
             n = seed_assets(db)
@@ -486,6 +488,71 @@ def _seed_romance_templates_if_missing(db) -> None:
     ]
     db.add_all(romance_templates)
     logger.info("Seeded {} romance templates", len(romance_templates))
+
+
+def _seed_ethan_romance_if_missing(db) -> None:
+    """Add male romance character Ethan for existing databases."""
+    exists = db.scalar(select(GameTemplate).where(GameTemplate.slug == "romance-ethan").limit(1))
+    if exists:
+        return
+    db.add(
+        GameTemplate(
+            slug="romance-ethan",
+            game_type="romance",
+            title="Ethan",
+            subtitle="恋爱社交",
+            description="书店常客，温和真诚，适合练习自然约会表达。",
+            cover_url="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&q=80&w=300&h=300",
+            difficulty="B1",
+            estimated_minutes=12,
+            tags=["恋爱社交", "真诚", "B1-B2"],
+            config={
+                "target_id": "ethan",
+                "name": "Ethan",
+                "name_en": "Ethan",
+                "age": 27,
+                "role": "书店常客",
+                "gender": "male",
+                "voice": "male_warm",
+                "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300&h=300",
+                "cover_url": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&q=80&w=300&h=300",
+                "category": "恋爱社交",
+                "personality": "温和内敛，喜欢文学和咖啡，说话真诚，偶尔有点腼腆",
+                "chat_style": "自然真诚、偏口语，鼓励用户表达真实感受",
+                "identity_background": "在独立书店做兼职，周末常来咖啡馆看书。",
+                "initial_scene": "周末午后，你在咖啡馆挑书，他刚好坐在你旁边的位子...",
+                "prompt_override": "",
+                "tags": ["恋爱社交", "真诚", "B1-B2"],
+            },
+            sort_order=15,
+        )
+    )
+    logger.info("Seeded romance character template: Ethan")
+
+
+def _ensure_default_llm_routing(db) -> None:
+    """Prefer DeepSeek for learning HUD analysis when not explicitly configured."""
+    settings = db.get(AppSettings, "default")
+    if not settings:
+        return
+    routing = dict(settings.llm_routing or {})
+    deepseek = db.scalar(
+        select(AIProvider).where(
+            AIProvider.provider_name == "deepseek",
+            AIProvider.enabled.is_(True),
+        ).limit(1)
+    )
+    if not deepseek:
+        return
+    changed = False
+    for key in ("grammar_analysis", "learning_analysis"):
+        current = str(routing.get(key) or "").strip()
+        if not current or current == "auto" or current in {"qwen", "dashscope"}:
+            routing[key] = "deepseek"
+            changed = True
+    if changed:
+        settings.llm_routing = routing
+        logger.info("Default LLM routing: grammar_analysis → deepseek")
 
 
 def _repair_provider_api_keys(db, settings) -> None:

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiRequest } from "../api";
 
 export type TodayTopic = {
   id: string;
@@ -11,6 +12,8 @@ export type TodayTopic = {
   status: string;
   view_count: number;
   created_at: string;
+  active_room_id?: string | null;
+  member_count?: number;
 };
 
 const FILTERS = [
@@ -26,15 +29,35 @@ type Props = {
   loading: boolean;
 };
 
+type CircleRoomRef = { id: string };
+
 export default function TodayTopicsSection({ topics, loading }: Props) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>("all");
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const filtered = topics.filter((t) => {
-    if (filter === "hot") return t.view_count > 0 || t.status === "open";
+    if (filter === "hot") return t.view_count > 0 || t.status === "open" || t.status === "active";
     if (filter === "debate") return !!(t.pro_view && t.con_view);
     return true;
   });
+
+  async function joinDiscussion(topic: TodayTopic) {
+    setJoinError(null);
+    setJoiningId(topic.id);
+    try {
+      const room = await apiRequest<CircleRoomRef>("/api/circles/join-topic", {
+        method: "POST",
+        body: JSON.stringify({ topic_id: topic.id }),
+      });
+      navigate(`/circles/${room.id}`);
+    } catch {
+      setJoinError("无法加入讨论，请稍后重试");
+    } finally {
+      setJoiningId(null);
+    }
+  }
 
   return (
     <section id="today-topics" className="pb-1 space-y-2.5">
@@ -49,7 +72,7 @@ export default function TodayTopicsSection({ topics, loading }: Props) {
           <h3 className="text-[15px] font-bold text-on-surface leading-tight">今日话题</h3>
         </div>
         <button
-          onClick={() => navigate("/circles/new")}
+          onClick={() => navigate("/topics/new")}
           className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-[11px] font-bold active:scale-95 transition-transform flex-shrink-0"
         >
           <span className="material-symbols-outlined text-[14px]">add</span>
@@ -58,6 +81,10 @@ export default function TodayTopicsSection({ topics, loading }: Props) {
       </div>
 
       <p className="text-[12px] text-on-surface-variant leading-snug">发现热门辩论、加入小组讨论、表达你的观点。</p>
+
+      {joinError && (
+        <p className="text-[12px] text-error bg-error/10 rounded-lg px-3 py-2">{joinError}</p>
+      )}
 
       <div className="flex p-0.5 bg-surface-container rounded-lg">
         {FILTERS.map((f) => (
@@ -92,7 +119,7 @@ export default function TodayTopicsSection({ topics, loading }: Props) {
               <div className="flex justify-between items-start gap-2">
                 <h4 className="font-semibold text-[14px] text-on-surface leading-snug flex-1">{topic.title}</h4>
                 <span className="px-1.5 py-0.5 bg-primary-fixed text-primary text-[10px] rounded-full font-bold flex-shrink-0">
-                  {topic.status === "open" ? "开放" : topic.status}
+                  {topic.status === "open" || topic.status === "active" ? "开放" : topic.status}
                 </span>
               </div>
 
@@ -134,17 +161,18 @@ export default function TodayTopicsSection({ topics, loading }: Props) {
                   </span>
                   <span className="flex items-center gap-0.5 flex-shrink-0">
                     <span className="material-symbols-outlined text-[14px]">group</span>
-                    可加入
+                    {(topic.member_count ?? 0) > 0 ? `${topic.member_count} 人在聊` : "可加入"}
                   </span>
                 </div>
                 <button
-                  onClick={() =>
-                    navigate(`/circles/new?topic=${topic.id}&title=${encodeURIComponent(topic.title)}`)
-                  }
-                  className="flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-full text-[12px] font-bold active:scale-95 transition-transform shadow-sm flex-shrink-0"
+                  onClick={() => void joinDiscussion(topic)}
+                  disabled={joiningId === topic.id}
+                  className="flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-full text-[12px] font-bold active:scale-95 transition-transform shadow-sm flex-shrink-0 disabled:opacity-60"
                 >
-                  加入讨论
-                  <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+                  {joiningId === topic.id ? "加入中..." : "加入讨论"}
+                  {joiningId !== topic.id && (
+                    <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+                  )}
                 </button>
               </div>
             </article>

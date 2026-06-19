@@ -309,6 +309,7 @@ class AssetRead(BaseModel):
     keywords: list[str]
     patterns: list[str]
     current_version: int = 1
+    thought_id: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -821,6 +822,22 @@ class TopicCreate(BaseModel):
     thought_id: str | None = None
 
 
+class TopicAnalyzeRequest(BaseModel):
+    title: str = ""
+    background: str = ""
+    pro_view: str = ""
+    con_view: str = ""
+
+
+class TopicDraftRead(BaseModel):
+    title: str
+    background: str = ""
+    pro_view: str = ""
+    con_view: str = ""
+    suggested_tags: list[str] = Field(default_factory=list)
+    thought_id: str | None = None
+
+
 class TopicRead(BaseModel):
     id: str
     creator_id: str
@@ -834,8 +851,14 @@ class TopicRead(BaseModel):
     status: str
     view_count: int
     created_at: datetime
+    active_room_id: str | None = None
+    member_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class JoinTopicDiscussionRequest(BaseModel):
+    topic_id: str
 
 
 ROOM_TYPE_OPTIONS = {
@@ -855,6 +878,12 @@ class CircleRoomCreate(BaseModel):
 class CircleMessageCreate(BaseModel):
     content: str
     content_language: str = "auto"
+
+
+class CirclePublishTopicRequest(BaseModel):
+    title: str | None = None
+    background: str | None = None
+    thought_id: str | None = None
 
 
 class CircleMemberRead(BaseModel):

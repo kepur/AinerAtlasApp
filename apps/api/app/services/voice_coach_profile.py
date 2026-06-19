@@ -202,10 +202,10 @@ def compose_session_instructions(
         f"## This week's focus\n{directives}\n\n"
         f"## Practice weak areas: {weak_block}\n"
         f"## User interests: {interest_block}\n\n"
-        f"## CRITICAL — proactive opening\n"
-        f"When the session starts, YOU speak FIRST. Do not wait for the user.\n"
-        f"Start with something like: \"{greeting}\"\n"
-        f"Then ask one of:\n{q_block}\n"
+        f"## Opening style\n"
+        f"Wait for the user to speak first, then reply warmly. "
+        f"You may weave in a brief personalized greeting in your first reply, e.g.: \"{greeting}\"\n"
+        f"Follow-up questions to consider:\n{q_block}\n"
     )
 
 

@@ -62,6 +62,24 @@ function formatCallDuration(totalSec: number) {
 
 const MODES = ["自由对话", "跟读训练", "面试练习", "小组语音"];
 
+function buildCoachMarqueeLine(
+  briefing: CoachBriefing | null,
+  silenceMs: number,
+  tapToEnd: boolean,
+  tapAck: boolean,
+): string {
+  const pauseHint = tapToEnd
+    ? `说完轻点屏幕，或停顿约 ${(silenceMs / 1000).toFixed(1)} 秒`
+    : `说完后停顿约 ${(silenceMs / 1000).toFixed(1)} 秒`;
+  const chunks: string[] = [];
+  if (briefing?.user_summary) chunks.push(briefing.user_summary);
+  for (const tag of (briefing?.interests ?? []).slice(0, 4)) chunks.push(tag);
+  for (const s of (briefing?.strengths ?? []).slice(0, 2)) chunks.push(s);
+  const profile = chunks.length ? chunks.join(" · ") : "教练已就绪";
+  const ack = tapAck ? " · 已发送" : "";
+  return `${profile} · ${pauseHint}${ack}`;
+}
+
 function patchAssistantBubble(
   setMessages: Dispatch<SetStateAction<VoiceBubbleMsg[]>>,
   tips: GrammarTip[],
@@ -305,6 +323,17 @@ export default function VoiceChat() {
         const data = JSON.parse(event.data) as Record<string, unknown>;
 
         if (data.type === "session") {
+          const ready = data.ready !== false;
+          const connectionError = typeof data.connection_error === "string" ? data.connection_error.trim() : "";
+          if (!ready) {
+            if (!settled) {
+              settled = true;
+              window.clearTimeout(timeout);
+              ws.close();
+              reject(new Error(connectionError || "语音服务连接失败，请稍后重试"));
+            }
+            return;
+          }
           if (!settled) {
             settled = true;
             window.clearTimeout(timeout);
@@ -556,7 +585,7 @@ export default function VoiceChat() {
       await startMicStream();
       setInCall(true);
       setCallSeconds(0);
-      const silenceSec = ((sessionVoiceUiRef.current?.silence_ms ?? 1200) / 1000).toFixed(1);
+      const silenceSec = ((sessionVoiceUiRef.current?.silence_ms ?? 1000) / 1000).toFixed(1);
       const tapHint = sessionVoiceUiRef.current?.tap_to_end !== false
         ? `说完可轻点屏幕，或停顿约 ${silenceSec} 秒`
         : `说完后停顿约 ${silenceSec} 秒即可`;
@@ -665,9 +694,20 @@ export default function VoiceChat() {
     ? "已连接"
     : "未连接";
 
+  const silenceMs = sessionInfo?.voice_ui?.silence_ms ?? 1000;
+  const coachMarqueeLine = useMemo(
+    () => buildCoachMarqueeLine(
+      coachBriefing,
+      silenceMs,
+      sessionInfo?.voice_ui?.tap_to_end !== false,
+      tapAck,
+    ),
+    [coachBriefing, silenceMs, sessionInfo?.voice_ui?.tap_to_end, tapAck],
+  );
+
   return (
-    <div className="premium voice-chat-shell fixed inset-0 bg-surface text-on-surface flex flex-col overflow-hidden">
-      <AmbientScene mood={petMood} energized={inCall} />
+    <div className={`premium voice-chat-shell fixed inset-0 bg-surface text-on-surface flex flex-col overflow-hidden${inCall ? " voice-chat-shell--live" : ""}`}>
+      <AmbientScene mood={petMood} energized={inCall} live={inCall} />
 
       <header className="flex-shrink-0 flex items-center justify-between px-margin-mobile h-16 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/20 z-40 relative">
         <div className="flex items-center gap-3">
@@ -686,11 +726,17 @@ export default function VoiceChat() {
             </p>
           </div>
         </div>
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${inCall ? "bg-error/10 border-error/30 voice-call-pulse" : "bg-primary/10 border-primary/20"}`}>
-          <span className={`material-symbols-outlined text-[16px] ${inCall ? "text-error" : "text-primary"}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${
+          inCall
+            ? "voice-call-live-badge voice-call-live-pulse"
+            : connecting
+              ? "bg-primary/10 border-primary/20"
+              : "bg-surface-container-high border-outline-variant/30"
+        }`}>
+          <span className={`material-symbols-outlined text-[16px] ${inCall ? "" : connecting ? "text-primary" : "text-on-surface-variant"}`} style={{ fontVariationSettings: "'FILL' 1" }}>
             {inCall ? "call" : connecting ? "sync" : "call_end"}
           </span>
-          <span className={`text-[12px] font-bold ${inCall ? "text-error" : "text-primary"}`}>
+          <span className={`text-[12px] font-bold ${inCall ? "" : connecting ? "text-primary" : "text-on-surface-variant"}`}>
             {statusLabel}
           </span>
         </div>
@@ -718,40 +764,26 @@ export default function VoiceChat() {
         </nav>
       )}
 
-      {inCall && coachBriefing && (
-        <div className="flex-shrink-0 mx-margin-mobile mt-2 px-3 py-2.5 rounded-xl bg-tertiary-fixed/10 border border-tertiary-fixed/20">
-          <p className="text-[11px] font-bold text-tertiary-container uppercase tracking-wide mb-1">今日教练已了解你</p>
-          {coachBriefing.user_summary && (
-            <p className="text-[12px] text-on-surface leading-snug mb-1.5">{coachBriefing.user_summary}</p>
-          )}
-          <div className="flex flex-wrap gap-1">
-            {(coachBriefing.interests ?? []).slice(0, 4).map((tag) => (
-              <span key={tag} className="px-2 py-0.5 rounded-full bg-surface-container text-[10px] text-on-surface-variant">{tag}</span>
-            ))}
-          </div>
-          <p className="text-[11px] text-primary/80 mt-1.5 italic">教练会先开口打招呼，请听完后回应</p>
-        </div>
-      )}
-
       {inCall && (
-        <div className="flex-shrink-0 mx-margin-mobile mt-2 px-3 py-2 rounded-xl bg-primary/8 border border-primary/15 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[18px]">touch_app</span>
-          <p className="text-[12px] text-on-surface leading-snug flex-1">
-            {sessionInfo?.voice_ui?.tap_to_end !== false
-              ? `说完轻点屏幕，或停顿约 ${((sessionInfo?.voice_ui?.silence_ms ?? 1200) / 1000).toFixed(1)} 秒`
-              : `说完后停顿约 ${((sessionInfo?.voice_ui?.silence_ms ?? 1200) / 1000).toFixed(1)} 秒`}
-            {tapAck && <span className="ml-2 text-primary font-bold">· 已发送</span>}
-          </p>
+        <div className="voice-coach-marquee mt-1 mb-1">
+          <div className="voice-coach-marquee-track">
+            <span><strong>教练了解你</strong> · {coachMarqueeLine}</span>
+            <span aria-hidden><strong>教练了解你</strong> · {coachMarqueeLine}</span>
+          </div>
         </div>
       )}
 
-      {!inCall && <CompanionPet mood="idle" />}
-
-      {inCall && <CompanionPet mood={petMood} compact />}
+      {!inCall && <CompanionPet mood="idle" playRandomIdle />}
 
       <div className="voice-chat-layout chat-detail-layout flex-1 min-h-0 flex flex-col">
-        {(inCall || turns.length > 0) && (
-          <div className="voice-hud-strip">
+        {inCall && (
+          <div className="voice-pet-float">
+            <CompanionPet mood={petMood} compact playRandomIdle />
+          </div>
+        )}
+
+        {(turns.length > 0) && (
+          <div className={`voice-hud-strip${inCall ? " voice-hud-strip--in-call" : ""}`}>
             <TurnSelector
               turns={selectorTurns}
               activeTurnId={activeTurnId}
@@ -761,7 +793,9 @@ export default function VoiceChat() {
               onUnpin={unpinTurn}
               minTurns={1}
             />
-            <p className="voice-hud-hint">本轮学习要点（横滑）· 点击色块回顾历史轮次</p>
+            <p className="voice-hud-hint">
+              {inCall ? "实时学习要点 · 每轮异步生成" : "本轮学习要点（横滑）· 点击色块回顾历史轮次"}
+            </p>
             <LearningHUD
               hud={displayHud}
               streamPhase={displayPhase}

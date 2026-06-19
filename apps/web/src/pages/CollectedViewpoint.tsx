@@ -101,10 +101,16 @@ export default function CollectedViewpoint() {
                     )}
                     <div className="flex gap-2 pt-1">
                       <button
-                        onClick={() => navigate("/chat")}
+                        onClick={() => {
+                          if (b.freeze_payload?.room_id) {
+                            navigate(`/circles/${b.freeze_payload.room_id}`);
+                          } else {
+                            navigate("/home#today-topics");
+                          }
+                        }}
                         className="flex-1 h-10 bg-primary/10 text-primary rounded-full text-[13px] font-bold active:scale-95 transition-all"
                       >
-                        深入讨论
+                        {b.freeze_payload?.room_id ? "回到讨论" : "去发现讨论"}
                       </button>
                       <button
                         onClick={() => navigate("/thoughts")}

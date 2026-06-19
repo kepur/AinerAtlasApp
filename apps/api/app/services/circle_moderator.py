@@ -1,7 +1,12 @@
-"""AI circle moderator: translation, pacing, counter-questions per room type."""
+"""AI circle moderator: Chat v2 HUD, translation, counter-questions per room type."""
 
+from __future__ import annotations
+
+from typing import Any
+
+from app.services.circle_learning import safe_analyze_circle_message
+from app.services.llm import require_llm_provider
 from app.services.runtime_config import resolve_default_llm_provider
-from app.services.llm import get_llm_provider
 
 ROOM_TYPE_PROMPTS = {
     "roundtable": "You are a roundtable moderator. Facilitate an open group discussion. Encourage diverse viewpoints, ensure everyone speaks, summarize key points occasionally.",
@@ -21,46 +26,55 @@ async def moderate_message(
     room_type: str = "roundtable",
     native_language: str = "zh",
     target_language: str = "en",
+    user_id: str | None = None,
     db=None,
-) -> dict:
-    provider = get_llm_provider(resolve_default_llm_provider(db), db=db)
+) -> dict[str, Any]:
     type_instruction = ROOM_TYPE_PROMPTS.get(room_type, ROOM_TYPE_PROMPTS["roundtable"])
-    result = await provider.thought_dialogue(
-        user_input=content,
-        profile=None,
-        native_language=native_language,
-        target_language=target_language,
-        mode=room_type,
-        topic=f"{room_title}\n\n[Moderator instruction: {type_instruction}]",
+    analysis = await safe_analyze_circle_message(
+        content,
+        room_title=room_title,
+        room_type=room_type,
+        user_id=user_id,
+        moderator_instruction=type_instruction,
+        db=db,
     )
-    return {
-        "translated_content": result.main_reply_target,
-        "grammar_tips": [t.model_dump() for t in result.grammar_tips],
-        "counter_question": result.question or result.challenge,
-        "on_topic": True,
-        "host_note": f"AI 主持 [{room_type}]：{_host_note_for_type(room_type)}",
-    }
+    analysis["host_note"] = f"AI 主持 [{room_type}]：{_host_note_for_type(room_type)}"
+    return analysis
 
 
-async def generate_room_summary(messages: list[dict], room_title: str, room_type: str = "roundtable", db=None) -> dict:
+async def generate_room_summary(
+    messages: list[dict],
+    room_title: str,
+    room_type: str = "roundtable",
+    db=None,
+) -> dict[str, Any]:
     transcript = "\n".join(
         f"{m.get('role', 'user')}: {m.get('content', '')}" for m in messages
     )
     type_instruction = ROOM_TYPE_PROMPTS.get(room_type, ROOM_TYPE_PROMPTS["roundtable"])
-    provider = get_llm_provider(resolve_default_llm_provider(db), db=db)
+    provider = require_llm_provider(resolve_default_llm_provider(db), db=db)
     result = await provider.generate_expression_asset(
-        transcript, "en", f"{room_title}\n\n[Type: {room_type}]\n{type_instruction}",
+        transcript,
+        "en",
+        f"{room_title}\n\n[Type: {room_type}]\n{type_instruction}",
     )
+    main_points = result.arguments or []
+    narrative = result.main_reply_native or ""
+    if narrative and narrative not in main_points:
+        main_points = [narrative, *main_points]
     return {
         "room_title": room_title,
         "room_type": room_type,
-        "main_points": result.arguments or [],
+        "summary": narrative or room_title,
+        "main_points": main_points,
         "pro_views": [result.main_reply_native] if result.main_reply_native else [],
         "con_views": [result.challenge] if result.challenge else [],
         "consensus": result.facts or [],
         "disagreements": result.values or [],
         "golden_quotes": [result.suggested_expression] if result.suggested_expression else [],
         "moderator_notes": _host_note_for_type(room_type),
+        "keywords": result.keywords or result.vocabulary or [],
+        "patterns": result.core_patterns or result.patterns or [],
     }
 
 

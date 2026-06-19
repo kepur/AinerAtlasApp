@@ -1,16 +1,45 @@
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { petMoodMotion, pickRandomPetAction, petIdleActionMotion, type PetIdleAction } from "./petAnimations";
 import type { SceneMood } from "./types";
 
 type Props = {
   mood: SceneMood;
   compact?: boolean;
+  /** Cycle through 4–6 idle tricks (bounce, roll, …) when not speaking/thinking. */
+  playRandomIdle?: boolean;
 };
 
 /** CSS + Framer Motion companion (default until GLB is wired). */
-export default function CssCompanionPet({ mood, compact = false }: Props) {
+export default function CssCompanionPet({ mood, compact = false, playRandomIdle = false }: Props) {
   const speaking = mood === "speaking";
   const thinking = mood === "thinking";
   const listening = mood === "listening";
+  const moodActive = speaking || thinking || listening;
+
+  const [idleAction, setIdleAction] = useState<PetIdleAction>("float");
+
+  useEffect(() => {
+    if (!playRandomIdle || moodActive) return;
+    let timer: number | undefined;
+    const schedule = (prev?: PetIdleAction) => {
+      const next = pickRandomPetAction(prev);
+      setIdleAction(next);
+      const motion = petIdleActionMotion(next);
+      const dur = typeof motion.transition.duration === "number" ? motion.transition.duration : 2;
+      timer = window.setTimeout(() => schedule(next), (dur + 1.2 + Math.random() * 2) * 1000);
+    };
+    schedule();
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [playRandomIdle, moodActive]);
+
+  const rigMotion = moodActive
+    ? petMoodMotion(mood)
+    : playRandomIdle
+      ? petIdleActionMotion(idleAction)
+      : petMoodMotion("idle");
 
   return (
     <div className={`ambient-pet-stage ${compact ? "compact" : ""}`} aria-hidden>
@@ -21,15 +50,8 @@ export default function CssCompanionPet({ mood, compact = false }: Props) {
       />
       <motion.div
         className="ambient-pet-rig"
-        animate={{
-          y: speaking ? [0, -10, -4, 0] : thinking ? [0, -6, 0] : [0, -14, 0],
-          rotateY: listening ? [-8, 8, -8] : [0, 0, 0],
-        }}
-        transition={{
-          duration: speaking ? 0.55 : thinking ? 1.2 : 2.8,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
+        animate={rigMotion.animate}
+        transition={rigMotion.transition}
       >
         <div className="ambient-pet-aura" data-mood={mood} />
         <div className="ambient-pet-body">

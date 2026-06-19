@@ -6,6 +6,7 @@ import type { CompanionPetRenderer, SceneMood } from "./types";
 export type CompanionPetProps = {
   mood: SceneMood;
   compact?: boolean;
+  playRandomIdle?: boolean;
   /** `css` = default puppet; `three` = GLB slot (pass threeSlot or use built-in placeholder) */
   renderer?: CompanionPetRenderer;
   threeSlot?: ReactNode;
@@ -14,6 +15,7 @@ export type CompanionPetProps = {
 export default function CompanionPet({
   mood,
   compact = false,
+  playRandomIdle = false,
   renderer = "css",
   threeSlot,
 }: CompanionPetProps) {
@@ -27,7 +29,7 @@ export default function CompanionPet({
 
   return (
     <div className={`ambient-pet-zone ${compact ? "compact" : ""}`}>
-      <CssCompanionPet mood={mood} compact={compact} />
+      <CssCompanionPet mood={mood} compact={compact} playRandomIdle={playRandomIdle} />
     </div>
   );
 }

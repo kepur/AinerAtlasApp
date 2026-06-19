@@ -35,6 +35,7 @@ export default function AiTrioChat() {
   useEffect(() => {
     if (!roomId) return;
     loadRoom();
+    ensureJoined();
 
     let ws: WebSocket | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -95,6 +96,13 @@ export default function AiTrioChat() {
     apiRequest<CircleRoom>(`/api/circles/${roomId}`)
       .then((r) => { setRoom(r); setLoadFailed(false); })
       .catch(() => setLoadFailed((prev) => prev || room === null));
+  }
+
+  function ensureJoined() {
+    if (!roomId) return;
+    apiRequest<CircleRoom>(`/api/circles/${roomId}/join`, { method: "POST" })
+      .then((r) => { setRoom(r); setLoadFailed(false); })
+      .catch(() => setLoadFailed(true));
   }
 
   // The room could not be opened (missing id or backend failure) — surface a

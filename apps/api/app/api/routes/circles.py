@@ -9,20 +9,44 @@ from app.models import (
     CircleRoom,
     ModerationEvent,
     Thought,
+    Topic,
     utc_now,
 )
 from app.schemas import (
     CircleMessageCreate,
     CircleMessageRead,
+    CirclePublishTopicRequest,
     CircleRoomCreate,
     CircleRoomRead,
+    JoinTopicDiscussionRequest,
     ROOM_TYPE_OPTIONS,
 )
+from app.services.circle_discussion import freeze_circle_room, publish_circle_topic
 from app.services.circle_moderator import generate_room_summary, moderate_message
 from app.services.circle_hub import circle_hub
+from app.services.llm import LLMUnavailableError
 from app.services.moderation import moderate_text
 
 router = APIRouter(prefix="/circles", tags=["circles"])
+
+_CIRCLE_HUD_PRIVATE_KEYS = frozenset({
+    "grammar_tips",
+    "corrected_sentence",
+    "mistakes",
+    "user_input_translated",
+    "user_input_versions",
+    "patterns_v2",
+    "why_this_expression",
+    "agents",
+    "vocabulary",
+    "variants",
+    "expression_versions",
+    "main_expression",
+    "meaning_native",
+    "main_reply_native",
+    "main_reply_target",
+    "suggested_expression",
+})
 
 
 @router.post("", response_model=CircleRoomRead, status_code=201)
@@ -58,6 +82,56 @@ def list_rooms(db: DBSession, status: str | None = None) -> list[CircleRoomRead]
         stmt = stmt.where(CircleRoom.status == status)
     rooms = list(db.scalars(stmt))
     return [_load_room(r.id, db) for r in rooms]
+
+
+@router.post("/join-topic", response_model=CircleRoomRead)
+def join_topic_discussion(
+    payload: JoinTopicDiscussionRequest,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> CircleRoomRead:
+    """Find-or-create the public discussion room for a topic, then join the caller."""
+    topic = db.get(Topic, payload.topic_id)
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    if topic.status not in {"active", "published", "open"}:
+        raise HTTPException(status_code=400, detail="Topic is not open for discussion")
+
+    room = db.scalar(
+        select(CircleRoom)
+        .where(CircleRoom.topic_id == payload.topic_id, CircleRoom.status == "active")
+        .order_by(CircleRoom.created_at.asc())
+        .limit(1)
+    )
+    if not room:
+        room_type = "debate_pk" if (topic.pro_view and topic.con_view) else "roundtable"
+        room = CircleRoom(
+            topic_id=topic.id,
+            creator_id=current_user.id,
+            title=topic.title,
+            room_type=room_type,
+            max_members=50,
+        )
+        db.add(room)
+        db.flush()
+        db.add(CircleMember(room_id=room.id, user_id=current_user.id, role="host"))
+    else:
+        existing = db.scalar(
+            select(CircleMember).where(
+                CircleMember.room_id == room.id,
+                CircleMember.user_id == current_user.id,
+            )
+        )
+        if not existing:
+            count = len(
+                list(db.scalars(select(CircleMember).where(CircleMember.room_id == room.id)))
+            )
+            if count >= room.max_members:
+                raise HTTPException(status_code=400, detail="Room is full")
+            db.add(CircleMember(room_id=room.id, user_id=current_user.id, role="member"))
+
+    db.commit()
+    return _load_room(room.id, db)
 
 
 @router.get("/bookmarks")
@@ -133,13 +207,10 @@ async def circle_room_ws(websocket: WebSocket, room_id: str) -> None:
 @router.get("/{room_id}", response_model=CircleRoomRead)
 def get_room(room_id: str, current_user: CurrentUser, db: DBSession) -> CircleRoomRead:
     room = _load_room(room_id, db)
-    # Privacy: corrections are private to the author. Strip grammar/correction
-    # fields from messages authored by *other* members; everyone still sees the
-    # content + natural translation. AI/host messages stay public.
-    _PRIVATE_KEYS = ("grammar_tips", "corrected_sentence", "mistakes", "user_input_translated")
+    # Privacy: learning HUD is private to the message author.
     for m in room.messages:
         if m.role != "assistant" and m.user_id and m.user_id != current_user.id:
-            cleaned = {k: v for k, v in (m.analysis or {}).items() if k not in _PRIVATE_KEYS}
+            cleaned = {k: v for k, v in (m.analysis or {}).items() if k not in _CIRCLE_HUD_PRIVATE_KEYS}
             m.analysis = cleaned
     return room
 
@@ -203,13 +274,17 @@ async def send_message(
             )
         )
 
-    analysis = await moderate_message(
-        payload.content,
-        payload.content_language,
-        room.title,
-        room_type=room.room_type,
-        db=db,
-    )
+    try:
+        analysis = await moderate_message(
+            payload.content,
+            payload.content_language,
+            room.title,
+            room_type=room.room_type,
+            user_id=current_user.id,
+            db=db,
+        )
+    except LLMUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=exc.message) from exc
 
     message = CircleMessage(
         room_id=room_id,
@@ -292,21 +367,111 @@ async def end_discussion(room_id: str, current_user: CurrentUser, db: DBSession)
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
 
-    messages = list(
-        db.scalars(
-            select(CircleMessage)
-            .where(CircleMessage.room_id == room_id)
-            .order_by(CircleMessage.created_at.asc())
+    member = db.scalar(
+        select(CircleMember).where(
+            CircleMember.room_id == room_id,
+            CircleMember.user_id == current_user.id,
         )
     )
-    msg_dicts = [{"role": m.role, "content": m.content} for m in messages]
-    summary = await generate_room_summary(msg_dicts, room.title, room_type=room.room_type, db=db)
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a room member")
+
+    try:
+        messages = list(
+            db.scalars(
+                select(CircleMessage)
+                .where(CircleMessage.room_id == room_id)
+                .order_by(CircleMessage.created_at.asc())
+            )
+        )
+        msg_dicts = [{"role": m.role, "content": m.content} for m in messages]
+        summary = await generate_room_summary(msg_dicts, room.title, room_type=room.room_type, db=db)
+    except LLMUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=exc.message) from exc
 
     room.status = "ended"
     room.ended_at = utc_now()
     room.summary = summary
     db.commit()
-    return {"room_id": room_id, "summary": summary}
+    return {
+        "room_id": room_id,
+        "status": room.status,
+        "summary": summary,
+        "topic_id": room.topic_id,
+    }
+
+
+@router.post("/{room_id}/freeze")
+async def freeze_discussion(room_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+    room = db.get(CircleRoom, room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    member = db.scalar(
+        select(CircleMember).where(
+            CircleMember.room_id == room_id,
+            CircleMember.user_id == current_user.id,
+        )
+    )
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a room member")
+
+    try:
+        thought = await freeze_circle_room(db, room, current_user.id)
+        db.commit()
+        db.refresh(thought)
+    except LLMUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=exc.message) from exc
+
+    return {
+        "thought_id": thought.id,
+        "title": thought.title,
+        "status": thought.status,
+        "message": "讨论已冻结到思想库",
+    }
+
+
+@router.post("/{room_id}/publish-topic")
+async def publish_discussion_topic(
+    room_id: str,
+    payload: CirclePublishTopicRequest,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> dict:
+    room = db.get(CircleRoom, room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    member = db.scalar(
+        select(CircleMember).where(
+            CircleMember.room_id == room_id,
+            CircleMember.user_id == current_user.id,
+        )
+    )
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a room member")
+
+    try:
+        topic = await publish_circle_topic(
+            db,
+            room,
+            current_user.id,
+            title=payload.title,
+            background=payload.background,
+            thought_id=payload.thought_id,
+        )
+        db.commit()
+        db.refresh(topic)
+    except LLMUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=exc.message) from exc
+
+    return {
+        "topic_id": topic.id,
+        "title": topic.title,
+        "status": topic.status,
+        "room_id": room_id,
+        "message": "讨论已发布到话题广场",
+    }
 
 
 @router.post("/{room_id}/messages/{message_id}/bookmark")

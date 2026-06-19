@@ -148,7 +148,14 @@ def build_pronunciation_scores(
     spoken_words = _tokenize(transcript)
     matcher = SequenceMatcher(None, ref_words, spoken_words)
     matches = sum(block.size for block in matcher.get_matching_blocks())
-    accuracy = round((matches / max(len(ref_words), 1)) * 100, 1)
+    word_accuracy = (matches / max(len(ref_words), 1)) * 100
+    text_ratio = SequenceMatcher(
+        None,
+        reference_text.lower().strip(),
+        transcript.lower().strip(),
+    ).ratio() * 100
+    accuracy = round(max(word_accuracy, text_ratio * 0.95), 1)
+    completeness = round(min(100.0, (len(spoken_words) / max(len(ref_words), 1)) * 100), 1)
     fluency = round(min(100, accuracy + (8 if len(spoken_words) >= len(ref_words) * 0.8 else -5)), 1)
     confidence = round((accuracy + fluency) / 2, 1)
 
@@ -181,6 +188,7 @@ def build_pronunciation_scores(
         "fluency_score": fluency,
         "accuracy_score": accuracy,
         "pronunciation_score": accuracy,
+        "completeness_score": completeness,
         "confidence_score": confidence,
         "top_corrections": corrections,
         "suggestions": [

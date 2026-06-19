@@ -47,7 +47,7 @@ class OmniRealtimeBridge:
         enable_turn_detection: bool = True,
         vad_type: str = "server_vad",
         vad_threshold: float = 0.5,
-        silence_ms: int = 800,
+        silence_ms: int = 1000,
         db: Session | None = None,
     ) -> None:
         self._loop = loop
@@ -154,8 +154,12 @@ class OmniRealtimeBridge:
             self._emit({"type": "speech_stopped", "provider": "qwen-omni-realtime"})
             return
         if event_type == "error":
-            message = response.get("message") or response.get("error") or "Omni realtime error"
-            self._emit({"type": "error", "message": str(message), "provider": "qwen-omni-realtime"})
+            raw = response.get("message") or response.get("error") or "Omni realtime error"
+            if isinstance(raw, dict):
+                message = str(raw.get("message") or raw.get("detail") or raw)
+            else:
+                message = str(raw)
+            self._emit({"type": "error", "message": message, "provider": "qwen-omni-realtime"})
 
     def start(self) -> None:
         if not OMNI_AVAILABLE:
@@ -194,6 +198,7 @@ class OmniRealtimeBridge:
                 url=self._url,
             )
             self._conv.connect()
+            logger.info("Omni realtime connecting: model={} url={}", self._model, self._url)
             self._conv.update_session(
                 output_modalities=[MultiModality.AUDIO, MultiModality.TEXT],
                 voice=self._voice,
@@ -235,14 +240,8 @@ class OmniRealtimeBridge:
                 logger.warning("Omni commit_user_turn failed: {}", exc)
 
     def trigger_proactive_greeting(self) -> None:
-        """Ask Omni to speak first (session opener) without waiting for user audio."""
-        with self._lock:
-            if not self._conv:
-                return
-            try:
-                self._conv.create_response()
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Omni proactive greeting failed: {}", exc)
+        """No-op: DashScope Omni requires a user turn before create_response()."""
+        return
 
     def stop(self) -> None:
         with self._lock:
@@ -269,17 +268,23 @@ class OmniRealtimeBridge:
         return events
 
 
+OMNI_REALTIME_WS_BEIJING = "wss://dashscope.aliyuncs.com/api-ws/v1/realtime"
+# Backward-compatible alias
+OMNI_REALTIME_WS_DEFAULT = OMNI_REALTIME_WS_BEIJING
+
+
 def resolve_omni_realtime_url(db: Session | None = None) -> str:
-    """Pick Beijing default or Singapore workspace-specific Omni Realtime endpoint."""
-    config = resolve_dashscope_config(db)
-    if not config:
-        return "wss://dashscope.aliyuncs.com/api-ws/v1/realtime"
-    if config.websocket_base_url and "/api-ws/" in config.websocket_base_url:
-        base = config.websocket_base_url.split("/api-ws/", 1)[0]
-        return f"{base}/api-ws/v1/realtime"
-    if config.workspace_id:
-        return f"wss://{config.workspace_id}.ap-southeast-1.maas.aliyuncs.com/api-ws/v1/realtime"
-    return "wss://dashscope.aliyuncs.com/api-ws/v1/realtime"
+    """DashScope Qwen-Omni-Realtime WebSocket endpoint.
+
+    Omni Realtime is only served on the Beijing gateway. Singapore MAAS workspace
+    URLs (…/api-ws/v1/inference) are for Fun-ASR / inference — mapping them to
+    /realtime breaks voice calls. Use admin ``omni_realtime_url`` to override.
+    """
+    cfg = get_voice_platform_config(db)
+    override = str(cfg.get("omni_realtime_url") or "").strip()
+    if override:
+        return override
+    return OMNI_REALTIME_WS_BEIJING
 
 
 def resolve_omni_vad_type(model: str, cfg: dict[str, Any]) -> str:
@@ -316,6 +321,6 @@ def build_omni_bridge(
         enable_turn_detection=bool(cfg.get("omni_turn_detection", True)),
         vad_type=vad_type,
         vad_threshold=float(cfg.get("omni_vad_threshold", 0.68) or 0.68),
-        silence_ms=int(cfg.get("omni_silence_ms", 1200) or 1200),
+        silence_ms=int(cfg.get("omni_silence_ms", 1000) or 1000),
         db=db,
     )

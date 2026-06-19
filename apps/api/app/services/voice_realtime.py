@@ -304,22 +304,15 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
             self._platform_cfg["omni_model_index"] = next_idx
         self._omni_model = model
         self._loop = asyncio.get_running_loop()
-        try:
-            bridge = self._ensure_bridge()
-            if not bridge.started:
-                await asyncio.to_thread(bridge.start)
-            if self._session_config.get("opening_greeting"):
-                await asyncio.sleep(0.35)
-                await asyncio.to_thread(bridge.trigger_proactive_greeting)
-        except Exception as exc:  # noqa: BLE001
-            from loguru import logger
-
-            logger.warning("Omni pre-warm failed: {}", exc)
-        silence_ms = int(self._platform_cfg.get("omni_silence_ms", 1200) or 1200)
+        # Lazy connect: do not block the WebSocket handshake on Omni connect or proactive greeting.
+        # Coach instructions are applied when the bridge starts on first audio chunk.
+        silence_ms = int(self._platform_cfg.get("omni_silence_ms", 1000) or 1000)
         tap_to_end = self._platform_cfg.get("omni_tap_to_end", True) is not False
         briefing = self._session_config.get("coach_briefing")
         return {
             "provider": self.provider_name,
+            "ready": True,
+            "connection_error": "",
             "session_id": config.get("session_id", "omni-session"),
             "config": config,
             "capabilities": [
@@ -365,7 +358,7 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
             if action == "start":
                 bridge = self._ensure_bridge()
                 if not bridge.started:
-                    bridge.start()
+                    await asyncio.to_thread(bridge.start)
                 self._listening = True
                 self._reset_utterance()
                 ready = await self._collect_bridge_events(timeout=0.3)
@@ -377,7 +370,7 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
             if pcm:
                 bridge = self._ensure_bridge()
                 if not bridge.started:
-                    bridge.start()
+                    await asyncio.to_thread(bridge.start)
                     self._listening = True
                 b64 = base64.b64encode(pcm).decode("ascii")
                 bridge.append_audio_b64(b64)
@@ -386,7 +379,7 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
         if msg_type == "turn_complete":
             bridge = self._ensure_bridge()
             if not bridge.started:
-                bridge.start()
+                await asyncio.to_thread(bridge.start)
             await asyncio.to_thread(bridge.commit_user_turn)
             return [
                 {"type": "turn_committed", "status": "ok", "provider": self.provider_name},

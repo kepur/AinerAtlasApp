@@ -13,8 +13,10 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models import GameSession
+from app.services.game_assets import pick_voice
 from app.services.game_engine import GameTypeEngine, register_engine
 from app.services.llm import get_llm_provider_for_task
+from app.services.romance_learning import analyze_romance_user_message
 from app.services.runtime_config import resolve_default_llm_provider
 
 logger = logging.getLogger(__name__)
@@ -34,8 +36,27 @@ _BUILTIN_TARGETS = {
         "identity_background": "在咖啡店附近做自由摄影师，常来这里看书、修片和观察人群。",
         "initial_scene": "咖啡店初次见面，你走近常去喝咖啡的店，发现她正坐在窗边看书...",
         "prompt_override": "",
+        "voice": "female_warm",
         "category": "恋爱社交",
         "tags": ["恋爱社交", "轻松", "B1-B2"],
+    },
+    "ethan": {
+        "id": "ethan",
+        "name": "Ethan",
+        "name_en": "Ethan",
+        "age": 27,
+        "role": "书店常客",
+        "gender": "male",
+        "voice": "male_warm",
+        "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150",
+        "cover_url": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&q=80&w=600",
+        "personality": "温和内敛，喜欢文学和咖啡，说话真诚，偶尔有点腼腆",
+        "chat_style": "自然、真诚、偏口语，适合 B1-B2 学习者练习约会表达",
+        "identity_background": "在独立书店做兼职，周末常来这家咖啡馆看书、写读书笔记。",
+        "initial_scene": "周末午后，你在咖啡馆挑书，他刚好坐在你旁边的位子...",
+        "prompt_override": "",
+        "category": "恋爱社交",
+        "tags": ["恋爱社交", "真诚", "B1-B2"],
     },
     "leo": {
         "id": "leo",
@@ -143,6 +164,10 @@ class RomanceEngine(GameTypeEngine):
         if not target:
             target = _BUILTIN_TARGETS["mia"]
 
+        target = dict(target)
+        if not target.get("voice"):
+            target["voice"] = pick_voice(target.get("gender"))
+
         session.title = f"与 {target['name']} 的约会"
         session.phase = "icebreaker" # icebreaker -> flirting -> dating -> couple
 
@@ -166,29 +191,29 @@ class RomanceEngine(GameTypeEngine):
 
         from app.services.game_prompts import get_game_prompt
         prompt = get_game_prompt(db, "romance.turn", self._build_prompt(state, user_input, extra))
-        provider = _provider_for("chat", db)
-        
+        provider = _provider_for("dialogue_stream", db) or _provider_for("chat", db)
+
         try:
             parsed = await provider.complete_json(
                 system_prompt="You are a romance social game engine. Generate the next turn state as JSON.",
-                user_content=prompt
+                user_content=prompt,
             )
         except Exception as e:
             logger.error(f"Failed to get or parse LLM JSON response: {e}")
-            # Fallback
             parsed = {
                 "character_reply": "Haha, that's interesting...",
                 "character_reply_zh": "哈哈，真有趣...",
                 "emotion": "开心",
+                "emotion_emoji": "😊",
                 "relationship_change": 2,
-                "learning_point": {"title": "保持对话", "desc": "你刚才的回应很好。"},
-                "grammar_tips": []
             }
 
-        return self._finalize(session, state, target, parsed, user_input)
+        return await self._finalize(session, state, target, parsed, user_input, db)
 
-    def _finalize(self, session: GameSession, state: dict, target: dict,
-                  parsed: dict, user_input: str) -> dict:
+    async def _finalize(
+        self, session: GameSession, state: dict, target: dict,
+        parsed: dict, user_input: str, db: Session,
+    ) -> dict:
         """Apply score/phase changes and build the turn's feed items.
 
         Shared by handle_turn (non-streaming) and handle_turn_stream so both
@@ -207,10 +232,12 @@ class RomanceEngine(GameTypeEngine):
         elif new_score >= 20:
             session.phase = "flirting"
 
-        # Construct Feed items (mapping to RomanceSocial UI)
-        new_feed = []
+        # Learning HUD via chat_v2 (native language explains English) — same as Chat.
+        learning_hud = await analyze_romance_user_message(
+            db, session, user_input, target=target,
+        )
 
-        # The user's input bubble
+        new_feed = []
         if user_input:
             new_feed.append({
                 "type": "user_msg",
@@ -218,8 +245,7 @@ class RomanceEngine(GameTypeEngine):
                 "created_at": datetime.now(UTC).isoformat(),
             })
 
-        # The character's reply
-        character_feed = {
+        new_feed.append({
             "type": "char_msg",
             "speaker": target["name"],
             "speaker_en": target["name_en"],
@@ -230,33 +256,23 @@ class RomanceEngine(GameTypeEngine):
             "emotion_emoji": parsed.get("emotion_emoji", ""),
             "relationship_change": parsed.get("relationship_change", 0),
             "created_at": datetime.now(UTC).isoformat(),
-            "learning_point": parsed.get("learning_point"),
-        }
-        new_feed.append(character_feed)
-
-        # Grammar/Expression hints (for the top cards)
-        hints = parsed.get("grammar_tips", [])
-        for h in hints:
-            new_feed.append({
-                "type": "hint_card",
-                "title": h.get("title", "自然表达"),
-                "en": h.get("en", ""),
-                "zh": h.get("zh", ""),
-                "breakdown": h.get("breakdown", []),
-            })
+        })
 
         state["feed"] = state.get("feed", []) + new_feed
         session.state = state
+
+        hud = {
+            **learning_hud,
+            "relationship_score": new_score,
+            "max_score": state["max_score"],
+        }
 
         return {
             "state": state,
             "ai_response": parsed,
             "feed_items": new_feed,
             "phase_after": session.phase,
-            "hud": {
-                "relationship_score": new_score,
-                "max_score": state["max_score"]
-            }
+            "hud": hud,
         }
 
     async def handle_turn_stream(
@@ -283,7 +299,7 @@ class RomanceEngine(GameTypeEngine):
 
         from app.services.game_prompts import get_game_prompt
         prompt = get_game_prompt(db, "romance.turn", self._build_prompt(state, user_input, extra or {}))
-        provider = _provider_for("chat", db)
+        provider = _provider_for("dialogue_stream", db) or _provider_for("chat", db)
 
         parsed: dict | None = None
         try:
@@ -343,11 +359,9 @@ class RomanceEngine(GameTypeEngine):
                 "emotion": "开心",
                 "emotion_emoji": "😊",
                 "relationship_change": 1,
-                "learning_point": {"title": "保持对话", "desc": "你刚才的回应很好。"},
-                "grammar_tips": [],
             }
 
-        result = self._finalize(session, state, target, parsed, user_input)
+        result = await self._finalize(session, state, target, parsed, user_input, db)
         yield {"type": "complete", "data": result}
 
     async def get_summary(self, db: Session, session: GameSession) -> dict:
@@ -395,23 +409,9 @@ Respond IN JSON ONLY, using this exact schema:
   "character_reply_zh": "Your response translated to Chinese",
   "emotion": "中文情绪词（开心/害羞/疑惑/生气/感动/冷淡/心动 等）",
   "emotion_emoji": "一个最贴切的 emoji（如 😊 😳 🤔 💢 🥰 😐 💕）",
-  "relationship_change": integer (-5 to +5 based on how well the user advanced the {cat_cfg['dimension']} goal),
-  "learning_point": {{
-    "title": "Short title of what they did well/poorly",
-    "desc": "Brief explanation of conversational skill used"
-  }},
-  "grammar_tips": [
-    {{
-      "title": "自然表达 / Better Expression",
-      "en": "A native way to say what they meant",
-      "zh": "Chinese translation",
-      "breakdown": [
-        "Point 1 about tone",
-        "Point 2 about word choice"
-      ]
-    }}
-  ]
+  "relationship_change": integer (-5 to +5 based on how well the user advanced the {cat_cfg['dimension']} goal)
 }}
+Do NOT include grammar tips or learning analysis — that is handled separately.
 Do NOT output any markdown blocks or extra text outside the JSON. Ensure the JSON is valid.
 """
 

@@ -16,7 +16,6 @@ import httpx
 from loguru import logger
 from sqlalchemy.orm import Session
 
-from app.services.dashscope_client import resolve_dashscope_api_key
 from app.services.voice_platform_config import get_voice_platform_config
 
 
@@ -187,76 +186,98 @@ async def evaluate_with_aliyun_assessment(
         return None
 
 
+async def transcribe_follow_read_audio(
+    api_key: str,
+    audio_bytes: bytes,
+    reference_text: str,
+    *,
+    mime: str = "audio/webm",
+) -> str:
+    """DashScope Fun-ASR-Flash sync transcription with reference-text context."""
+    b64 = base64.b64encode(audio_bytes).decode("ascii")
+    data_uri = f"data:{mime};base64,{b64}"
+    fmt = "webm" if "webm" in mime else "wav"
+    body = {
+        "model": "fun-asr-flash-2026-06-15",
+        "input": {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": reference_text.strip()}],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_audio", "input_audio": {"data": data_uri}},
+                    ],
+                },
+            ],
+        },
+        "parameters": {"format": fmt},
+    }
+    url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        response = await client.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "X-DashScope-SSE": "disable",
+            },
+            json=body,
+        )
+        response.raise_for_status()
+        payload = response.json()
+
+    output = payload.get("output") or {}
+    nested = output.get("output") if isinstance(output.get("output"), dict) else output
+    sentence = nested.get("sentence") if isinstance(nested, dict) else None
+    if isinstance(sentence, dict) and sentence.get("text"):
+        return str(sentence["text"]).strip()
+    if isinstance(nested, dict):
+        for key in ("text", "transcript"):
+            if nested.get(key):
+                return str(nested[key]).strip()
+    return ""
+
+
 async def evaluate_with_dashscope_fallback(
     db: Session | None,
     audio_ref: str,
     reference_text: str,
 ) -> dict[str, Any]:
-    """Real fallback: ASR transcript + heuristic alignment (not fixed mock scores)."""
-    from app.services.dashscope_client import dashscope_enabled
-    from app.services.voice import get_voice_provider
-    from app.services.runtime_config import resolve_default_voice_provider
+    """ASR transcript + word-alignment scoring for follow-read."""
+    from app.services.dashscope_client import dashscope_enabled, resolve_dashscope_config
+    from app.services.voice_openai import build_pronunciation_scores
 
-    provider_name = resolve_default_voice_provider(db)
-    if dashscope_enabled(db):
-        provider_name = "dashscope"
-    provider = get_voice_provider(provider_name, db)
+    cfg = resolve_dashscope_config(db)
     base: dict[str, Any] = {
         "transcript": "",
         "accuracy_score": 0,
         "fluency_score": 0,
         "completeness_score": 0,
         "pronunciation_score": 0,
-        "provider": provider_name,
+        "provider": "dashscope",
     }
-    try:
-        base = await provider.evaluate_pronunciation(audio_ref, reference_text)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Voice provider evaluate failed ({}): {}", provider_name, exc)
-    if base.get("accuracy_score", 0) > 0 and base.get("transcript"):
-        base["provider"] = base.get("provider", "voice-provider") + "+heuristic"
-        return base
 
-    api_key = resolve_dashscope_api_key(db)
-    if not api_key:
+    if not cfg or not dashscope_enabled(db):
+        base["feedback"] = "语音评测服务未配置，请联系管理员"
         return base
 
     try:
-        from openai import AsyncOpenAI
-
-        client = AsyncOpenAI(
-            api_key=api_key,
-            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        audio_bytes = _decode_audio_ref(audio_ref)
+        transcript = await asyncio.wait_for(
+            transcribe_follow_read_audio(cfg.api_key, audio_bytes, reference_text),
+            timeout=40.0,
         )
-        cfg = get_voice_platform_config(db)
-        model = str(cfg.get("explain_llm_model") or "qwen-plus")
-        prompt = (
-            f"Reference: {reference_text}\n"
-            f"Spoken (ASR): {base.get('transcript', '')}\n"
-            "Score pronunciation 0-100 for accuracy, fluency, completeness. "
-            'Return JSON only: {"accuracy_score":n,"fluency_score":n,"completeness_score":n,"feedback":"..."}'
-        )
-        resp = await client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": "You are a pronunciation assessment coach."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-        )
-        text = (resp.choices[0].message.content or "").strip()
-        if "{" in text:
-            chunk = text[text.index("{") : text.rindex("}") + 1]
-            data = json.loads(chunk)
-            return {
-                **base,
-                "accuracy_score": float(data.get("accuracy_score", 70)),
-                "fluency_score": float(data.get("fluency_score", 70)),
-                "completeness_score": float(data.get("completeness_score", 70)),
-                "pronunciation_score": float(data.get("accuracy_score", 70)),
-                "feedback": data.get("feedback", ""),
-                "provider": f"dashscope-{model}",
-            }
+        scored = build_pronunciation_scores(transcript, reference_text, audio_ref)
+        scored["provider"] = "fun-asr-flash-2026-06-15"
+        if scored.get("accuracy_score", 0) >= 85:
+            scored["feedback"] = "发音清晰，继续保持！"
+        elif not transcript.strip():
+            scored["feedback"] = "未能识别语音，请靠近麦克风在安静环境重试"
+        return scored
     except Exception as exc:  # noqa: BLE001
-        logger.warning("DashScope explain fallback scoring failed: {}", exc)
-    return base
+        logger.warning("Follow-read ASR evaluate failed: {}", exc)
+        base["feedback"] = "语音识别失败，请重试"
+        return base

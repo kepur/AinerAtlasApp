@@ -100,6 +100,10 @@ export default function AssetDetail() {
 
   async function handlePublish() {
     if (busy || !asset) return;
+    if (asset.thought_id) {
+      navigate(`/topics/new?thought=${encodeURIComponent(asset.thought_id)}`);
+      return;
+    }
     setBusy("public");
     try {
       await apiRequest("/api/topics", {
@@ -109,8 +113,7 @@ export default function AssetDetail() {
           background: `${asset.source_text}\n\n表达：${activeText}`,
           pro_view: "",
           con_view: "",
-          tags: ["expression", "shared"],
-          thought_id: null,
+          tags: asset.keywords?.length ? asset.keywords.slice(0, 5) : ["expression", "shared"],
         }),
       });
       flash("已发布到话题广场，其他人可以看到啦 🌍");

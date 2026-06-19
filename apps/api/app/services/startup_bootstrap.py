@@ -19,7 +19,7 @@ async def run_api_startup_bootstrap() -> None:
 
     with SessionLocal() as db:
         if apply_recommended_vad_patch(db):
-            logger.info("Startup bootstrap: applied recommended voice platform VAD (silence_ms=1200)")
+            logger.info("Startup bootstrap: applied recommended voice platform VAD (silence_ms=1000)")
         batch = get_voice_coach_batch_settings(db)
 
     if not batch["startup_bootstrap"] or batch["schedule"] == "off":

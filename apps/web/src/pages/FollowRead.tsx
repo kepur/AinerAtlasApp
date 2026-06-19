@@ -8,6 +8,7 @@ type EvalResult = {
   completeness_score: number;
   transcript: string;
   pronunciation_score?: number;
+  feedback?: string;
 };
 
 const SAMPLE_SENTENCES = [
@@ -194,6 +195,12 @@ export default function FollowRead() {
                 <p className="text-[11px] text-primary font-bold mb-1">识别文字</p>
                 <p className="text-[13px] text-on-surface italic">"{result.transcript}"</p>
               </div>
+            )}
+
+            {result.feedback && (
+              <p className="text-[12px] text-on-surface-variant bg-primary/5 rounded-lg px-3 py-2">
+                {result.feedback}
+              </p>
             )}
 
             <div className="flex gap-2 pt-1">

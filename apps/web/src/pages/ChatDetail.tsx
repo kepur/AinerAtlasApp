@@ -208,6 +208,12 @@ export default function ChatDetail() {
 
   useEffect(() => { if (id) loadConversation(id); return () => clearCurrent(); }, [id, loadConversation, clearCurrent]);
 
+  const petMood = useMemo(
+    () => deriveChatSceneMood({ sending, streamPhase, turns, draft }),
+    [sending, streamPhase, turns, draft],
+  );
+  const sceneEnergized = sending || draft.trim().length > 0;
+
   async function handleSend() {
     const text = draft.trim();
     if (!text || !id || sending) return;
@@ -236,12 +242,6 @@ export default function ChatDetail() {
   }
 
   const messages = currentConversation.messages;
-
-  const petMood = useMemo(
-    () => deriveChatSceneMood({ sending, streamPhase, turns, draft }),
-    [sending, streamPhase, turns, draft],
-  );
-  const sceneEnergized = sending || draft.trim().length > 0;
 
   return (
     <div
