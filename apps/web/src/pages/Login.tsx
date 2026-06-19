@@ -128,12 +128,10 @@ export default function Login() {
           </button>
         </form>
 
-        {!demoConfig?.enabled && (
-          <p className="text-center text-[14px] text-on-surface-variant mt-6">
-            {t("login.noAccount")}
-            <Link to="/register" className="text-primary font-bold ml-1">{t("login.register")}</Link>
-          </p>
-        )}
+        <p className="text-center text-[14px] text-on-surface-variant mt-6">
+          {t("login.noAccount")}
+          <Link to="/register" className="text-primary font-bold ml-1">{t("login.register")}</Link>
+        </p>
       </div>
     </div>
   );

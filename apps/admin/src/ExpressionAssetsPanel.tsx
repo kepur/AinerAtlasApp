@@ -142,6 +142,8 @@ export function ExpressionAssetsPanel({ token, onStatus }: Props) {
         </label>
         <label style={{ alignSelf: "end" }}>
           <button
+            type="button"
+            className="admin-query-btn"
             onClick={() => {
               setOffset(0);
               setSearchUsername(usernameQ);

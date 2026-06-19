@@ -5,9 +5,10 @@ type VoteResultProps = {
   revealedRole?: string;
   votes: { voter: string; target: string }[];
   onNextRound: () => void;
+  nextLabel?: string;
 };
 
-export default function VoteResultCard({ eliminatedPlayerName, revealedRole, votes, onNextRound }: VoteResultProps) {
+export default function VoteResultCard({ eliminatedPlayerName, revealedRole, votes, onNextRound, nextLabel = "进入下一阶段" }: VoteResultProps) {
   return (
     <div className="flex flex-col gap-6 px-4 py-8 max-w-md mx-auto w-full relative z-10 pb-32">
       <h2 className="text-2xl font-bold text-white text-center">投票结果</h2>
@@ -48,7 +49,7 @@ export default function VoteResultCard({ eliminatedPlayerName, revealedRole, vot
           onClick={onNextRound}
           className="w-full max-w-md mx-auto h-14 bg-[#7c5cff] text-white rounded-full font-bold text-lg shadow-[0_0_24px_rgba(124,92,255,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
-          进入下一阶段
+          {nextLabel}
         </button>
       </div>
     </div>

@@ -143,6 +143,8 @@ export function TopicManagement({ token, onStatus }: Props) {
         </label>
         <label style={{ alignSelf: "end" }}>
           <button
+            type="button"
+            className="admin-query-btn"
             onClick={() => {
               setOffset(0);
               setSearchTitle(titleQ);

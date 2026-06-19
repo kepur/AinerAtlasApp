@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchUserStats, resolveMediaUrl, type UserStats } from "../api";
 import { useAuthStore } from "../stores/authStore";
+import { useI18n } from "../i18n";
 
 type MenuRow = {
   icon: string;
@@ -10,10 +11,11 @@ type MenuRow = {
   sublabelTone?: string;
   iconBg: string;
   iconColor: string;
-  onClick: () => void;
+  to: string;
 };
 
 export default function Profile() {
+  const { t } = useI18n();
   const { user, profile, logout } = useAuthStore();
   const navigate = useNavigate();
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -39,60 +41,66 @@ export default function Profile() {
   const confidence = Math.round(profile?.speaking_confidence_score ?? 0);
   const masteryAvg = Math.round((grammar + vocab + fluency + confidence) / 4);
   const masteryLabel =
-    masteryAvg >= 80 ? "Advanced Fluent" : masteryAvg >= 55 ? "Upper Intermediate" : masteryAvg >= 30 ? "Intermediate" : "Foundational";
+    masteryAvg >= 80
+      ? t("profile.masteryAdvanced")
+      : masteryAvg >= 55
+      ? t("profile.masteryUpperInter")
+      : masteryAvg >= 30
+      ? t("profile.masteryInter")
+      : t("profile.masteryFoundational");
 
   const intelligence: MenuRow[] = [
     {
       icon: "tune",
-      label: "Intelligence Settings",
+      label: t("profile.intelligenceSettings"),
       iconBg: "bg-primary-fixed/30",
       iconColor: "text-primary",
-      onClick: () => navigate("/settings")
+      to: "/settings"
     },
     {
       icon: "analytics",
-      label: "My Growth Reports",
+      label: t("profile.growthReports"),
       iconBg: "bg-tertiary-fixed/30",
       iconColor: "text-tertiary",
-      onClick: () => navigate("/report")
+      to: "/report"
     }
   ];
 
   const account: MenuRow[] = [
     {
       icon: "workspace_premium",
-      label: "Membership",
-      sublabel: `${membership} plan`,
+      label: t("profile.membership"),
+      sublabel: t("profile.membershipPlan", { membership }),
       sublabelTone: "text-primary",
       iconBg: "bg-primary-fixed/30",
       iconColor: "text-primary",
-      onClick: () => navigate("/membership")
+      to: "/membership"
     },
     {
       icon: "shield",
-      label: "Privacy & Security",
-      sublabel: "Thought Shield: Active",
+      label: t("profile.privacy"),
+      sublabel: t("profile.thoughtShield"),
       sublabelTone: "text-tertiary-container",
       iconBg: "bg-secondary-fixed/30",
       iconColor: "text-secondary",
-      onClick: () => navigate("/privacy")
+      to: "/privacy"
     },
     {
       icon: "help",
-      label: "Help & Feedback",
+      label: t("profile.help"),
       iconBg: "bg-surface-container",
       iconColor: "text-on-surface-variant",
-      onClick: () => navigate("/settings")
+      to: "/help"
     }
   ];
 
   const adminMenu: MenuRow[] = [
     {
       icon: "admin_panel_settings",
-      label: "Admin Panel",
+      label: t("profile.adminPanel"),
       iconBg: "bg-error-container",
       iconColor: "text-error",
-      onClick: () => navigate("/admin/story-publisher")
+      to: "/admin/story-publisher"
     }
   ];
 
@@ -137,7 +145,7 @@ export default function Profile() {
               </span>
             )}
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary px-3 py-1 rounded-full shadow-lg border border-surface whitespace-nowrap">
-              <span className="text-white font-label-sm text-[10px] uppercase tracking-wider font-bold">{level} Expressionist</span>
+              <span className="text-white font-label-sm text-[10px] uppercase tracking-wider font-bold">{t("profile.expressionist", { level })}</span>
             </div>
           </div>
           <h2 className="font-headline-xl-mobile text-headline-xl-mobile text-on-surface">{username}</h2>
@@ -148,12 +156,12 @@ export default function Profile() {
         <section className="mt-10">
           <h3 className="font-headline-md text-headline-md mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined fill text-primary">insights</span>
-            Resonance Stats
+            {t("profile.resonanceStats")}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <button onClick={() => navigate("/patterns")} className="glass-card premium-shadow p-4 rounded-2xl flex flex-col justify-between h-32 text-left">
               <div className="flex justify-between items-start">
-                <span className="font-label-sm text-on-surface-variant">Grammar</span>
+                <span className="font-label-sm text-on-surface-variant">{t("profile.grammar")}</span>
                 <span className="text-tertiary-container font-bold">{grammar}%</span>
               </div>
               <div className="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
@@ -162,7 +170,7 @@ export default function Profile() {
             </button>
             <button onClick={() => navigate("/vocabulary")} className="glass-card premium-shadow p-4 rounded-2xl flex flex-col justify-between h-32 text-left">
               <div className="flex justify-between items-start">
-                <span className="font-label-sm text-on-surface-variant">Vocabulary</span>
+                <span className="font-label-sm text-on-surface-variant">{t("profile.vocabulary")}</span>
                 <span className="text-tertiary-container font-bold">{vocab}%</span>
               </div>
               <div className="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
@@ -171,10 +179,10 @@ export default function Profile() {
             </button>
             <div className="glass-card premium-shadow p-4 rounded-2xl col-span-2 relative overflow-hidden h-40">
               <div className="relative z-10">
-                <span className="font-label-sm text-on-surface-variant">Global Mastery</span>
+                <span className="font-label-sm text-on-surface-variant">{t("profile.stats")}</span>
                 <p className="font-headline-lg text-headline-lg text-primary">{masteryLabel}</p>
                 <p className="text-[12px] text-on-surface-variant mt-1">
-                  {stats ? `${stats.mastered_count} assets mastered · ${stats.conversation_count} sessions` : "Keep expressing to grow"}
+                  {stats ? t("profile.masteryProgress", { mastered: stats.mastered_count, conversations: stats.conversation_count }) : t("profile.keepExpressing")}
                 </p>
               </div>
               <div className="absolute bottom-0 right-0 left-0 h-16 opacity-30">
@@ -189,8 +197,8 @@ export default function Profile() {
         {/* Menu Sections */}
         <section className="mt-10 space-y-4">
           <div className="space-y-2">
-            <h4 className="font-label-sm text-outline px-2">INTELLIGENCE</h4>
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
+            <h4 className="font-label-sm text-outline px-2">{t("profile.intelligenceSection")}</h4>
+            <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
               {intelligence.map((row, i) => (
                 <div key={row.label}>
                   <MenuButton row={row} />
@@ -201,8 +209,8 @@ export default function Profile() {
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-label-sm text-outline px-2">ACCOUNT</h4>
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
+            <h4 className="font-label-sm text-outline px-2">{t("profile.accountSection")}</h4>
+            <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
               {account.map((row, i) => (
                 <div key={row.label}>
                   <MenuButton row={row} />
@@ -214,8 +222,8 @@ export default function Profile() {
 
           {user?.role === "super_admin" && (
             <div className="space-y-2">
-              <h4 className="font-label-sm text-outline px-2">ADMINISTRATION</h4>
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
+              <h4 className="font-label-sm text-outline px-2">{t("profile.adminSection")}</h4>
+              <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-surface-container-high">
                 {adminMenu.map((row, i) => (
                   <div key={row.label}>
                     <MenuButton row={row} />
@@ -230,7 +238,7 @@ export default function Profile() {
             onClick={handleLogout}
             className="w-full p-4 rounded-2xl border border-error-container text-error font-medium hover:bg-error-container/20 transition-colors mt-4"
           >
-            Logout of Session
+            {t("profile.logoutBtn")}
           </button>
         </section>
 
@@ -239,7 +247,7 @@ export default function Profile() {
           <p className="font-label-sm text-on-surface-variant">AinerWise v2.4.0-pro</p>
           <div className="flex items-center justify-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-tertiary-container animate-pulse" />
-            <p className="font-label-sm text-tertiary">Semantic Engine: Optimal</p>
+            <p className="font-label-sm text-tertiary">{t("profile.semanticEngine")}</p>
           </div>
         </footer>
       </main>
@@ -249,7 +257,7 @@ export default function Profile() {
 
 function MenuButton({ row }: { row: MenuRow }) {
   return (
-    <button onClick={row.onClick} className="w-full flex items-center justify-between p-4 hover:bg-surface-variant/30 transition-colors">
+    <Link to={row.to} className="w-full flex items-center justify-between p-4 hover:bg-surface-variant/30 transition-colors relative z-10">
       <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-xl ${row.iconBg} flex items-center justify-center ${row.iconColor}`}>
           <span className="material-symbols-outlined">{row.icon}</span>
@@ -260,6 +268,6 @@ function MenuButton({ row }: { row: MenuRow }) {
         </div>
       </div>
       <span className="material-symbols-outlined text-outline">chevron_right</span>
-    </button>
+    </Link>
   );
 }

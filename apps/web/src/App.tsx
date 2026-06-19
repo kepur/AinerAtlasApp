@@ -67,6 +67,7 @@ import CollectedViewpoint from "./pages/CollectedViewpoint";
 import Report from "./pages/Report";
 import SoulmateQuestionnaire from "./pages/SoulmateQuestionnaire";
 import FollowRead from "./pages/FollowRead";
+import Help from "./pages/Help";
 
 function AppLayout() {
   const location = useLocation();
@@ -135,6 +136,7 @@ function AppLayout() {
           <Route path="/follow-read" element={<FollowRead />} />
           <Route path="/soulmate-questionnaire" element={<SoulmateQuestionnaire />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/help" element={<Help />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>

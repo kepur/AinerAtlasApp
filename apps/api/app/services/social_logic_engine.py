@@ -73,6 +73,8 @@ def _public_view(game: dict) -> dict:
         "winner": game["winner"],
         "alive_count": sum(1 for p in game["players"] if p["alive"]),
         "total_count": len(game["players"]),
+        "questions_this_round": game.get("questions_this_round", 0),
+        "max_questions_per_round": game.get("max_questions_per_round", 1),
     }
 
 
@@ -133,6 +135,8 @@ async def create_game(
         "feed": [], "winner": None, "reveal_on_death": cfg["reveal"],
         "learning_turns": [], "user_role": None,
         "wolves_count": cfg["wolves"],
+        "questions_this_round": 0,
+        "max_questions_per_round": 1,
     }
 
     game["feed"].append({
@@ -185,6 +189,7 @@ async def start_game(db: Session, game_id: str, user_id: str) -> dict:
         raise ValueError("Can only start after role reveal")
 
     game["round"] = 1
+    game["questions_this_round"] = 0
     await _resolve_night(db, game)
 
     winner = _check_winner(game)
@@ -305,6 +310,9 @@ async def question_player(
     game = _get_game(db, game_id, user_id)
     if game["phase"] != "day_discussion":
         raise ValueError("Not in discussion phase")
+    max_q = game.get("max_questions_per_round", 1)
+    if game.get("questions_this_round", 0) >= max_q:
+        raise ValueError("本轮已提问，请点击「发起投票」进入下一阶段")
     target = next(
         (p for p in game["players"] if p["id"] == target_player_id and not p["is_user"]),
         None,
@@ -385,6 +393,7 @@ async def question_player(
 
     target["suspicion"] = min(95, target["suspicion"] + random.randint(6, 14))
 
+    game["questions_this_round"] = game.get("questions_this_round", 0) + 1
     hud = _finalize_hud(hud, content, native, db=db)
     game["learning_turns"].append(hud)
     _save_game(db, game)
@@ -549,6 +558,7 @@ async def cast_vote(
         })
     else:
         game["round"] += 1
+        game["questions_this_round"] = 0
         await _resolve_night(db, game)
         winner = _check_winner(game)
         if winner:

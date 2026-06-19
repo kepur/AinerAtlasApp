@@ -122,7 +122,40 @@ def compute_profile_completeness(
     return min(100.0, score)
 
 
-def generate_icebreaker(reasons: list[str], target_username: str) -> str:
+from sqlalchemy.orm import Session
+from app.services.llm import get_fast_llm_provider
+
+
+async def generate_icebreaker(
+    db: Session,
+    reasons: list[str],
+    target_username: str,
+    user_analysis: dict | None = None,
+    target_analysis: dict | None = None,
+) -> str:
+    provider = get_fast_llm_provider(db, "auto")
+    
+    prompt = f"Write a friendly, casual, one-sentence icebreaker in Chinese to say hi to {target_username}."
     if reasons:
-        return f"你好 {target_username}！我们{reasons[0]}，要不要一起聊聊？"
-    return f"你好 {target_username}！我在 AinerSpeak 看到你的资料，想一起练习表达吗？"
+        prompt += f" You share these traits/interests: {', '.join(reasons)}."
+    if user_analysis and target_analysis:
+        prompt += (
+            f" Your persona: {user_analysis.get('summary', '')}. "
+            f" Their persona: {target_analysis.get('summary', '')}. "
+            "Make it sound very natural, conversational, and implicitly reference your shared connection."
+        )
+    
+    try:
+        result = await provider.thought_dialogue(
+            user_input=prompt,
+            profile=None,
+            native_language="zh",
+            target_language="en",
+            mode="roleplay",
+            topic="icebreaker",
+        )
+        return result.main_reply_native or f"你好 {target_username}！想一起聊聊吗？"
+    except Exception:
+        if reasons:
+            return f"你好 {target_username}！我们{reasons[0]}，要不要一起聊聊？"
+        return f"你好 {target_username}！我在 AinerSpeak 看到你的资料，想一起练习表达吗？"

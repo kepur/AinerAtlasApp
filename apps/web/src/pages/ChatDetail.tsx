@@ -11,6 +11,7 @@ import FreezeResult from "../components/FreezeResult";
 import { LearningHUD, TokenExplainSheet, TurnSelector, useTts } from "../components/learning";
 import { useI18n } from "../i18n";
 import { useChatStore, type DialogueTurn, type HudData } from "../stores/chatStore";
+import { useChatPrefsStore } from "../stores/chatPrefsStore";
 
 /* ─── Conversation Feed (pure chat bubbles grouped by turn) ─── */
 function ConversationFeed({ messages, turns, activeTurnId, sending, streamPhase, speak, onTurnClick }: {
@@ -187,6 +188,8 @@ export default function ChatDetail() {
   });
 
   const { speak } = useTts();
+  const fontSize = useChatPrefsStore((s) => s.fontSize);
+  const bubbleDensity = useChatPrefsStore((s) => s.bubbleDensity);
 
   useEffect(() => { localStorage.setItem("ainerspeak_auto_tts", String(autoTts)); }, [autoTts]);
 
@@ -233,7 +236,9 @@ export default function ChatDetail() {
   const messages = currentConversation.messages;
 
   return (
-    <div className="chat-detail-layout">
+    <div
+      className={`chat-detail-layout chat-font-${fontSize} chat-density-${bubbleDensity}`}
+    >
       {/* Header */}
       <header className="chat-detail-header-rich">
         <div className="header-left">

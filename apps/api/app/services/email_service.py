@@ -1,4 +1,5 @@
 import smtplib
+import ssl
 from email.message import EmailMessage
 
 from loguru import logger
@@ -9,7 +10,45 @@ from app.services.auth_settings import get_auth_settings, get_smtp_password
 
 
 def smtp_configured(settings: AuthSettings) -> bool:
-    return bool(settings.smtp_host and settings.smtp_from_email)
+    return bool(
+        settings.smtp_host
+        and settings.smtp_from_email
+        and settings.smtp_password_encrypted
+    )
+
+
+def _smtp_login_user(settings: AuthSettings) -> str:
+    return settings.smtp_username or settings.smtp_from_email
+
+
+def _use_ssl(settings: AuthSettings) -> bool:
+    # Port 465 uses implicit SSL; STARTTLS is for 587/25.
+    return settings.smtp_port == 465 or not settings.smtp_use_tls
+
+
+def _send_message(settings: AuthSettings, message: EmailMessage) -> None:
+    password = get_smtp_password(settings)
+    login_user = _smtp_login_user(settings)
+    if _use_ssl(settings):
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(
+            settings.smtp_host,
+            settings.smtp_port,
+            timeout=30,
+            context=context,
+        ) as server:
+            if login_user and password:
+                server.login(login_user, password)
+            server.send_message(message)
+        return
+
+    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as server:
+        server.ehlo()
+        server.starttls(context=ssl.create_default_context())
+        server.ehlo()
+        if login_user and password:
+            server.login(login_user, password)
+        server.send_message(message)
 
 
 def send_verification_email(
@@ -36,25 +75,13 @@ def send_verification_email(
         )
         return
 
-    password = get_smtp_password(settings)
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = settings.smtp_from_email
     message["To"] = to_email
-    message.set_content(body)
+    message.set_content(body, charset="utf-8")
 
-    if settings.smtp_use_tls:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as server:
-            server.starttls()
-            if settings.smtp_username:
-                server.login(settings.smtp_username, password)
-            server.send_message(message)
-    else:
-        with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=20) as server:
-            if settings.smtp_username:
-                server.login(settings.smtp_username, password)
-            server.send_message(message)
-
+    _send_message(settings, message)
     logger.info("Verification email sent to {}", to_email)
 
 
@@ -81,23 +108,11 @@ def send_password_reset_email(
         )
         return
 
-    password = get_smtp_password(settings)
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = settings.smtp_from_email
     message["To"] = to_email
-    message.set_content(body)
+    message.set_content(body, charset="utf-8")
 
-    if settings.smtp_use_tls:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as server:
-            server.starttls()
-            if settings.smtp_username:
-                server.login(settings.smtp_username, password)
-            server.send_message(message)
-    else:
-        with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=20) as server:
-            if settings.smtp_username:
-                server.login(settings.smtp_username, password)
-            server.send_message(message)
-
+    _send_message(settings, message)
     logger.info("Password reset email sent to {}", to_email)

@@ -52,8 +52,9 @@ export async function startPcmCapture(
     audio: {
       channelCount: 1,
       echoCancellation: true,
-      noiseSuppression: true
-    }
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
   });
 
   const audioContext = new AudioContext();

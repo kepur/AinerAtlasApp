@@ -108,9 +108,13 @@ def resolve_dashscope_config(db: Session | None = None) -> DashScopeConfig | Non
         os.getenv("DASHSCOPE_WORKSPACE_ID", ""),
     )
     compatible_base_url = _pick(
+        os.getenv("DASHSCOPE_COMPATIBLE_BASE_URL", ""),
+        settings.dashscope_compatible_base_url
+        if settings.dashscope_compatible_base_url != "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        else "",
         llm_provider.api_base_url if llm_provider else None,
         settings.dashscope_compatible_base_url,
-        os.getenv("DASHSCOPE_COMPATIBLE_BASE_URL", ""),
+        "https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
     http_base_url = _pick(
         voice_provider.api_base_url if voice_provider else None,

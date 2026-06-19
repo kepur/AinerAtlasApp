@@ -556,6 +556,69 @@ button:disabled {
   background: var(--bg-elevated-hover);
 }
 
+.primary-button,
+.admin-query-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--gradient);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.primary-button:hover:not(:disabled),
+.admin-query-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.secondary-button:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-elevated-hover);
+}
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.filter-bar select,
+.filter-bar input[type="text"],
+.filter-bar input:not([type="checkbox"]) {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  min-width: 140px;
+}
+
+.form-grid .admin-query-btn {
+  width: 100%;
+}
+
 .workspace-content {
   flex: 1;
   padding: 24px 32px 32px;

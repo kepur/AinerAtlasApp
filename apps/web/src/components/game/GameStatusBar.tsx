@@ -18,8 +18,8 @@ export default function GameStatusBar({
   onOptions
 }: GameStatusBarProps) {
   return (
-    <header className="w-full z-50 px-4 pb-2 pt-2 bg-transparent">
-      <div className="flex justify-between items-center h-14">
+    <header className="w-full z-50 px-3 pb-1 pt-1 bg-transparent shrink-0">
+      <div className="flex justify-between items-center h-12">
         <button onClick={onBack} className="p-2 -ml-2 text-white/70 hover:text-white rounded-full transition-colors">
           <ArrowLeft size={24} />
         </button>

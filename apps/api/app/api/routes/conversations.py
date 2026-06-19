@@ -395,21 +395,29 @@ async def stream_message(
     
     memory_summary = load_user_memory_summary(db, current_user.id)
     
+    from app.services.runtime_config import resolve_llm_provider_for_task, get_runtime_config
     default_provider_name = resolve_default_llm_provider(db)
+
+    # Phase 2: learning HUD / grammar analysis (separate route from conversational reply)
+    analysis_provider_name = resolve_llm_provider_for_task("grammar_analysis", db)
     try:
-        provider = require_llm_provider(default_provider_name, db=db)
+        provider = require_llm_provider(analysis_provider_name, db=db)
     except LLMUnavailableError as exc:
         raise HTTPException(status_code=503, detail=exc.message) from exc
 
-    # Route the lightweight phase-1 reply through a faster flash model (if one is
-    # configured) to roughly halve time-to-first-token; analysis stays on the
-    # quality default `provider`. get_fast_llm_provider already falls back to the
-    # default provider when no fast model exists, so this is safe to use directly.
-    reply_provider = provider
+    # Phase 1: fast conversational reply stream
+    reply_provider_name = resolve_llm_provider_for_task("dialogue_stream", db)
+    config = get_runtime_config(db)
+    routing = config.llm_routing or {}
+    is_explicit_reply = routing.get("dialogue_stream") not in {None, "", "auto"} or routing.get("conversational_reply") not in {None, "", "auto"}
+
     try:
-        from app.services.llm import get_fast_llm_provider
-        reply_provider = get_fast_llm_provider(db, default_provider_name)
-    except Exception:  # noqa: BLE001
+        if is_explicit_reply:
+            reply_provider = require_llm_provider(reply_provider_name, db=db)
+        else:
+            from app.services.llm import get_fast_llm_provider
+            reply_provider = get_fast_llm_provider(db, reply_provider_name)
+    except Exception:
         reply_provider = provider
 
     conversation_history = _conversation_history(conversation)
@@ -461,6 +469,23 @@ async def stream_message(
             reply_text = reply_text.strip()
             yield f"event: reply_done\ndata: {json.dumps({'reply': reply_text})}\n\n"
 
+            # Create assistant message with status pending_analysis and commit immediately
+            # to prevent the reply from disappearing if Phase 2 analysis times out.
+            assistant_message = ConversationMessage(
+                conversation_id=conversation.id,
+                user_id=None,
+                role="assistant",
+                content=reply_text,
+                content_language=conversation.native_language,
+                translated_content="",
+                analysis={"stream_status": "pending_analysis"},
+                expression_versions={},
+            )
+            conversation.updated_at = utc_now()
+            db.add(assistant_message)
+            db.commit()
+            db.refresh(assistant_message)
+
             # ----- Phase 2: background structured analysis (drives the Learning HUD) -----
             yield f"event: analyzing\ndata: {json.dumps({'status': 'analyzing'})}\n\n"
 
@@ -496,18 +521,13 @@ async def stream_message(
             }
             user_message.expression_versions = data.get("user_input_versions") or {}
 
-            assistant_message = ConversationMessage(
-                conversation_id=conversation.id,
-                user_id=None,
-                role="assistant",
-                content=reply_text or v2.meaning_native,
-                content_language=conversation.native_language,
-                translated_content=v2.main_expression,
-                analysis=analysis_data,
-                expression_versions=v2.variants,
-            )
+            # Update existing assistant message details
+            assistant_message.content = reply_text or v2.meaning_native
+            assistant_message.translated_content = v2.main_expression
+            assistant_message.analysis = analysis_data
+            assistant_message.expression_versions = v2.variants
+
             conversation.updated_at = utc_now()
-            db.add(assistant_message)
             db.flush()
             mod = moderate_text(payload.content, "conversation_message")
             flag_conversation_from_result(
@@ -554,7 +574,9 @@ async def stream_message(
                 "stream_status": "failed",
                 "error": str(e)[:500],
             }
-            if reply_text.strip():
+            if assistant_message:
+                assistant_message.analysis = {"stream_status": "partial", "error": str(e)[:500]}
+            elif reply_text.strip():
                 assistant_message = ConversationMessage(
                     conversation_id=conversation.id,
                     user_id=None,

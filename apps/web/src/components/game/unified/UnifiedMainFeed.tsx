@@ -21,7 +21,7 @@ export default function UnifiedMainFeed({ mode, feedItems = [], turnLoading, clu
   }, [feedItems.length, turnLoading]);
 
   return (
-    <div className="flex-1 w-full px-4 pt-4 pb-48 overflow-y-auto no-scrollbar flex flex-col gap-4 relative z-10">
+    <div className="flex-1 w-full px-4 pt-4 pb-4 overflow-y-auto no-scrollbar flex flex-col gap-4 relative z-10 min-h-0">
       <div className="relative z-10 flex flex-col gap-4 w-full">
         {hudSlot}
 

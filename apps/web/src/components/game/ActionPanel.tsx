@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, Zap } from "lucide-react";
+import { ChevronDown, ChevronUp, Send, Zap } from "lucide-react";
 
 type ActionPanelProps = {
   mode: "default" | "question";
@@ -10,6 +10,8 @@ type ActionPanelProps = {
   onHelpExpress?: (text: string) => void;
   helpBusy?: boolean;
   disabled?: boolean;
+  questionsRemaining?: number;
+  onExpandChange?: (expanded: boolean) => void;
 };
 
 const QUICK_CHIPS = [
@@ -20,84 +22,154 @@ const QUICK_CHIPS = [
 ];
 
 export default function ActionPanel({
-  mode, players, selectedPlayerId, onSelectPlayer, onSend, onHelpExpress, helpBusy, disabled,
+  mode,
+  players,
+  selectedPlayerId,
+  onSelectPlayer,
+  onSend,
+  onHelpExpress,
+  helpBusy,
+  disabled,
+  questionsRemaining = 1,
+  onExpandChange,
 }: ActionPanelProps) {
   const [text, setText] = useState("");
-  // default 模式 = 未选定质疑目标。此时锁定输入，避免 onSend(handleQuestion)
-  // 因 selectedPlayerId 缺失而静默 return，造成"发言发不出去"的困惑。
+  const [expanded, setExpanded] = useState(false);
+
   const locked = mode === "default";
+  const quotaExhausted = questionsRemaining <= 0;
+
+  const setPanelExpanded = (next: boolean) => {
+    setExpanded(next);
+    onExpandChange?.(next);
+  };
 
   const submit = () => {
-    if (!text.trim() || disabled) return;
+    if (!text.trim() || disabled || quotaExhausted) return;
     onSend(text.trim());
     setText("");
+    setPanelExpanded(false);
+  };
+
+  const openPanel = () => {
+    if (locked || quotaExhausted) return;
+    setPanelExpanded(true);
   };
 
   return (
-    <div className="fixed bottom-0 left-0 w-full z-50 game-glass-card rounded-t-3xl pt-4 pb-[calc(env(safe-area-inset-bottom)+16px)] px-4 border-b-0 border-x-0">
-      <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4"></div>
+    <div className="w-full shrink-0 game-glass-card rounded-t-2xl pt-2 pb-[max(env(safe-area-inset-bottom,12px),12px)] px-3 border-b-0 border-x-0">
+      <button
+        type="button"
+        onClick={() => setPanelExpanded(!expanded)}
+        className="w-full flex items-center justify-center py-1"
+        aria-label={expanded ? "收起输入面板" : "展开输入面板"}
+      >
+        <div className="w-10 h-1 bg-white/25 rounded-full" />
+        {expanded ? (
+          <ChevronDown size={14} className="text-white/40 ml-2" />
+        ) : (
+          <ChevronUp size={14} className="text-white/40 ml-2" />
+        )}
+      </button>
 
-      {mode === "question" && players && (
-        <>
-          <h3 className="text-white font-bold mb-4 text-center">你想问谁？</h3>
-          <div className="flex justify-between mb-4 px-2">
-            {players.map((p) => {
-              const isSelected = p.id === selectedPlayerId;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => onSelectPlayer && onSelectPlayer(p.id)}
-                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${isSelected ? 'bg-[#7c5cff] text-white shadow-[0_0_15px_rgba(124,92,255,0.6)] border-2 border-[#c0c1ff]' : 'bg-white/10 text-white/70 border border-white/20 hover:bg-white/20'}`}
-                >
-                  {p.avatarChar}
-                </button>
-              );
-            })}
-          </div>
-        </>
+      {!expanded && (
+        <button
+          type="button"
+          onClick={openPanel}
+          disabled={disabled || locked || quotaExhausted}
+          className="w-full mt-1 mb-1 min-h-[44px] rounded-xl bg-white/10 border border-white/15 text-left px-4 text-sm text-white/50 disabled:opacity-45"
+        >
+          {quotaExhausted
+            ? "本轮已提问 · 点击下方「发起投票」"
+            : locked
+              ? "点击展开 · 选择玩家后提问"
+              : "点击展开 · 质疑 TA…(English or 中文)"}
+        </button>
       )}
 
-      {/* Quick Chips */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
-        {QUICK_CHIPS.map((chip) => (
-          <button
-            key={chip.en}
-            onClick={() => setText(chip.zh)}
-            disabled={locked}
-            className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm text-white/90 whitespace-nowrap active:bg-white/20 disabled:opacity-40 disabled:active:bg-white/10"
-          >
-            {chip.zh}
-          </button>
-        ))}
-        <button
-          disabled={locked || helpBusy || disabled}
-          onClick={() => onHelpExpress?.(text.trim() || QUICK_CHIPS[0].zh)}
-          className="px-4 py-2 rounded-full bg-[#7c5cff]/20 backdrop-blur-md border border-[#7c5cff]/50 text-sm text-[#c0c1ff] whitespace-nowrap flex items-center gap-1 shrink-0 disabled:opacity-40"
-        >
-          <Zap size={14} className={helpBusy ? "animate-pulse" : ""} />
-          {helpBusy ? "生成中…" : "帮我表达"}
-        </button>
-      </div>
+      {expanded && (
+        <div className="mt-1 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {mode === "question" && players && players.length > 0 && (
+            <>
+              <h3 className="text-white/90 font-bold text-xs text-center">你想问谁？</h3>
+              <div className="flex justify-center gap-3 flex-wrap">
+                {players.map((p) => {
+                  const isSelected = p.id === selectedPlayerId;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => onSelectPlayer?.(p.id)}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                        isSelected
+                          ? "bg-[#7c5cff] text-white shadow-[0_0_12px_rgba(124,92,255,0.5)] border border-[#c0c1ff]"
+                          : "bg-white/10 text-white/70 border border-white/20 hover:bg-white/20"
+                      }`}
+                    >
+                      {p.avatarChar}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
-      {/* Input Area */}
-      <div className="relative">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } }}
-          className="w-full min-h-[50px] rounded-2xl bg-white/10 border border-white/20 text-white px-4 pr-14 outline-none focus:border-[#7c5cff] placeholder:text-white/40 text-sm disabled:opacity-50"
-          placeholder={locked ? "点击上方玩家头像，选择质疑对象" : "质疑 TA…(English or 中文)"}
-          type="text"
-          disabled={disabled || locked}
-        />
-        <button
-          onClick={submit}
-          disabled={disabled || locked || !text.trim()}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#7c5cff] flex items-center justify-center hover:scale-95 transition-transform disabled:opacity-40"
-        >
-          <Send size={16} className="text-white" />
-        </button>
-      </div>
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            {QUICK_CHIPS.map((chip) => (
+              <button
+                key={chip.en}
+                type="button"
+                onClick={() => setText(chip.zh)}
+                disabled={locked || quotaExhausted}
+                className="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs text-white/90 whitespace-nowrap active:bg-white/20 disabled:opacity-40"
+              >
+                {chip.zh}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={locked || helpBusy || disabled || quotaExhausted}
+              onClick={() => onHelpExpress?.(text.trim() || QUICK_CHIPS[0].zh)}
+              className="px-3 py-1.5 rounded-full bg-[#7c5cff]/20 border border-[#7c5cff]/50 text-xs text-[#c0c1ff] whitespace-nowrap flex items-center gap-1 shrink-0 disabled:opacity-40"
+            >
+              <Zap size={12} className={helpBusy ? "animate-pulse" : ""} />
+              {helpBusy ? "生成中…" : "帮我表达"}
+            </button>
+          </div>
+
+          <div className="relative">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              autoFocus
+              className="w-full min-h-[44px] rounded-xl bg-white/10 border border-white/20 text-white px-4 pr-12 outline-none focus:border-[#7c5cff] placeholder:text-white/40 text-sm disabled:opacity-50"
+              placeholder={
+                quotaExhausted
+                  ? "本轮已提问"
+                  : locked
+                    ? "先选择上方玩家"
+                    : "质疑 TA…(English or 中文)"
+              }
+              type="text"
+              disabled={disabled || locked || quotaExhausted}
+            />
+            <button
+              type="button"
+              onClick={submit}
+              disabled={disabled || locked || quotaExhausted || !text.trim()}
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#7c5cff] flex items-center justify-center hover:scale-95 transition-transform disabled:opacity-40"
+            >
+              <Send size={14} className="text-white" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

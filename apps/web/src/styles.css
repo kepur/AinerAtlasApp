@@ -2027,6 +2027,28 @@ button, input, select, textarea {
   .studio-sidebar, .studio-panel { display: none; }
 }
 
+/* ─── Dark theme (default vars in :root are light) ─── */
+[data-theme="dark"] {
+  --bg-primary: #070b14;
+  --bg-secondary: #0f172a;
+  --bg-card: rgba(255, 255, 255, 0.06);
+  --bg-card-hover: rgba(255, 255, 255, 0.1);
+  --bg-glass: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-glow: rgba(139, 92, 246, 0.25);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --gradient-glow: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.2), transparent 60%);
+  --tabbar-bg: rgba(15, 23, 42, 0.94);
+  --bar-bg: rgba(15, 23, 42, 0.96);
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --tab-active-text: #c4b5fd;
+  --tab-active-bg: rgba(139, 92, 246, 0.18);
+  --tab-active-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.35);
+}
+
 /* ─── Light theme ─── */
 [data-theme="light"] {
   --bg-primary: #faf8ff;

@@ -466,13 +466,82 @@ def update_prompt(
     return prompt
 
 
-@router.get("/usage", response_model=list[UsageLogRead])
-def list_usage(_: AdminUser, db: DBSession) -> list[UsageLog]:
-    return list(db.scalars(select(UsageLog).order_by(UsageLog.created_at.desc()).limit(100)))
+@router.get("/usage")
+def list_usage(
+    _: AdminUser,
+    db: DBSession,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict:
+    base = select(UsageLog)
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    rows = list(
+        db.scalars(
+            base.order_by(UsageLog.created_at.desc()).offset(max(0, offset)).limit(min(limit, 200))
+        )
+    )
+    return {
+        "items": [UsageLogRead.model_validate(r) for r in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
-@router.get("/llm-logs", response_model=list[LLMCallLogRead])
+@router.get("/audit-logs")
+def list_audit_logs(
+    _: AdminUser,
+    db: DBSession,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict:
+    base = select(AuditLog)
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    rows = list(
+        db.scalars(
+            base.order_by(AuditLog.created_at.desc()).offset(max(0, offset)).limit(min(limit, 200))
+        )
+    )
+    return {
+        "items": [AuditLogRead.model_validate(r) for r in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/audit-logs/legacy", response_model=list[AuditLogRead], include_in_schema=False)
+def list_audit_logs_legacy(_: AdminUser, db: DBSession) -> list[AuditLog]:
+    return list(db.scalars(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(100)))
+
+
+@router.get("/llm-logs")
 def list_llm_logs(
+    _: AdminUser,
+    db: DBSession,
+    limit: int = 20,
+    offset: int = 0,
+    status: str | None = None,
+) -> dict:
+    base = select(LLMCallLog)
+    if status:
+        base = base.where(LLMCallLog.status == status)
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    rows = list(
+        db.scalars(
+            base.order_by(LLMCallLog.created_at.desc()).offset(max(0, offset)).limit(min(limit, 200))
+        )
+    )
+    return {
+        "items": [LLMCallLogRead.model_validate(r) for r in rows],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/llm-logs/legacy", response_model=list[LLMCallLogRead], include_in_schema=False)
+def list_llm_logs_legacy(
     _: AdminUser,
     db: DBSession,
     limit: int = 100,
@@ -539,11 +608,6 @@ def cost_center(_: AdminUser, db: DBSession) -> CostSummary:
     )
 
 
-@router.get("/audit-logs", response_model=list[AuditLogRead])
-def list_audit_logs(_: AdminUser, db: DBSession) -> list[AuditLog]:
-    return list(db.scalars(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(100)))
-
-
 @router.get("/moderation", response_model=list[ModerationEventRead])
 def list_moderation_events(_: AdminUser, db: DBSession) -> list[ModerationEvent]:
     return list(
@@ -603,6 +667,8 @@ def update_membership_plan(
         "daily_voice_minutes": plan.daily_voice_minutes,
         "daily_freeze_count": plan.daily_freeze_count,
         "asset_limit": plan.asset_limit,
+        "daily_match_cards": plan.daily_match_cards,
+        "match_batch_size": plan.match_batch_size,
         "enabled": plan.enabled,
     }
     plan.display_name = payload.display_name
@@ -610,6 +676,8 @@ def update_membership_plan(
     plan.daily_voice_minutes = payload.daily_voice_minutes
     plan.daily_freeze_count = payload.daily_freeze_count
     plan.asset_limit = payload.asset_limit
+    plan.daily_match_cards = payload.daily_match_cards
+    plan.match_batch_size = payload.match_batch_size
     plan.enabled = payload.enabled
     write_audit_log(
         db,
@@ -720,6 +788,8 @@ def _app_settings_read(settings: AppSettings) -> AppSettingsRead:
         tts_speed=float(getattr(settings, "tts_speed", 0.9) or 0.9),
         tts_pitch=float(getattr(settings, "tts_pitch", 1.1) or 1.1),
         global_api_keys=getattr(settings, "global_api_keys", []) or [],
+        llm_routing=getattr(settings, "llm_routing", {}) or {},
+        voice_platform_config=getattr(settings, "voice_platform_config", {}) or {},
         updated_at=settings.updated_at,
     )
 
@@ -727,6 +797,18 @@ def _app_settings_read(settings: AppSettings) -> AppSettingsRead:
 @router.get("/app-settings", response_model=AppSettingsRead)
 def get_app_settings_admin(_: AdminUser, db: DBSession) -> AppSettingsRead:
     return _app_settings_read(get_app_settings(db))
+
+
+@router.get("/llm-routing-catalog")
+def get_llm_routing_catalog(_: AdminUser, db: DBSession) -> dict:
+    from app.services.llm_routing_catalog import LLM_ROUTE_BUCKETS, catalog_for_admin
+
+    settings = get_app_settings(db)
+    return {
+        "routes": catalog_for_admin(),
+        "buckets": list(LLM_ROUTE_BUCKETS),
+        "routing": getattr(settings, "llm_routing", {}) or {},
+    }
 
 
 @router.put("/app-settings", response_model=AppSettingsRead)
@@ -763,6 +845,18 @@ def update_app_settings(
     settings.tts_speed = getattr(payload, "tts_speed", 0.9) or 0.9
     settings.tts_pitch = getattr(payload, "tts_pitch", 1.1) or 1.1
     settings.global_api_keys = getattr(payload, "global_api_keys", []) or []
+    settings.llm_routing = getattr(payload, "llm_routing", {}) or {}
+    from app.services.voice_platform_config import merge_voice_platform_config
+
+    incoming_vpc = getattr(payload, "voice_platform_config", {}) or {}
+    current_vpc = merge_voice_platform_config(getattr(settings, "voice_platform_config", None))
+    if isinstance(incoming_vpc, dict):
+        patch = {k: v for k, v in incoming_vpc.items() if v is not None}
+        secret = str(patch.get("nls_access_key_secret") or "").strip()
+        if not secret:
+            patch.pop("nls_access_key_secret", None)
+        current_vpc.update(patch)
+    settings.voice_platform_config = current_vpc
     write_audit_log(
         db,
         admin,

@@ -1,7 +1,8 @@
+import asyncio
 from fastapi import APIRouter, Body, HTTPException
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DBSession
+from app.api.deps import CurrentUser, DBSession, QuotaManagerDep
 from app.models import (
     CircleMember,
     CircleRoom,
@@ -20,6 +21,7 @@ from app.schemas import (
     MatchFeedbackCreate,
     MatchFeedbackRead,
     MatchProfileUpdate,
+    MatchQuotaRead,
     MatchRecommendationRead,
     MatchRequestCreate,
     MatchRequestRead,
@@ -32,10 +34,12 @@ from app.services.matching import (
     generate_icebreaker,
 )
 from app.services.user_profile_analysis import latest_analysis_details
+from app.services.match_quota import build_match_quota_read, get_match_batch_size
 
 router = APIRouter(prefix="/connect", tags=["matching"])
 
 SOULMATE_THRESHOLD = 80.0
+UNLIMITED_CANDIDATE_SCAN = 200
 
 
 @router.post("/enable")
@@ -169,17 +173,21 @@ def soulmate_readiness(current_user: CurrentUser, db: DBSession) -> dict:
     }
 
 
-@router.get("/recommendations", response_model=list[MatchRecommendationRead])
-def get_recommendations(
+@router.get("/quota", response_model=MatchQuotaRead)
+def get_match_quota(
     current_user: CurrentUser,
     db: DBSession,
-) -> list[MatchRecommendationRead]:
-    settings = db.scalar(
-        select(UserMatchSettings).where(UserMatchSettings.user_id == current_user.id)
-    )
-    if not settings or not settings.enabled:
-        raise HTTPException(status_code=400, detail="Matching is not enabled")
+    quota: QuotaManagerDep,
+) -> MatchQuotaRead:
+    return MatchQuotaRead(**build_match_quota_read(current_user, db, quota))
 
+
+def _score_recommendations(
+    db: DBSession,
+    current_user: User,
+    *,
+    candidate_limit: int,
+) -> tuple[list[tuple[MatchRecommendationRead, dict | None]], dict | None]:
     user_profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
     user_match = db.scalar(
         select(UserMatchProfile).where(UserMatchProfile.user_id == current_user.id)
@@ -193,11 +201,11 @@ def get_recommendations(
         db.scalars(
             select(User)
             .where(User.id != current_user.id, User.status == "active")
-            .limit(20)
+            .limit(candidate_limit)
         )
     )
 
-    results: list[MatchRecommendationRead] = []
+    results: list[tuple[MatchRecommendationRead, dict | None]] = []
     for candidate in candidates:
         target_profile = db.scalar(
             select(UserProfile).where(UserProfile.user_id == candidate.id)
@@ -235,22 +243,53 @@ def get_recommendations(
             db.flush()
             existing = rec
 
-        results.append(
-            MatchRecommendationRead(
-                id=existing.id,
-                target_user_id=candidate.id,
-                target_username=candidate.username,
-                score=score,
-                reasons=reasons,
-                status=existing.status,
-                icebreaker=generate_icebreaker(reasons, candidate.username),
-                created_at=existing.created_at,
-            )
+        rec_read = MatchRecommendationRead(
+            id=existing.id,
+            target_user_id=candidate.id,
+            target_username=candidate.username,
+            score=score,
+            reasons=reasons,
+            status=existing.status,
+            icebreaker="",
+            created_at=existing.created_at,
         )
+        results.append((rec_read, target_analysis))
 
     db.commit()
-    results.sort(key=lambda r: r.score, reverse=True)
-    return results[:10]
+    results.sort(key=lambda r: r[0].score, reverse=True)
+    return results, user_analysis
+
+
+@router.get("/recommendations", response_model=list[MatchRecommendationRead])
+async def get_recommendations(
+    current_user: CurrentUser,
+    db: DBSession,
+    quota: QuotaManagerDep,
+) -> list[MatchRecommendationRead]:
+    settings = db.scalar(
+        select(UserMatchSettings).where(UserMatchSettings.user_id == current_user.id)
+    )
+    if not settings or not settings.enabled:
+        raise HTTPException(status_code=400, detail="Matching is not enabled")
+
+    quota.consume_match_card(current_user)
+    batch_size = get_match_batch_size(current_user, db)
+    candidate_limit = UNLIMITED_CANDIDATE_SCAN if batch_size < 0 else max(batch_size * 10, 20)
+    
+    scored_results, user_analysis = _score_recommendations(db, current_user, candidate_limit=candidate_limit)
+    
+    selected = scored_results if batch_size < 0 else scored_results[:batch_size]
+    
+    async def _fill_icebreaker(rec_read: MatchRecommendationRead, target_analysis: dict | None) -> MatchRecommendationRead:
+        rec_read.icebreaker = await generate_icebreaker(
+            db, rec_read.reasons, rec_read.target_username, user_analysis, target_analysis
+        )
+        return rec_read
+
+    final_results = await asyncio.gather(*(
+        _fill_icebreaker(rec, t_analysis) for rec, t_analysis in selected
+    ))
+    return list(final_results)
 
 
 @router.post("/trio-room")
@@ -453,10 +492,16 @@ async def accept_request(
 
     from_user = db.get(User, req.from_user_id)
     to_user = db.get(User, req.to_user_id)
+    
+    user_a_analysis = latest_analysis_details(db, req.from_user_id)
+    user_b_analysis = latest_analysis_details(db, req.to_user_id)
+
     intro = await host_intro(
         from_user.username if from_user else "User A",
         to_user.username if to_user else "User B",
         [],
+        user_a_analysis=user_a_analysis,
+        user_b_analysis=user_b_analysis,
         db=db,
     )
     db.commit()

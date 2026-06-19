@@ -16,9 +16,7 @@ import { useAuthStore } from "../stores/authStore";
 import {
   useChatPrefsStore,
   type AIPersona,
-  type AutoReadMode,
   type FontSize,
-  type VoiceStyle,
 } from "../stores/chatPrefsStore";
 
 const AI_PERSONAS: { key: AIPersona; icon: string; label: string; desc: string }[] = [
@@ -29,16 +27,6 @@ const AI_PERSONAS: { key: AIPersona; icon: string; label: string; desc: string }
   { key: "business_coach", icon: "work", label: "Business", desc: "Professional tone" },
   { key: "dating_coach", icon: "volunteer_activism", label: "Dating", desc: "Respectful advice" },
   { key: "debate_opponent", icon: "gavel", label: "Debate", desc: "Challenges you" },
-];
-
-const VOICES: { key: VoiceStyle; label: string }[] = [
-  { key: "auto", label: "Auto" },
-  { key: "sweet_female", label: "Sweet F" },
-  { key: "gentle_male", label: "Gentle M" },
-  { key: "pro_female", label: "Pro F" },
-  { key: "pro_male", label: "Pro M" },
-  { key: "lively_female", label: "Lively F" },
-  { key: "calm_male", label: "Calm M" },
 ];
 
 function coachToPersona(coach?: string): AIPersona {
@@ -127,11 +115,6 @@ export default function Settings() {
 
   function handleNativeLanguageChange(code: string) {
     setNativeLanguage(code);
-    if (isLocaleCode(code) && languageCodes.includes(code)) {
-      setUiLanguage(code);
-      setExplanationLanguage(code);
-      setLocale(code);
-    }
   }
 
   async function handleSave() {
@@ -140,29 +123,20 @@ export default function Settings() {
     setSaved(false);
     setError(null);
     const currentLevel = levelFromMasteryIndex(currentLevelIdx);
-    const syncedUiLanguage =
-      isLocaleCode(nativeLanguage) && languageCodes.includes(nativeLanguage)
-        ? nativeLanguage
-        : uiLanguage;
-    const syncedExplanation =
-      isLocaleCode(nativeLanguage) && languageCodes.includes(nativeLanguage)
-        ? nativeLanguage
-        : explanationLanguage;
     try {
       const updated = await apiRequest<Profile>("/api/profile", {
         method: "PUT",
         body: JSON.stringify({
           ...profile,
           username: username.trim() || undefined,
-          ui_language: syncedUiLanguage,
-          explanation_language: syncedExplanation,
+          ui_language: uiLanguage,
+          explanation_language: explanationLanguage,
           native_language: nativeLanguage,
           primary_target_language: targetLanguage,
           target_languages: [targetLanguage],
           current_level: currentLevel,
           ui_theme: uiTheme,
           coach_style: prefs.aiPersona,
-          voice_preference: prefs.voiceStyle,
           birthday: birthday || null,
           avatar_url: avatarUrl,
           gender_identity: genderIdentity,
@@ -174,8 +148,8 @@ export default function Settings() {
       });
       useAuthStore.setState({ profile: updated });
       if (username.trim()) await loadUser();
-      if (isLocaleCode(syncedUiLanguage)) {
-        setLocale(syncedUiLanguage);
+      if (isLocaleCode(uiLanguage) && languageCodes.includes(uiLanguage)) {
+        setLocale(uiLanguage);
       }
       applyTheme(uiTheme);
       setSaved(true);
@@ -314,6 +288,7 @@ export default function Settings() {
             </div>
             <div>
               <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.theme")}</label>
+              <p className="text-xs text-on-surface-variant mb-2 opacity-80">{t("settings.themeHint")}</p>
               <div className="flex gap-2">
                 {(["light", "dark"] as ThemeMode[]).map((mode) => (
                   <button
@@ -425,95 +400,7 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Voice */}
-        <section className="space-y-4">
-          <h3 className="font-headline-md text-[18px]">{t("settings.voiceAudio")}</h3>
-          <div className="glass-card premium-shadow p-4 rounded-2xl space-y-5">
-            <div>
-              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.autoReadMode")}</label>
-              <select
-                value={prefs.autoReadMode}
-                onChange={(e) => updatePrefs({ autoReadMode: e.target.value as AutoReadMode })}
-                className={selectClass}
-              >
-                <option value="off">{t("settings.autoReadOff")}</option>
-                <option value="target_only">{t("settings.autoReadTarget")}</option>
-                <option value="always">{t("settings.autoReadAlways")}</option>
-                <option value="voice_only">{t("settings.autoReadVoice")}</option>
-              </select>
-            </div>
-            <div>
-              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.voiceStyle")}</label>
-              <div className="flex flex-wrap gap-2">
-                {VOICES.map((v) => (
-                  <button
-                    key={v.key}
-                    type="button"
-                    onClick={() => updatePrefs({ voiceStyle: v.key })}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                      prefs.voiceStyle === v.key
-                        ? "bg-primary text-white"
-                        : "bg-surface-container border border-outline-variant/30 text-on-surface-variant"
-                    }`}
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
 
-        {/* Chat display */}
-        <section className="space-y-4">
-          <h3 className="font-headline-md text-[18px]">{t("settings.chatDisplay")}</h3>
-          <div className="glass-card premium-shadow p-4 rounded-2xl space-y-5">
-            <div>
-              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.fontSize")}</label>
-              <div className="flex bg-surface-container-low rounded-xl p-1 border border-outline-variant/30">
-                {(["small", "standard", "large", "xlarge"] as FontSize[]).map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => updatePrefs({ fontSize: size })}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-lg capitalize ${
-                      prefs.fontSize === size ? "bg-white text-primary shadow-sm" : "text-on-surface-variant"
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="pt-2 border-t border-outline-variant/20">
-              <label className="font-label-sm text-on-surface-variant block mb-2">{t("settings.bubbleDensity")}</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => updatePrefs({ bubbleDensity: "compact" })}
-                  className={`flex-1 py-2 rounded-xl text-sm font-medium border ${
-                    prefs.bubbleDensity === "compact"
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-outline-variant/30 text-on-surface-variant"
-                  }`}
-                >
-                  {t("settings.compact")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updatePrefs({ bubbleDensity: "comfortable" })}
-                  className={`flex-1 py-2 rounded-xl text-sm font-medium border ${
-                    prefs.bubbleDensity === "comfortable"
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-outline-variant/30 text-on-surface-variant"
-                  }`}
-                >
-                  {t("settings.comfortable")}
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
 
         <p className="text-center text-xs text-on-surface-variant opacity-60">
           {languageCodes.length} {t("settings.languageSettings").toLowerCase()} · {locale.toUpperCase()}

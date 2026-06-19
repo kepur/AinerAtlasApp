@@ -133,7 +133,7 @@ export default function UnifiedGameChat() {
   const coverUrl = (view.cover_url as string) || (currentSession as any)?.config?.cover_url || "";
 
   return (
-    <div className="premium w-full h-full bg-[#f8f9fc] flex flex-col relative overflow-hidden font-sans text-[#111827]">
+    <div className="premium immersive-layout w-full h-full min-h-0 bg-[#f8f9fc] flex flex-col relative overflow-hidden font-sans text-[#111827]">
       {/* Dynamic Background Image */}
       {coverUrl && (
         <>

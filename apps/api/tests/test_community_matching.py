@@ -4,7 +4,9 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from app.api.deps import get_quota_manager
 from app.main import app
+from tests.test_quota import override_quota_manager, shared_quota_manager
 
 
 def _register_and_login(client: TestClient, prefix: str = "community") -> str:
@@ -108,6 +110,46 @@ def test_matching_enable_and_recommendations() -> None:
 
         recs = client.get("/api/connect/recommendations", headers=_auth_headers(token_a))
         assert recs.status_code == 200
+
+
+def test_free_user_match_card_quota() -> None:
+    shared_quota_manager.reset()
+    app.dependency_overrides[get_quota_manager] = override_quota_manager
+
+    with TestClient(app) as client:
+        token_a = _register_and_login(client, "match_quota_a")
+        token_b = _register_and_login(client, "match_quota_b")
+        headers_a = _auth_headers(token_a)
+
+        client.put(
+            "/api/connect/profile",
+            json={"bio": "test", "interests": ["tech"], "target_languages": ["en"]},
+            headers=headers_a,
+        )
+        client.put(
+            "/api/connect/profile",
+            json={"bio": "test2", "interests": ["tech"], "target_languages": ["en"]},
+            headers=_auth_headers(token_b),
+        )
+        client.post(
+            "/api/connect/enable",
+            json={"enabled": True, "match_mode": "language_partner"},
+            headers=headers_a,
+        )
+
+        quota = client.get("/api/connect/quota", headers=headers_a)
+        assert quota.status_code == 200
+        assert quota.json()["daily_match_cards"] == 1
+        assert quota.json()["match_batch_size"] == 1
+
+        first = client.get("/api/connect/recommendations", headers=headers_a)
+        assert first.status_code == 200
+        assert len(first.json()) <= 1
+
+        exhausted = client.get("/api/connect/recommendations", headers=headers_a)
+        assert exhausted.status_code == 429
+
+    app.dependency_overrides.clear()
 
 
 def test_soulmate_readiness() -> None:

@@ -32,6 +32,10 @@ class FakeRedis:
     def expireat(self, key: str, when) -> bool:
         return True
 
+    def get(self, key: str):
+        val = self.storage.get(key)
+        return str(val) if val is not None else None
+
 
 @pytest.fixture(autouse=True)
 def fresh_test_database() -> Iterator[None]:

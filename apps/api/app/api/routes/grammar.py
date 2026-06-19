@@ -13,6 +13,7 @@ from app.schemas import (
     PracticeSubmit,
 )
 from app.services.pattern_mining import _upsert_mastery_item
+from app.services.crush_exercise_llm import generate_exercise_smart
 from app.services.practice import generate_exercise, grade_answer, stash_exercise, take_exercise
 
 router = APIRouter(prefix="/grammar", tags=["grammar"])
@@ -111,13 +112,13 @@ def mastery_items(current_user: CurrentUser, db: DBSession) -> list[UserMastery]
 
 
 @router.get("/{item_id}/practice", response_model=PracticeResponse)
-def get_practice_exercise(
+async def get_practice_exercise(
     item_id: str,
     current_user: CurrentUser,
     db: DBSession,
 ) -> PracticeResponse:
     item = get_item(item_id, current_user.id, db)
-    exercise = generate_exercise(item)
+    exercise = await generate_exercise_smart(db, item)
     token = stash_exercise(current_user.id, item_id, exercise)
     return PracticeResponse(
         item=item,
@@ -162,7 +163,7 @@ def _resolve_submitted_exercise(
 
 
 @router.post("/{item_id}/practice", response_model=PracticeResponse)
-def practice_item(
+async def practice_item(
     item_id: str,
     payload: PracticeSubmit,
     current_user: CurrentUser,
@@ -171,7 +172,7 @@ def practice_item(
     item = get_item(item_id, current_user.id, db)
 
     if not payload.answer.strip():
-        exercise = generate_exercise(item)
+        exercise = await generate_exercise_smart(db, item)
         token = stash_exercise(current_user.id, item_id, exercise)
         return PracticeResponse(
             item=item,
@@ -241,6 +242,10 @@ def get_item(item_id: str, user_id: str, db: DBSession) -> UserMastery:
     item = db.scalar(
         select(UserMastery).where(UserMastery.id == item_id, UserMastery.user_id == user_id)
     )
+    if not item:
+        item = db.scalar(
+            select(UserMastery).where(UserMastery.item_id == item_id, UserMastery.user_id == user_id)
+        )
     if not item:
         raise HTTPException(status_code=404, detail="Learning item not found")
     return item

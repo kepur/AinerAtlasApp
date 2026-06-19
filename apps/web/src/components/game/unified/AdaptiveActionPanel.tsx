@@ -38,7 +38,7 @@ export default function AdaptiveActionPanel({
         : "输入中文或英文，和 AI 边玩边学...");
 
   return (
-    <div className="w-full fixed bottom-[env(safe-area-inset-bottom,0px)] left-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-4 py-3 pb-[calc(env(safe-area-inset-bottom,20px)+60px)] z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
+    <div className="w-full shrink-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-4 pt-3 pb-[max(env(safe-area-inset-bottom,16px),16px)] z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
 
       {/* ============  Roleplay  ============ */}
       {mode === "roleplay" && (

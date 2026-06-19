@@ -16,6 +16,8 @@ import zh from "./locales/zh";
 export type { LocaleCode };
 export { isLocaleCode, LOCALE_CODES, LOCALE_NATIVE_NAMES } from "./localeManifest";
 
+const LOCALE_STORAGE_KEY = "ainerspeak_ui_locale";
+
 const bundles: Record<LocaleCode, Record<string, unknown>> = {
   en,
   zh,
@@ -88,6 +90,11 @@ export function I18nProvider({
       setLocaleState(next);
       document.documentElement.lang = next;
       document.documentElement.dir = next === "ar" ? "rtl" : "ltr";
+      try {
+        localStorage.setItem(LOCALE_STORAGE_KEY, next);
+      } catch {
+        /* ignore */
+      }
     }
   };
 
@@ -119,7 +126,7 @@ export function useI18n() {
 export function resolveProfileLocale(
   profile: { ui_language?: string; native_language?: string } | null | undefined
 ): string | undefined {
-  return profile?.native_language || profile?.ui_language || undefined;
+  return profile?.ui_language || profile?.native_language || undefined;
 }
 
 export function resolveLocaleCode(
@@ -127,7 +134,13 @@ export function resolveLocaleCode(
   fallback: string,
   enabled: string[]
 ): LocaleCode {
-  const candidates = [preferred, fallback, "en", "zh"];
+  let stored: string | undefined;
+  try {
+    stored = localStorage.getItem(LOCALE_STORAGE_KEY) ?? undefined;
+  } catch {
+    stored = undefined;
+  }
+  const candidates = [preferred, stored, fallback, "en", "zh"];
   for (const candidate of candidates) {
     if (candidate && isLocaleCode(candidate) && enabled.includes(candidate)) {
       return candidate;

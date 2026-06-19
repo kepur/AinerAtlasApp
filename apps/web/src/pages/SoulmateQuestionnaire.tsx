@@ -111,11 +111,11 @@ export default function SoulmateQuestionnaire() {
           <Sparkles size={48} className="text-white" />
         </div>
         <div className="text-center">
-          <h2 className="font-extrabold text-[#111827] text-2xl mb-2">画像完成！</h2>
-          <p className="text-[#6b7280] text-[13px] leading-relaxed">你的 Soulmate 画像已更新，<br />现在可以开启深度匹配了</p>
+          <h2 className="font-extrabold text-on-surface text-2xl mb-2">画像完成！</h2>
+          <p className="text-on-surface-variant text-[13px] leading-relaxed">你的 Soulmate 画像已更新，<br />现在可以开启深度匹配了</p>
         </div>
-        <div className="w-full max-w-sm bg-white rounded-[20px] p-4 shadow-sm border border-[#f5f3ff]">
-          <h4 className="font-bold text-[#111827] text-sm mb-3">你的画像标签</h4>
+        <div className="w-full max-w-sm bg-surface-container-lowest rounded-[20px] p-4 shadow-sm border border-[#f5f3ff]">
+          <h4 className="font-bold text-on-surface text-sm mb-3">你的画像标签</h4>
           <div className="flex flex-wrap gap-1.5">
             {[...selections.emotional_values, ...selections.lifestyle_prefs, ...selections.relationship_goals].map((v) => {
               const opt = STEPS.flatMap((s) => s.options).find((o) => o.value === v);
@@ -133,7 +133,7 @@ export default function SoulmateQuestionnaire() {
         >
           <Heart size={18} className="fill-white" /> 开启 Soulmate 匹配
         </button>
-        <button onClick={() => navigate(-1)} className="text-[12px] text-[#9ca3af]">暂时跳过</button>
+        <button onClick={() => navigate(-1)} className="text-[12px] text-on-surface-variant">暂时跳过</button>
       </div>
     );
   }
@@ -141,74 +141,75 @@ export default function SoulmateQuestionnaire() {
   const canNext = selections[current.key].length > 0;
 
   return (
-    <div className="w-full h-full bg-[#f8f9fc] flex flex-col relative overflow-hidden">
-      {/* Background gradient */}
-      <div className={`fixed top-0 left-0 w-full h-[200px] bg-gradient-to-br ${current.color} opacity-8 pointer-events-none z-0`} />
-
+    <div className="premium w-full h-full flex flex-col relative overflow-hidden bg-[#f4f4f5]">
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white/90 backdrop-blur-md border-b border-gray-100">
+      <header className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white/80 backdrop-blur-md border-b border-[#e4e4e7]">
         <button
           onClick={() => (step > 0 ? setStep((s) => s - 1) : navigate(-1))}
-          className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#111827]"
+          className="w-8 h-8 rounded-full border border-[#d4d4d8] flex items-center justify-center text-[#18181b]"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
-          <h1 className="font-bold text-[#111827] text-[15px]">Soulmate 画像</h1>
-          <p className="text-[10px] text-[#6b7280]">步骤 {step + 1} / {STEPS.length}</p>
+          <h1 className="font-bold text-[#18181b] text-[15px]">Soulmate 画像</h1>
+          <p className="text-[10px] text-[#71717a]">步骤 {step + 1} / {STEPS.length}</p>
         </div>
-        <div className="text-sm font-bold text-[#8b5cf6]">{Math.round(progress)}%</div>
+        <div className={`text-sm font-bold bg-clip-text text-transparent bg-gradient-to-r ${current.color}`}>{Math.round(progress)}%</div>
       </header>
 
       {/* Progress Bar */}
-      <div className="w-full h-1 bg-gray-100 shrink-0">
+      <div className="w-full h-1 bg-[#e4e4e7] shrink-0">
         <div
           className={`h-full bg-gradient-to-r ${current.color} rounded-full transition-all duration-500`}
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      <main className="flex-1 overflow-y-auto px-5 pt-6 pb-28 no-scrollbar relative z-10">
-        {/* Step Header */}
-        <div className="flex flex-col items-center text-center mb-6 gap-2">
-          <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${current.color} flex items-center justify-center shadow-lg`}>
-            <span className="text-3xl">{current.emoji}</span>
+      <main className="flex-1 overflow-y-auto no-scrollbar relative z-10 pb-28">
+        {/* Dynamic scrollable gradient header */}
+        <div className={`w-full py-8 px-5 bg-gradient-to-br ${current.color} flex flex-col items-center text-center rounded-b-[40px] shadow-sm mb-6`}>
+           <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg mb-4 border border-white/30">
+            <span className="text-3xl drop-shadow-md">{current.emoji}</span>
           </div>
-          <h2 className="font-extrabold text-[#111827] text-xl">{current.title}</h2>
-          <p className="text-[13px] text-[#6b7280]">{current.subtitle}</p>
-          <span className="text-[11px] text-[#8b5cf6] bg-[#f5f3ff] px-3 py-0.5 rounded-full font-medium border border-[#ede9fe]">可多选</span>
+          <h2 className="font-extrabold text-white text-2xl drop-shadow-md tracking-wide">{current.title}</h2>
+          <p className="text-[13px] text-white/90 mt-1 font-medium">{current.subtitle}</p>
+          <div className="mt-4">
+             <span className="text-[11px] text-[#8b5cf6] bg-white px-3 py-1 rounded-full font-bold shadow-sm">可多选</span>
+          </div>
         </div>
 
         {/* Options Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {current.options.map((opt) => {
-            const selected = selections[current.key].includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                onClick={() => toggle(opt.value)}
-                className={`bg-white rounded-2xl p-4 text-left flex flex-col gap-2 active:scale-95 transition-all shadow-sm border-2 ${
-                  selected ? "border-[#8b5cf6] bg-[#f5f3ff]" : "border-gray-100"
-                }`}
-              >
-                <span className="text-2xl">{opt.emoji}</span>
-                <div>
-                  <p className={`text-[13px] font-bold ${selected ? "text-[#6d28d9]" : "text-[#111827]"}`}>{opt.label}</p>
-                  <p className="text-[10px] text-[#9ca3af] mt-0.5 leading-snug">{opt.desc}</p>
-                </div>
-                {selected && (
-                  <div className="self-end w-5 h-5 rounded-full bg-[#8b5cf6] flex items-center justify-center">
-                    <Check size={11} className="text-white" />
+        <div className="px-5">
+          <div className="grid grid-cols-2 gap-3">
+            {current.options.map((opt) => {
+              const selected = selections[current.key].includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => toggle(opt.value)}
+                  className={`bg-white rounded-2xl p-4 text-left flex flex-col gap-2 active:scale-95 transition-all shadow-sm border-2 ${
+                    selected ? "border-[#8b5cf6] ring-2 ring-[#8b5cf6]/20 bg-[#f5f3ff]" : "border-[#e4e4e7]"
+                  }`}
+                >
+                  <span className="text-2xl drop-shadow-sm">{opt.emoji}</span>
+                  <div>
+                    <p className={`text-[13px] font-bold ${selected ? "text-[#6d28d9]" : "text-[#18181b]"}`}>{opt.label}</p>
+                    <p className="text-[10px] text-[#71717a] mt-1 leading-snug">{opt.desc}</p>
                   </div>
-                )}
-              </button>
-            );
-          })}
+                  {selected && (
+                    <div className="self-end w-5 h-5 rounded-full bg-[#8b5cf6] flex items-center justify-center shadow-sm">
+                      <Check size={11} className="text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </main>
 
       {/* Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 px-5 pt-3 pb-[env(safe-area-inset-bottom,16px)] z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-[#e4e4e7] px-5 pt-3 pb-[env(safe-area-inset-bottom,16px)] z-50">
         <button
           onClick={() => void handleNext()}
           disabled={!canNext || saving}

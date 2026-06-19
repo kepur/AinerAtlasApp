@@ -243,6 +243,7 @@ export function LearningPackManagement({ token, onStatus }: Props) {
         <label style={{ alignSelf: "end" }}>
           <button
             type="button"
+            className="admin-query-btn"
             onClick={() => {
               setOffset(0);
               setSearchGame(filterGame);

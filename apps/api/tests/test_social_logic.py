@@ -172,3 +172,21 @@ def test_social_logic_full_flow_structure() -> None:
             summary = client.get(f"/api/games/social-logic/{gid}/summary", headers=headers)
             assert summary.status_code == 200
             assert "patterns" in summary.json()
+        else:
+            assert vote_state.get("questions_this_round") == 0
+            assert vote_state.get("round", 1) >= 2
+
+
+def test_question_limit_per_round() -> None:
+    with TestClient(app) as client:
+        headers = {"Authorization": f"Bearer {_token(client)}"}
+        gid, state = _start_discussion(client, headers)
+        if state["phase"] != "day_discussion":
+            return
+        target = next(p for p in state["players"] if not p["is_user"] and p["alive"])
+        payload = {"target_player_id": target["id"], "content": "你昨晚在哪里？"}
+        first = client.post(f"/api/games/social-logic/{gid}/question", headers=headers, json=payload)
+        assert first.status_code == 200, first.text
+        assert first.json()["state"]["questions_this_round"] == 1
+        second = client.post(f"/api/games/social-logic/{gid}/question", headers=headers, json=payload)
+        assert second.status_code == 400, second.text

@@ -68,6 +68,15 @@ def create_app() -> FastAPI:
     return app
 
 
+def _disable_legacy_membership_plans(db) -> None:
+    """Hide retired tiers (premium/business) — product now uses free + vip + pro only."""
+    for legacy in ("premium", "business", "super_vip"):
+        plan = db.scalar(select(MembershipPlan).where(MembershipPlan.level == legacy))
+        if plan and plan.enabled:
+            plan.enabled = False
+            logger.info("Disabled legacy membership plan: {}", legacy)
+
+
 def seed_defaults() -> None:
     settings = get_settings()
     with SessionLocal() as db:
@@ -79,7 +88,7 @@ def seed_defaults() -> None:
                     username="AinerSpeak Admin",
                     password_hash=hash_password(settings.initial_admin_password),
                     role="super_admin",
-                    membership_level="premium",
+                    membership_level="pro",
                 )
                 db.add(admin)
                 db.flush()
@@ -221,6 +230,8 @@ def seed_defaults() -> None:
                         daily_voice_minutes=0,
                         daily_freeze_count=1,
                         asset_limit=20,
+                        daily_match_cards=1,
+                        match_batch_size=1,
                     ),
                     MembershipPlan(
                         level="vip",
@@ -229,6 +240,8 @@ def seed_defaults() -> None:
                         daily_voice_minutes=10,
                         daily_freeze_count=5,
                         asset_limit=100,
+                        daily_match_cards=3,
+                        match_batch_size=3,
                     ),
                     MembershipPlan(
                         level="pro",
@@ -237,18 +250,14 @@ def seed_defaults() -> None:
                         daily_voice_minutes=30,
                         daily_freeze_count=20,
                         asset_limit=500,
-                    ),
-                    MembershipPlan(
-                        level="premium",
-                        display_name="Premium",
-                        daily_ai_dialogue=500,
-                        daily_voice_minutes=120,
-                        daily_freeze_count=100,
-                        asset_limit=2000,
+                        daily_match_cards=5,
+                        match_batch_size=5,
                     ),
                 ]
             )
             logger.info("Seeded membership plans")
+
+        _disable_legacy_membership_plans(db)
 
         auth_settings = db.get(AuthSettings, "default")
         if not auth_settings:
@@ -261,6 +270,7 @@ def seed_defaults() -> None:
         _repair_conversation_schema(db)
         _repair_conversation_activity_schema(db)
         _repair_user_profile_schema(db)
+        _repair_app_settings_schema(db)
         app_settings = db.get(AppSettings, "default")
         if not app_settings:
             db.add(AppSettings(id="default"))
@@ -561,6 +571,26 @@ def _repair_user_profile_schema(db) -> None:
     db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS sexual_orientation VARCHAR(40) NOT NULL DEFAULT ''"))
     db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS orientation_custom VARCHAR(120) NOT NULL DEFAULT ''"))
     db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS lgbtq_visible BOOLEAN NOT NULL DEFAULT FALSE"))
+
+
+def _repair_app_settings_schema(db) -> None:
+    """Ensure app_settings routing column exists."""
+    bind = db.bind
+    if bind is None:
+        return
+    from sqlalchemy import inspect
+    inspector = inspect(bind)
+    columns = [c["name"] for c in inspector.get_columns("app_settings")]
+    if "llm_routing" not in columns:
+        try:
+            if bind.dialect.name == "postgresql":
+                db.execute(text("ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS llm_routing JSONB DEFAULT '{}'"))
+            else:
+                db.execute(text("ALTER TABLE app_settings ADD COLUMN llm_routing JSON DEFAULT '{}'"))
+            db.commit()
+            logger.info("Successfully added llm_routing column to app_settings table")
+        except Exception as e:
+            logger.error("Failed to add llm_routing column to app_settings: {}", e)
 
 
 app = create_app()

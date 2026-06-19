@@ -45,7 +45,7 @@ function RadarRing({ label, value, color }: { label: string; value: number; colo
         className="relative w-12 h-12 flex items-center justify-center rounded-full circular-progress"
         style={{ ["--percentage" as string]: value, ["--progress-color" as string]: color }}
       >
-        <div className="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+        <div className="absolute inset-1 bg-surface-container-lowest rounded-full flex items-center justify-center">
           <span className="text-[12px] font-bold">{value}%</span>
         </div>
       </div>
@@ -100,12 +100,12 @@ export default function VocabCrush() {
 
   return (
     <div className="premium min-h-full bg-surface text-on-surface">
-      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-white/20 px-margin-mobile h-touch-target-min flex justify-between items-center">
+      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 px-margin-mobile h-touch-target-min flex justify-between items-center">
         <div className="flex items-center gap-2">
           <button onClick={() => navigate("/profile")} className="material-symbols-outlined text-primary">menu</button>
           <h1 className="font-headline-lg text-[26px] font-bold text-primary">Crush</h1>
         </div>
-        <div className="flex items-center bg-white/50 px-3 py-1 rounded-full border border-white/40">
+        <div className="flex items-center bg-surface-container-lowest/50 px-3 py-1 rounded-full border border-outline-variant/30">
           <span className="text-[13px] text-primary">🔥 {crushed.length} 连续学习</span>
         </div>
       </header>

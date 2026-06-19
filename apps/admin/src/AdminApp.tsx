@@ -29,6 +29,9 @@ import { TopicManagement } from "./TopicManagement";
 import { CircleManagement } from "./CircleManagement";
 import { ExpressionAssetsPanel } from "./ExpressionAssetsPanel";
 import { LearningPackManagement } from "./LearningPackManagement";
+import { LlmRoutingPanel } from "./LlmRoutingPanel";
+import { PaginationBar } from "./PaginationBar";
+import { PAGE_SIZE, type Paginated, apiGet as apiGetList } from "./adminListUtils";
 
 const navGroups = [
   {
@@ -355,6 +358,8 @@ type MembershipPlan = {
   daily_voice_minutes: number;
   daily_freeze_count: number;
   asset_limit: number;
+  daily_match_cards: number;
+  match_batch_size: number;
   enabled: boolean;
   updated_at: string;
 };
@@ -374,6 +379,8 @@ type AppSettings = {
   tts_speed: number;
   tts_pitch: number;
   global_api_keys: { platform: string; api_key: string; base_url: string }[];
+  llm_routing?: Record<string, string>;
+  voice_platform_config?: Record<string, unknown>;
   updated_at: string;
 };
 
@@ -482,6 +489,12 @@ function AdminApp() {
   const [llmLogs, setLlmLogs] = useState<LLMCallLog[]>([]);
   const [selectedLlmLog, setSelectedLlmLog] = useState<LLMCallLog | null>(null);
   const [llmFilterStatus, setLlmFilterStatus] = useState<string>("");
+  const [llmLogsOffset, setLlmLogsOffset] = useState(0);
+  const [llmLogsTotal, setLlmLogsTotal] = useState(0);
+  const [usageLogsOffset, setUsageLogsOffset] = useState(0);
+  const [usageLogsTotal, setUsageLogsTotal] = useState(0);
+  const [auditLogsOffset, setAuditLogsOffset] = useState(0);
+  const [auditLogsTotal, setAuditLogsTotal] = useState(0);
   const [securityStatus, setSecurityStatus] = useState<SecurityStatus | null>(null);
   const [form, setForm] = useState<ProviderForm>(defaultForm);
   const [providerPanelMode, setProviderPanelMode] = useState<"closed" | "view" | "edit" | "create">("closed");
@@ -549,6 +562,21 @@ function AdminApp() {
     tts_speed: 0.9,
     tts_pitch: 1.1,
     global_api_keys: [] as { platform: string; api_key: string; base_url: string }[],
+    llm_routing: {} as Record<string, string>,
+    voice_platform_config: {
+      realtime_engine: "fun-asr",
+      omni_models: "qwen3.5-omni-flash-realtime,qwen3.5-omni-plus-realtime",
+      omni_voice: "Tina",
+      omni_vad_type: "semantic_vad",
+      omni_vad_threshold: 0.68,
+      omni_silence_ms: 550,
+      omni_tap_to_end: true,
+      nls_app_key: "",
+      nls_access_key_id: "",
+      nls_access_key_secret: "",
+      crush_llm_model: "qwen-turbo",
+      explain_llm_model: "qwen-plus",
+    } as Record<string, unknown>,
   });
   const [voiceSessions, setVoiceSessions] = useState<VoiceSessionRow[]>([]);
   const [patterns, setPatterns] = useState<GrammarPattern[]>([]);
@@ -669,19 +697,69 @@ function AdminApp() {
       tts_speed: (appData as any).tts_speed ?? 0.9,
       tts_pitch: (appData as any).tts_pitch ?? 1.1,
       global_api_keys: Array.isArray((appData as any).global_api_keys) ? (appData as any).global_api_keys : [],
+      llm_routing: appData.llm_routing ?? {},
+      voice_platform_config: {
+        realtime_engine: "fun-asr",
+        omni_models: "qwen3.5-omni-flash-realtime,qwen3.5-omni-plus-realtime",
+        omni_voice: "Tina",
+        omni_vad_type: "semantic_vad",
+        omni_vad_threshold: 0.68,
+        omni_silence_ms: 550,
+        omni_tap_to_end: true,
+        nls_app_key: "",
+        nls_access_key_id: "",
+        nls_access_key_secret: "",
+        crush_llm_model: "qwen-turbo",
+        explain_llm_model: "qwen-plus",
+        ...(appData.voice_platform_config ?? {}),
+      },
     });
   }
 
-  async function loadLlmLogs(statusFilter = llmFilterStatus) {
+  async function loadLlmLogs(statusFilter = llmFilterStatus, offset = llmLogsOffset) {
     if (!token) return;
     setStatus("正在加载LLM调用日志...");
     try {
-      const url = statusFilter ? `/api/admin/llm-logs?status=${statusFilter}` : "/api/admin/llm-logs";
-      const data = await apiGet<LLMCallLog[]>(url, token);
-      setLlmLogs(data);
-      setStatus(`LLM 调用日志已加载：${data.length} 条。`);
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+      });
+      if (statusFilter) params.set("status", statusFilter);
+      const data = await apiGetList<Paginated<LLMCallLog>>(`/api/admin/llm-logs?${params}`, token);
+      setLlmLogs(data.items);
+      setLlmLogsTotal(data.total);
+      setLlmLogsOffset(offset);
+      setStatus(`LLM 调用日志已加载：${data.items.length} / ${data.total} 条。`);
     } catch (err) {
       setStatus(`加载日志失败: ${errorMessage(err)}`);
+    }
+  }
+
+  async function loadUsageLogs(offset = usageLogsOffset) {
+    if (!token) return;
+    setStatus("正在加载用量日志...");
+    try {
+      const data = await apiGetList<Paginated<UsageLog>>(`/api/admin/usage?limit=${PAGE_SIZE}&offset=${offset}`, token);
+      setUsageLogs(data.items);
+      setUsageLogsTotal(data.total);
+      setUsageLogsOffset(offset);
+      setStatus(`用量日志已加载：${data.items.length} / ${data.total} 条。`);
+    } catch (err) {
+      setStatus(`加载用量日志失败: ${errorMessage(err)}`);
+    }
+  }
+
+  async function loadAuditLogs(offset = auditLogsOffset) {
+    if (!token) return;
+    setStatus("正在加载审计日志...");
+    try {
+      const data = await apiGetList<Paginated<AuditLog>>(`/api/admin/audit-logs?limit=${PAGE_SIZE}&offset=${offset}`, token);
+      setAuditLogs(data.items);
+      setAuditLogsTotal(data.total);
+      setAuditLogsOffset(offset);
+      setStatus(`审计日志已加载：${data.items.length} / ${data.total} 条。`);
+    } catch (err) {
+      setStatus(`加载审计日志失败: ${errorMessage(err)}`);
     }
   }
 
@@ -693,6 +771,8 @@ function AdminApp() {
       await apiDelete("/api/admin/llm-logs", token);
       setLlmLogs([]);
       setSelectedLlmLog(null);
+      setLlmLogsTotal(0);
+      setLlmLogsOffset(0);
       setStatus("已成功清空 LLM 调用日志。");
     } catch (err) {
       setStatus(`清空日志失败: ${errorMessage(err)}`);
@@ -943,9 +1023,8 @@ function AdminApp() {
         setStatus(`排行榜已加载：${data.length} 人。`);
       }
       if (label === "Audit Logs") {
-        const data = await apiGet<AuditLog[]>("/api/admin/audit-logs", token);
-        setAuditLogs(data);
-        setStatus(`审计日志已加载：${data.length} 条。`);
+        setAuditLogsOffset(0);
+        await loadAuditLogs(0);
       }
       if (label === "Prompts") {
         const data = await apiGet<PromptTemplate[]>("/api/admin/prompts", token);
@@ -953,12 +1032,18 @@ function AdminApp() {
         setStatus(`Prompt 模板已加载：${data.length} 个。`);
       }
       if (label === "Usage Logs") {
-        const data = await apiGet<UsageLog[]>("/api/admin/usage", token);
-        setUsageLogs(data);
-        setStatus(`用量日志已加载：${data.length} 条。`);
+        setUsageLogsOffset(0);
+        await loadUsageLogs(0);
       }
       if (label === "LLM Logs") {
-        await loadLlmLogs();
+        const [appData, providerData] = await Promise.all([
+          apiGet<AppSettings>("/api/admin/app-settings", token),
+          apiGet<ProviderRead[]>("/api/admin/providers", token),
+        ]);
+        setProviders(providerData);
+        mergeAppForm(appData);
+        setLlmLogsOffset(0);
+        await loadLlmLogs(llmFilterStatus, 0);
       }
       if (label === "Security" || label === "Settings") {
         const [data, settings, appData] = await Promise.all([
@@ -1407,6 +1492,8 @@ function AdminApp() {
         daily_voice_minutes: planForm.daily_voice_minutes,
         daily_freeze_count: planForm.daily_freeze_count,
         asset_limit: planForm.asset_limit,
+        daily_match_cards: planForm.daily_match_cards,
+        match_batch_size: planForm.match_batch_size,
         enabled: planForm.enabled,
       });
       const plans = await apiGet<MembershipPlan[]>("/api/admin/membership-plans", token);
@@ -1797,6 +1884,8 @@ function AdminApp() {
                       onChange={(e) => setFeedbackLookupId(e.target.value)}
                     />
                     <button
+                      type="button"
+                      className="admin-query-btn"
                       onClick={async () => {
                         if (!feedbackLookupId.trim()) return;
                         try {
@@ -1915,10 +2004,9 @@ function AdminApp() {
                   </label>
                   <label>会员等级
                     <select value={userForm.membership_level} onChange={e => setUserForm({...userForm, membership_level: e.target.value})}>
-                      <option value="free">Free</option>
-                      <option value="pro">Pro</option>
-                      <option value="premium">Premium</option>
+                      <option value="free">普通用户</option>
                       <option value="vip">VIP</option>
+                      <option value="pro">Pro</option>
                     </select>
                   </label>
                   <label>状态
@@ -1994,9 +2082,9 @@ function AdminApp() {
                 </div>
               </article>
             )}
-            {activeNav === "Memberships" && membershipPlans.length > 0 && (
+            {activeNav === "Memberships" && membershipPlans.filter((p) => ["free", "vip", "pro"].includes(p.level)).length > 0 && (
               <div className="module-grid membership-grid">
-                {membershipPlans.map((plan) => (
+                {membershipPlans.filter((p) => ["free", "vip", "pro"].includes(p.level)).map((plan) => (
                   <article className="module-card" key={plan.id}>
                     <strong>{plan.display_name}</strong>
                     <span>{plan.level} · {plan.enabled ? "enabled" : "disabled"}</span>
@@ -2006,6 +2094,8 @@ function AdminApp() {
                         <label>语音分钟<input type="number" value={planForm.daily_voice_minutes} onChange={(e) => setPlanForm({ ...planForm, daily_voice_minutes: Number(e.target.value) })} /></label>
                         <label>Freeze 次数<input type="number" value={planForm.daily_freeze_count} onChange={(e) => setPlanForm({ ...planForm, daily_freeze_count: Number(e.target.value) })} /></label>
                         <label>资产上限<input type="number" value={planForm.asset_limit} onChange={(e) => setPlanForm({ ...planForm, asset_limit: Number(e.target.value) })} /></label>
+                        <label>每日匹配卡<input type="number" value={planForm.daily_match_cards} onChange={(e) => setPlanForm({ ...planForm, daily_match_cards: Number(e.target.value) })} placeholder="-1=无限" /></label>
+                        <label>单次匹配人数<input type="number" value={planForm.match_batch_size} onChange={(e) => setPlanForm({ ...planForm, match_batch_size: Number(e.target.value) })} placeholder="-1=全部" /></label>
                         <div className="prompt-edit-actions">
                           <button onClick={() => void saveMembershipPlan()}>保存</button>
                           <button className="secondary-button" onClick={() => setPlanForm(null)}>取消</button>
@@ -2013,7 +2103,12 @@ function AdminApp() {
                       </div>
                     ) : (
                       <>
-                        <p>对话 {plan.daily_ai_dialogue}/天 · 语音 {plan.daily_voice_minutes} 分钟 · Freeze {plan.daily_freeze_count}</p>
+                        <p>
+                          对话 {plan.daily_ai_dialogue}/天 · 语音 {plan.daily_voice_minutes} 分钟 · Freeze {plan.daily_freeze_count}
+                          <br />
+                          匹配卡 {plan.daily_match_cards < 0 ? "无限" : `${plan.daily_match_cards}/天`}
+                          · 单次 {plan.match_batch_size < 0 ? "全部" : `${plan.match_batch_size} 人`}
+                        </p>
                         <button className="ghost-button prompt-edit-btn" onClick={() => setPlanForm(plan)}>编辑额度</button>
                       </>
                     )}
@@ -2314,28 +2409,15 @@ function AdminApp() {
             <section className="panel page-panel">
               <div className="panel-header">
                 <div>
-                  <span>Runtime Routing</span>
-                  <h2>运行时 Provider 路由</h2>
+                  <span>TTS Settings</span>
+                  <h2>语音 / ASR / Embedding 默认</h2>
                 </div>
-                <button onClick={() => void saveAppSettings()}>保存路由配置</button>
+                <button onClick={() => void saveAppSettings()}>💾 保存语音配置</button>
               </div>
               <p className="module-copy">
-                后台配置优先：API Key、Endpoint、默认 Provider 均先在下方 Provider 列表中维护；
-                仅当后台未配置时，才会读取 `.env` 作为兜底。
+                LLM 任务路由表已移至 <strong>LLM 日志</strong> 页。此处配置 TTS、ASR、Embedding 默认 Provider。
               </p>
               <div className="form-grid">
-                <label>
-                  默认 LLM Provider
-                  <select
-                    value={appForm.default_llm_provider}
-                    onChange={(e) => setAppForm({ ...appForm, default_llm_provider: e.target.value })}
-                  >
-                    <option value="">自动（按优先级）</option>
-                    {llmProviderOptions.map((item) => (
-                      <option key={item.id} value={item.provider_name}>{item.provider_name}</option>
-                    ))}
-                  </select>
-                </label>
                 <label>
                   默认 Voice Provider
                   <select
@@ -2355,9 +2437,210 @@ function AdminApp() {
                     onChange={(e) => setAppForm({ ...appForm, realtime_asr_provider: e.target.value })}
                   >
                     <option value="auto">auto（有 Key 则 DashScope）</option>
-                    <option value="dashscope">dashscope</option>
+                    <option value="dashscope">dashscope Fun-ASR</option>
+                    <option value="qwen-omni">qwen-omni 全双工</option>
                     <option value="mock">mock</option>
                   </select>
+                </label>
+                <label>
+                  实时语音引擎（voice_platform_config）
+                  <select
+                    value={String(appForm.voice_platform_config?.realtime_engine ?? "fun-asr")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          realtime_engine: e.target.value,
+                        },
+                      })
+                    }
+                  >
+                    <option value="fun-asr">Fun-ASR + LLM + HTTP TTS</option>
+                    <option value="qwen-omni">Qwen-Omni-Realtime 端到端</option>
+                  </select>
+                </label>
+                <label>
+                  Omni 模型轮询（逗号分隔）
+                  <input
+                    value={String(appForm.voice_platform_config?.omni_models ?? "")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          omni_models: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="qwen3.5-omni-flash-realtime,qwen3.5-omni-plus-realtime"
+                  />
+                </label>
+                <label>
+                  Omni 音色 voice
+                  <input
+                    value={String(appForm.voice_platform_config?.omni_voice ?? "Tina")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          omni_voice: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  Omni VAD 类型
+                  <select
+                    value={String(appForm.voice_platform_config?.omni_vad_type ?? "semantic_vad")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          omni_vad_type: e.target.value,
+                        },
+                      })
+                    }
+                  >
+                    <option value="semantic_vad">semantic_vad（语义断句，推荐）</option>
+                    <option value="server_vad">server_vad（静音断句）</option>
+                  </select>
+                </label>
+                <label>
+                  VAD 灵敏度 threshold（0–1，越高越不易误触）
+                  <input
+                    type="number"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={Number(appForm.voice_platform_config?.omni_vad_threshold ?? 0.68)}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          omni_vad_threshold: Number(e.target.value),
+                        },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  静音判停时长 silence_ms（毫秒，建议 500–1000）
+                  <input
+                    type="number"
+                    min={300}
+                    max={3000}
+                    step={50}
+                    value={Number(appForm.voice_platform_config?.omni_silence_ms ?? 550)}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          omni_silence_ms: Number(e.target.value),
+                        },
+                      })
+                    }
+                  />
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={appForm.voice_platform_config?.omni_tap_to_end !== false}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          omni_tap_to_end: e.target.checked,
+                        },
+                      })
+                    }
+                  />
+                  允许用户轻点屏幕表示「说完了」
+                </label>
+                <label>
+                  口语评测 NLS AppKey
+                  <input
+                    value={String(appForm.voice_platform_config?.nls_app_key ?? "")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          nls_app_key: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="智能语音交互控制台 AppKey"
+                  />
+                </label>
+                <label>
+                  NLS AccessKey ID
+                  <input
+                    value={String(appForm.voice_platform_config?.nls_access_key_id ?? "")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          nls_access_key_id: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="阿里云 AccessKey ID（口语评测 CreateToken）"
+                  />
+                </label>
+                <label>
+                  NLS AccessKey Secret
+                  <input
+                    type="password"
+                    value={String(appForm.voice_platform_config?.nls_access_key_secret ?? "")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          nls_access_key_secret: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="留空则沿用已保存的 Secret"
+                  />
+                </label>
+                <label>
+                  消消乐 LLM 模型
+                  <input
+                    value={String(appForm.voice_platform_config?.crush_llm_model ?? "qwen-turbo")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          crush_llm_model: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  错题讲解 LLM 模型
+                  <input
+                    value={String(appForm.voice_platform_config?.explain_llm_model ?? "qwen-plus")}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          explain_llm_model: e.target.value,
+                        },
+                      })
+                    }
+                  />
                 </label>
                 <label>
                   默认 Embedding Provider
@@ -2371,18 +2654,6 @@ function AdminApp() {
                     ))}
                   </select>
                 </label>
-              </div>
-            </section>
-
-            <section className="panel page-panel">
-              <div className="panel-header">
-                <div>
-                  <span>TTS Settings</span>
-                  <h2>语音合成配置</h2>
-                </div>
-                <button onClick={() => void saveAppSettings()}>💾 保存语音配置</button>
-              </div>
-              <div className="form-grid">
                 <label>
                   TTS 平台
                   <select value={appForm.tts_provider} onChange={(e) => setAppForm({ ...appForm, tts_provider: e.target.value })}>
@@ -2754,34 +3025,58 @@ function AdminApp() {
                 <span>Usage Logs</span>
                 <h2>用量日志</h2>
               </div>
+              <button type="button" className="primary-button" onClick={() => void loadUsageLogs(usageLogsOffset)}>刷新</button>
             </div>
             {usageLogs.length === 0 ? (
               <p className="module-copy">当前没有调用日志。真实 LLM/Voice 调用后数据将显示在这里。</p>
             ) : (
-              <table>
-                <thead>
-                  <tr><th>Task</th><th>Tokens In</th><th>Tokens Out</th><th>Voice (s)</th><th>Latency (ms)</th><th>Cost</th><th>Status</th><th>Time</th></tr>
-                </thead>
-                <tbody>
-                  {usageLogs.map((log) => (
-                    <tr key={log.id}>
-                      <td>{log.task_type}</td>
-                      <td>{log.tokens_input}</td>
-                      <td>{log.tokens_output}</td>
-                      <td>{log.voice_seconds}</td>
-                      <td>{log.latency_ms}</td>
-                      <td>${log.cost_estimate.toFixed(4)}</td>
-                      <td>{log.status}</td>
-                      <td>{new Date(log.created_at).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Task</th><th>Tokens In</th><th>Tokens Out</th><th>Voice (s)</th><th>Latency (ms)</th><th>Cost</th><th>Status</th><th>Time</th></tr>
+                    </thead>
+                    <tbody>
+                      {usageLogs.map((log) => (
+                        <tr key={log.id}>
+                          <td>{log.task_type}</td>
+                          <td>{log.tokens_input}</td>
+                          <td>{log.tokens_output}</td>
+                          <td>{log.voice_seconds}</td>
+                          <td>{log.latency_ms}</td>
+                          <td>${log.cost_estimate.toFixed(4)}</td>
+                          <td>{log.status}</td>
+                          <td>{new Date(log.created_at).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <PaginationBar
+                  total={usageLogsTotal}
+                  offset={usageLogsOffset}
+                  pageSize={PAGE_SIZE}
+                  onPage={(off) => void loadUsageLogs(off)}
+                />
+              </>
             )}
           </section>
         )}
 
         {activeNav === "LLM Logs" && (
+          <>
+            <LlmRoutingPanel
+              token={token}
+              appForm={appForm}
+              setAppForm={(updater) => {
+                setAppForm((prev) => {
+                  const next = typeof updater === "function" ? updater(prev) : updater;
+                  return { ...prev, ...next };
+                });
+              }}
+              llmProviderOptions={llmProviderOptions}
+              onSave={() => void saveAppSettings()}
+            />
           <section className="panel page-panel">
             <div className="panel-header">
               <div>
@@ -2794,15 +3089,15 @@ function AdminApp() {
               </div>
             </div>
 
-            <div className="filter-bar" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+            <div className="filter-bar">
               <select 
                 value={llmFilterStatus} 
                 onChange={(e) => {
                   const val = e.target.value;
                   setLlmFilterStatus(val);
-                  void loadLlmLogs(val);
+                  setLlmLogsOffset(0);
+                  void loadLlmLogs(val, 0);
                 }}
-                style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--panel-bg)', color: 'var(--text)' }}
               >
                 <option value="">所有状态</option>
                 <option value="success">成功</option>
@@ -2929,7 +3224,14 @@ function AdminApp() {
                 </article>
               )}
             </div>
+            <PaginationBar
+              total={llmLogsTotal}
+              offset={llmLogsOffset}
+              pageSize={PAGE_SIZE}
+              onPage={(off) => void loadLlmLogs(llmFilterStatus, off)}
+            />
           </section>
+          </>
         )}
 
         {activeNav === "Audit Logs" && (
@@ -2939,26 +3241,37 @@ function AdminApp() {
                 <span>Audit Logs</span>
                 <h2>审计日志</h2>
               </div>
+              <button type="button" className="primary-button" onClick={() => void loadAuditLogs(auditLogsOffset)}>刷新</button>
             </div>
             {auditLogs.length === 0 ? (
               <p className="module-copy">暂无审计记录。修改会员、Provider 或 Prompt 后会自动记录。</p>
             ) : (
-              <table>
-                <thead>
-                  <tr><th>Action</th><th>Resource</th><th>Resource ID</th><th>Admin</th><th>Time</th></tr>
-                </thead>
-                <tbody>
-                  {auditLogs.map((log) => (
-                    <tr key={log.id}>
-                      <td>{log.action}</td>
-                      <td>{log.resource_type}</td>
-                      <td>{log.resource_id.slice(0, 8)}...</td>
-                      <td>{log.admin_user_id.slice(0, 8)}...</td>
-                      <td>{new Date(log.created_at).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Action</th><th>Resource</th><th>Resource ID</th><th>Admin</th><th>Time</th></tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs.map((log) => (
+                        <tr key={log.id}>
+                          <td>{log.action}</td>
+                          <td>{log.resource_type}</td>
+                          <td>{log.resource_id.slice(0, 8)}...</td>
+                          <td>{log.admin_user_id.slice(0, 8)}...</td>
+                          <td>{new Date(log.created_at).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <PaginationBar
+                  total={auditLogsTotal}
+                  offset={auditLogsOffset}
+                  pageSize={PAGE_SIZE}
+                  onPage={(off) => void loadAuditLogs(off)}
+                />
+              </>
             )}
           </section>
         )}
@@ -3012,7 +3325,7 @@ function AdminApp() {
                 <label className="wide">Google 邮箱域名（逗号分隔）<input value={authForm.google_email_domains} onChange={(e) => setAuthForm({ ...authForm, google_email_domains: e.target.value })} /></label>
                 <label className="toggle-row"><span>启用邮箱验证码</span><input type="checkbox" checked={authForm.email_verification_enabled} onChange={(e) => setAuthForm({ ...authForm, email_verification_enabled: e.target.checked })} /></label>
                 <label className="toggle-row"><span>启用 Google 30 天试用</span><input type="checkbox" checked={authForm.google_trial_enabled} onChange={(e) => setAuthForm({ ...authForm, google_trial_enabled: e.target.checked })} /></label>
-                <label className="toggle-row"><span>SMTP TLS</span><input type="checkbox" checked={authForm.smtp_use_tls} onChange={(e) => setAuthForm({ ...authForm, smtp_use_tls: e.target.checked })} /></label>
+                <label className="toggle-row"><span>SMTP STARTTLS（587 开；465 请关，走 SSL）</span><input type="checkbox" checked={authForm.smtp_use_tls} onChange={(e) => setAuthForm({ ...authForm, smtp_use_tls: e.target.checked })} /></label>
                 <article className="module-card wide">
                   <strong>当前状态</strong>
                   <span>SMTP 已配置：{authSettings.smtp_configured ? "是" : "否（开发模式会在 API 日志返回 dev_code）"}</span>
@@ -3366,8 +3679,18 @@ function membershipBadge(level: string) {
       ? "badge badge-muted"
       : normalized === "vip"
         ? "badge badge-vip"
-        : "badge badge-warning";
-  return <span className={cls}>{level}</span>;
+        : normalized === "pro"
+          ? "badge badge-warning"
+          : "badge badge-muted";
+  const label =
+    normalized === "free"
+      ? "普通"
+      : normalized === "vip"
+        ? "VIP"
+        : normalized === "pro"
+          ? "Pro"
+          : level;
+  return <span className={cls}>{label}</span>;
 }
 
 

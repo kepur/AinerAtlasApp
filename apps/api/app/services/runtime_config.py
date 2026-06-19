@@ -18,6 +18,7 @@ class RuntimeConfig:
     default_voice_provider: str
     realtime_asr_provider: str
     default_embedding_provider: str
+    llm_routing: dict
 
 
 def _first_enabled_provider(db: Session, provider_type: str) -> AIProvider | None:
@@ -90,12 +91,13 @@ def get_runtime_config(db: Session | None = None) -> RuntimeConfig:
             skip_names=set(),
             env_fallback="dashscope-embedding",
         ),
+        llm_routing=app_settings.llm_routing if app_settings else {},
     )
 
 
 def _resolve_asr_mode(db: Session | None, admin_value: str, settings: Settings) -> str:
     mode = admin_value.strip().lower() or settings.realtime_asr_provider.strip().lower() or "auto"
-    if mode in {"mock", "dashscope"}:
+    if mode in {"mock", "dashscope", "qwen-omni", "omni"}:
         return mode
     return "auto"
 
@@ -114,3 +116,34 @@ def resolve_realtime_asr_provider(db: Session | None = None) -> str:
 
 def resolve_default_embedding_provider(db: Session | None = None) -> str:
     return get_runtime_config(db).default_embedding_provider
+
+
+def resolve_llm_provider_for_feature(feature_key: str, db: Session | None = None) -> str:
+    """Resolve provider for a legacy bucket key (conversational_reply / learning_analysis / games)."""
+    return resolve_llm_provider_for_task(feature_key, db)
+
+
+def resolve_llm_provider_for_task(task_type: str, db: Session | None = None) -> str:
+    """Resolve LLM provider: exact task route → category bucket → default route → global default."""
+    from app.services.llm_routing_catalog import fallback_bucket_for_task
+
+    config = get_runtime_config(db)
+    routing = getattr(config, "llm_routing", {}) or {}
+
+    def _pick(key: str) -> str | None:
+        value = routing.get(key)
+        if value and str(value).strip() not in {"", "auto"}:
+            return str(value).strip()
+        return None
+
+    if picked := _pick(task_type):
+        return picked
+
+    bucket = fallback_bucket_for_task(task_type)
+    if picked := _pick(bucket):
+        return picked
+
+    if picked := _pick("default"):
+        return picked
+
+    return config.default_llm_provider

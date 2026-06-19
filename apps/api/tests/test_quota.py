@@ -25,6 +25,10 @@ class FakeRedis:
     def expireat(self, key: str, when) -> bool:
         return True
 
+    def get(self, key: str):
+        val = self.storage.get(key)
+        return str(val) if val is not None else None
+
 
 class FakeQuotaManager:
     def __init__(self) -> None:
@@ -36,12 +40,22 @@ class FakeQuotaManager:
     def consume_ai_dialogue(self, user, amount: int = 1):
         from app.db.redis import QuotaManager
 
-        return QuotaManager(self.redis).consume_ai_dialogue(user, amount)
+        return QuotaManager(self.redis, db=None).consume_ai_dialogue(user, amount)
 
     def consume_voice_minutes(self, user, minutes: int = 1):
         from app.db.redis import QuotaManager
 
-        return QuotaManager(self.redis).consume_voice_minutes(user, minutes)
+        return QuotaManager(self.redis, db=None).consume_voice_minutes(user, minutes)
+
+    def consume_match_card(self, user, amount: int = 1):
+        from app.db.redis import QuotaManager
+
+        return QuotaManager(self.redis, db=None).consume_match_card(user, amount)
+
+    def snapshot_match_cards(self, user):
+        from app.db.redis import QuotaManager
+
+        return QuotaManager(self.redis, db=None).snapshot_match_cards(user)
 
 
 def override_quota_manager() -> Iterator[FakeQuotaManager]:

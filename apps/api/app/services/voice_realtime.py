@@ -17,7 +17,14 @@ from app.services.dashscope_asr import (
     decode_audio_payload,
 )
 from app.services.dashscope_client import resolve_dashscope_api_key, resolve_dashscope_config
+from app.services.dashscope_omni_realtime import (
+    OmniRealtimeBridge,
+    build_omni_bridge,
+    omni_realtime_enabled,
+)
+from app.services.voice_platform_config import get_voice_platform_config, resolve_realtime_engine
 from app.services.voice_realtime_dialogue import generate_voice_dialogue_response
+import base64
 
 
 class RealtimeAdapterBase:
@@ -267,6 +274,141 @@ class DashScopeRealtimeAdapter(RealtimeAdapterBase):
         await super().close()
 
 
+class OmniRealtimeAdapter(RealtimeAdapterBase):
+    """End-to-end Qwen-Omni-Realtime: VAD + LLM + TTS audio in one DashScope session."""
+
+    def __init__(self, db: Session | None = None) -> None:
+        super().__init__(db)
+        self._bridge: OmniRealtimeBridge | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._listening = False
+        self._platform_cfg = get_voice_platform_config(db)
+        self._omni_model: str | None = None
+
+    @property
+    def provider_name(self) -> str:
+        return "qwen-omni-realtime"
+
+    def is_active(self) -> bool:
+        return self._listening
+
+    async def create_session(self, config: dict[str, Any]) -> dict[str, Any]:
+        self._session_config = config
+        from app.services.voice_platform_config import pick_omni_model, save_voice_platform_config
+
+        model, next_idx = pick_omni_model(self._platform_cfg)
+        if self._db is not None:
+            save_voice_platform_config(self._db, {"omni_model_index": next_idx})
+            self._platform_cfg["omni_model_index"] = next_idx
+        self._omni_model = model
+        self._loop = asyncio.get_running_loop()
+        try:
+            bridge = self._ensure_bridge()
+            if not bridge.started:
+                await asyncio.to_thread(bridge.start)
+        except Exception as exc:  # noqa: BLE001
+            from loguru import logger
+
+            logger.warning("Omni pre-warm failed: {}", exc)
+        silence_ms = int(self._platform_cfg.get("omni_silence_ms", 550) or 550)
+        tap_to_end = self._platform_cfg.get("omni_tap_to_end", True) is not False
+        return {
+            "provider": self.provider_name,
+            "session_id": config.get("session_id", "omni-session"),
+            "config": config,
+            "capabilities": [
+                "transcript",
+                "partial_transcript",
+                "response",
+                "audio_stream",
+                "interrupt",
+                "server_vad",
+                "full_duplex",
+                "tap_to_end",
+            ],
+            "asr_engine": "qwen-omni",
+            "model": model,
+            "voice": self._platform_cfg.get("omni_voice", "Cherry"),
+            "audio_output": {"format": "pcm16", "sample_rate": 24000},
+            "voice_ui": {
+                "silence_ms": silence_ms,
+                "vad_threshold": float(self._platform_cfg.get("omni_vad_threshold", 0.68) or 0.68),
+                "vad_type": str(self._platform_cfg.get("omni_vad_type") or "semantic_vad"),
+                "tap_to_end": tap_to_end,
+            },
+        }
+
+    def _ensure_bridge(self) -> OmniRealtimeBridge:
+        if self._bridge:
+            return self._bridge
+        loop = self._loop or asyncio.get_running_loop()
+        self._loop = loop
+        self._bridge = build_omni_bridge(loop, db=self._db, model=self._omni_model)
+        return self._bridge
+
+    async def handle_client_message(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        msg_type = data.get("type", "audio")
+        if msg_type == "audio":
+            action = data.get("action") or data.get("data")
+            if action == "start":
+                bridge = self._ensure_bridge()
+                if not bridge.started:
+                    bridge.start()
+                self._listening = True
+                self._reset_utterance()
+                ready = await self._collect_bridge_events(timeout=0.3)
+                return [{"type": "asr_started", "status": "ok", "provider": self.provider_name}, *ready]
+            if action == "end":
+                self._listening = False
+                return await self._collect_bridge_events(timeout=0.5)
+            pcm = decode_audio_payload(data)
+            if pcm:
+                bridge = self._ensure_bridge()
+                if not bridge.started:
+                    bridge.start()
+                    self._listening = True
+                b64 = base64.b64encode(pcm).decode("ascii")
+                bridge.append_audio_b64(b64)
+                return await self._collect_bridge_events(timeout=0.05)
+            return []
+        if msg_type == "turn_complete":
+            bridge = self._ensure_bridge()
+            if not bridge.started:
+                bridge.start()
+            await asyncio.to_thread(bridge.commit_user_turn)
+            return [
+                {"type": "turn_committed", "status": "ok", "provider": self.provider_name},
+                *await self._collect_bridge_events(timeout=0.35),
+            ]
+        if msg_type == "interrupt":
+            self._listening = False
+            if self._bridge:
+                self._bridge.cancel_response()
+            self._reset_utterance()
+            return [{"type": "interrupted", "status": "ok"}]
+        if msg_type == "text":
+            return [{"type": "error", "message": "Omni mode only supports audio input"}]
+        return [{"type": "error", "message": f"Unknown type: {msg_type}"}]
+
+    async def _collect_bridge_events(self, timeout: float) -> list[dict[str, Any]]:
+        if not self._bridge:
+            return []
+        events = await self._bridge.drain_events(timeout=timeout)
+        for event in events:
+            self._note_transcript_event(event)
+        return events
+
+    async def drain_events(self, timeout: float = 0.2) -> list[dict[str, Any]]:
+        return await self._collect_bridge_events(timeout=timeout)
+
+    async def close(self) -> None:
+        self._listening = False
+        if self._bridge:
+            self._bridge.stop()
+            self._bridge = None
+        await super().close()
+
+
 class OpenAIRealtimeAdapter(MockRealtimeAdapter):
     """Placeholder for OpenAI Realtime API integration."""
 
@@ -283,6 +425,21 @@ class OpenAIRealtimeAdapter(MockRealtimeAdapter):
 
 def get_realtime_adapter(provider: str = "mock", db: Session | None = None) -> RealtimeAdapterBase:
     provider_name = provider.lower().strip()
+
+    # Admin voice_platform_config.realtime_engine takes precedence.
+    engine = resolve_realtime_engine(db)
+    if engine == "qwen-omni" and omni_realtime_enabled(db):
+        try:
+            return OmniRealtimeAdapter(db=db)
+        except RuntimeError:
+            pass
+
+    if provider_name in {"qwen-omni", "omni", "qwen_omni", "qwen-omni-realtime"} and omni_realtime_enabled(db):
+        try:
+            return OmniRealtimeAdapter(db=db)
+        except RuntimeError:
+            pass
+
     if provider_name == "openai":
         return OpenAIRealtimeAdapter(db=db)
 

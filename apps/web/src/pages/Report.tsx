@@ -62,7 +62,7 @@ export default function Report() {
         <div className="absolute bottom-1/3 -left-20 w-48 h-48 rounded-full bg-tertiary-fixed/15 blur-2xl" />
       </div>
 
-      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-white/20 px-margin-mobile h-touch-target-min flex items-center gap-3">
+      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 px-margin-mobile h-touch-target-min flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="material-symbols-outlined text-primary">arrow_back</button>
         <div>
           <h1 className="font-bold text-[16px] text-on-surface leading-tight">成长报告</h1>
@@ -111,7 +111,7 @@ export default function Report() {
                 { label: "掌握句型", val: totalPatterns || 0, icon: "auto_fix_high", color: "text-tertiary-container" },
                 { label: "对话轮次", val: totalConversations || 0, icon: "chat", color: "text-secondary-container" },
               ].map((s) => (
-                <div key={s.label} className="bg-white/60 rounded-xl p-3">
+                <div key={s.label} className="bg-surface-container-lowest/60 rounded-xl p-3">
                   <span className={`material-symbols-outlined text-[24px] ${s.color}`}>{s.icon}</span>
                   <p className={`font-bold text-[24px] ${s.color}`}>{s.val}</p>
                   <p className="text-[12px] text-on-surface-variant">{s.label}</p>
@@ -170,7 +170,7 @@ export default function Report() {
               </h3>
               <div className="space-y-2">
                 {growth.slice(0, 5).map((g) => (
-                  <div key={g.record_date} className="flex items-center justify-between py-2 border-b border-white/20 last:border-0">
+                  <div key={g.record_date} className="flex items-center justify-between py-2 border-b border-outline-variant/20 last:border-0">
                     <span className="text-[13px] text-on-surface-variant">{g.record_date}</span>
                     <div className="flex gap-3 text-[12px]">
                       <span className="text-primary">{g.conversations_count} 对话</span>

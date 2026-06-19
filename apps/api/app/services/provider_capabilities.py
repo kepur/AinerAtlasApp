@@ -11,6 +11,7 @@ from app.core.security import decrypt_api_key
 from app.models import AIProvider, AppSettings
 from app.services.dashscope_client import dashscope_enabled, resolve_dashscope_api_key
 from app.services.runtime_config import get_runtime_config, resolve_realtime_asr_provider
+from app.services.voice_platform_config import get_voice_platform_config, resolve_realtime_engine
 
 
 @dataclass(frozen=True)
@@ -131,6 +132,20 @@ def _realtime_voice_capability(db: Session) -> ProviderCapability:
             active_provider=voice_name or "mock-voice",
             message="ASR 为 Mock 模式，语音识别为占位文本。",
         )
+    from app.services.voice_platform_config import resolve_realtime_engine
+
+    if resolve_realtime_engine(db) == "qwen-omni" and dashscope_enabled(db):
+        cfg = get_voice_platform_config(db)
+        models = cfg.get("omni_models") or []
+        model_hint = models[0] if isinstance(models, list) and models else "qwen-omni-realtime"
+        return ProviderCapability(
+            key="realtime_voice",
+            label="实时语音",
+            features=("全双工对话", "Omni Realtime", "服务端 VAD", "流式 TTS"),
+            status="ready",
+            active_provider="qwen-omni-realtime",
+            message=f"Qwen-Omni-Realtime 已启用（模型: {model_hint}，音色: {cfg.get('omni_voice', 'Cherry')}）。",
+        )
     if dashscope_enabled(db):
         return ProviderCapability(
             key="realtime_voice",
@@ -241,10 +256,54 @@ def _tts_capability(db: Session) -> ProviderCapability:
     )
 
 
+def _speech_assessment_capability(db: Session) -> ProviderCapability:
+    cfg = get_voice_platform_config(db)
+    if not cfg.get("speech_assessment_enabled", True):
+        return ProviderCapability(
+            key="speech_assessment",
+            label="跟读打分",
+            features=("音标级评测", "流利度", "完整度"),
+            status="mock",
+            active_provider="disabled",
+            message="后台已关闭口语评测（speech_assessment_enabled=false）。",
+        )
+    app_key = str(cfg.get("nls_app_key") or "").strip()
+    ak = str(cfg.get("nls_access_key_id") or "").strip()
+    sk = str(cfg.get("nls_access_key_secret") or "").strip()
+    if app_key and ak and sk:
+        return ProviderCapability(
+            key="speech_assessment",
+            label="跟读打分",
+            features=("NLS 口语评测", "音标级打分", "流利度/完整度"),
+            status="ready",
+            active_provider="aliyun-nls-assessment",
+            message=f"智能语音交互口语评测已配置（region: {cfg.get('nls_region', 'cn-shanghai')}）。",
+        )
+    if dashscope_enabled(db):
+        model = str(cfg.get("explain_llm_model") or "qwen-plus")
+        return ProviderCapability(
+            key="speech_assessment",
+            label="跟读打分",
+            features=("ASR + LLM 打分", "跟读反馈"),
+            status="ready",
+            active_provider=f"dashscope-{model}",
+            message="NLS 未完整配置，将使用 DashScope ASR + Qwen 讲解模型启发式打分。",
+        )
+    return ProviderCapability(
+        key="speech_assessment",
+        label="跟读打分",
+        features=("音标级评测", "流利度", "完整度"),
+        status="missing",
+        active_provider="",
+        message="请配置 NLS AppKey + AccessKey，或至少接入 DashScope Key 作为降级。",
+    )
+
+
 def get_provider_capabilities(db: Session) -> list[ProviderCapability]:
     return [
         _llm_capability(db),
         _embedding_capability(db),
         _tts_capability(db),
         _realtime_voice_capability(db),
+        _speech_assessment_capability(db),
     ]

@@ -1,7 +1,6 @@
 /** @type {import('tailwindcss').Config} */
-// Premium "Amethyst" design tokens — ported 1:1 from h5_ui numbered mockups
-// (12._home, 13._chat_list, 14._me, 15._asset_library, …). Preflight is OFF so
-// the legacy Lumina pages (styled by styles.css) keep working untouched.
+// Premium "Amethyst" design tokens — surface/on-surface colors use CSS variables
+// (see premium.css) so light/dark theme switches without per-page overrides.
 import forms from "@tailwindcss/forms";
 import containerQueries from "@tailwindcss/container-queries";
 
@@ -13,32 +12,33 @@ export default {
   theme: {
     extend: {
       colors: {
-        outline: "#7b7487",
+        white: "rgb(var(--color-white-rgb) / <alpha-value>)",
+        outline: "rgb(var(--premium-outline-rgb) / <alpha-value>)",
         "on-primary-fixed-variant": "#5a00c6",
         "primary-container": "#7c3aed",
         error: "#ba1a1a",
         "surface-tint": "#732ee4",
-        "tertiary-fixed": "#6ffbbe",
-        surface: "#faf8ff",
-        "surface-container-lowest": "#ffffff",
-        "outline-variant": "#ccc3d8",
-        "surface-container-high": "#e2e7ff",
+        "tertiary-fixed": "rgb(var(--premium-tertiary-fixed-rgb) / <alpha-value>)",
+        surface: "rgb(var(--premium-surface-rgb) / <alpha-value>)",
+        "surface-container-lowest": "rgb(var(--premium-surface-container-lowest-rgb) / <alpha-value>)",
+        "outline-variant": "rgb(var(--premium-outline-variant-rgb) / <alpha-value>)",
+        "surface-container-high": "rgb(var(--premium-surface-container-high-rgb) / <alpha-value>)",
         "on-secondary": "#ffffff",
-        "primary-fixed": "#eaddff",
+        "primary-fixed": "rgb(var(--premium-primary-fixed-rgb) / <alpha-value>)",
         "tertiary-container": "#007650",
-        "on-surface-variant": "#4a4455",
-        "on-surface": "#131b2e",
+        "on-surface-variant": "rgb(var(--premium-on-surface-variant-rgb) / <alpha-value>)",
+        "on-surface": "rgb(var(--premium-on-surface-rgb) / <alpha-value>)",
         "on-primary-fixed": "#25005a",
-        "surface-bright": "#faf8ff",
+        "surface-bright": "rgb(var(--premium-surface-bright-rgb) / <alpha-value>)",
         "on-error-container": "#93000a",
-        "secondary-fixed": "#d8e2ff",
+        "secondary-fixed": "rgb(var(--premium-secondary-fixed-rgb) / <alpha-value>)",
         "on-tertiary-fixed": "#002113",
         "on-primary-container": "#ede0ff",
-        "surface-variant": "#dae2fd",
+        "surface-variant": "rgb(var(--premium-surface-variant-rgb) / <alpha-value>)",
         secondary: "#0058be",
         "on-tertiary": "#ffffff",
         "inverse-on-surface": "#eef0ff",
-        "surface-dim": "#d2d9f4",
+        "surface-dim": "rgb(var(--premium-surface-dim-rgb) / <alpha-value>)",
         primary: "#630ed4",
         "on-tertiary-fixed-variant": "#005236",
         "secondary-fixed-dim": "#adc6ff",
@@ -47,18 +47,18 @@ export default {
         "primary-fixed-dim": "#d2bbff",
         "tertiary-fixed-dim": "#4edea3",
         "on-secondary-fixed-variant": "#004395",
-        "surface-container-highest": "#dae2fd",
+        "surface-container-highest": "rgb(var(--premium-surface-container-highest-rgb) / <alpha-value>)",
         "on-error": "#ffffff",
         "on-tertiary-container": "#76ffc2",
-        "on-background": "#131b2e",
-        "inverse-surface": "#283044",
+        "on-background": "rgb(var(--premium-on-background-rgb) / <alpha-value>)",
+        "inverse-surface": "rgb(var(--premium-inverse-surface-rgb) / <alpha-value>)",
         "secondary-container": "#2170e4",
         "inverse-primary": "#d2bbff",
-        "surface-container": "#eaedff",
+        "surface-container": "rgb(var(--premium-surface-container-rgb) / <alpha-value>)",
         tertiary: "#005b3d",
         "error-container": "#ffdad6",
-        background: "#faf8ff",
-        "surface-container-low": "#f2f3ff",
+        background: "rgb(var(--premium-background-rgb) / <alpha-value>)",
+        "surface-container-low": "rgb(var(--premium-surface-container-low-rgb) / <alpha-value>)",
         "on-secondary-fixed": "#001a42",
       },
       borderRadius: {

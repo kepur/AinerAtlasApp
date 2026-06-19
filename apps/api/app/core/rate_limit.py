@@ -11,7 +11,7 @@ from redis.exceptions import RedisError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.security import decode_access_token
-from app.db.redis import get_redis
+from app.db.redis import get_redis, normalize_membership_level
 from app.db.session import SessionLocal
 from app.models import User
 
@@ -24,7 +24,6 @@ DEFAULT_USER_LIMITS_PER_MINUTE = {
     "free": 60,
     "vip": 300,
     "pro": 600,
-    "premium": 1200,
     "admin": 5000,
     "super_admin": 5000,
 }
@@ -123,7 +122,7 @@ class RateLimiter:
         )
 
     def consume_user_limit(self, user: User) -> None:
-        membership = user.role if user.role in {"admin", "super_admin"} else user.membership_level
+        membership = user.role if user.role in {"admin", "super_admin"} else normalize_membership_level(user.membership_level)
         limit = self.user_limits.get(membership, self.user_limits["free"])
         self._consume(
             key=f"rate-limit:user:{membership}:{self._window_key()}:{user.id}",

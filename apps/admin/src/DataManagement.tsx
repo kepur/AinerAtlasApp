@@ -571,8 +571,8 @@ export function DataManagement({ token, onStatus }: Props) {
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
-        <button onClick={() => void loadList(tab, 0)} disabled={loading}>查询</button>
+      <div className="filter-bar">
+        <button type="button" className="admin-query-btn" onClick={() => void loadList(tab, 0)} disabled={loading}>查询</button>
         <button className="btn-secondary" onClick={() => void batchHardDelete()} disabled={selected.size === 0}>
           {tab === "conversations" ? "批量永久删除" : "批量删除"} ({selected.size})
         </button>

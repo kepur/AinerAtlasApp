@@ -118,6 +118,8 @@ def test_membership_plan_update_and_audit_log() -> None:
                 "daily_voice_minutes": 0,
                 "daily_freeze_count": 1,
                 "asset_limit": 20,
+                "daily_match_cards": 1,
+                "match_batch_size": 1,
                 "enabled": True,
             },
         )
@@ -126,7 +128,8 @@ def test_membership_plan_update_and_audit_log() -> None:
 
         logs = client.get("/api/admin/audit-logs", headers=headers)
         assert logs.status_code == 200
-        assert any(log["action"] == "update_membership_plan" for log in logs.json())
+        log_items = logs.json().get("items", logs.json())
+        assert any(log["action"] == "update_membership_plan" for log in log_items)
 
 
 def test_voice_tts_transcribe_evaluate_and_report() -> None:

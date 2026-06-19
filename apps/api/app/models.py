@@ -814,6 +814,8 @@ class MembershipPlan(Base):
     daily_voice_minutes: Mapped[int] = mapped_column(Integer, default=0)
     daily_freeze_count: Mapped[int] = mapped_column(Integer, default=1)
     asset_limit: Mapped[int] = mapped_column(Integer, default=20)
+    daily_match_cards: Mapped[int] = mapped_column(Integer, default=1)
+    match_batch_size: Mapped[int] = mapped_column(Integer, default=1)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
@@ -868,6 +870,8 @@ class AppSettings(Base):
     tts_speed: Mapped[float] = mapped_column(Float, default=0.9)
     tts_pitch: Mapped[float] = mapped_column(Float, default=1.1)
     global_api_keys: Mapped[dict] = mapped_column(JSON, default=dict)
+    llm_routing: Mapped[dict] = mapped_column(JSON, default=dict)
+    voice_platform_config: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )

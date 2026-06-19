@@ -27,7 +27,7 @@ import { useAudioCacheStore } from "../../stores/audioCacheStore";
 import { normalizeGameHud, useSocialLogicStore } from "../../stores/socialLogicStore";
 import type { HudData } from "../../stores/chatStore";
 
-type UIPhase = "lobby" | "shuffling" | "dealt" | "reveal" | "ai_ready" | "night" | "day" | "vote" | "vote_result" | "summary";
+type UIPhase = "lobby" | "shuffling" | "dealt" | "reveal" | "ai_ready" | "night" | "night_between" | "day" | "vote" | "vote_result" | "summary";
 
 type VoteResultView = {
   eliminatedName: string;
@@ -95,6 +95,7 @@ export default function SocialLogicGame() {
   const [assetsDone, setAssetsDone] = useState(false);
   const feedEndRef = useRef<HTMLDivElement>(null);
   const creatingRef = useRef(false);
+  const nightBetweenRef = useRef(false);
   const nightRunRef = useRef(false);
   const [nightSec, setNightSec] = useState(0);
 
@@ -224,10 +225,30 @@ export default function SocialLogicGame() {
     enterDay(data);
   };
 
-  // Night phase: kick off the (slow) AI resolution immediately and run a live
-  // countdown so the screen never looks frozen while AI players "act".
+  // Night between rounds: show transition UI before next day (backend already resolved night).
   useEffect(() => {
-    if (uiPhase !== "night") { nightRunRef.current = false; setNightSec(0); return; }
+    if (uiPhase !== "night_between") {
+      nightBetweenRef.current = false;
+      setNightSec(0);
+      return;
+    }
+    if (nightBetweenRef.current) return;
+    nightBetweenRef.current = true;
+    setNightSec(0);
+    const timer = setInterval(() => setNightSec((s) => s + 1), 1000);
+    const done = setTimeout(() => {
+      if (game) enterDay(game);
+    }, 5500);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(done);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uiPhase, game?.game_id]);
+
+  // First night: kick off start API while showing countdown.
+  useEffect(() => {
+    if (uiPhase !== "night") { nightRunRef.current = false; if (uiPhase !== "night_between") setNightSec(0); return; }
     if (nightRunRef.current) return;
     nightRunRef.current = true;
     setNightSec(0);
@@ -285,19 +306,27 @@ export default function SocialLogicGame() {
     round: f.round,
   }));
 
+  const maxQuestions = game?.max_questions_per_round ?? 1;
+  const questionsThisRound = game?.questions_this_round ?? 0;
+  const questionsRemaining = Math.max(0, maxQuestions - questionsThisRound);
+
   const handleQuestion = async (text: string) => {
-    if (!gid || !text.trim()) return;
+    if (!gid || !text.trim() || questionsRemaining <= 0) return;
     const targetId = selectedPlayerId
       || (players.find((p: any) => !p.is_user && p.alive)?.id);
     if (!targetId) return;
     const target = players.find((p: any) => p.id === targetId);
-    const data = await call(`/${gid}/question`, { target_player_id: targetId, content: text.trim() });
-    if (data.state) setGame(data.state);
-    if (data.hud) {
-      const hud = normalizeGameHud(data.hud);
-      pushTurn(`问 ${target?.name || "?"}`, hud);
+    try {
+      const data = await call(`/${gid}/question`, { target_player_id: targetId, content: text.trim() });
+      if (data.state) setGame(data.state);
+      if (data.hud) {
+        const hud = normalizeGameHud(data.hud);
+        pushTurn(`问 ${target?.name || "?"}`, hud);
+      }
+      setActionMode("question");
+    } catch (e) {
+      console.error(e);
     }
-    setActionMode("question");
   };
 
   function parseVoteResult(state: any): VoteResultView | null {
@@ -351,16 +380,19 @@ export default function SocialLogicGame() {
 
   const handleVoteResultNext = async () => {
     if (!game) return;
+    setVoteResult(null);
     if (game.phase === "ended") {
       const s = await apiRequest<any>(`/api/games/social-logic/${gid}/summary`);
       setSummary(s);
-      setVoteResult(null);
       setUiPhase("summary");
     } else {
-      setVoteResult(null);
-      enterDay(game);
+      setUiPhase("night_between");
     }
   };
+
+  const latestNightMessage = [...(game?.feed || [])]
+    .reverse()
+    .find((f: any) => f.type === "night" || (f.type === "host" && String(f.text || "").includes("天亮了")));
 
   const handleAddToCrush = async () => {
     if (!summary?.patterns?.length) return;
@@ -404,19 +436,21 @@ export default function SocialLogicGame() {
   const roleInfo = ROLE_CN[userRole] || ROLE_CN.villager;
 
   return (
-    <div className="premium w-full h-full">
+    <div className="premium immersive-layout w-full h-full min-h-0">
       <GameShell>
-        <header className="w-full px-4 h-14 flex items-center justify-between shrink-0 bg-[#1e1b4b]/40 backdrop-blur-md border-b border-white/5 relative z-[210]">
+        {(uiPhase === "lobby" || uiPhase === "shuffling" || uiPhase === "dealt" || uiPhase === "reveal" || uiPhase === "ai_ready") && (
+        <header className="w-full px-4 h-12 flex items-center justify-between shrink-0 bg-[#1e1b4b]/40 backdrop-blur-md border-b border-white/5 relative z-[210]">
           <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center text-white bg-white/10 rounded-full border border-white/10">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
           </button>
           <div className="font-bold text-white text-[14px] tracking-wide">狼人杀 Lite：单机沉浸</div>
           <div className="w-8 h-8" />
         </header>
+        )}
 
-        {uiPhase === "day" && (
+        {(uiPhase === "day" || uiPhase === "vote") && (
           <GameStatusBar
-            roundTitle={`第 ${game.round || 1} 轮白天`}
+            roundTitle={`第 ${game.round || 1} 轮${uiPhase === "vote" ? "投票" : "白天"}`}
             aliveCount={game.alive_count}
             totalCount={game.total_count}
             userRole={roleInfo.name}
@@ -425,7 +459,7 @@ export default function SocialLogicGame() {
           />
         )}
 
-        <div className="flex-1 w-full h-full relative overflow-y-auto no-scrollbar">
+        <div className="flex-1 w-full min-h-0 relative overflow-hidden flex flex-col">
           {/* Lobby */}
           {uiPhase === "lobby" && (
             <LobbyReady
@@ -552,25 +586,42 @@ export default function SocialLogicGame() {
             </div>
           )}
 
-          {/* Night transition — live countdown so it never looks frozen */}
-          {uiPhase === "night" && (
+          {/* Night transition — first round (calls API) or between rounds (visual only) */}
+          {(uiPhase === "night" || uiPhase === "night_between") && (
             <div className="w-full h-full flex flex-col items-center justify-center relative px-6 text-center">
               <div className="absolute inset-0 bg-gradient-to-b from-[#0b0a1f] via-[#13112a] to-[#0b0a1f]" />
-              <div className="relative z-10 flex flex-col items-center gap-4">
+              <div className="relative z-10 flex flex-col items-center gap-4 max-w-sm">
                 <div className="text-6xl animate-pulse">🌙</div>
                 <h2 className="text-2xl font-extrabold text-white tracking-widest">天黑请闭眼</h2>
-                <p className="text-white/60 text-sm">狼人正在行动，AI 玩家正在准备发言…</p>
+                {uiPhase === "night_between" && latestNightMessage && (
+                  <p className="text-white/70 text-sm leading-relaxed">{latestNightMessage.text}</p>
+                )}
+                {uiPhase === "night" && (
+                  <p className="text-white/60 text-sm">狼人正在行动，AI 玩家正在准备发言…</p>
+                )}
+                {uiPhase === "night_between" && (
+                  <p className="text-white/50 text-xs">第 {game.round} 轮即将开始…</p>
+                )}
                 <div className="mt-2 w-48 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#7c5cff] to-[#a78bfa] rounded-full transition-all duration-1000" style={{ width: `${Math.min(95, nightSec * 12)}%` }} />
+                  <div
+                    className="h-full bg-gradient-to-r from-[#7c5cff] to-[#a78bfa] rounded-full transition-all duration-1000"
+                    style={{ width: `${Math.min(95, nightSec * 18)}%` }}
+                  />
                 </div>
-                <p className="text-white/40 text-xs">{nightSec < 8 ? `天亮倒计时 ${Math.max(0, 8 - nightSec)}s…` : "AI 思考中，马上就好…"}</p>
+                <p className="text-white/40 text-xs">
+                  {uiPhase === "night_between"
+                    ? `即将进入第 ${game.round} 轮白天…`
+                    : nightSec < 8
+                      ? `天亮倒计时 ${Math.max(0, 8 - nightSec)}s…`
+                      : "AI 思考中，马上就好…"}
+                </p>
               </div>
             </div>
           )}
 
           {/* Day discussion */}
           {uiPhase === "day" && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full min-h-0">
               <TurnSelector
                 turns={learningTurns.map((t) => ({
                   turn_id: t.turn_id,
@@ -592,11 +643,13 @@ export default function SocialLogicGame() {
               />
 
               {hudForDisplay?.main_expression && (
-                <LearningHUD
-                  hud={hudForDisplay}
-                  speak={ttsSpeak}
-                  onTokenClick={(token, ctx) => setTokenSheet({ token, context: ctx })}
-                />
+                <div className="shrink-0 px-2">
+                  <LearningHUD
+                    hud={hudForDisplay}
+                    speak={ttsSpeak}
+                    onTokenClick={(token, ctx) => setTokenSheet({ token, context: ctx })}
+                  />
+                </div>
               )}
 
               <PlayerStrip
@@ -671,21 +724,28 @@ export default function SocialLogicGame() {
                 <div ref={feedEndRef} />
               </SpeechFeed>
 
-              <div className="px-3 pb-2">
-                <ActionPanel
-                  mode={actionMode}
-                  players={aliveAI.map((p: any) => ({ id: p.id, name: p.name, avatarChar: (p.name || "?").slice(-1) }))}
-                  selectedPlayerId={selectedPlayerId}
-                  onSelectPlayer={setSelectedPlayerId}
-                  onSend={handleQuestion}
-                  onHelpExpress={handleHelpExpress}
-                  helpBusy={helpBusy}
-                  disabled={busy}
-                />
+              {questionsRemaining <= 0 && (
+                <p className="shrink-0 text-center text-[11px] text-[#c0c1ff]/80 px-3 py-1">
+                  本轮已提问 · 听完发言后发起投票
+                </p>
+              )}
+
+              <ActionPanel
+                mode={actionMode}
+                players={aliveAI.map((p: any) => ({ id: p.id, name: p.name, avatarChar: (p.name || "?").slice(-1) }))}
+                selectedPlayerId={selectedPlayerId}
+                onSelectPlayer={setSelectedPlayerId}
+                onSend={handleQuestion}
+                onHelpExpress={handleHelpExpress}
+                helpBusy={helpBusy}
+                disabled={busy}
+                questionsRemaining={questionsRemaining}
+              />
+              <div className="shrink-0 px-3 pb-2 pt-1">
                 <button
                   onClick={() => setUiPhase("vote")}
                   disabled={busy}
-                  className="w-full mt-2 py-3 bg-gradient-to-r from-[#7c5cff] to-[#a78bfa] rounded-2xl text-white font-bold text-sm shadow-[0_0_20px_rgba(124,92,255,0.4)] active:scale-95 disabled:opacity-50"
+                  className="w-full py-2.5 bg-gradient-to-r from-[#7c5cff] to-[#a78bfa] rounded-xl text-white font-bold text-sm shadow-[0_0_16px_rgba(124,92,255,0.35)] active:scale-95 disabled:opacity-50"
                 >
                   结束讨论 · 发起投票
                 </button>
@@ -710,6 +770,7 @@ export default function SocialLogicGame() {
               revealedRole={voteResult.revealedRole}
               votes={voteResult.votes}
               onNextRound={() => void handleVoteResultNext()}
+              nextLabel={game?.phase === "ended" ? "查看结算" : "天黑闭眼 · 下一轮"}
             />
           )}
 

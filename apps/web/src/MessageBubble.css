@@ -1503,6 +1503,31 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
+/* Typography + density from Settings → 对话显示 */
+.chat-detail-layout.chat-font-small { --chat-font-size: 13px; }
+.chat-detail-layout.chat-font-standard { --chat-font-size: 15px; }
+.chat-detail-layout.chat-font-large { --chat-font-size: 17px; }
+.chat-detail-layout.chat-font-xlarge { --chat-font-size: 19px; }
+
+.chat-detail-layout.chat-density-compact .turn-block {
+  padding: 4px 8px;
+  margin: 4px 2px;
+}
+.chat-detail-layout.chat-density-compact .turn-block .conv-row {
+  margin-bottom: 4px;
+}
+.chat-detail-layout.chat-density-compact .conversation-feed {
+  padding: 8px 8px 16px;
+}
+
+.chat-detail-layout.chat-density-comfortable .turn-block {
+  padding: 10px 14px;
+  margin: 10px 6px;
+}
+.chat-detail-layout.chat-density-comfortable .turn-block .conv-row {
+  margin-bottom: 10px;
+}
+
 /* Typography Overrides based on preferences */
 .conversation-feed {
   --chat-font-size: 15px;

@@ -8,12 +8,22 @@ async def host_intro(
     user_a: str,
     user_b: str,
     reasons: list[str],
+    user_a_analysis: dict | None = None,
+    user_b_analysis: dict | None = None,
     db=None,
 ) -> str:
     provider = get_llm_provider(resolve_default_llm_provider(db), db=db)
     reason_text = ", ".join(reasons) if reasons else "共同学习兴趣"
+    
+    prompt = f"Introduce {user_a} and {user_b}. They share: {reason_text}. "
+    if user_a_analysis:
+        prompt += f"{user_a}'s persona: {user_a_analysis.get('summary', '')}. "
+    if user_b_analysis:
+        prompt += f"{user_b}'s persona: {user_b_analysis.get('summary', '')}. "
+    prompt += "Act as a charming, enthusiastic party host in Chinese. Make them feel welcome and suggest a fun topic based on their personas."
+
     result = await provider.thought_dialogue(
-        user_input=f"Introduce {user_a} and {user_b}. They share: {reason_text}",
+        user_input=prompt,
         profile=None,
         native_language="zh",
         target_language="en",

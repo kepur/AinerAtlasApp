@@ -45,7 +45,7 @@ function RadarRing({ label, value, color }: { label: string; value: number; colo
         className="relative w-12 h-12 flex items-center justify-center rounded-full circular-progress"
         style={{ ["--percentage" as string]: value, ["--progress-color" as string]: color }}
       >
-        <div className="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+        <div className="absolute inset-1 bg-surface-container-lowest rounded-full flex items-center justify-center">
           <span className="text-[12px] font-bold">{value}%</span>
         </div>
       </div>
@@ -93,7 +93,7 @@ function PracticeModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end justify-center" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-white rounded-t-3xl p-6 animate-[fadeInUp_0.3s_ease-out] max-h-[85vh] overflow-y-auto"
+        className="w-full max-w-md bg-surface-container-lowest rounded-t-3xl p-6 animate-[fadeInUp_0.3s_ease-out] max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -301,12 +301,12 @@ export default function PatternCrush() {
   return (
     <div className="premium min-h-full bg-surface text-on-surface">
       {/* Top App Bar */}
-      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-white/20 px-margin-mobile h-touch-target-min flex justify-between items-center">
+      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/20 px-margin-mobile h-touch-target-min flex justify-between items-center">
         <div className="flex items-center gap-2">
           <button onClick={() => navigate("/profile")} className="material-symbols-outlined text-primary">menu</button>
           <h1 className="font-headline-lg text-[26px] font-bold text-primary">Crush</h1>
         </div>
-        <div className="flex items-center bg-white/50 px-3 py-1 rounded-full border border-white/40">
+        <div className="flex items-center bg-surface-container-lowest/50 px-3 py-1 rounded-full border border-outline-variant/30">
           {/* TODO(backend): real streak count */}
           <span className="text-[13px] text-primary">🔥 {crushed.length} 连续学习</span>
         </div>
@@ -432,7 +432,7 @@ export default function PatternCrush() {
 
         {/* Review Plan */}
         <section className="space-y-4">
-          <div className="glass-card premium-shadow rounded-2xl p-4 bg-gradient-to-br from-white/80 to-primary-fixed/30">
+          <div className="glass-card premium-shadow rounded-2xl p-4 bg-gradient-to-br from-surface-container-lowest/80 to-primary-fixed/30">
             <h3 className="font-headline-md text-headline-md text-on-surface mb-4">复习计划</h3>
             {/* TODO(backend): spaced-repetition schedule counts */}
             <div className="grid grid-cols-4 gap-2 text-center">
@@ -442,7 +442,7 @@ export default function PatternCrush() {
                 { label: "3天后", val: Math.max(0, Math.round(queue.length * 0.3)) },
                 { label: "7天后", val: crushed.length }
               ].map((d, i) => (
-                <div key={d.label} className={`p-2 rounded-lg ${i === 0 ? "bg-white/60" : "bg-white/40"}`}>
+                <div key={d.label} className={`p-2 rounded-lg ${i === 0 ? "bg-surface-container-lowest/60" : "bg-surface-container-lowest/40"}`}>
                   <p className="text-[12px] text-outline">{d.label}</p>
                   <p className="text-headline-md font-bold text-primary">{d.val}</p>
                 </div>

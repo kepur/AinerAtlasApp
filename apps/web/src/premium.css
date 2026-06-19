@@ -2,6 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Premium semantic tokens (theme-aware via data-theme on <html>) ─── */
+:root,
+[data-theme="light"] {
+  --premium-surface-rgb: 250 248 255;
+  --premium-surface-bright-rgb: 250 248 255;
+  --premium-surface-dim-rgb: 210 217 244;
+  --premium-surface-container-lowest-rgb: 255 255 255;
+  --premium-surface-container-low-rgb: 242 243 255;
+  --premium-surface-container-rgb: 234 237 255;
+  --premium-surface-container-high-rgb: 226 231 255;
+  --premium-surface-container-highest-rgb: 218 226 253;
+  --premium-surface-variant-rgb: 218 226 253;
+  --premium-on-surface-rgb: 19 27 46;
+  --premium-on-surface-variant-rgb: 74 68 85;
+  --premium-on-background-rgb: 19 27 46;
+  --premium-outline-rgb: 123 116 135;
+  --premium-outline-variant-rgb: 204 195 216;
+  --premium-background-rgb: 250 248 255;
+  --premium-primary-fixed-rgb: 234 221 255;
+  --premium-secondary-fixed-rgb: 216 226 255;
+  --premium-tertiary-fixed-rgb: 111 251 190;
+  --premium-inverse-surface-rgb: 40 48 68;
+  --color-white-rgb: 255 255 255;
+}
+
+[data-theme="dark"] {
+  --premium-surface-rgb: 15 23 42;
+  --premium-surface-bright-rgb: 30 41 59;
+  --premium-surface-dim-rgb: 7 11 20;
+  --premium-surface-container-lowest-rgb: 30 41 59;
+  --premium-surface-container-low-rgb: 30 41 59;
+  --premium-surface-container-rgb: 51 65 85;
+  --premium-surface-container-high-rgb: 71 85 105;
+  --premium-surface-container-highest-rgb: 100 116 139;
+  --premium-surface-variant-rgb: 51 65 85;
+  --premium-on-surface-rgb: 226 232 240;
+  --premium-on-surface-variant-rgb: 148 163 184;
+  --premium-on-background-rgb: 226 232 240;
+  --premium-outline-rgb: 100 116 139;
+  --premium-outline-variant-rgb: 71 85 105;
+  --premium-background-rgb: 7 11 20;
+  --premium-primary-fixed-rgb: 55 30 100;
+  --premium-secondary-fixed-rgb: 30 58 95;
+  --premium-tertiary-fixed-rgb: 6 60 45;
+  --premium-inverse-surface-rgb: 226 232 240;
+  --color-white-rgb: 51 65 85;
+}
+
 /*
  * Scoped preflight: global preflight is disabled (to protect legacy Lumina
  * pages), so re-apply essential button/form resets ONLY under `.premium`.
@@ -27,6 +75,10 @@
   color: inherit;
   border: 0 solid transparent;
 }
+:where(.premium) a {
+  text-decoration: none;
+  color: inherit;
+}
 
 /*
  * Premium "Amethyst" layer.
@@ -38,8 +90,8 @@
 
 .premium {
   font-family: "Be Vietnam Pro", "PingFang SC", ui-sans-serif, system-ui, sans-serif;
-  color: #131b2e;
-  background: #faf8ff;
+  color: rgb(var(--premium-on-surface-rgb));
+  background: rgb(var(--premium-surface-rgb));
 }
 
 .premium .glass-card {
@@ -146,6 +198,49 @@
   background: linear-gradient(135deg, #7c3aed 0%, #630ed4 100%);
 }
 
+[data-theme="dark"] .premium {
+  color: rgb(var(--premium-on-surface-rgb));
+  background: rgb(var(--premium-surface-rgb));
+}
+
+[data-theme="dark"] .premium .glass-card {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .premium .glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .premium .premium-shadow {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .premium .asset-card-shadow {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .premium .ai-message-gradient {
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.85) 0%, rgba(30, 41, 59, 0.95) 100%);
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .premium select option {
+  background: rgb(var(--premium-surface-container-rgb));
+  color: rgb(var(--premium-on-surface-rgb));
+}
+
+[data-theme="dark"] .phone-frame {
+  background: rgb(var(--premium-surface-rgb));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .connect-ambient {
+  opacity: 0.12;
+  background: linear-gradient(to bottom right, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.08), transparent) !important;
+}
+
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.8; transform: scale(0.98); }
@@ -169,6 +264,24 @@
 }
 @keyframes lyric-shimmer {
   to { background-position: 200% center; }
+}
+
+/* Voice Coach — chat bubbles slide in like danmaku / falling tiles */
+@keyframes voice-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.premium .voice-bubble-in {
+  animation: voice-bubble-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.premium .voice-call-pulse {
+  animation: pulse-soft 2s ease-in-out infinite;
 }
 
 /* Material Symbols base — sizing/fill controls match the mockups. */

@@ -60,7 +60,7 @@ export default function TabBar() {
   }
 
   return (
-    <nav className="premium absolute bottom-0 left-0 w-full z-[100] flex justify-around items-center px-4 h-16 bg-surface/90 backdrop-blur-xl rounded-t-xl shadow-[0_-8px_20px_rgba(124,58,237,0.12)] border-t border-surface-variant/40 [padding-bottom:env(safe-area-inset-bottom)]">
+    <nav className="premium pointer-events-none absolute bottom-0 left-0 w-full z-[100] flex justify-around items-center px-4 h-16 bg-surface/90 backdrop-blur-xl rounded-t-xl shadow-[0_-8px_20px_rgba(124,58,237,0.12)] border-t border-surface-variant/40 [padding-bottom:env(safe-area-inset-bottom)]">
       {tabs.map((item) => {
         const active = isTabActive(item, pathname);
         return (
@@ -71,8 +71,8 @@ export default function TabBar() {
             onClick={() => navigate(item.path)}
             className={
               active
-                ? "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl text-primary bg-primary-fixed/40 transition-all"
-                : "relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl text-on-surface-variant hover:bg-surface-variant/50 transition-all"
+                ? "pointer-events-auto relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl text-primary bg-primary-fixed/40 transition-all"
+                : "pointer-events-auto relative flex flex-col items-center justify-center gap-0.5 px-3 py-1 rounded-xl text-on-surface-variant hover:bg-surface-variant/50 transition-all"
             }
           >
             <span className={active ? "material-symbols-outlined fill text-[24px]" : "material-symbols-outlined text-[24px]"}>

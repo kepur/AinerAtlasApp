@@ -80,7 +80,7 @@ export default function MatchDetail() {
 
   if (loading) {
     return (
-      <div className="w-full h-full bg-[#f8f9fc] flex items-center justify-center">
+      <div className="w-full h-full bg-surface-container-low flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#6366f1]/30 border-t-[#6366f1] rounded-full animate-spin" />
       </div>
     );
@@ -88,9 +88,9 @@ export default function MatchDetail() {
 
   if (!rec) {
     return (
-      <div className="w-full h-full bg-[#f8f9fc] flex flex-col items-center justify-center gap-4 px-5">
+      <div className="w-full h-full bg-surface-container-low flex flex-col items-center justify-center gap-4 px-5">
         <div className="text-5xl">🔍</div>
-        <p className="text-[#4b5563] text-sm text-center">未找到此推荐，可能已过期</p>
+        <p className="text-on-surface-variant text-sm text-center">未找到此推荐，可能已过期</p>
         <button onClick={() => navigate("/match")} className="bg-[#6366f1] text-white px-6 py-2.5 rounded-full font-bold text-[14px]">返回雷达</button>
       </div>
     );
@@ -100,7 +100,7 @@ export default function MatchDetail() {
   const initial = rec.target_username.charAt(0).toUpperCase();
 
   return (
-    <div className="w-full h-full bg-[#f8f9fc] flex flex-col overflow-y-auto pb-36 no-scrollbar">
+    <div className="premium w-full h-full bg-surface text-on-surface flex flex-col overflow-y-auto pb-36 no-scrollbar">
       {err && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-full bg-[#1f2937]/90 text-white text-[13px] font-bold shadow-lg whitespace-nowrap">
           {err}
@@ -110,11 +110,11 @@ export default function MatchDetail() {
       <div className="fixed top-0 left-0 w-full h-[250px] bg-gradient-to-br from-[#eef2ff] via-[#f5f3ff] to-transparent opacity-60 pointer-events-none z-0" />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-4 h-14 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#111827]">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 h-14 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30">
+        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full border border-outline-variant/40 flex items-center justify-center text-on-surface">
           <ArrowLeft size={18} />
         </button>
-        <h1 className="font-bold text-[#111827] text-[15px]">同频详情</h1>
+        <h1 className="font-bold text-on-surface text-[15px]">同频详情</h1>
         <span className="w-8" />
       </header>
 
@@ -126,7 +126,7 @@ export default function MatchDetail() {
             {initial}
           </div>
           <div className="text-center">
-            <h2 className="font-extrabold text-[#111827] text-xl">{rec.target_username}</h2>
+            <h2 className="font-extrabold text-on-surface text-xl">{rec.target_username}</h2>
             <div className="flex items-center justify-center gap-1.5 mt-1">
               <div className="w-2 h-2 rounded-full bg-[#10b981]" />
               <span className="text-[11px] text-[#10b981] font-bold">{score}% 同频</span>
@@ -135,15 +135,15 @@ export default function MatchDetail() {
         </div>
 
         {/* Score Dimensions */}
-        <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 p-4">
-          <h3 className="font-bold text-[#111827] text-sm mb-3">匹配维度</h3>
+        <div className="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/30 p-4">
+          <h3 className="font-bold text-on-surface text-sm mb-3">匹配维度</h3>
           <div className="flex flex-col gap-2.5">
             {DIMS.map((dim) => {
               const v = Math.max(50, Math.min(99, score + dim.offset));
               return (
                 <div key={dim.label} className="flex items-center gap-3">
                   <span className="text-base w-5 shrink-0">{dim.icon}</span>
-                  <span className="text-[11px] text-[#6b7280] w-16 shrink-0">{dim.label}</span>
+                  <span className="text-[11px] text-on-surface-variant w-16 shrink-0">{dim.label}</span>
                   <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] rounded-full"
@@ -159,10 +159,10 @@ export default function MatchDetail() {
 
         {/* Common Topics */}
         {rec.reasons.length > 0 && (
-          <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 p-4">
+          <div className="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/30 p-4">
             <div className="flex items-center gap-2 mb-3">
               <Globe size={14} className="text-[#6366f1]" />
-              <h3 className="font-bold text-[#111827] text-sm">共同话题</h3>
+              <h3 className="font-bold text-on-surface text-sm">共同话题</h3>
             </div>
             <div className="flex flex-wrap gap-2">
               {rec.reasons.map((r) => (
@@ -182,15 +182,15 @@ export default function MatchDetail() {
               <Sparkles size={14} className="text-[#8b5cf6]" />
               <span className="text-[11px] font-bold text-[#8b5cf6]">AI 破冰建议</span>
             </div>
-            <p className="text-[12px] text-[#4b5563] leading-relaxed">{rec.icebreaker}</p>
+            <p className="text-[12px] text-on-surface-variant leading-relaxed">{rec.icebreaker}</p>
           </div>
         )}
 
         {/* What to chat about */}
-        <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 p-4">
+        <div className="bg-surface-container-lowest rounded-[20px] shadow-sm border border-outline-variant/30 p-4">
           <div className="flex items-center gap-2 mb-3">
             <MessageSquare size={14} className="text-[#6366f1]" />
-            <h3 className="font-bold text-[#111827] text-sm">你们可以聊</h3>
+            <h3 className="font-bold text-on-surface text-sm">你们可以聊</h3>
           </div>
           <div className="flex flex-col gap-2">
             {[
@@ -198,13 +198,13 @@ export default function MatchDetail() {
               { icon: Globe, label: "跨文化话题", desc: "AI创业 · 欧洲生活经验" },
               { icon: Heart, label: "兴趣爱好", desc: rec.reasons.slice(0, 2).join(" · ") || "探索中" },
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 bg-[#f8f9fc] rounded-xl p-2.5 border border-gray-50">
+              <div key={i} className="flex items-center gap-3 bg-surface-container-low rounded-xl p-2.5 border border-gray-50">
                 <div className="w-8 h-8 rounded-lg bg-[#f5f3ff] flex items-center justify-center shrink-0">
                   <item.icon size={14} className="text-[#6366f1]" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-[#111827]">{item.label}</p>
-                  <p className="text-[10px] text-[#9ca3af]">{item.desc}</p>
+                  <p className="text-[11px] font-bold text-on-surface">{item.label}</p>
+                  <p className="text-[10px] text-on-surface-variant">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -214,7 +214,7 @@ export default function MatchDetail() {
       </main>
 
       {/* Bottom Actions */}
-      <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 px-5 pt-3 pb-[env(safe-area-inset-bottom,16px)] flex flex-col gap-2 z-50">
+      <div className="fixed bottom-0 left-0 w-full bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant/30 px-5 pt-3 pb-[env(safe-area-inset-bottom,16px)] flex flex-col gap-2 z-50">
         <button
           onClick={() => void startTrioChat()}
           disabled={chatLoading}
@@ -226,7 +226,7 @@ export default function MatchDetail() {
         <button
           onClick={() => void sendRequest()}
           disabled={requested}
-          className="w-full h-12 bg-white text-[#6366f1] rounded-full font-bold text-[14px] border border-[#ede9fe] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full h-12 bg-surface-container-lowest text-[#6366f1] rounded-full font-bold text-[14px] border border-[#ede9fe] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {requested ? <Check size={18} /> : <UserPlus size={18} />}
           {requested ? "已发送打招呼" : "打招呼"}

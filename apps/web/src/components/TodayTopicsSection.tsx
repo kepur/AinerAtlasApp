@@ -66,7 +66,7 @@ export default function TodayTopicsSection({ topics, loading }: Props) {
             onClick={() => setFilter(f.key)}
             className={
               "flex-1 py-1.5 px-2 rounded-md text-[12px] font-bold transition-all " +
-              (filter === f.key ? "bg-white shadow-sm text-primary" : "text-outline")
+              (filter === f.key ? "bg-surface-container-lowest shadow-sm text-primary" : "text-outline")
             }
           >
             {f.label}

@@ -123,7 +123,7 @@ export default function Assets() {
             {loading ? "Loading…" : `${filtered.length} Thoughts Saved`}
           </span>
           <div className="flex gap-1 bg-surface-container-low p-1 rounded-lg">
-            <button className="p-1.5 rounded-md bg-white shadow-sm text-primary">
+            <button className="p-1.5 rounded-md bg-surface-container-lowest shadow-sm text-primary">
               <span className="material-symbols-outlined text-[20px]">grid_view</span>
             </button>
             <button className="p-1.5 rounded-md text-on-surface-variant hover:text-primary transition-colors">
@@ -135,7 +135,7 @@ export default function Assets() {
         {/* Asset Grid */}
         <div className="mt-6 grid grid-cols-1 gap-5">
           {filtered.length === 0 && (
-            <div className="asset-card-shadow bg-white rounded-2xl p-8 flex flex-col items-center text-center gap-3">
+            <div className="asset-card-shadow bg-surface-container-lowest rounded-2xl p-8 flex flex-col items-center text-center gap-3">
               <span className="material-symbols-outlined text-[40px] text-on-surface-variant/50">library_books</span>
               <p className="font-headline-md text-[16px] text-on-surface">还没有表达资产</p>
               <p className="text-body-md text-on-surface-variant">在对话里冻结一句精彩表达，它就会出现在这里。</p>
@@ -148,7 +148,7 @@ export default function Assets() {
           {featured && (
             <div
               onClick={() => open(featured)}
-              className="asset-card-shadow bg-white rounded-2xl p-6 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform"
+              className="asset-card-shadow bg-surface-container-lowest rounded-2xl p-6 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div className="absolute top-0 left-0 w-1.5 h-full bg-primary" />
               <div className="flex justify-between items-start mb-4">
@@ -173,7 +173,7 @@ export default function Assets() {
             <div
               key={item.id}
               onClick={() => open(item)}
-              className="asset-card-shadow bg-white rounded-2xl p-5 relative group cursor-pointer active:scale-[0.98] transition-transform"
+              className="asset-card-shadow bg-surface-container-lowest rounded-2xl p-5 relative group cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-headline-md text-[18px] text-on-surface group-hover:text-primary transition-colors">{item.title}</h3>
@@ -206,7 +206,7 @@ export default function Assets() {
                 <span className="text-[10px] text-on-surface-variant">{items.length} New Insights</span>
               </div>
             </div>
-            <div className="asset-card-shadow bg-white rounded-2xl p-4 flex flex-col justify-between h-32 active:scale-95 transition-transform cursor-pointer">
+            <div className="asset-card-shadow bg-surface-container-lowest rounded-2xl p-4 flex flex-col justify-between h-32 active:scale-95 transition-transform cursor-pointer">
               <span className="material-symbols-outlined text-tertiary text-[28px]">folder_zip</span>
               <div>
                 <h4 className="font-headline-md text-[14px] text-on-surface">Archive</h4>

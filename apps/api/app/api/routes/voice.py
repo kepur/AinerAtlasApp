@@ -8,14 +8,15 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession, QuotaManagerDep
-from app.services.runtime_config import resolve_default_voice_provider
+from app.services.runtime_config import resolve_default_voice_provider, resolve_realtime_asr_provider
 from app.core.security import decode_access_token
 from app.db.session import SessionLocal
 from app.services.dashscope_client import resolve_dashscope_api_key
 from app.db.session import SessionLocal
 from datetime import UTC, datetime
 
-from app.models import AIProvider, AppSettings, PronunciationScore, RealtimeSessionLog, UsageLog, VoiceSession
+from app.models import AIProvider, AppSettings, PronunciationScore, RealtimeSessionLog, UsageLog, User, VoiceSession
+from app.services.membership_access import has_voice_coach_access
 from app.schemas import (
     TranscribeRequest,
     TranscribeResponse,
@@ -51,7 +52,10 @@ class VoiceSessionComplete(BaseModel):
 
 def _resolve_audio_url(audio_url: str, audio_base64: str) -> str:
     if audio_base64:
-        return f"base64:{audio_base64}"
+        payload = audio_base64.strip()
+        if "base64," in payload:
+            payload = payload.split("base64,", 1)[1]
+        return f"base64:{payload}"
     return audio_url
 
 
@@ -336,7 +340,9 @@ async def stream_asr(websocket: WebSocket):
 
     try:
         with SessionLocal() as db:
-            adapter = get_realtime_adapter(db)
+            from app.services.runtime_config import resolve_realtime_asr_provider
+
+            adapter = get_realtime_adapter(resolve_realtime_asr_provider(db), db=db)
             async for message in websocket.iter_text():
                 data = json.loads(message) if isinstance(message, str) else message
                 action = data.get("action", "audio")
@@ -370,9 +376,16 @@ async def evaluate_pronunciation(
     current_user: CurrentUser,
     db: DBSession,
 ) -> dict:
-    provider = get_voice_provider(resolve_default_voice_provider(db), db)
     audio_ref = _resolve_audio_url(payload.audio_url, payload.audio_base64)
-    result = await provider.evaluate_pronunciation(audio_ref, payload.reference_text)
+
+    from app.services.aliyun_speech_assessment import (
+        evaluate_with_aliyun_assessment,
+        evaluate_with_dashscope_fallback,
+    )
+
+    result = await evaluate_with_aliyun_assessment(db, audio_ref, payload.reference_text)
+    if not result:
+        result = await evaluate_with_dashscope_fallback(db, audio_ref, payload.reference_text)
 
     from app.services.voice_analyzer import analyze_transcript
     transcript = result.get("transcript", "")
@@ -443,7 +456,7 @@ def get_voice_report(
 
 @router.post("/realtime/session")
 async def realtime_session(payload: VoiceSessionCreate, db: DBSession) -> dict:
-    adapter = get_realtime_adapter(resolve_default_voice_provider(db), db=db)
+    adapter = get_realtime_adapter(resolve_realtime_asr_provider(db), db=db)
     return await adapter.create_session(payload.model_dump())
 
 
@@ -522,7 +535,20 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
     session_topic = _MODE_TOPICS.get(mode, _MODE_TOPICS["free"])
 
     with SessionLocal() as db:
-        adapter = get_realtime_adapter(resolve_default_voice_provider(db), db=db)
+        if user_id:
+            user = db.get(User, user_id)
+            if not user or not has_voice_coach_access(user):
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "code": "vip_required",
+                        "message": "Voice Coach requires VIP membership. Please upgrade to continue.",
+                    }
+                )
+                await websocket.close()
+                return
+
+        adapter = get_realtime_adapter(resolve_realtime_asr_provider(db), db=db)
         session_info = await adapter.create_session({"user_id": user_id, "mode": mode, "topic": session_topic})
         await websocket.send_json({"type": "session", **session_info})
 

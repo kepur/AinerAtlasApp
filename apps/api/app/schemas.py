@@ -725,6 +725,8 @@ class MembershipPlanRead(BaseModel):
     daily_voice_minutes: int
     daily_freeze_count: int
     asset_limit: int
+    daily_match_cards: int
+    match_batch_size: int
     enabled: bool
     updated_at: datetime
 
@@ -737,6 +739,8 @@ class MembershipPlanUpdate(BaseModel):
     daily_voice_minutes: int = 0
     daily_freeze_count: int = 1
     asset_limit: int = 20
+    daily_match_cards: int = 1
+    match_batch_size: int = 1
     enabled: bool = True
 
 
@@ -874,6 +878,15 @@ class ValueProfileUpdate(BaseModel):
     emotional_values: list[str] = Field(default_factory=list)
     lifestyle_prefs: list[str] = Field(default_factory=list)
     relationship_goals: list[str] = Field(default_factory=list)
+
+
+class MatchQuotaRead(BaseModel):
+    membership_level: str
+    daily_match_cards: int
+    match_batch_size: int
+    cards_used: int
+    cards_remaining: int
+    unlimited: bool = False
 
 
 class MatchRecommendationRead(BaseModel):
@@ -1032,6 +1045,8 @@ class AppSettingsRead(BaseModel):
     tts_speed: float = 0.9
     tts_pitch: float = 1.1
     global_api_keys: list[dict] = Field(default_factory=list)
+    llm_routing: dict = Field(default_factory=dict)
+    voice_platform_config: dict = Field(default_factory=dict)
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -1056,6 +1071,8 @@ class AppSettingsUpdate(BaseModel):
     tts_speed: float = 0.9
     tts_pitch: float = 1.1
     global_api_keys: list[dict] = Field(default_factory=list)
+    llm_routing: dict = Field(default_factory=dict)
+    voice_platform_config: dict = Field(default_factory=dict)
 
 
 class TopicForkCreate(BaseModel):

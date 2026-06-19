@@ -1040,6 +1040,13 @@ def get_llm_provider_for_task(
     if db is None:
         return get_llm_provider(hint, db, allow_mock_fallback=allow_mock_fallback)
 
+    from app.services.runtime_config import resolve_llm_provider_for_task
+
+    if hint in {"auto", ""}:
+        resolved_hint = resolve_llm_provider_for_task(task_type, db)
+        if resolved_hint and resolved_hint != "auto":
+            hint = resolved_hint
+
     provider = get_llm_provider(hint, db, allow_mock_fallback=allow_mock_fallback)
 
     if hasattr(provider, "model_name"):
