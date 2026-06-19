@@ -48,3 +48,34 @@ def test_party_room_create_message_and_turn() -> None:
         reload = client.get(f"/api/games/party-rooms/{rid}", headers=headers)
         assert reload.status_code == 200
         assert reload.json()["room_id"] == rid
+
+
+def test_party_room_websocket_ping_and_sync() -> None:
+    with TestClient(app) as client:
+        headers = {"Authorization": f"Bearer {_token(client)}"}
+        create = client.post(
+            "/api/games/party-rooms",
+            headers=headers,
+            json={"title": "WS Test"},
+        )
+        assert create.status_code == 200
+        rid = create.json()["room_id"]
+        token = headers["Authorization"].replace("Bearer ", "")
+
+        with client.websocket_connect(
+            f"/api/games/party-rooms/ws/{rid}?token={token}"
+        ) as ws:
+            hello = ws.receive_json()
+            assert hello["type"] == "room"
+            assert hello["data"]["room_id"] == rid
+
+            ws.send_text("ping")
+            assert ws.receive_json() == {"type": "pong"}
+
+            client.post(
+                f"/api/games/party-rooms/{rid}/message",
+                headers=headers,
+                json={"text": "Hello party"},
+            )
+            sync = ws.receive_json()
+            assert sync["type"] == "room_sync"
