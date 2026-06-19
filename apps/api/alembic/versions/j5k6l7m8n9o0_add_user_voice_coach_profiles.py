@@ -11,6 +11,11 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "user_voice_coach_profiles" in inspector.get_table_names():
+        return
+
     op.create_table(
         "user_voice_coach_profiles",
         sa.Column("id", sa.String(length=36), nullable=False),
@@ -26,7 +31,7 @@ def upgrade() -> None:
         sa.Column("opening_greeting", sa.Text(), nullable=False, server_default=""),
         sa.Column("opening_questions", sa.JSON(), nullable=False, server_default=sa.text("'[]'")),
         sa.Column("session_directives", sa.Text(), nullable=False, server_default=""),
-        sa.Column("session_instructions", sa.Text(), nullable=False, server_default=sa.text("")),
+        sa.Column("session_instructions", sa.Text(), nullable=False, server_default=""),
         sa.Column("analysis_source", sa.String(length=40), nullable=False, server_default="daily"),
         sa.Column("analyzed_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
