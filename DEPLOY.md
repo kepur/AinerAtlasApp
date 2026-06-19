@@ -224,3 +224,97 @@ git commit -m "chore: refresh deploy snapshot"
 ```
 
 **代码 + DEPLOY.md + deploy-snapshot/ = 完整可运行环境。**
+
+---
+
+## 12. 自定义端口（避免与其他服务冲突）
+
+默认 **707x** 段是为本仓库预留的，同一台机器若已有服务占用，可整体平移宿主机端口；**容器内端口不变**（API 始终 `8000`，Postgres `5432` 等）。
+
+| 服务 | 默认宿主机端口 | 容器端口 | 修改位置 |
+|------|----------------|----------|----------|
+| API | **7070** | 8000 | `docker-compose.yml` → `api.ports` |
+| Web (H5) | **7075** | 7075(dev) / 80(prod) | `docker-compose.yml` → `web.ports` |
+| Admin | **7072** | 80 | `docker-compose.yml` → `admin.ports` |
+| Postgres | **7073** | 5432 | `docker-compose.yml` → `postgres.ports` |
+| Redis | **7074** | 6379 | `docker-compose.yml` → `redis.ports` |
+| Admin Vite 裸跑 | **7076** | — | `apps/admin/vite.config.ts`（非 Compose） |
+
+### 改端口示例（API 改为 8070，Web 改为 8075）
+
+`docker-compose.yml`：
+
+```yaml
+api:
+  ports:
+    - "8070:8000"    # 原 7070:8000
+web:
+  ports:
+    - "8075:7075"    # 开发模式；生产 overlay 用 "8075:80"
+```
+
+`.env` / `.env.development`（**必改 CORS**，否则浏览器跨域失败）：
+
+```bash
+CORS_ORIGINS=http://localhost:8075,http://localhost:7072,http://localhost:7076
+```
+
+裸跑 API 时：
+
+```bash
+uvicorn app.main:app --reload --port 8070
+```
+
+生产静态 Web 构建时需传入 API 地址：
+
+```bash
+VITE_API_BASE_URL=https://api.yourdomain.com npm run build
+# 或同机不同端口：VITE_API_BASE_URL=http://localhost:8070
+```
+
+改完后验证：
+
+```bash
+docker compose up -d --build
+curl -s http://localhost:8070/health
+```
+
+> **建议**：一次迁移时保持 **7070–7075** 不变最省事；仅在与本机其他项目冲突时再改，并同步更新 `CORS_ORIGINS` 与前端 `VITE_API_BASE_URL`。
+
+---
+
+## 13. 给其他 Agent 的部署提示词（可直接复制）
+
+```text
+你是部署 Agent，请在目标机器上部署 AinerSpeak（本仓库）。
+
+【仓库】git clone 后进入仓库根目录（含 docker-compose.yml、DEPLOY.md、deploy-snapshot/）。
+
+【默认端口 — 宿主机映射，可自定义避免冲突】
+- API:     7070  → 容器 8000   健康检查 GET /health
+- Web H5:  7075  → 容器 7075(dev) 或 80(prod)
+- Admin:   7072  → 容器 80
+- Postgres:7073  → 容器 5432
+- Redis:   7074  → 容器 6379
+若端口被占用：只改 docker-compose.yml 左侧宿主机端口（见 DEPLOY.md §12），并更新 .env 中 CORS_ORIGINS 与生产构建的 VITE_API_BASE_URL。
+
+【推荐一键复刻（含数据）】
+1. cp .env.example .env
+2. chmod +x scripts/import-deploy-snapshot.sh && ./scripts/import-deploy-snapshot.sh
+3. curl http://localhost:7070/health  期望 {"status":"ok","service":"ainerspeak-api"}
+4. 浏览器：Web http://localhost:7075  Admin http://localhost:7072
+
+【全新环境无快照】
+docker compose up -d --build
+生产静态前端：docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+【默认账号】
+- Demo: demo@ainerspeak.com / Demo123!
+- Admin: admin@ainerspeak.com / ChangeMe123!
+
+【生产必改】.env 中 JWT_SECRET、ENCRYPTION_KEY；CORS_ORIGINS 改为真实域名；PLAINTEXT_API_KEYS=false。
+
+【持久化】Postgres/Redis 为 Docker volume；./storage 与 ./apps/api/uploads 为 bind mount。
+
+【详细文档】必读仓库根目录 DEPLOY.md；数据包说明见 deploy-snapshot/README.md。
+```

@@ -18,6 +18,7 @@ type Props = {
   turns: VoiceDialogueTurn[];
   activeTurnId: string | null;
   inCall: boolean;
+  connecting?: boolean;
   onTurnClick: (turnId: string) => void;
   speak: (text: string, lang?: string) => void;
   feedRef: React.RefObject<HTMLDivElement | null>;
@@ -31,6 +32,7 @@ export default function VoiceConversationFeed({
   turns,
   activeTurnId,
   inCall,
+  connecting = false,
   onTurnClick,
   speak,
   feedRef,
@@ -47,12 +49,19 @@ export default function VoiceConversationFeed({
 
   const dialogueTurns = turns.filter((t) => msgById.has(t.userBubbleId));
 
+  const feedClass = [
+    "voice-conversation-feed conversation-feed flex-1 min-h-0 overflow-y-auto hide-scrollbar px-margin-mobile py-3",
+    inCall && tapToEnd ? "cursor-pointer" : "",
+    inCall ? "voice-conversation-feed--live" : "",
+    connecting ? "voice-conversation-feed--connecting" : "",
+  ].filter(Boolean).join(" ");
+
   return (
     <div
       ref={feedRef}
       onClick={onFeedTap}
       onScroll={onFeedScroll}
-      className={`voice-conversation-feed conversation-feed flex-1 min-h-0 overflow-y-auto hide-scrollbar px-margin-mobile py-3 ${inCall && tapToEnd ? "cursor-pointer" : ""}`}
+      className={feedClass}
     >
       {messages.length === 0 && !inCall && (
         <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -129,11 +138,23 @@ export default function VoiceConversationFeed({
 
       {messages
         .filter((m) => m.role === "system" || !turns.some((t) => t.userBubbleId === m.id || t.assistantBubbleId === m.id))
-        .map((msg) => (
-          <div key={msg.id} className={`voice-system-row ${msg.status === "error" ? "error" : ""}`}>
-            <p>{msg.text}</p>
-          </div>
-        ))}
+        .map((msg) => {
+          const isConnecting = /连接/.test(msg.text);
+          const isSuccess = /接通|已连接/.test(msg.text);
+          const isError = msg.status === "error" || /断开|失败|超时/.test(msg.text);
+          const bannerClass = isError
+            ? "voice-system-banner voice-system-banner--error"
+            : isConnecting
+              ? "voice-system-banner voice-system-banner--connecting"
+              : isSuccess
+                ? "voice-system-banner voice-system-banner--success"
+                : "voice-system-banner";
+          return (
+            <div key={msg.id} className={bannerClass}>
+              <p>{msg.text}</p>
+            </div>
+          );
+        })}
 
       <div ref={bottomRef} />
     </div>

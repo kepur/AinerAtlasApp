@@ -167,6 +167,8 @@ export default function VoiceChat() {
   const lastTapAtRef = useRef(0);
   const tapAckTimerRef = useRef<number | null>(null);
   const sessionVoiceUiRef = useRef<RealtimeSessionInfo["voice_ui"]>(undefined);
+  const inCallRef = useRef(false);
+  const [disconnectFlash, setDisconnectFlash] = useState(false);
 
   const upsertBubble = useCallback((bubble: VoiceBubbleMsg) => {
     setMessages((prev) => {
@@ -257,6 +259,10 @@ export default function VoiceChat() {
   }, []);
 
   useEffect(() => {
+    inCallRef.current = inCall;
+  }, [inCall]);
+
+  useEffect(() => {
     if (!inCall) return;
     const timer = window.setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => window.clearInterval(timer);
@@ -306,17 +312,29 @@ export default function VoiceChat() {
       };
       ws.onclose = () => {
         window.clearTimeout(timeout);
+        const wasInCall = inCallRef.current;
         setConnected(false);
         setInCall(false);
         captureRef.current?.stop();
         captureRef.current = null;
         if (settled) {
-          appendBubble({
-            id: bubbleId("sys"),
-            role: "system",
-            text: "通话已结束",
-            status: "final",
-          });
+          if (wasInCall) {
+            setDisconnectFlash(true);
+            window.setTimeout(() => setDisconnectFlash(false), 3200);
+            appendBubble({
+              id: bubbleId("sys"),
+              role: "system",
+              text: "通话已断开",
+              status: "error",
+            });
+          } else {
+            appendBubble({
+              id: bubbleId("sys"),
+              role: "system",
+              text: "通话已结束",
+              status: "final",
+            });
+          }
         }
       };
       ws.onmessage = (event) => {
@@ -705,9 +723,15 @@ export default function VoiceChat() {
     [coachBriefing, silenceMs, sessionInfo?.voice_ui?.tap_to_end, tapAck],
   );
 
+  const shellClass = [
+    "premium voice-chat-shell fixed inset-0 bg-surface text-on-surface flex flex-col overflow-hidden",
+    inCall ? "voice-chat-shell--live" : "",
+    connecting ? "voice-chat-shell--connecting" : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className={`premium voice-chat-shell fixed inset-0 bg-surface text-on-surface flex flex-col overflow-hidden${inCall ? " voice-chat-shell--live" : ""}`}>
-      <AmbientScene mood={petMood} energized={inCall} live={inCall} />
+    <div className={shellClass}>
+      <AmbientScene mood={petMood} energized={inCall || connecting} live={inCall} connecting={connecting} />
 
       <header className="flex-shrink-0 flex items-center justify-between px-margin-mobile h-16 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/20 z-40 relative">
         <div className="flex items-center gap-3">
@@ -730,13 +754,13 @@ export default function VoiceChat() {
           inCall
             ? "voice-call-live-badge voice-call-live-pulse"
             : connecting
-              ? "bg-primary/10 border-primary/20"
+              ? "voice-call-connecting-badge"
               : "bg-surface-container-high border-outline-variant/30"
         }`}>
-          <span className={`material-symbols-outlined text-[16px] ${inCall ? "" : connecting ? "text-primary" : "text-on-surface-variant"}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+          <span className={`material-symbols-outlined ${inCall ? "" : connecting ? "text-[18px]" : "text-[16px] text-on-surface-variant"}`} style={{ fontVariationSettings: "'FILL' 1" }}>
             {inCall ? "call" : connecting ? "sync" : "call_end"}
           </span>
-          <span className={`text-[12px] font-bold ${inCall ? "" : connecting ? "text-primary" : "text-on-surface-variant"}`}>
+          <span className={`font-bold ${inCall ? "text-[14px]" : connecting ? "text-[14px] text-[#e11d48]" : "text-[12px] text-on-surface-variant"}`}>
             {statusLabel}
           </span>
         </div>
@@ -773,7 +797,30 @@ export default function VoiceChat() {
         </div>
       )}
 
-      {!inCall && <CompanionPet mood="idle" playRandomIdle />}
+      {!inCall && !connecting && <CompanionPet mood="idle" playRandomIdle />}
+
+      {connecting && (
+        <div className="voice-connecting-overlay" aria-live="polite">
+          <div className="voice-pet-center-stage">
+            <CompanionPet mood="thinking" playRandomIdle />
+          </div>
+          <div className="voice-status-pulse">
+            <span className="material-symbols-outlined">sync</span>
+            <p>连接中…</p>
+            <p className="voice-status-sub">正在接通语音教练</p>
+          </div>
+        </div>
+      )}
+
+      {disconnectFlash && !inCall && !connecting && (
+        <div className="voice-connecting-overlay" aria-live="assertive">
+          <div className="voice-status-pulse voice-status-pulse--disconnect">
+            <span className="material-symbols-outlined">call_end</span>
+            <p>通话已断开</p>
+            <p className="voice-status-sub">可点击下方重新开始</p>
+          </div>
+        </div>
+      )}
 
       <div className="voice-chat-layout chat-detail-layout flex-1 min-h-0 flex flex-col">
         {inCall && (
@@ -783,7 +830,7 @@ export default function VoiceChat() {
         )}
 
         {(turns.length > 0) && (
-          <div className={`voice-hud-strip${inCall ? " voice-hud-strip--in-call" : ""}`}>
+          <div className={`voice-hud-strip${inCall ? " voice-hud-strip--in-call" : ""}${connecting ? " voice-hud-strip--connecting" : ""}`}>
             <TurnSelector
               turns={selectorTurns}
               activeTurnId={activeTurnId}
@@ -811,6 +858,7 @@ export default function VoiceChat() {
           turns={turns}
           activeTurnId={activeTurnId}
           inCall={inCall}
+          connecting={connecting}
           onTurnClick={setActiveTurn}
           speak={speak}
           feedRef={feedRef}
@@ -842,7 +890,7 @@ export default function VoiceChat() {
                 <span className="material-symbols-outlined text-[32px]">call</span>
               )}
             </span>
-            <span className="text-[13px] font-bold text-primary">{connecting ? "连接中…" : "开始通话"}</span>
+            <span className="text-[15px] font-extrabold text-primary">{connecting ? "连接中…" : "开始通话"}</span>
           </button>
         ) : (
           <>

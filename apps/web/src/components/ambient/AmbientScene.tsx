@@ -8,9 +8,11 @@ type Props = {
   energized?: boolean;
   /** Live voice call connected — green + purple ambient */
   live?: boolean;
+  /** WebSocket handshake in progress — warm red blush */
+  connecting?: boolean;
 };
 
-export default function AmbientScene({ mood, energized = false, live = false }: Props) {
+export default function AmbientScene({ mood, energized = false, live = false, connecting = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -42,15 +44,17 @@ export default function AmbientScene({ mood, energized = false, live = false }: 
     resize();
     window.addEventListener("resize", resize);
 
-    const moodHue = live
-      ? 152
-      : mood === "speaking"
-        ? 280
-        : mood === "thinking"
-          ? 220
-          : mood === "listening"
-            ? 260
-            : 250;
+    const moodHue = connecting
+      ? 350
+      : live
+        ? 152
+        : mood === "speaking"
+          ? 280
+          : mood === "thinking"
+            ? 220
+            : mood === "listening"
+              ? 260
+              : 250;
 
     const draw = (t: number) => {
       ctx.clearRect(0, 0, w, h);
@@ -80,10 +84,16 @@ export default function AmbientScene({ mood, energized = false, live = false }: 
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, [energized, live, mood]);
+  }, [energized, live, connecting, mood]);
+
+  const sceneClass = [
+    "ambient-scene",
+    live ? "ambient-scene--live" : "",
+    connecting ? "ambient-scene--connecting" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <div className={`ambient-scene${live ? " ambient-scene--live" : ""}`} aria-hidden>
+    <div className={sceneClass} aria-hidden>
       <canvas ref={canvasRef} className="ambient-canvas" />
       <div className="ambient-mesh" />
       <motion.div
