@@ -30,7 +30,7 @@ export default function GameStatusBar({
         </button>
         
         <div className="flex flex-col items-center">
-          <h1 className="font-headline-md text-lg font-bold text-white tracking-wide" style={{ textShadow: "0 0 10px rgba(255,255,255,0.3)" }}>
+          <h1 className="game-status-title font-headline-md text-lg font-bold tracking-wide">
             {roundTitle}
           </h1>
           

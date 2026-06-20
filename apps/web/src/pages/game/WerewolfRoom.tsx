@@ -315,10 +315,10 @@ export default function WerewolfRoom() {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between px-4 py-1 border-b border-white/10">
+      <div className="game-subbar flex items-center justify-between px-4 py-1 border-b">
         <div className="flex-1" />
         <div className="text-center min-w-0 flex-1 px-2">
-          <p className="text-[10px] text-white/50 flex items-center justify-center gap-1">
+          <p className="game-subbar-label text-[10px] flex items-center justify-center gap-1">
             <Users size={12} /> {room.player_count}/{room.max_players} · 邀请码
           </p>
         </div>
@@ -329,7 +329,7 @@ export default function WerewolfRoom() {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}
-          className="flex items-center gap-1 text-[11px] text-[#7c5cff] font-bold flex-1 justify-end"
+          className="game-invite-code-btn flex items-center gap-1 text-[11px] flex-1 justify-end min-w-0"
         >
           <Copy size={14} /> {copied ? "已复制" : room.invite_code}
         </button>
@@ -359,7 +359,7 @@ export default function WerewolfRoom() {
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 placeholder="输入邀请码加入"
-                className="flex-1 rounded-xl px-3 py-2 text-sm"
+                className="flex-1 rounded-xl px-3 py-2 text-sm game-text-primary"
               />
               <button onClick={() => void handleJoinByCode()} className="game-btn-primary px-4 py-2 rounded-xl text-sm">
                 加入

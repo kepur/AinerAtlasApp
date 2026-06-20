@@ -278,3 +278,18 @@
 [data-theme="dark"] .phone-frame [class*="text-[#111827]"] {
   color: var(--text-primary) !important;
 }
+
+/* game-dark: never white native button plates or washed accent text */
+[data-theme="dark"] .game-dark button {
+  background-color: transparent;
+}
+
+[data-theme="dark"] .game-dark [class*="text-[#7c5cff]"],
+[data-theme="dark"] .game-dark [class*="text-[#8b5cf6]"] {
+  color: #c4b5fd !important;
+}
+
+[data-theme="dark"] .game-dark .game-invite-code-btn,
+[data-theme="dark"] .game-dark .game-invite-code-btn [class*="text-[#"] {
+  color: #ede9fe !important;
+}
