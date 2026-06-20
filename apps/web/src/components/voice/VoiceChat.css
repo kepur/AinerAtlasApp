@@ -1,5 +1,35 @@
 @import "../ambient/ambient.css";
 
+/* ─── Light theme idle canvas — avoid harsh white block on Voice Coach ─── */
+[data-theme="light"] .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting),
+:root:not([data-theme="dark"]) .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) {
+  background: linear-gradient(
+    165deg,
+    rgb(242 243 255) 0%,
+    rgb(237 231 248) 46%,
+    rgb(234 237 255) 100%
+  ) !important;
+}
+
+[data-theme="light"] .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) .voice-chat-layout,
+:root:not([data-theme="dark"]) .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) .voice-chat-layout {
+  background: linear-gradient(
+    180deg,
+    rgba(234, 221, 255, 0.32) 0%,
+    rgba(242, 243, 255, 0.48) 100%
+  );
+}
+
+[data-theme="light"] .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) > header,
+:root:not([data-theme="dark"]) .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) > header {
+  background: rgba(242, 243, 255, 0.68) !important;
+}
+
+[data-theme="light"] .voice-chat-shell:not(.voice-chat-shell--live) > .flex-shrink-0.border-t,
+:root:not([data-theme="dark"]) .voice-chat-shell:not(.voice-chat-shell--live) > .flex-shrink-0.border-t {
+  background: rgba(242, 243, 255, 0.78) !important;
+}
+
 /* ─── Voice-specific layout (shared ambient in ambient.css) ─── */
 .voice-chat-layout {
   display: flex;

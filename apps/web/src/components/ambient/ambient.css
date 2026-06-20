@@ -30,6 +30,26 @@
   animation: ambient-mesh-drift 18s ease-in-out infinite alternate;
 }
 
+/* Voice Coach idle (light theme): stronger purple wash so middle panel is not flat white */
+[data-theme="light"] .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) .ambient-mesh,
+:root:not([data-theme="dark"]) .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) .ambient-mesh {
+  background:
+    radial-gradient(ellipse 58% 48% at 16% 10%, rgba(99, 14, 212, 0.28), transparent 62%),
+    radial-gradient(ellipse 52% 44% at 84% 16%, rgba(139, 92, 246, 0.2), transparent 58%),
+    radial-gradient(ellipse 72% 58% at 50% 88%, rgba(99, 14, 212, 0.16), transparent 68%),
+    radial-gradient(ellipse 85% 65% at 50% 52%, rgba(234, 221, 255, 0.42), transparent 74%);
+}
+
+[data-theme="light"] .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) .ambient-orb-a,
+:root:not([data-theme="dark"]) .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) .ambient-orb-a {
+  opacity: 0.62;
+}
+
+[data-theme="light"] .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) .ambient-orb-b,
+:root:not([data-theme="dark"]) .voice-chat-shell:not(.voice-chat-shell--live):not(.voice-chat-shell--connecting) .ambient-orb-b {
+  opacity: 0.48;
+}
+
 .ambient-scene--live .ambient-mesh {
   background:
     radial-gradient(ellipse 55% 45% at 15% 25%, rgba(16, 185, 129, 0.32), transparent 58%),
