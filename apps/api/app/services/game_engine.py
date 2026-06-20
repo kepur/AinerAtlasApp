@@ -168,6 +168,35 @@ def list_sessions(db: Session, user_id: str, status: str | None = None) -> list[
     return [_session_dict(s, user_id, include_turns=False) for s in rows]
 
 
+def find_resumable_session(
+    db: Session,
+    user_id: str,
+    game_type: str,
+    *,
+    target_id: str | None = None,
+    template_id: str | None = None,
+) -> dict | None:
+    q = (
+        select(GameSession)
+        .where(
+            GameSession.user_id == user_id,
+            GameSession.game_type == game_type,
+            GameSession.status == "active",
+        )
+        .order_by(GameSession.updated_at.desc())
+        .limit(30)
+    )
+    rows = db.scalars(q).all()
+    for sess in rows:
+        if template_id and sess.template_id == template_id:
+            return _session_dict(sess, user_id, include_turns=False)
+        if target_id:
+            target = (sess.state or {}).get("target") or {}
+            if str(target.get("id") or "") == target_id:
+                return _session_dict(sess, user_id, include_turns=False)
+    return None
+
+
 def get_session(db: Session, session_id: str, user_id: str) -> dict:
     sess = _load_session(db, session_id, user_id)
     return _session_dict(sess, user_id, include_turns=True)

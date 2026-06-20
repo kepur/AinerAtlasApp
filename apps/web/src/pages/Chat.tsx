@@ -4,7 +4,7 @@ import ConversationModePicker from "../components/ConversationModePicker";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
-import { apiRequest } from "../api";
+import { apiRequest, removeConnectFriend } from "../api";
 import { motion } from "framer-motion";
 
 const MODE_ICONS: Record<string, string> = {
@@ -30,6 +30,8 @@ type ConnectFriend = {
   last_time?: string;
   unread?: number;
   score: number;
+  is_friend?: boolean;
+  pending_greet?: boolean;
 };
 
 const MATCH_TYPE_META: Record<MatchType, { label: string; ring: string; badge: string; dot: string }> = {
@@ -92,7 +94,7 @@ export default function Chat() {
   }, [loadConversations]);
 
   useEffect(() => {
-    if (chatTab === "friends" && friends.length === 0) {
+    if (chatTab === "friends") {
       setFriendsLoading(true);
       apiRequest<{ items?: ConnectFriend[] }>("/api/connect/friends")
         .then((data) => setFriends(data?.items ?? []))
@@ -100,6 +102,24 @@ export default function Chat() {
         .finally(() => setFriendsLoading(false));
     }
   }, [chatTab]);
+
+  async function reloadFriends() {
+    setFriendsLoading(true);
+    try {
+      const data = await apiRequest<{ items?: ConnectFriend[] }>("/api/connect/friends");
+      setFriends(data?.items ?? []);
+    } catch {
+      setFriends([]);
+    } finally {
+      setFriendsLoading(false);
+    }
+  }
+
+  async function deleteFriend(friend: ConnectFriend) {
+    const uid = friend.user_id ?? friend.id;
+    await removeConnectFriend(uid);
+    setFriends((prev) => prev.filter((f) => (f.user_id ?? f.id) !== uid));
+  }
 
   async function openFriendChat(friend: ConnectFriend) {
     try {
@@ -358,39 +378,64 @@ export default function Chat() {
                     const meta = MATCH_TYPE_META[friend.match_type];
                     const initial = friend.username.charAt(0).toUpperCase();
                     return (
-                      <button
+                      <div
                         key={friend.id}
-                        onClick={() => void openFriendChat(friend)}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-surface-container transition-colors active:scale-[0.98] text-left"
+                        className="relative overflow-hidden rounded-2xl bg-surface-container select-none"
                       >
-                        {/* Avatar with gradient ring */}
-                        <div className={`p-[2px] rounded-full bg-gradient-to-br ${meta.ring} flex-shrink-0`}>
-                          <div className="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center font-bold text-on-surface text-base">
-                            {initial}
-                          </div>
+                        <div className="absolute inset-y-0 right-0 w-1/2 bg-rose-500/10 flex items-center justify-end pr-4 text-rose-600 font-bold text-xs gap-1.5 z-0">
+                          <span>删除好友</span>
+                          <span className="material-symbols-outlined text-[20px]">person_remove</span>
                         </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h4 className="text-[14px] font-bold text-on-surface truncate m-0 leading-tight">{friend.username}</h4>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${meta.badge} flex-shrink-0 leading-none`}>
-                              {meta.label}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <p className="text-[12px] text-on-surface-variant truncate flex-1 m-0 leading-normal">{friend.last_message || "开始你们的第一次对话吧"}</p>
-                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                              {friend.last_time && <span className="text-[10px] text-outline">{friend.last_time}</span>}
-                              {(friend.unread ?? 0) > 0 && (
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${meta.dot}`}>
-                                  {friend.unread}
-                                </span>
-                              )}
+                        <motion.div
+                          drag="x"
+                          dragConstraints={{ left: 0, right: 0 }}
+                          dragElastic={{ left: 0.5, right: 0.5 }}
+                          onDragEnd={(_event, info) => {
+                            if (info.offset.x < -85) {
+                              if (window.confirm(`确定删除好友 ${friend.username}？将解除好友关系。`)) {
+                                void deleteFriend(friend).catch(() => {
+                                  window.alert("删除失败，请稍后重试");
+                                  void reloadFriends();
+                                });
+                              }
+                            }
+                          }}
+                          className="bg-surface hover:bg-surface-container/30 transition-colors relative z-10 w-full"
+                        >
+                          <button
+                            onClick={() => void openFriendChat(friend)}
+                            className="w-full flex items-center gap-3 p-2.5 rounded-2xl active:scale-[0.98] text-left"
+                          >
+                            <div className={`p-[2px] rounded-full bg-gradient-to-br ${meta.ring} flex-shrink-0`}>
+                              <div className="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center font-bold text-on-surface text-base">
+                                {initial}
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </button>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <h4 className="text-[14px] font-bold text-on-surface truncate m-0 leading-tight">{friend.username}</h4>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${meta.badge} flex-shrink-0 leading-none`}>
+                                  {friend.pending_greet ? "待打招呼" : meta.label}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <p className="text-[12px] text-on-surface-variant truncate flex-1 m-0 leading-normal">
+                                  {friend.last_message || (friend.pending_greet ? "发一句招呼即可成为好友" : "开始你们的第一次对话吧")}
+                                </p>
+                                <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                                  {friend.last_time && <span className="text-[10px] text-outline">{friend.last_time}</span>}
+                                  {(friend.unread ?? 0) > 0 && (
+                                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${meta.dot}`}>
+                                      {friend.unread}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        </motion.div>
+                      </div>
                     );
                   })}
                 </div>

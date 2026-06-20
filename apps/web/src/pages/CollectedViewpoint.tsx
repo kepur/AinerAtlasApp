@@ -56,8 +56,9 @@ export default function CollectedViewpoint() {
             <h2 className="font-bold text-[18px] text-on-surface">还没有收藏的观点</h2>
             <p className="text-[14px] text-on-surface-variant text-center px-8">在小组讨论中点击消息旁的"收藏"按钮，精彩观点会保存到这里</p>
             <button
+              type="button"
               onClick={() => navigate("/home#today-topics")}
-              className="bg-primary text-white px-6 py-2.5 rounded-full font-bold text-[14px] shadow-md active:scale-95 transition-all"
+              className="as-btn as-btn--primary"
             >
               去发现讨论
             </button>
@@ -99,8 +100,9 @@ export default function CollectedViewpoint() {
                         <p className="text-[14px] text-on-surface leading-relaxed italic">{b.final_content_target}</p>
                       </div>
                     )}
-                    <div className="flex gap-2 pt-1">
+                    <div className="as-btn-row as-btn-row--horizontal pt-1">
                       <button
+                        type="button"
                         onClick={() => {
                           if (b.freeze_payload?.room_id) {
                             navigate(`/circles/${b.freeze_payload.room_id}`);
@@ -108,13 +110,14 @@ export default function CollectedViewpoint() {
                             navigate("/home#today-topics");
                           }
                         }}
-                        className="flex-1 h-10 bg-primary/10 text-primary rounded-full text-[13px] font-bold active:scale-95 transition-all"
+                        className="as-btn as-btn--soft"
                       >
                         {b.freeze_payload?.room_id ? "回到讨论" : "去发现讨论"}
                       </button>
                       <button
+                        type="button"
                         onClick={() => navigate("/thoughts")}
-                        className="flex-1 h-10 bg-surface-container text-on-surface rounded-full text-[13px] font-bold active:scale-95 transition-all"
+                        className="as-btn as-btn--glass"
                       >
                         加入思想库
                       </button>

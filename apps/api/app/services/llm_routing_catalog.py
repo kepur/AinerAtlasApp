@@ -26,6 +26,8 @@ LLM_ROUTE_CATALOG: tuple[LlmRouteEntry, ...] = (
     LlmRouteEntry("thought_dialogue_information_collector", "Thought · 信息收集", "对话", "conversational_reply"),
     LlmRouteEntry("thought_dialogue_debate_training", "Thought · 辩论训练", "对话", "conversational_reply"),
     LlmRouteEntry("thought_dialogue_role_simulation", "Thought · 角色模拟", "对话", "conversational_reply"),
+    LlmRouteEntry("thought_dialogue_coach", "Thought · 表达教练", "对话", "conversational_reply"),
+    LlmRouteEntry("thought_dialogue_free_talk", "Thought · 自由闲聊", "对话", "conversational_reply"),
     # ── 学习分析 ──
     LlmRouteEntry("grammar_analysis", "语法 / Chat HUD 分析", "学习分析", "learning_analysis", "Chat 第二阶段：学习 HUD（chat_v2）"),
     LlmRouteEntry("voice_coach_analysis", "语音教练日更画像", "学习分析", "learning_analysis", "每日分析用户状态，生成 Voice Coach 提示词"),

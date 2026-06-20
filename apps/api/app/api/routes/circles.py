@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, BackgroundTasks, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession
@@ -22,7 +22,8 @@ from app.schemas import (
     ROOM_TYPE_OPTIONS,
 )
 from app.services.circle_discussion import freeze_circle_room, publish_circle_topic
-from app.services.circle_moderator import generate_room_summary, moderate_message
+from app.services.circle_message_worker import analyze_circle_message_background
+from app.services.circle_moderator import generate_room_summary
 from app.services.circle_hub import circle_hub
 from app.services.llm import LLMUnavailableError
 from app.services.moderation import moderate_text
@@ -247,6 +248,7 @@ async def send_message(
     payload: CircleMessageCreate,
     current_user: CurrentUser,
     db: DBSession,
+    background_tasks: BackgroundTasks,
 ) -> CircleMessage:
     room = db.get(CircleRoom, room_id)
     if not room:
@@ -274,57 +276,32 @@ async def send_message(
             )
         )
 
-    try:
-        analysis = await moderate_message(
-            payload.content,
-            payload.content_language,
-            room.title,
-            room_type=room.room_type,
-            user_id=current_user.id,
-            db=db,
-        )
-    except LLMUnavailableError as exc:
-        raise HTTPException(status_code=503, detail=exc.message) from exc
-
     message = CircleMessage(
         room_id=room_id,
         user_id=current_user.id,
         role="user",
         content=payload.content,
         content_language=payload.content_language,
-        translated_content=analysis.get("translated_content", ""),
-        analysis=analysis,
+        translated_content="",
+        analysis={"analysis_status": "pending"},
     )
     db.add(message)
-
-    host_msg: CircleMessage | None = None
-    if room.room_type != "dm" and analysis.get("counter_question"):
-        host_msg = CircleMessage(
-            room_id=room_id,
-            user_id=None,
-            role="assistant",
-            content=analysis["counter_question"],
-            content_language="zh",
-            translated_content=analysis.get("host_note", ""),
-            analysis={"type": "host", "on_topic": analysis.get("on_topic", True)},
-        )
-        db.add(host_msg)
-
     db.commit()
     db.refresh(message)
-    if host_msg:
-        db.refresh(host_msg)
 
-    from app.schemas import CircleMessageRead
+    from app.services.friendship_service import maybe_friendship_from_dm_message
 
-    for msg in (message, host_msg) if host_msg else (message,):
-        await circle_hub.broadcast(
-            room_id,
-            {
-                "type": "message",
-                "message": CircleMessageRead.model_validate(msg).model_dump(mode="json"),
-            },
-        )
+    maybe_friendship_from_dm_message(db, room_id, current_user.id)
+
+    background_tasks.add_task(analyze_circle_message_background, message.id, room_id)
+
+    await circle_hub.broadcast(
+        room_id,
+        {
+            "type": "message",
+            "message": CircleMessageRead.model_validate(message).model_dump(mode="json"),
+        },
+    )
     return message
 
 

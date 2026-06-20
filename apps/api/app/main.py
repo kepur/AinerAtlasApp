@@ -10,7 +10,7 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from app.api.router import api_router
-from app.core.config import get_cors_origins, get_settings
+from app.core.config import get_cors_origin_regex, get_cors_origins, get_settings
 from app.core.logging import ErrorHandlingMiddleware, RequestLoggerMiddleware, setup_logging
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.security import decrypt_api_key, encrypt_api_key, hash_password
@@ -49,9 +49,11 @@ def create_app() -> FastAPI:
     app.add_middleware(ErrorHandlingMiddleware)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestLoggerMiddleware)
+    cors_regex = get_cors_origin_regex()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_cors_origins(),
+        allow_origin_regex=cors_regex,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -221,6 +223,8 @@ def seed_defaults() -> None:
             )
             logger.info("Seeded prompt templates")
 
+        _seed_conversation_mode_prompts_if_missing(db)
+
         plan_count = db.scalar(select(MembershipPlan).limit(1))
         if not plan_count:
             db.add_all(
@@ -276,6 +280,7 @@ def seed_defaults() -> None:
         _repair_conversation_activity_schema(db)
         _repair_user_profile_schema(db)
         _repair_app_settings_schema(db)
+        _repair_auth_settings_schema(db)
         _ensure_default_llm_routing(db)
         app_settings = db.get(AppSettings, "default")
         if not app_settings:
@@ -377,6 +382,30 @@ def _seed_game_templates(db) -> None:
     ]
     db.add_all(templates)
     logger.info("Seeded {} game templates", len(templates))
+
+
+def _seed_conversation_mode_prompts_if_missing(db) -> None:
+    """Backfill coach / free-talk mode prompts on older databases."""
+    from app.services.conversation_mode import MODE_PROMPT_SEEDS
+
+    added = 0
+    for name, task_type, content in MODE_PROMPT_SEEDS:
+        exists = db.scalar(
+            select(PromptTemplate).where(PromptTemplate.task_type == task_type).limit(1)
+        )
+        if exists:
+            continue
+        db.add(
+            PromptTemplate(
+                name=name,
+                task_type=task_type,
+                version="v1.0",
+                content=content,
+            )
+        )
+        added += 1
+    if added:
+        logger.info("Seeded {} missing conversation mode prompt(s)", added)
 
 
 def _seed_romance_templates_if_missing(db) -> None:
@@ -643,6 +672,58 @@ def _repair_user_profile_schema(db) -> None:
     db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS sexual_orientation VARCHAR(40) NOT NULL DEFAULT ''"))
     db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS orientation_custom VARCHAR(120) NOT NULL DEFAULT ''"))
     db.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS lgbtq_visible BOOLEAN NOT NULL DEFAULT FALSE"))
+
+
+def _repair_auth_settings_schema(db) -> None:
+    """Ensure auth_settings registration trial columns exist."""
+    bind = db.bind
+    if bind is None:
+        return
+    from sqlalchemy import inspect
+
+    inspector = inspect(bind)
+    if "auth_settings" not in inspector.get_table_names():
+        return
+    columns = {c["name"] for c in inspector.get_columns("auth_settings")}
+    dialect = bind.dialect.name
+    try:
+        if "registration_trial_enabled" not in columns:
+            if dialect == "postgresql":
+                db.execute(text(
+                    "ALTER TABLE auth_settings ADD COLUMN IF NOT EXISTS "
+                    "registration_trial_enabled BOOLEAN NOT NULL DEFAULT TRUE"
+                ))
+            else:
+                db.execute(text(
+                    "ALTER TABLE auth_settings ADD COLUMN registration_trial_enabled "
+                    "BOOLEAN NOT NULL DEFAULT 1"
+                ))
+        if "registration_trial_days" not in columns:
+            if dialect == "postgresql":
+                db.execute(text(
+                    "ALTER TABLE auth_settings ADD COLUMN IF NOT EXISTS "
+                    "registration_trial_days INTEGER NOT NULL DEFAULT 30"
+                ))
+            else:
+                db.execute(text(
+                    "ALTER TABLE auth_settings ADD COLUMN registration_trial_days "
+                    "INTEGER NOT NULL DEFAULT 30"
+                ))
+        if "registration_trial_membership_level" not in columns:
+            if dialect == "postgresql":
+                db.execute(text(
+                    "ALTER TABLE auth_settings ADD COLUMN IF NOT EXISTS "
+                    "registration_trial_membership_level VARCHAR(40) NOT NULL DEFAULT 'vip'"
+                ))
+            else:
+                db.execute(text(
+                    "ALTER TABLE auth_settings ADD COLUMN registration_trial_membership_level "
+                    "VARCHAR(40) NOT NULL DEFAULT 'vip'"
+                ))
+        db.commit()
+        logger.info("Ensured auth_settings registration trial columns")
+    except Exception as e:
+        logger.error("Failed to repair auth_settings schema: {}", e)
 
 
 def _repair_app_settings_schema(db) -> None:

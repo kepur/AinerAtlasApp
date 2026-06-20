@@ -272,11 +272,9 @@
    Conversation First + Learning HUD
    ================================================================== */
 
-/* Fixed Learning HUD below the header */
+/* Fixed Learning HUD below the header — base layout; glass skin in LearningHUD.css */
 .learning-hud {
   flex-shrink: 0;
-  background: rgba(79, 70, 229, 0.05);
-  border-bottom: 1px solid var(--border);
 }
 
 .hud-status {
@@ -314,16 +312,11 @@
   flex: 0 0 78%;
   max-width: 320px;
   scroll-snap-align: start;
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   max-height: 190px;
   overflow-y: auto;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .hud-card-crush {
@@ -347,20 +340,8 @@
 }
 
 .hud-variant-tab {
-  background: rgba(79, 70, 229, 0.08);
-  border: none;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 12px;
   cursor: pointer;
   transition: all 0.15s;
-}
-
-.hud-variant-tab.active {
-  background: var(--accent);
-  color: #fff;
 }
 
 .hud-expression-rows {
@@ -1071,16 +1052,27 @@
 .freeze-header-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 32px;
-  padding: 0 10px;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(79, 70, 229, 0.25);
-  background: rgba(79, 70, 229, 0.08);
-  color: var(--accent, #4f46e5);
+  border: 1px solid rgba(99, 14, 212, 0.22);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  color: #630ed4;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow:
+    0 2px 10px rgba(99, 14, 212, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.freeze-header-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 14, 212, 0.14);
 }
 
 .freeze-header-btn:disabled {
@@ -1265,54 +1257,54 @@
 /* Composer Rich */
 .chat-composer-rich {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  padding: 12px 16px;
+  padding: 12px 14px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  background: var(--bg-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  gap: 12px;
-  border-top: 1px solid var(--border);
+  gap: 10px;
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 -8px 32px rgba(99, 14, 212, 0.06);
 }
 
-.composer-voice-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: white;
-  border: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+[data-theme="dark"] .chat-composer-rich {
+  background: rgba(18, 16, 28, 0.72);
+  border-top-color: rgba(255, 255, 255, 0.08);
 }
 
-.composer-voice-btn.recording {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: #fff;
-  animation: composer-mic-pulse 1.4s ease-in-out infinite;
+.composer-voice-error {
+  flex: 1 1 100%;
+  margin: 0 2px 2px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.85);
+  border: 1px solid rgba(248, 113, 113, 0.35);
 }
 
-.composer-voice-btn.processing {
-  opacity: 0.65;
-  cursor: wait;
-}
-
-@keyframes composer-mic-pulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.35); }
-  50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+[data-theme="dark"] .composer-voice-error {
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(248, 113, 113, 0.25);
 }
 
 .composer-input-wrapper {
   flex: 1;
-  background: var(--border);
-  border-radius: 20px;
-  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 22px;
+  padding: 10px 16px;
+  box-shadow: inset 0 1px 2px rgba(99, 14, 212, 0.04);
+}
+
+[data-theme="dark"] .composer-input-wrapper {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .composer-input-wrapper input {
@@ -1325,19 +1317,35 @@
 }
 
 .composer-send-btn {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: var(--accent);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(145deg, #630ed4, #7c3aed);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #fff;
   cursor: pointer;
+  box-shadow:
+    0 6px 20px rgba(99, 14, 212, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
+
+.composer-send-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(99, 14, 212, 0.35);
+}
+
+.composer-send-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
 .composer-send-btn:disabled {
-  background: #c4b5fd;
+  background: rgba(196, 181, 253, 0.55);
+  border-color: transparent;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -1458,12 +1466,12 @@
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.28);
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
-  color: white;
+  color: #4338ca;
   margin-left: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1471,11 +1479,12 @@
 }
 
 .learning-badge:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(99, 102, 241, 0.18);
 }
 
 .learning-badge.analyzing {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
 }
 
 .learning-badge.failed {
@@ -1660,3 +1669,18 @@
 .hud-top-why { font-size: 12px; color: #d1d5db; margin: 2px 0; line-height: 1.5; }
 .hud-top-why b { color: #c4b5fd; }
 .hud-top-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ─── Circle / Topic Room ─── */
+.circle-room-layout .circle-learning-hud .hud-scroll {
+  max-height: 38vh;
+}
+
+.circle-room-layout .circle-learning-hud .hud-card {
+  flex: 0 0 88%;
+  max-width: 360px;
+  max-height: 220px;
+}
+
+.circle-room-layout .chat-detail-ambient-body {
+  min-height: 0;
+}

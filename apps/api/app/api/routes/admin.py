@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select, delete
 
-from app.api.deps import AdminUser, DBSession
+from app.api.deps import AdminUser, DBSession, QuotaManagerDep
 from app.core.security import encrypt_api_key
 from app.models import (
     AIProvider,
@@ -34,6 +34,7 @@ from app.models import (
     LLMCallLog,
 )
 from app.services.audit import write_audit_log
+from app.services.match_quota import build_match_quota_read
 from app.services.topic_purge import delete_circle_room, delete_topic_by_id
 from app.schemas import (
     AdminUserCreate,
@@ -135,7 +136,7 @@ def list_users(_: AdminUser, db: DBSession) -> list[User]:
 
 
 @router.get("/users/{user_id}", response_model=UserDetailRead)
-def get_user_detail(user_id: str, _: AdminUser, db: DBSession) -> UserDetailRead:
+def get_user_detail(user_id: str, _: AdminUser, db: DBSession, quota: QuotaManagerDep) -> UserDetailRead:
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -237,7 +238,65 @@ def get_user_detail(user_id: str, _: AdminUser, db: DBSession) -> UserDetailRead
             "mastered_patterns": mastered_patterns,
             "avg_mastery_score": round(float(avg_mastery), 1),
         },
+        match_quota=build_match_quota_read(user, db, quota),
     )
+
+
+@router.post("/users/{user_id}/reset-match-quota")
+def reset_user_match_quota(
+    user_id: str,
+    admin: AdminUser,
+    db: DBSession,
+    quota: QuotaManagerDep,
+) -> dict:
+    """Reset today's match-card consumption for a user."""
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    snapshot = quota.reset_match_cards(user)
+    write_audit_log(
+        db,
+        admin,
+        action="reset_match_quota",
+        resource_type="user",
+        resource_id=user_id,
+        details={"cards_used_after_reset": snapshot.used, "limit": snapshot.limit},
+    )
+    db.commit()
+    return build_match_quota_read(user, db, quota)
+
+
+@router.get("/friendships")
+def list_friendships(_: AdminUser, db: DBSession, user_id: str | None = None, limit: int = 100) -> dict:
+    from app.models import UserFriendship
+
+    q = select(UserFriendship).order_by(UserFriendship.updated_at.desc()).limit(min(limit, 500))
+    if user_id:
+        q = q.where(
+            (UserFriendship.user_a_id == user_id) | (UserFriendship.user_b_id == user_id)
+        )
+    rows = list(db.scalars(q))
+    items = []
+    for row in rows:
+        user_a = db.get(User, row.user_a_id)
+        user_b = db.get(User, row.user_b_id)
+        dissolved = db.get(User, row.dissolved_by_id) if row.dissolved_by_id else None
+        items.append({
+            "id": row.id,
+            "user_a_id": row.user_a_id,
+            "user_a_email": user_a.email if user_a else "",
+            "user_b_id": row.user_b_id,
+            "user_b_email": user_b.email if user_b else "",
+            "match_type": row.match_type,
+            "source": row.source,
+            "status": row.status,
+            "dissolved_by_id": row.dissolved_by_id,
+            "dissolved_by_email": dissolved.email if dissolved else "",
+            "greeted_at": row.greeted_at.isoformat() if row.greeted_at else None,
+            "last_interaction_at": row.last_interaction_at.isoformat() if row.last_interaction_at else None,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+        })
+    return {"items": items, "count": len(items)}
 
 
 @router.post("/users/{user_id}/analyze")
@@ -797,6 +856,9 @@ def _auth_settings_read(settings: AuthSettings) -> AuthSettingsRead:
         google_trial_enabled=settings.google_trial_enabled,
         google_trial_days=settings.google_trial_days,
         google_trial_membership_level=settings.google_trial_membership_level,
+        registration_trial_enabled=settings.registration_trial_enabled,
+        registration_trial_days=settings.registration_trial_days,
+        registration_trial_membership_level=settings.registration_trial_membership_level,
         google_email_domains=settings.google_email_domains or ["gmail.com", "googlemail.com"],
         demo_mode_enabled=settings.demo_mode_enabled,
         demo_user_email=settings.demo_user_email,
@@ -830,6 +892,9 @@ def update_auth_settings(
     settings.google_trial_enabled = payload.google_trial_enabled
     settings.google_trial_days = payload.google_trial_days
     settings.google_trial_membership_level = payload.google_trial_membership_level
+    settings.registration_trial_enabled = payload.registration_trial_enabled
+    settings.registration_trial_days = payload.registration_trial_days
+    settings.registration_trial_membership_level = payload.registration_trial_membership_level
     settings.google_email_domains = payload.google_email_domains
     settings.demo_mode_enabled = payload.demo_mode_enabled
     settings.demo_user_email = payload.demo_user_email.lower().strip()

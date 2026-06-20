@@ -5,11 +5,13 @@ Player investigates a crime scene, interrogates suspects, collects clues, and su
 """
 from __future__ import annotations
 
+import json
 import logging
+import re
 
 from sqlalchemy.orm import Session
 
-from app.models import GameSession
+from app.models import GameSession, new_id
 from app.services.game_engine import GameTypeEngine, register_engine
 from app.services.llm import get_llm_provider_for_task
 from app.services.runtime_config import resolve_default_llm_provider
@@ -224,28 +226,19 @@ class DetectiveEngine(GameTypeEngine):
             "hud": {},
         }
 
-    async def _interrogate(
-        self, db: Session, session: GameSession, state: dict,
-        suspect_id: str, question: str,
-    ) -> dict:
-        suspect = None
-        for s in state.get("suspects", []):
-            if s["id"] == suspect_id:
-                suspect = s
-                break
-        if not suspect:
-            raise ValueError("Suspect not found")
+    def _find_suspect(self, state: dict, suspect_id: str) -> dict | None:
+        for suspect in state.get("suspects", []):
+            if suspect["id"] == suspect_id:
+                return suspect
+        return None
 
-        state["interrogations_used"] = state.get("interrogations_used", 0) + 1
-        suspect["interrogated"] = True
-        session.phase = "interrogation"
-
+    def _interrogate_prompts(
+        self, db: Session, session: GameSession, state: dict, suspect: dict, question: str
+    ) -> tuple[str, str]:
         discovered = [c for c in state.get("clues", []) if c.get("discovered")]
         clue_text = "\n".join(f"- {c['title']}: {c['desc']}" for c in discovered)
-
-        native = session.native_language
-
         from app.services.game_prompts import get_game_prompt
+
         default_system = (
             f"你在扮演侦探案件中的嫌疑人 {suspect['name']}。\n\n"
             f"你的身份：{suspect['role']}\n"
@@ -254,8 +247,8 @@ class DetectiveEngine(GameTypeEngine):
             f"你的秘密：{suspect['secret']}\n"
             f"你是否是凶手：{'是' if suspect['is_culprit'] else '否'}\n\n"
             "规则：\n"
-            f"- 如果你是凶手：巧妙回避关键问题，偶尔说谎但要自圆其说\n"
-            f"- 如果你不是凶手：诚实回答，但可能对自己的秘密有所隐瞒\n"
+            "- 如果你是凶手：巧妙回避关键问题，偶尔说谎但要自圆其说\n"
+            "- 如果你不是凶手：诚实回答，但可能对自己的秘密有所隐瞒\n"
             "- 回答用1-3句英文，体现你的性格\n"
             "- 附中文翻译\n\n"
             "返回JSON：\n"
@@ -269,18 +262,35 @@ class DetectiveEngine(GameTypeEngine):
             f"已知线索：\n{clue_text if clue_text else '暂无'}\n"
             f"之前的陈述：{suspect.get('statements', [])[-3:]}"
         )
+        return system, user_msg
 
-        try:
-            provider = _provider_for("game_ai_answer", db)
-            data = await provider.complete_json(system, user_msg, temperature=0.8, max_tokens=600)
-        except Exception as exc:
-            logger.warning("interrogation failed: %s", exc)
-            data = {
-                "answer": "I... I don't know what you're talking about.",
-                "answer_native": "我...我不知道你在说什么。",
-                "emotion": "nervous",
-            }
+    def _fallback_interrogate_data(self) -> dict:
+        return {
+            "answer": "I... I don't know what you're talking about.",
+            "answer_native": "我……我不知道你在说什么。",
+            "emotion": "nervous",
+        }
 
+    def _normalize_interrogate_data(self, data: dict | None) -> dict:
+        payload = dict(data or self._fallback_interrogate_data())
+        answer = (payload.get("answer") or "").strip()
+        if not answer:
+            payload["answer"] = self._fallback_interrogate_data()["answer"]
+        if not (payload.get("answer_native") or "").strip():
+            payload["answer_native"] = self._fallback_interrogate_data()["answer_native"]
+        payload.setdefault("emotion", "calm")
+        return payload
+
+    def _finalize_interrogate(
+        self,
+        session: GameSession,
+        state: dict,
+        suspect: dict,
+        question: str,
+        data: dict,
+        *,
+        turn_id: str | None = None,
+    ) -> tuple[list[dict], dict]:
         answer_text = (data.get("answer") or "").strip()
         suspect.setdefault("statements", []).append({
             "question": question,
@@ -292,7 +302,13 @@ class DetectiveEngine(GameTypeEngine):
             suspect["trust"] = max(0, min(100, suspect.get("trust", 50) + trust_delta))
 
         feed = [
-            {"type": "user_question", "text": question, "target": suspect["name"]},
+            {
+                "type": "user_question",
+                "text": question,
+                "target": suspect["name"],
+                "suspect_id": suspect["id"],
+                **({"turn_id": turn_id} if turn_id else {}),
+            },
             {
                 "type": "suspect_answer",
                 "suspect_id": suspect["id"],
@@ -300,10 +316,9 @@ class DetectiveEngine(GameTypeEngine):
                 "text": answer_text,
                 "text_native": (data.get("answer_native") or "").strip(),
                 "emotion": data.get("emotion", "calm"),
+                **({"turn_id": turn_id} if turn_id else {}),
             },
         ]
-
-        hud = await self._generate_hud(db, session, question, answer_text)
 
         remaining = state["case"].get("max_interrogations", 5) - state["interrogations_used"]
         if remaining <= 0:
@@ -316,11 +331,162 @@ class DetectiveEngine(GameTypeEngine):
         else:
             session.phase = "investigating"
 
+        return feed, data
+
+    async def _interrogate(
+        self, db: Session, session: GameSession, state: dict,
+        suspect_id: str, question: str,
+    ) -> dict:
+        suspect = self._find_suspect(state, suspect_id)
+        if not suspect:
+            raise ValueError("Suspect not found")
+
+        state["interrogations_used"] = state.get("interrogations_used", 0) + 1
+        suspect["interrogated"] = True
+        session.phase = "interrogation"
+
+        system, user_msg = self._interrogate_prompts(db, session, state, suspect, question)
+
+        try:
+            provider = _provider_for("game_ai_answer", db)
+            data = await provider.complete_json(system, user_msg, temperature=0.8, max_tokens=600)
+        except Exception as exc:
+            logger.warning("interrogation failed: %s", exc)
+            data = self._fallback_interrogate_data()
+
+        data = self._normalize_interrogate_data(data)
+        feed, data = self._finalize_interrogate(session, state, suspect, question, data)
+        answer_text = (data.get("answer") or "").strip()
+        hud = await self._generate_hud(db, session, question, answer_text)
+
         return {
             "state": state,
             "feed_items": feed,
             "ai_response": data,
             "hud": hud,
+        }
+
+    async def handle_turn_stream(
+        self,
+        db: Session,
+        session: GameSession,
+        action_type: str,
+        user_input: str,
+        extra: dict,
+    ):
+        """Stream suspect replies token-by-token for interrogation turns."""
+        if action_type not in ("interrogate", "message"):
+            result = await self.handle_turn(db, session, action_type, user_input, extra or {})
+            yield {"type": "complete", "data": result}
+            return
+
+        state = dict(session.state)
+        suspect_id = (extra or {}).get("suspect_id", "")
+        turn_id = (extra or {}).get("turn_id") or new_id()
+        question = (user_input or "").strip()
+        if not question:
+            raise ValueError("Question is required")
+
+        suspect = self._find_suspect(state, suspect_id)
+        if not suspect:
+            raise ValueError("Suspect not found")
+
+        state["interrogations_used"] = state.get("interrogations_used", 0) + 1
+        suspect["interrogated"] = True
+        session.phase = "interrogation"
+
+        yield {
+            "type": "partial_feed",
+            "data": {
+                "feed_items": [
+                    {
+                        "type": "user_question",
+                        "text": question,
+                        "target": suspect["name"],
+                        "suspect_id": suspect["id"],
+                        "turn_id": turn_id,
+                    },
+                    {
+                        "type": "suspect_answer",
+                        "suspect_id": suspect["id"],
+                        "suspect_name": suspect["name"],
+                        "text": "",
+                        "turn_id": turn_id,
+                        "_thinking": True,
+                    },
+                ]
+            },
+        }
+
+        system, user_msg = self._interrogate_prompts(db, session, state, suspect, question)
+        parsed: dict | None = None
+        last_text = ""
+
+        try:
+            provider = _provider_for("game_ai_answer", db)
+            stream = provider.complete_json_stream(
+                system, user_msg, temperature=0.8, max_tokens=600
+            )
+            answer_re = re.compile(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)', re.S)
+
+            def _extract_answer(buf: str) -> str:
+                match = answer_re.search(buf)
+                if not match:
+                    return ""
+                raw = match.group(1)
+                try:
+                    return json.loads('"' + raw + '"')
+                except Exception:  # noqa: BLE001
+                    return raw.replace("\\n", "\n").replace('\\"', '"')
+
+            buffer = ""
+            async for chunk in stream:
+                if chunk == "___STREAM_JSON_DONE___":
+                    continue
+                buffer += chunk
+                answer_text = _extract_answer(buffer)
+                if answer_text and len(answer_text) > len(last_text):
+                    delta = answer_text[len(last_text):]
+                    if delta:
+                        yield {
+                            "type": "partial_feed",
+                            "data": {
+                                "feed_items": [{
+                                    "type": "suspect_answer",
+                                    "suspect_id": suspect["id"],
+                                    "suspect_name": suspect["name"],
+                                    "text": delta,
+                                    "turn_id": turn_id,
+                                }]
+                            },
+                        }
+                    last_text = answer_text
+
+            parsed = getattr(provider, "_stream_json_result", None)
+            if not parsed:
+                try:
+                    parsed = json.loads(buffer)
+                except Exception:  # noqa: BLE001
+                    parsed = None
+        except Exception as exc:
+            logger.warning("interrogation stream failed: %s", exc)
+            parsed = None
+
+        data = self._normalize_interrogate_data(parsed)
+        feed, data = self._finalize_interrogate(
+            session, state, suspect, question, data, turn_id=turn_id
+        )
+        answer_text = (data.get("answer") or "").strip()
+        hud = await self._generate_hud(db, session, question, answer_text)
+
+        yield {
+            "type": "complete",
+            "data": {
+                "state": state,
+                "feed_items": feed,
+                "ai_response": data,
+                "hud": hud,
+            },
         }
 
     async def _submit_deduction(

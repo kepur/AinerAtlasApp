@@ -796,6 +796,27 @@ class MatchRequest(Base):
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class UserFriendship(Base):
+    """Persistent friend relationship — created when matched users greet in chat."""
+
+    __tablename__ = "user_friendships"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_a_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    user_b_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    initiated_by_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    source: Mapped[str] = mapped_column(String(40), default="match_chat")
+    match_type: Mapped[str] = mapped_column(String(40), default="language_partner")
+    status: Mapped[str] = mapped_column(String(20), default="active")
+    dissolved_by_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    greeted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_interaction_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
 class UserPrivacySettings(Base):
     __tablename__ = "user_privacy_settings"
 
@@ -865,6 +886,9 @@ class AuthSettings(Base):
     google_trial_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     google_trial_days: Mapped[int] = mapped_column(Integer, default=30)
     google_trial_membership_level: Mapped[str] = mapped_column(String(40), default="vip")
+    registration_trial_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    registration_trial_days: Mapped[int] = mapped_column(Integer, default=30)
+    registration_trial_membership_level: Mapped[str] = mapped_column(String(40), default="vip")
     google_email_domains: Mapped[list[str]] = mapped_column(
         JSON, default=lambda: ["gmail.com", "googlemail.com"]
     )

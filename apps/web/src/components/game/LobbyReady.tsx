@@ -12,9 +12,26 @@ type Player = {
 type LobbyReadyProps = {
   players: Player[];
   onStartDealing: () => void;
+  startDisabled?: boolean;
+  startLabel?: string;
+  hideStart?: boolean;
+  inviteFriends?: { id: string; username: string; match_type?: string }[];
+  onInviteFriend?: (friendUserId: string) => void;
+  inviteBusyId?: string | null;
+  maxPlayers?: number;
 };
 
-export default function LobbyReady({ players, onStartDealing }: LobbyReadyProps) {
+export default function LobbyReady({
+  players,
+  onStartDealing,
+  startDisabled,
+  startLabel,
+  hideStart,
+  inviteFriends = [],
+  onInviteFriend,
+  inviteBusyId,
+  maxPlayers = 6,
+}: LobbyReadyProps) {
   return (
     <div className="flex flex-col gap-6 px-4 py-6 max-w-md mx-auto w-full relative z-10 pb-36">
       {/* Game Settings Card */}
@@ -53,7 +70,7 @@ export default function LobbyReady({ players, onStartDealing }: LobbyReadyProps)
       {/* Player Roster */}
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-white px-1">
-          Lobby Roster <span className="text-white/50 text-sm font-normal ml-2">({players.length}/6)</span>
+          Lobby Roster <span className="text-white/50 text-sm font-normal ml-2">({players.length}/{maxPlayers})</span>
         </h2>
         
         <div className="flex flex-col gap-3">
@@ -94,20 +111,41 @@ export default function LobbyReady({ players, onStartDealing }: LobbyReadyProps)
               )}
             </div>
           ))}
+
+          {onInviteFriend && players.length < maxPlayers && inviteFriends.length > 0 && (
+            <div className="game-glass-card p-3 border border-dashed border-[#7c5cff]/40">
+              <p className="text-[11px] text-white/60 mb-2 uppercase tracking-wider">邀请好友</p>
+              <div className="flex flex-wrap gap-2">
+                {inviteFriends.slice(0, 8).map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    disabled={inviteBusyId === f.id}
+                    onClick={() => onInviteFriend(f.id)}
+                    className="game-btn-secondary px-3 py-1.5 rounded-full text-[12px] font-semibold active:scale-95 disabled:opacity-50"
+                  >
+                    {inviteBusyId === f.id ? "邀请中…" : `+ ${f.username}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Bottom Action Area */}
+      {!hideStart && (
       <div className="fixed bottom-0 left-0 w-full px-4 pt-8 pb-[max(env(safe-area-inset-bottom,16px),16px)] bg-gradient-to-t from-[#0b0a1f] via-[#0b0a1f]/95 to-transparent z-40">
         <div className="max-w-md mx-auto">
           <button 
             onClick={onStartDealing}
-            className="w-full h-14 bg-[#7c5cff] text-white rounded-full font-bold text-lg shadow-[0_0_24px_rgba(124,92,255,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            disabled={startDisabled}
+            className="game-btn-primary w-full h-14 rounded-full text-lg shadow-[0_0_24px_rgba(124,92,255,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:shadow-none"
           >
-            开始发牌
+            {startLabel || "开始发牌"}
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

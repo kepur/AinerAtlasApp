@@ -143,6 +143,7 @@ git commit -m "chore: refresh deploy snapshot"
 | `ENCRYPTION_KEY` | Fernet；与 dump 中加密 Key 对应；dev 可 `PLAINTEXT_API_KEYS=true` |
 | `DASHSCOPE_*` | 阿里云百炼；Admin 已配置时可留空作 fallback |
 | `CORS_ORIGINS` | 含 Web/Admin 源 |
+| `CORS_ALLOW_LAN` | 开发默认 `true`：自动放行 `10.x` / `192.168.x` / `172.16–31.x` 的 http/https 源（手机同 Wi‑Fi） |
 
 完整列表见 `.env.example`。
 
@@ -318,3 +319,40 @@ docker compose up -d --build
 
 【详细文档】必读仓库根目录 DEPLOY.md；数据包说明见 deploy-snapshot/README.md。
 ```
+
+---
+
+## 14. 局域网访问（手机 / 同 Wi‑Fi 设备）
+
+开发栈默认已绑定 `0.0.0.0`，同网段设备可直接访问宿主机 IP，无需改 `localhost`。
+
+### 查本机 IP（macOS）
+
+```bash
+ipconfig getifaddr en0   # Wi‑Fi，常见 10.x 或 192.168.x
+```
+
+### 访问地址
+
+| 服务 | 地址示例 |
+|------|----------|
+| Web H5 | `https://<本机IP>:7075` |
+| Admin | `http://<本机IP>:7072` |
+| API | `http://<本机IP>:7070/health` |
+
+Web 使用 Vite 自签名 HTTPS，手机浏览器首次打开需点「继续访问」/ 信任证书。
+
+### 已做的配置
+
+- `docker-compose.yml` 端口映射为 `0.0.0.0:707x`
+- `apps/web/vite.config.ts`：`host: "0.0.0.0"`、`allowedHosts: true`
+- API 开发环境 `CORS_ALLOW_LAN=true`：私有网段 Origin 自动放行（见 `apps/api/app/core/config.py`）
+
+### 常见问题
+
+| 现象 | 处理 |
+|------|------|
+| 手机打不开页面 | 确认与电脑同一 Wi‑Fi；macOS 系统设置 → 网络 → 防火墙允许 Docker / Node |
+| 能开页但登录/API 失败 | 确认 API 容器已重启；`curl -I -X OPTIONS http://<IP>:7070/health -H "Origin: https://<IP>:7075"` 应含 `access-control-allow-origin` |
+| 语音/麦克风不可用 | 浏览器要求 HTTPS；用 `https://<IP>:7075` 而非 http |
+| 生产部署 | 关闭 `CORS_ALLOW_LAN`，在 `CORS_ORIGINS` 写明真实域名 |

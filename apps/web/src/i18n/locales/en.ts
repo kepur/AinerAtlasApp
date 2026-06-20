@@ -41,6 +41,7 @@ export default {
     hasAccount: "Already have an account?",
     goLogin: "Sign in",
     devCode: "Dev verification code",
+    trialBadge: "{{days}}-day {{level}} membership on signup",
     googleTrialBadge: "Google email · {{days}}-day {{level}} trial"
   },
   home: {
@@ -328,8 +329,19 @@ export default {
   },
   forgotPassword: {
     title: "Forgot Password",
+    subtitleEmail: "Enter your email to receive a verification code",
+    subtitleReset: "Enter the code and set a new password",
     email: "Email",
     emailPlaceholder: "Enter your registered email",
+    code: "Verification code",
+    codePlaceholder: "6-digit code",
+    sendCode: "Send verification code",
+    sendingCode: "Sending...",
+    resendCode: "Resend code",
+    changeEmail: "Use a different email",
+    sendCodeFailed: "Failed to send verification code",
+    codeSent: "Verification code sent. Check your inbox.",
+    devCode: "Dev verification code",
     submit: "Send reset link",
     loading: "Sending...",
     success: "Reset email sent. Please check your inbox.",
@@ -343,6 +355,7 @@ export default {
     submit: "Reset Password",
     loading: "Resetting...",
     success: "Password reset successfully. Redirecting to login.",
+    failed: "Reset failed. Check your verification code.",
     mismatch: "Passwords do not match",
     invalidToken: "Invalid reset link"
   }

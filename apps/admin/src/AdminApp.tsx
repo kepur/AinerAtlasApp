@@ -277,6 +277,14 @@ type UserDetail = AdminUserRead & {
   } | null;
   ai_memory_preview?: string[];
   stats: Record<string, number>;
+  match_quota?: {
+    membership_level: string;
+    daily_match_cards: number;
+    match_batch_size: number;
+    cards_used: number;
+    cards_remaining: number;
+    unlimited: boolean;
+  } | null;
 };
 
 type ProfileFormState = {
@@ -409,6 +417,9 @@ type AuthSettings = {
   google_trial_enabled: boolean;
   google_trial_days: number;
   google_trial_membership_level: string;
+  registration_trial_enabled: boolean;
+  registration_trial_days: number;
+  registration_trial_membership_level: string;
   google_email_domains: string[];
   demo_mode_enabled: boolean;
   demo_user_email: string;
@@ -555,6 +566,9 @@ function AdminApp() {
     google_trial_enabled: true,
     google_trial_days: 30,
     google_trial_membership_level: "vip",
+    registration_trial_enabled: true,
+    registration_trial_days: 30,
+    registration_trial_membership_level: "vip",
     google_email_domains: "gmail.com,googlemail.com",
     demo_mode_enabled: true,
     demo_user_email: "demo@ainerspeak.com",
@@ -1089,6 +1103,9 @@ function AdminApp() {
           google_trial_enabled: settings.google_trial_enabled,
           google_trial_days: settings.google_trial_days,
           google_trial_membership_level: settings.google_trial_membership_level,
+          registration_trial_enabled: settings.registration_trial_enabled,
+          registration_trial_days: settings.registration_trial_days,
+          registration_trial_membership_level: settings.registration_trial_membership_level,
           google_email_domains: settings.google_email_domains.join(","),
           demo_mode_enabled: settings.demo_mode_enabled,
           demo_user_email: settings.demo_user_email,
@@ -1513,6 +1530,18 @@ function AdminApp() {
       setStatus("语音教练画像已更新。");
     } catch (error) {
       setStatus(`语音教练分析失败：${errorMessage(error)}`);
+    }
+  }
+
+  async function resetUserMatchQuota(userId: string) {
+    if (!token) return;
+    try {
+      setStatus("正在重置匹配卡额度…");
+      await apiPost(`/api/admin/users/${userId}/reset-match-quota`, token, {});
+      await loadUserDetail(userId);
+      setStatus("今日匹配卡额度已重置。");
+    } catch (error) {
+      setStatus(`重置失败：${errorMessage(error)}`);
     }
   }
 
@@ -2155,6 +2184,23 @@ function AdminApp() {
                           标签 {(userDetail.latest_analysis.match_tags ?? []).join(" · ") || "—"} ·
                           {new Date(userDetail.latest_analysis.created_at).toLocaleString("zh-CN")}
                         </p>
+                      </article>
+                    )}
+                    {userDetail?.match_quota && (
+                      <article className="module-card wide" style={{ marginTop: 16 }}>
+                        <strong>今日匹配卡额度</strong>
+                        <p style={{ margin: "8px 0", fontSize: 13, opacity: 0.85 }}>
+                          {userDetail.match_quota.unlimited
+                            ? "无限"
+                            : `已用 ${userDetail.match_quota.cards_used} / ${userDetail.match_quota.daily_match_cards} · 剩余 ${userDetail.match_quota.cards_remaining}`}
+                        </p>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => void resetUserMatchQuota(selectedUserId!)}
+                        >
+                          重置今日匹配卡
+                        </button>
                       </article>
                     )}
                     <div className="prompt-edit-actions" style={{ marginTop: 16 }}>
@@ -3555,7 +3601,7 @@ function AdminApp() {
             <div className="panel-header" style={{ marginTop: 24 }}>
               <div>
                 <span>Auth & SMTP</span>
-                <h2>注册验证与 Google 试用</h2>
+                <h2>注册验证与新用户会员赠送</h2>
               </div>
               <div className="mini-actions">
                 <button onClick={() => void testSmtp()}>测试 SMTP</button>
@@ -3571,16 +3617,70 @@ function AdminApp() {
                 <label>SMTP Password<input type="password" value={authForm.smtp_password} placeholder="留空则不修改" onChange={(e) => setAuthForm({ ...authForm, smtp_password: e.target.value })} /></label>
                 <label>From Email<input value={authForm.smtp_from_email} onChange={(e) => setAuthForm({ ...authForm, smtp_from_email: e.target.value })} /></label>
                 <label>验证码有效期(秒)<input type="number" value={authForm.verification_code_ttl_seconds} onChange={(e) => setAuthForm({ ...authForm, verification_code_ttl_seconds: Number(e.target.value) })} /></label>
-                <label>Google 试用天数<input type="number" value={authForm.google_trial_days} onChange={(e) => setAuthForm({ ...authForm, google_trial_days: Number(e.target.value) })} /></label>
+
+                <label className="wide toggle-row">
+                  <span>启用新用户注册赠送会员（所有邮箱）</span>
+                  <input
+                    type="checkbox"
+                    checked={authForm.registration_trial_enabled}
+                    onChange={(e) => setAuthForm({ ...authForm, registration_trial_enabled: e.target.checked })}
+                  />
+                </label>
+                <label>
+                  赠送天数
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={authForm.registration_trial_days}
+                    onChange={(e) => setAuthForm({ ...authForm, registration_trial_days: Number(e.target.value) })}
+                  />
+                </label>
+                <label>
+                  赠送会员等级
+                  <select
+                    value={authForm.registration_trial_membership_level}
+                    onChange={(e) => setAuthForm({ ...authForm, registration_trial_membership_level: e.target.value })}
+                  >
+                    <option value="vip">VIP</option>
+                    <option value="pro">Pro</option>
+                  </select>
+                </label>
+                <div className="wide mini-actions" style={{ marginTop: -4 }}>
+                  <span style={{ opacity: 0.75, fontSize: 12 }}>快捷天数：</span>
+                  {[3, 5, 7, 30].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      className={authForm.registration_trial_days === days ? "active" : ""}
+                      onClick={() => setAuthForm({ ...authForm, registration_trial_days: days, registration_trial_enabled: true })}
+                    >
+                      {days} 天
+                    </button>
+                  ))}
+                </div>
+
+                <label>Google 额外试用天数<input type="number" value={authForm.google_trial_days} onChange={(e) => setAuthForm({ ...authForm, google_trial_days: Number(e.target.value) })} /></label>
                 <label>Google 试用等级<input value={authForm.google_trial_membership_level} onChange={(e) => setAuthForm({ ...authForm, google_trial_membership_level: e.target.value })} /></label>
                 <label className="wide">Google 邮箱域名（逗号分隔）<input value={authForm.google_email_domains} onChange={(e) => setAuthForm({ ...authForm, google_email_domains: e.target.value })} /></label>
                 <label className="toggle-row"><span>启用邮箱验证码</span><input type="checkbox" checked={authForm.email_verification_enabled} onChange={(e) => setAuthForm({ ...authForm, email_verification_enabled: e.target.checked })} /></label>
-                <label className="toggle-row"><span>启用 Google 30 天试用</span><input type="checkbox" checked={authForm.google_trial_enabled} onChange={(e) => setAuthForm({ ...authForm, google_trial_enabled: e.target.checked })} /></label>
+                <label className="toggle-row"><span>Google 邮箱额外试用（天数更长时覆盖默认）</span><input type="checkbox" checked={authForm.google_trial_enabled} onChange={(e) => setAuthForm({ ...authForm, google_trial_enabled: e.target.checked })} /></label>
                 <label className="toggle-row"><span>SMTP STARTTLS（587 开；465 请关，走 SSL）</span><input type="checkbox" checked={authForm.smtp_use_tls} onChange={(e) => setAuthForm({ ...authForm, smtp_use_tls: e.target.checked })} /></label>
                 <article className="module-card wide">
                   <strong>当前状态</strong>
                   <span>SMTP 已配置：{authSettings.smtp_configured ? "是" : "否（开发模式会在 API 日志返回 dev_code）"}</span>
-                  <span>Google 邮箱注册：{authSettings.google_trial_enabled ? `${authSettings.google_trial_days} 天 ${authSettings.google_trial_membership_level.toUpperCase()} 试用后自动停用` : "已关闭"}</span>
+                  <span>
+                    新用户注册赠送：
+                    {authSettings.registration_trial_enabled
+                      ? `${authSettings.registration_trial_days} 天 ${authSettings.registration_trial_membership_level.toUpperCase()}，到期后恢复免费版`
+                      : "已关闭"}
+                  </span>
+                  <span>
+                    Google 额外试用：
+                    {authSettings.google_trial_enabled
+                      ? `${authSettings.google_trial_days} 天 ${authSettings.google_trial_membership_level.toUpperCase()}（仅当长于默认赠送时生效）`
+                      : "已关闭"}
+                  </span>
                   <span>H5 演示模式：{authSettings.demo_mode_enabled ? "已开启" : "已关闭"}</span>
                 </article>
               </div>

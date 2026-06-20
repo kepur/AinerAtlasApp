@@ -22,6 +22,7 @@ from app.schemas import (
     RefreshTokenRequest,
     RegistrationPreview,
     ResetPasswordRequest,
+    ResetPasswordWithCodeRequest,
     SendVerificationCodeRequest,
     SendVerificationCodeResponse,
     UserCreate,
@@ -30,7 +31,12 @@ from app.schemas import (
 )
 from app.services.auth_settings import get_auth_settings
 from app.services.demo_user import ensure_demo_user, resolve_demo_credentials, sync_demo_user_from_settings
-from app.services.email_service import send_password_reset_email, send_verification_email, smtp_configured
+from app.services.email_service import (
+    send_password_reset_code_email,
+    send_password_reset_email,
+    send_verification_email,
+    smtp_configured,
+)
 from app.services.trial import apply_registration_benefits, expire_user_if_needed, registration_preview
 from app.services.verification_code import generate_verification_code, get_code_store
 
@@ -80,7 +86,7 @@ def send_verification_code(payload: SendVerificationCodeRequest, db: DBSession) 
 
     code = generate_verification_code()
     ttl = settings.verification_code_ttl_seconds
-    store = get_code_store()
+    store = get_code_store("register")
     store.save(email, code, ttl)
 
     send_verification_email(
@@ -110,7 +116,7 @@ def register(payload: UserCreate, db: DBSession, request: Request) -> AuthToken:
     if settings.email_verification_enabled:
         if not payload.verification_code.strip():
             raise HTTPException(status_code=400, detail="Verification code is required")
-        store = get_code_store()
+        store = get_code_store("register")
         if not store.verify(email, payload.verification_code.strip()):
             raise HTTPException(status_code=400, detail="Invalid or expired verification code")
         store.delete(email)
@@ -210,6 +216,54 @@ def refresh_token(payload: RefreshTokenRequest, db: DBSession) -> AuthToken:
     access_token = create_access_token(user.id, {"role": user.role})
     new_refresh_token = create_refresh_token(user.id)
     return AuthToken(access_token=access_token, refresh_token=new_refresh_token, user=UserRead.model_validate(user))
+
+
+@router.post("/send-password-reset-code", response_model=SendVerificationCodeResponse)
+def send_password_reset_code(payload: SendVerificationCodeRequest, db: DBSession) -> SendVerificationCodeResponse:
+    """Send a 6-digit code to a registered email for password reset."""
+    email = str(payload.email).lower().strip()
+    settings = get_auth_settings(db)
+    ttl = settings.verification_code_ttl_seconds
+
+    user = db.scalar(select(User).where(User.email == email))
+    if user and user.status == "active":
+        code = generate_verification_code()
+        store = get_code_store("reset")
+        store.save(email, code, ttl)
+        send_password_reset_code_email(
+            db,
+            to_email=email,
+            code=code,
+            ttl_minutes=max(1, ttl // 60),
+        )
+        dev_code = code if not smtp_configured(settings) else None
+    else:
+        dev_code = None
+
+    return SendVerificationCodeResponse(
+        message="如果该邮箱已注册，验证码已发送，请查收",
+        email=email,
+        expires_in_seconds=ttl,
+        dev_code=dev_code,
+    )
+
+
+@router.post("/reset-password-with-code", response_model=APIMessage)
+def reset_password_with_code(payload: ResetPasswordWithCodeRequest, db: DBSession) -> APIMessage:
+    email = str(payload.email).lower().strip()
+    store = get_code_store("reset")
+    if not store.verify(email, payload.verification_code.strip()):
+        raise HTTPException(status_code=400, detail="验证码无效或已过期")
+
+    user = db.scalar(select(User).where(User.email == email))
+    if not user or user.status != "active":
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.password_hash = hash_password(payload.new_password)
+    store.delete(email)
+    db.commit()
+    logger.info("Password reset via code for user {}", user.email)
+    return APIMessage(message="密码已重置，请使用新密码登录")
 
 
 @router.post("/forgot-password", response_model=APIMessage)

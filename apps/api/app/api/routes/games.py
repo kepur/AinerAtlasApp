@@ -596,6 +596,26 @@ def list_sessions(
     return engine.list_sessions(db, current_user.id, status)
 
 
+@router.get("/sessions/resume")
+def resume_session(
+    current_user: CurrentUser,
+    db: DBSession,
+    game_type: str,
+    target_id: str | None = None,
+    template_id: str | None = None,
+) -> dict:
+    found = engine.find_resumable_session(
+        db,
+        current_user.id,
+        game_type,
+        target_id=target_id,
+        template_id=template_id,
+    )
+    if not found:
+        raise HTTPException(status_code=404, detail="No active session to resume")
+    return found
+
+
 @router.get("/sessions/{session_id}")
 def get_session(session_id: str, current_user: CurrentUser, db: DBSession) -> dict:
     try:

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DBSession, QuotaManagerDep
 from app.models import (
     CircleMember,
+    CircleMessage,
     CircleRoom,
     MatchFeedback,
     MatchRecommendation,
@@ -17,6 +18,7 @@ from app.models import (
     utc_now,
 )
 from app.schemas import (
+    CircleMessageRead,
     MatchEnableRequest,
     MatchFeedbackCreate,
     MatchFeedbackRead,
@@ -27,7 +29,14 @@ from app.schemas import (
     MatchRequestRead,
     ValueProfileUpdate,
 )
-from app.services.ai_host import host_intro
+from app.services.friendship_service import (
+    are_friends,
+    friendship_to_friend_item,
+    list_active_friendships,
+    remove_friendship,
+)
+from app.services.circle_hub import circle_hub
+from app.services.membership_access import has_pro_access
 from app.services.matching import (
     compute_match_score,
     compute_profile_completeness,
@@ -299,9 +308,14 @@ async def create_trio_room(
     partner_user_id: str = Body("", embed=True),
     icebreaker: str = Body("", embed=True),
 ) -> dict:
+    if not has_pro_access(current_user):
+        raise HTTPException(status_code=403, detail="发起 AI 三人对话需要 Pro 会员")
+
     partner_id: str = partner_user_id
 
     partner = db.get(User, partner_id) if partner_id else None
+    if partner and not has_pro_access(partner):
+        raise HTTPException(status_code=403, detail="对方也需要 Pro 会员才能一起与 AI 对话")
     partner_name = partner.username if partner else "Partner"
 
     room = CircleRoom(
@@ -310,6 +324,7 @@ async def create_trio_room(
         max_members=3,
         room_type="language_circle",
         allowed_languages=["zh", "en"],
+        summary={"ai_host": True},
     )
     db.add(room)
     db.flush()
@@ -369,6 +384,25 @@ def list_requests(
     return list(db.scalars(stmt.order_by(MatchRequest.created_at.desc())))
 
 
+def _are_accepted_friends(db, user_a: str, user_b: str) -> bool:
+    if are_friends(db, user_a, user_b):
+        return True
+    req = db.scalar(
+        select(MatchRequest).where(
+            MatchRequest.status == "accepted",
+            (
+                ((MatchRequest.from_user_id == user_a) & (MatchRequest.to_user_id == user_b))
+                | ((MatchRequest.from_user_id == user_b) & (MatchRequest.to_user_id == user_a))
+            ),
+        )
+    )
+    return req is not None
+
+
+def _room_member_user_ids(db, room_id: str) -> list[str]:
+    return list(db.scalars(select(CircleMember.user_id).where(CircleMember.room_id == room_id)))
+
+
 def _dm_room_for(db, user_a: str, user_b: str) -> CircleRoom | None:
     """Find an existing 1:1 DM room shared by both users, if any."""
     a_rooms = set(db.scalars(
@@ -392,9 +426,31 @@ def _dm_room_for(db, user_a: str, user_b: str) -> CircleRoom | None:
 
 @router.get("/friends")
 def list_friends(current_user: CurrentUser, db: DBSession) -> dict:
-    """Accepted match partners, shaped for the Chat 好友 tab. Real data only —
-    the frontend no longer needs a mock fallback."""
+    """Active friendships + matched users who haven't greeted yet."""
     from app.models import CircleMessage
+
+    rows = list_active_friendships(db, current_user.id)
+    items = []
+    seen: set[str] = set()
+    for row in rows:
+        item = friendship_to_friend_item(db, current_user.id, row)
+        if not item:
+            continue
+        uid = item["user_id"]
+        if uid in seen:
+            continue
+        seen.add(uid)
+        rec = db.scalar(
+            select(MatchRecommendation).where(
+                MatchRecommendation.user_id == current_user.id,
+                MatchRecommendation.target_user_id == uid,
+            )
+        )
+        if rec:
+            item["score"] = round(rec.score)
+        item["is_friend"] = True
+        item["pending_greet"] = False
+        items.append(item)
 
     accepted = list(db.scalars(
         select(MatchRequest).where(
@@ -403,18 +459,16 @@ def list_friends(current_user: CurrentUser, db: DBSession) -> dict:
             MatchRequest.status == "accepted",
         ).order_by(MatchRequest.responded_at.desc())
     ))
-
-    items = []
-    seen: set[str] = set()
     for req in accepted:
         other_id = req.to_user_id if req.from_user_id == current_user.id else req.from_user_id
         if other_id in seen:
             continue
-        seen.add(other_id)
+        if are_friends(db, current_user.id, other_id):
+            continue
         other = db.get(User, other_id)
         if not other:
             continue
-        # Last message preview from the shared DM room (if one was opened).
+        seen.add(other_id)
         last_message, last_time = "", ""
         dm = _dm_room_for(db, current_user.id, other_id)
         if dm:
@@ -427,23 +481,33 @@ def list_friends(current_user: CurrentUser, db: DBSession) -> dict:
             if last:
                 last_message = last.content[:60]
                 last_time = last.created_at.strftime("%H:%M")
-        rec = db.scalar(
-            select(MatchRecommendation).where(
-                MatchRecommendation.user_id == current_user.id,
-                MatchRecommendation.target_user_id == other_id,
-            )
+        settings = db.scalar(
+            select(UserMatchSettings).where(UserMatchSettings.user_id == current_user.id)
         )
+        match_type = "soulmate" if settings and settings.match_mode == "soulmate" else "language_partner"
         items.append({
             "id": other_id,
             "user_id": other_id,
             "username": other.username,
-            "match_type": "language_partner",
+            "match_type": match_type,
             "last_message": last_message,
             "last_time": last_time,
             "unread": 0,
-            "score": round(rec.score) if rec else 0,
+            "score": 0,
+            "is_friend": False,
+            "pending_greet": True,
         })
     return {"items": items}
+
+
+@router.delete("/friends/{friend_user_id}")
+def delete_friend(friend_user_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+    """Remove friend relationship (either user may dissolve)."""
+    if not friend_user_id or friend_user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Invalid friend_user_id")
+    if not remove_friendship(db, current_user.id, friend_user_id):
+        raise HTTPException(status_code=404, detail="Friendship not found")
+    return {"ok": True, "friend_user_id": friend_user_id}
 
 
 @router.post("/dm")
@@ -461,7 +525,14 @@ def open_dm(
 
     existing = _dm_room_for(db, current_user.id, friend_user_id)
     if existing:
-        return {"id": existing.id, "reused": True}
+        return {
+            "id": existing.id,
+            "reused": True,
+            "ai_host": bool((existing.summary or {}).get("ai_host")),
+        }
+
+    if not _are_accepted_friends(db, current_user.id, friend_user_id):
+        raise HTTPException(status_code=403, detail="需要先成为好友才能私聊")
 
     room = CircleRoom(
         creator_id=current_user.id,
@@ -469,13 +540,74 @@ def open_dm(
         max_members=2,
         room_type="dm",
         allowed_languages=["zh", "en"],
+        summary={"ai_host": False},
     )
     db.add(room)
     db.flush()
     db.add(CircleMember(room_id=room.id, user_id=current_user.id, role="host"))
     db.add(CircleMember(room_id=room.id, user_id=friend_user_id, role="member"))
     db.commit()
-    return {"id": room.id, "reused": False}
+    return {"id": room.id, "reused": False, "ai_host": False}
+
+
+@router.post("/rooms/{room_id}/enable-ai")
+async def enable_room_ai(
+    room_id: str,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> dict:
+    """Invite AI host into a friend DM — both members must be Pro."""
+    room = db.get(CircleRoom, room_id)
+    if not room or room.status != "active":
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    member = db.scalar(
+        select(CircleMember).where(
+            CircleMember.room_id == room_id,
+            CircleMember.user_id == current_user.id,
+        )
+    )
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a room member")
+
+    member_ids = _room_member_user_ids(db, room_id)
+    if len(member_ids) < 2:
+        raise HTTPException(status_code=400, detail="需要至少两位好友才能邀请 AI")
+
+    for uid in member_ids:
+        user = db.get(User, uid)
+        if not has_pro_access(user):
+            raise HTTPException(
+                status_code=403,
+                detail="双方都需要 Pro 会员才能邀请 AI 主持",
+            )
+
+    if (room.summary or {}).get("ai_host"):
+        return {"room_id": room_id, "ai_host": True, "already_enabled": True}
+
+    room.summary = {**(room.summary or {}), "ai_host": True}
+    intro = CircleMessage(
+        room_id=room.id,
+        user_id=None,
+        role="assistant",
+        content="AI 主持人已加入！你们可以继续聊天，我会适时提问并给出语言练习反馈。",
+        content_language="zh",
+        translated_content="",
+        analysis={"type": "host"},
+    )
+    db.add(intro)
+    db.commit()
+    db.refresh(intro)
+
+    await circle_hub.broadcast(
+        room_id,
+        {
+            "type": "message",
+            "message": CircleMessageRead.model_validate(intro).model_dump(mode="json"),
+        },
+    )
+    await circle_hub.broadcast(room_id, {"type": "room_updated", "ai_host": True})
+    return {"room_id": room_id, "ai_host": True}
 
 
 @router.post("/requests/{request_id}/accept", response_model=MatchRequestRead)
@@ -489,21 +621,6 @@ async def accept_request(
         raise HTTPException(status_code=404, detail="Request not found")
     req.status = "accepted"
     req.responded_at = utc_now()
-
-    from_user = db.get(User, req.from_user_id)
-    to_user = db.get(User, req.to_user_id)
-    
-    user_a_analysis = latest_analysis_details(db, req.from_user_id)
-    user_b_analysis = latest_analysis_details(db, req.to_user_id)
-
-    intro = await host_intro(
-        from_user.username if from_user else "User A",
-        to_user.username if to_user else "User B",
-        [],
-        user_a_analysis=user_a_analysis,
-        user_b_analysis=user_b_analysis,
-        db=db,
-    )
     db.commit()
     db.refresh(req)
     return req

@@ -374,7 +374,7 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
                     self._listening = True
                 b64 = base64.b64encode(pcm).decode("ascii")
                 bridge.append_audio_b64(b64)
-                return await self._collect_bridge_events(timeout=0.05)
+                return await self._collect_bridge_events(timeout=0.0)
             return []
         if msg_type == "turn_complete":
             bridge = self._ensure_bridge()

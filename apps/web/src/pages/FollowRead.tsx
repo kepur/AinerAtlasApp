@@ -1,7 +1,11 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Volume2 } from "lucide-react";
 import { apiRequest } from "../api";
 import { attachSilenceMonitor, type SilenceMonitorHandle } from "../lib/audioSilenceMonitor";
+import { createMediaRecorder, pickRecorderFormat } from "../lib/audioRecorder";
+import { assertMicrophoneAvailable } from "../lib/microphone";
+import { useTts } from "../components/learning";
 
 const FOLLOW_READ_SILENCE_MS = 1200;
 
@@ -24,17 +28,36 @@ const SAMPLE_SENTENCES = [
 
 export default function FollowRead() {
   const navigate = useNavigate();
+  const { speak } = useTts();
   const [sentenceIdx, setSentenceIdx] = useState(0);
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [demoPlaying, setDemoPlaying] = useState(false);
   const [result, setResult] = useState<EvalResult | null>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const silenceRef = useRef<SilenceMonitorHandle | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const stoppingRef = useRef(false);
+  const formatRef = useRef(pickRecorderFormat());
+  const demoGenRef = useRef(0);
 
   const sentence = SAMPLE_SENTENCES[sentenceIdx];
+
+  const playDemo = useCallback(async () => {
+    const gen = ++demoGenRef.current;
+    setDemoPlaying(true);
+    try {
+      await speak(sentence.text, "en-US");
+    } finally {
+      if (demoGenRef.current === gen) setDemoPlaying(false);
+    }
+  }, [sentence.text, speak]);
+
+  useEffect(() => {
+    setResult(null);
+    void playDemo();
+  }, [sentenceIdx, playDemo]);
 
   const cleanupStream = useCallback(() => {
     silenceRef.current?.stop();
@@ -45,12 +68,17 @@ export default function FollowRead() {
 
   const handleSubmit = useCallback(async (stream: MediaStream) => {
     try {
-      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const format = formatRef.current;
+      const blob = new Blob(chunksRef.current, { type: format.blobType });
       chunksRef.current = [];
       const base64 = await blobToBase64(blob);
       const res = await apiRequest<EvalResult>("/api/voice/evaluate", {
         method: "POST",
-        body: JSON.stringify({ audio_base64: base64, reference_text: sentence.text }),
+        body: JSON.stringify({
+          audio_base64: base64,
+          mime_type: format.blobType,
+          reference_text: sentence.text,
+        }),
       });
       setResult(res);
     } catch {
@@ -79,11 +107,13 @@ export default function FollowRead() {
   }, [handleSubmit]);
 
   async function startRecording() {
-    if (recording || processing) return;
+    if (recording || processing || demoPlaying) return;
     try {
+      assertMicrophoneAvailable();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      const mr = new MediaRecorder(stream);
+      formatRef.current = pickRecorderFormat();
+      const mr = createMediaRecorder(stream);
       chunksRef.current = [];
       mr.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -97,9 +127,9 @@ export default function FollowRead() {
         silenceMs: FOLLOW_READ_SILENCE_MS,
         onSilence: () => stopRecording(),
       });
-    } catch {
+    } catch (err) {
       cleanupStream();
-      alert("无法访问麦克风，请检查权限设置");
+      alert(err instanceof Error ? err.message : "无法访问麦克风，请检查权限设置");
     }
   }
 
@@ -117,7 +147,6 @@ export default function FollowRead() {
 
   function nextSentence() {
     setSentenceIdx((i) => (i + 1) % SAMPLE_SENTENCES.length);
-    setResult(null);
   }
 
   const overallScore = result
@@ -140,14 +169,36 @@ export default function FollowRead() {
         <button onClick={() => navigate(-1)} className="material-symbols-outlined text-primary">arrow_back</button>
         <div>
           <h1 className="font-bold text-[16px] text-on-surface">跟读练习</h1>
-          <p className="text-[11px] text-on-surface-variant">朗读句子 · 停顿 1.2 秒自动评分</p>
+          <p className="text-[11px] text-on-surface-variant">先听示范 · 再跟读 · 停顿 1.2 秒自动评分</p>
         </div>
       </header>
 
       <main className="px-margin-mobile pt-6 pb-32 space-y-5">
-        <section className="glass-card premium-shadow rounded-2xl p-6 text-center space-y-3">
+        <section className="glass-card premium-shadow rounded-2xl p-6 text-center space-y-4">
           <span className="px-3 py-1 bg-primary/10 text-primary text-[11px] font-bold rounded-full">{sentence.topic}</span>
-          <p className="font-bold text-[18px] text-on-surface leading-relaxed">{sentence.text}</p>
+
+          <div className="relative">
+            <p className="font-bold text-[18px] text-on-surface leading-relaxed pr-12 text-left">{sentence.text}</p>
+            <button
+              type="button"
+              onClick={() => void playDemo()}
+              disabled={demoPlaying || recording || processing}
+              className={`absolute top-0 right-0 w-10 h-10 rounded-full flex items-center justify-center border transition-all active:scale-95 ${
+                demoPlaying
+                  ? "bg-primary text-white border-primary shadow-[0_0_0_4px_rgba(99,14,212,0.2)] animate-pulse"
+                  : "bg-white/70 text-primary border-primary/20 hover:bg-primary/10"
+              }`}
+              title="播放示范朗读"
+              aria-label="播放示范朗读"
+            >
+              <Volume2 size={18} />
+            </button>
+          </div>
+
+          <p className="text-[12px] text-on-surface-variant text-left">
+            {demoPlaying ? "🔊 正在播放示范，听完后点麦克风跟读" : "换句后会自动播放示范 · 也可点喇叭重听"}
+          </p>
+
           <button
             onClick={nextSentence}
             className="flex items-center gap-1 text-[12px] text-on-surface-variant mx-auto active:text-primary transition-colors"
@@ -161,7 +212,8 @@ export default function FollowRead() {
           {!recording && !processing && !result && (
             <button
               onClick={() => void startRecording()}
-              className="w-20 h-20 rounded-full bg-primary shadow-[0_8px_30px_rgba(99,14,212,0.3)] flex items-center justify-center text-white active:scale-95 transition-all"
+              disabled={demoPlaying}
+              className="w-20 h-20 rounded-full bg-primary shadow-[0_8px_30px_rgba(99,14,212,0.3)] flex items-center justify-center text-white active:scale-95 transition-all disabled:opacity-45"
             >
               <span className="material-symbols-outlined text-[36px]">mic</span>
             </button>
@@ -180,13 +232,15 @@ export default function FollowRead() {
             </div>
           )}
           <p className="text-[14px] font-semibold text-on-surface-variant text-center max-w-[280px]">
-            {recording
-              ? "朗读中… 读完停顿约 1.2 秒将自动提交"
-              : processing
-                ? "AI 分析中..."
-                : result
-                  ? "再次朗读"
-                  : "点击开始 · 无需手动点停止"}
+            {demoPlaying
+              ? "示范朗读中…"
+              : recording
+                ? "跟读中… 读完停顿约 1.2 秒将自动提交"
+                : processing
+                  ? "AI 分析中..."
+                  : result
+                    ? "再次跟读"
+                    : "听示范后点麦克风跟读"}
           </p>
           {recording && (
             <div className="flex gap-1">
@@ -242,6 +296,13 @@ export default function FollowRead() {
 
             <div className="flex gap-2 pt-1">
               <button
+                type="button"
+                onClick={() => void playDemo()}
+                className="h-11 px-4 bg-surface-container text-on-surface rounded-full text-[14px] font-bold active:scale-95 transition-all flex items-center justify-center gap-1"
+              >
+                <Volume2 size={16} /> 重听
+              </button>
+              <button
                 onClick={() => void startRecording()}
                 className="flex-1 h-11 bg-primary text-white rounded-full text-[14px] font-bold active:scale-95 transition-all flex items-center justify-center gap-1"
               >
@@ -264,9 +325,9 @@ export default function FollowRead() {
             朗读建议
           </h4>
           <ul className="space-y-2 text-[12px] text-on-surface-variant">
-            <li>• 读完句子后自然停顿，约 1.2 秒自动提交评分</li>
+            <li>• 每句会先自动播放示范，也可点右上角喇叭重听</li>
+            <li>• 听完后再点麦克风跟读，停顿约 1.2 秒自动提交</li>
             <li>• 也可随时点击红色停止键手动提交</li>
-            <li>• 注意单词重音和句子语调</li>
             <li>• 在安静环境中录音效果更好</li>
           </ul>
         </section>

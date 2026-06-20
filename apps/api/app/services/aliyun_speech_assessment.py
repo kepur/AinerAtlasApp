@@ -186,6 +186,59 @@ async def evaluate_with_aliyun_assessment(
         return None
 
 
+async def transcribe_general_audio(
+    api_key: str,
+    audio_bytes: bytes,
+    *,
+    mime: str = "audio/webm",
+    language: str = "",
+) -> str:
+    """DashScope Fun-ASR-Flash sync transcription for chat voice input."""
+    b64 = base64.b64encode(audio_bytes).decode("ascii")
+    data_uri = f"data:{mime};base64,{b64}"
+    fmt = "webm" if "webm" in mime else "wav"
+    hint = "Transcribe the user's speech verbatim. Output only the transcript."
+    if language in {"zh", "zh-CN", "cn"}:
+        hint = "请识别用户说的中文或中英文混合内容，只输出转写文本。"
+    body = {
+        "model": "fun-asr-flash-2026-06-15",
+        "input": {
+            "messages": [
+                {"role": "user", "content": [{"type": "input_text", "text": hint}]},
+                {
+                    "role": "user",
+                    "content": [{"type": "input_audio", "input_audio": {"data": data_uri}}],
+                },
+            ],
+        },
+        "parameters": {"format": fmt},
+    }
+    url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        response = await client.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "X-DashScope-SSE": "disable",
+            },
+            json=body,
+        )
+        response.raise_for_status()
+        payload = response.json()
+
+    output = payload.get("output") or {}
+    nested = output.get("output") if isinstance(output.get("output"), dict) else output
+    sentence = nested.get("sentence") if isinstance(nested, dict) else None
+    if isinstance(sentence, dict) and sentence.get("text"):
+        return str(sentence["text"]).strip()
+    if isinstance(nested, dict):
+        for key in ("text", "transcript"):
+            if nested.get(key):
+                return str(nested[key]).strip()
+    return ""
+
+
 async def transcribe_follow_read_audio(
     api_key: str,
     audio_bytes: bytes,

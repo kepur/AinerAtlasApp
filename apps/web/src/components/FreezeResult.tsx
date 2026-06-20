@@ -8,10 +8,11 @@ type Props = {
   asset: Asset | null;
   loading: boolean;
   error: string | null;
+  loadingHint?: string;
   onClose: () => void;
 };
 
-export default function FreezeResult({ asset, loading, error, onClose }: Props) {
+export default function FreezeResult({ asset, loading, error, loadingHint, onClose }: Props) {
   const navigate = useNavigate();
   const variants = asset?.variants ?? {};
   const keys = useMemo(() => orderedVariantKeys(variants), [variants]);
@@ -46,8 +47,8 @@ export default function FreezeResult({ asset, loading, error, onClose }: Props) 
         {loading && (
           <div className="freeze-loading">
             <Loader size={28} className="spin" />
-            <p>AI 正在整理你的思想表达...</p>
-            <span>生成多版本表达资产包</span>
+            <p>{loadingHint || "AI 正在整理你的思想表达..."}</p>
+            <span>后台分析中，你可以继续浏览对话</span>
           </div>
         )}
 
@@ -70,19 +71,23 @@ export default function FreezeResult({ asset, loading, error, onClose }: Props) 
             </div>
 
             <div className="variant-content freeze-content">
-              {currentKey ? variants[currentKey] : "暂无内容"}
+              {currentKey
+                ? variants[currentKey]
+                : keys.length === 0
+                  ? "AI 未能生成表达版本，请稍后重试或检查 LLM 配置"
+                  : "暂无内容"}
             </div>
 
-            <div className="freeze-actions">
-              <button className="ghost-btn" type="button" title="朗读（即将上线）">
+            <div className="freeze-actions as-inline-actions">
+              <button className="as-chip as-chip--ghost" type="button" title="朗读（即将上线）">
                 <Volume2 size={16} /> 朗读
               </button>
               <button
-                className={`ghost-btn ${saved ? "saved" : ""}`}
+                className={`as-chip as-chip--accent ${saved ? "as-chip--saved" : ""}`}
                 type="button"
                 onClick={() => setSaved(true)}
               >
-                <Bookmark size={16} /> {saved ? "已收藏" : "收藏"}
+                <Bookmark size={16} /> {saved ? "已收藏" : "收藏到思想库"}
               </button>
             </div>
 
@@ -110,7 +115,7 @@ export default function FreezeResult({ asset, loading, error, onClose }: Props) 
                 {asset.thought_id && (
                   <button
                     type="button"
-                    className="ghost-btn w-full justify-center"
+                    className="as-btn as-btn--glass as-btn--block"
                     disabled={publishing}
                     onClick={() => void handlePublishTopic()}
                   >
@@ -118,7 +123,7 @@ export default function FreezeResult({ asset, loading, error, onClose }: Props) 
                     发表为话题（AI 填标题与标签）
                   </button>
                 )}
-                <button className="primary-btn w-full" onClick={onClose}>完成</button>
+                <button type="button" className="as-btn as-btn--primary as-btn--block" onClick={onClose}>完成</button>
               </div>
             </div>
           </>

@@ -29,6 +29,12 @@ class FakeRedis:
         val = self.storage.get(key)
         return str(val) if val is not None else None
 
+    def delete(self, key: str) -> int:
+        if key in self.storage:
+            del self.storage[key]
+            return 1
+        return 0
+
 
 class FakeQuotaManager:
     def __init__(self) -> None:
@@ -56,6 +62,11 @@ class FakeQuotaManager:
         from app.db.redis import QuotaManager
 
         return QuotaManager(self.redis, db=None).snapshot_match_cards(user)
+
+    def reset_match_cards(self, user):
+        from app.db.redis import QuotaManager
+
+        return QuotaManager(self.redis, db=None).reset_match_cards(user)
 
 
 def override_quota_manager() -> Iterator[FakeQuotaManager]:

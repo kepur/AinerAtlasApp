@@ -184,7 +184,9 @@ export default function ChatDetail() {
   const [freezeAsset, setFreezeAsset] = useState<Asset | null>(null);
   const [freezeError, setFreezeError] = useState<string | null>(null);
   const [showFreeze, setShowFreeze] = useState(false);
+  const [freezeStatus, setFreezeStatus] = useState<string>("");
   const [tokenSheet, setTokenSheet] = useState<{ token: string; context: string } | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [autoTts, setAutoTts] = useState(() => {
     const v = localStorage.getItem("ainerspeak_auto_tts");
     return v !== null ? v === "true" : true;
@@ -224,15 +226,35 @@ export default function ChatDetail() {
 
   function handleVoiceTranscript(text: string) {
     if (!text.trim() || sending) return;
+    setVoiceError(null);
     void handleSend(text);
+  }
+
+  function handleVoiceError(message: string) {
+    setVoiceError(message);
+    window.setTimeout(() => setVoiceError(null), 3200);
   }
 
   async function handleFreeze() {
     if (!id || freezing || !currentConversation?.messages.length) return;
-    setShowFreeze(true); setFreezing(true); setFreezeAsset(null); setFreezeError(null);
-    try { const a = await freezeConversation(id, currentConversation.title); setFreezeAsset(a); }
-    catch (e) { setFreezeError(e instanceof Error ? e.message : t("chat.freezeFailed")); }
-    finally { setFreezing(false); }
+    setShowFreeze(true);
+    setFreezing(true);
+    setFreezeAsset(null);
+    setFreezeError(null);
+    setFreezeStatus("AI 正在整理你的思想表达...");
+    try {
+      const asset = await freezeConversation(id, currentConversation.title, (job) => {
+        if (job.status === "processing") {
+          setFreezeStatus("AI 正在整理你的思想表达...");
+        }
+      });
+      setFreezeAsset(asset);
+    } catch (e) {
+      setFreezeError(e instanceof Error ? e.message : t("chat.freezeFailed"));
+    } finally {
+      setFreezing(false);
+      setFreezeStatus("");
+    }
   }
 
   if (loading && !currentConversation) {
@@ -268,7 +290,7 @@ export default function ChatDetail() {
         <div className="header-actions">
           <button
             type="button"
-            className="freeze-header-btn"
+            className="freeze-header-btn as-chip as-chip--accent"
             onClick={() => void handleFreeze()}
             disabled={freezing || messages.length < 2}
             title={t("chat.freezeTitle")}
@@ -301,14 +323,18 @@ export default function ChatDetail() {
       {/* Mode indicator + Composer */}
       <CompanionPet mood={petMood} compact />
       <ModeIndicator hud={hud} />
-      <div className="chat-composer-rich">
+      <div className="chat-composer-rich flex-wrap">
+        {voiceError ? <p className="composer-voice-error">{voiceError}</p> : null}
         <VoiceInput
-          className="composer-voice-btn"
+          className="voice-input-glass voice-input-glass--composer"
           iconSize={20}
           disabled={sending}
-          mode="hold"
+          mode="tap"
+          autoStopSilenceMs={1400}
+          language="auto"
           onTranscript={handleVoiceTranscript}
-          title="按住说话，松开发送 · 上滑取消"
+          onError={handleVoiceError}
+          title="点击说话 · 再点或停顿 1.4 秒自动转文字"
         />
         <div className="composer-input-wrapper">
           <input
@@ -319,11 +345,24 @@ export default function ChatDetail() {
             disabled={sending}
           />
         </div>
-        <button onClick={handleSend} disabled={!draft.trim() || sending} className="composer-send-btn"><Send size={18} /></button>
+        <button onClick={() => void handleSend()} disabled={!draft.trim() || sending} className="composer-send-btn"><Send size={18} /></button>
       </div>
       </div>
 
-      {showFreeze && <FreezeResult asset={freezeAsset} loading={freezing} error={freezeError} onClose={() => { setShowFreeze(false); setFreezeAsset(null); setFreezeError(null); }} />}
+      {showFreeze && (
+        <FreezeResult
+          asset={freezeAsset}
+          loading={freezing}
+          error={freezeError}
+          loadingHint={freezeStatus}
+          onClose={() => {
+            setShowFreeze(false);
+            setFreezeAsset(null);
+            setFreezeError(null);
+            setFreezeStatus("");
+          }}
+        />
+      )}
       {tokenSheet && <TokenExplainSheet token={tokenSheet.token} context={tokenSheet.context} onClose={() => setTokenSheet(null)} speak={speak} />}
     </div>
   );

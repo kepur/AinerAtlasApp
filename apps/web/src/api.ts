@@ -220,12 +220,79 @@ export async function submitRealtimeCallSummary(payload: {
   duration_seconds: number;
   mode?: string;
   provider?: string;
+  topic?: string;
   turns: Array<{ user_text: string; ai_reply: string; hud?: Record<string, unknown> | null }>;
 }): Promise<RealtimeCallSummary> {
   return apiRequest<RealtimeCallSummary>("/api/voice/realtime/summary", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export type VoiceSessionRecord = {
+  id: string;
+  provider: string;
+  duration_seconds: number;
+  transcript: string;
+  analysis: Record<string, unknown>;
+  cost_estimate: number;
+  created_at: string;
+};
+
+export async function listVoiceSessions(): Promise<VoiceSessionRecord[]> {
+  return apiRequest<VoiceSessionRecord[]>("/api/voice/sessions");
+}
+
+export type VoiceGroupMatchStatus = {
+  status: string;
+  room_id?: string;
+  member_count?: number;
+  min_players?: number;
+  max_players?: number;
+  seconds_left?: number;
+  message?: string;
+};
+
+export async function joinVoiceGroupMatch(): Promise<VoiceGroupMatchStatus> {
+  return apiRequest<VoiceGroupMatchStatus>("/api/voice/group/match/join", { method: "POST" });
+}
+
+export async function pollVoiceGroupMatch(): Promise<VoiceGroupMatchStatus> {
+  return apiRequest<VoiceGroupMatchStatus>("/api/voice/group/match/status");
+}
+
+export async function leaveVoiceGroupMatch(): Promise<{ status: string }> {
+  return apiRequest<{ status: string }>("/api/voice/group/match/leave", { method: "POST" });
+}
+
+export type ResumableGameSession = {
+  id: string;
+  game_type: string;
+  title?: string;
+  phase?: string;
+  status?: string;
+};
+
+export async function findResumableGameSession(
+  gameType: string,
+  opts?: { target_id?: string; template_id?: string },
+): Promise<ResumableGameSession | null> {
+  const qs = new URLSearchParams({ game_type: gameType });
+  if (opts?.target_id) qs.set("target_id", opts.target_id);
+  if (opts?.template_id) qs.set("template_id", opts.template_id);
+  try {
+    return await apiRequest<GameSession>(`/api/games/sessions/resume?${qs}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function enableFriendRoomAi(roomId: string): Promise<{ room_id: string; ai_host: boolean }> {
+  return apiRequest(`/api/connect/rooms/${roomId}/enable-ai`, { method: "POST" });
+}
+
+export async function removeConnectFriend(friendUserId: string): Promise<{ ok: boolean }> {
+  return apiRequest(`/api/connect/friends/${friendUserId}`, { method: "DELETE" });
 }
 
 export async function explainToken(
@@ -393,10 +460,85 @@ export type VocabItem = {
   id: string;
   word: string;
   translation?: string;
+  meaning?: string;
   mastery_status: string;
   mastery_score: number;
   examples: string[];
   topic?: string;
+};
+
+export type VocabPracticeExercise = {
+  exercise_type: string;
+  prompt: string;
+  sentence?: string;
+  hint?: string;
+  options?: string[];
+};
+
+export type VocabPracticeResponse = {
+  item: VocabItem;
+  exercise: VocabPracticeExercise | null;
+  exercise_token?: string;
+  correct?: boolean | null;
+  message: string;
+};
+
+export type VocabBatchStart = {
+  batch_size: number;
+  total_remaining: number;
+  items: VocabItem[];
+  exercises?: Array<{
+    item_id: string;
+    exercise: VocabPracticeExercise;
+    exercise_token: string;
+  }>;
+};
+
+export type GrammarBatchStart = {
+  batch_size: number;
+  total_remaining: number;
+  items: MasteryItem[];
+  exercises?: Array<{
+    item_id: string;
+    exercise: PracticeExercise;
+    exercise_token: string;
+  }>;
+};
+
+export type GrammarBatchResult = {
+  item_id: string;
+  title: string;
+  example: string;
+  correct: boolean;
+  user_answer: string;
+};
+
+export type GrammarBatchSummary = {
+  summary: string;
+  insights: Array<{ title: string; correct: boolean; explanation: string; tip: string }>;
+  encouragement: string;
+};
+
+export type VocabWordInsight = {
+  word: string;
+  correct: boolean;
+  explanation: string;
+  tip: string;
+};
+
+export type VocabBatchSummary = {
+  summary: string;
+  word_insights: VocabWordInsight[];
+  encouragement: string;
+};
+
+export type VocabBatchResult = {
+  item_id: string;
+  word: string;
+  meaning: string;
+  sentence: string;
+  correct: boolean;
+  user_answer: string;
 };
 
 export type UserStats = {
@@ -437,14 +579,55 @@ export function orderedVariantKeys(variants: Record<string, string>): string[] {
   return [...sorted, ...rest];
 }
 
-export async function freezeConversation(
+export type FreezeJobStatus = {
+  status: "idle" | "processing" | "done" | "failed";
+  asset?: Asset;
+  error?: string;
+};
+
+export async function startFreezeConversation(
   conversationId: string,
   title?: string
-): Promise<Asset> {
-  return apiRequest<Asset>(`/api/conversations/${conversationId}/freeze`, {
+): Promise<FreezeJobStatus> {
+  return apiRequest<FreezeJobStatus>(`/api/conversations/${conversationId}/freeze`, {
     method: "POST",
     body: JSON.stringify({ title: title ?? null }),
   });
+}
+
+export async function getFreezeConversationStatus(
+  conversationId: string
+): Promise<FreezeJobStatus> {
+  return apiRequest<FreezeJobStatus>(
+    `/api/conversations/${conversationId}/freeze/status`
+  );
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function freezeConversation(
+  conversationId: string,
+  title?: string,
+  onProgress?: (status: FreezeJobStatus) => void
+): Promise<Asset> {
+  let job = await startFreezeConversation(conversationId, title);
+  onProgress?.(job);
+  if (job.status === "done" && job.asset) return job.asset;
+  if (job.status === "failed") {
+    throw new Error(job.error || "Freeze failed");
+  }
+
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await sleep(1000);
+    job = await getFreezeConversationStatus(conversationId);
+    onProgress?.(job);
+    if (job.status === "done" && job.asset) return job.asset;
+    if (job.status === "failed") {
+      throw new Error(job.error || "Freeze failed");
+    }
+  }
+
+  throw new Error("Freeze 超时，请稍后在思想库查看");
 }
 
 export type TopicDraft = {
@@ -546,36 +729,6 @@ export async function fetchThought(id: string): Promise<Thought> {
   }
 }
 
-const MOCK_VOCAB: VocabItem[] = [
-  {
-    id: "mock-v1",
-    word: "stability",
-    translation: "稳定性",
-    mastery_status: "seen",
-    mastery_score: 35,
-    examples: ["Long-term stability matters more than short-term gain."],
-    topic: "life choices",
-  },
-  {
-    id: "mock-v2",
-    word: "trade-off",
-    translation: "权衡 / 取舍",
-    mastery_status: "understood",
-    mastery_score: 55,
-    examples: ["Every decision involves a trade-off."],
-    topic: "decision making",
-  },
-  {
-    id: "mock-v3",
-    word: "perspective",
-    translation: "视角 / 观点",
-    mastery_status: "usable",
-    mastery_score: 72,
-    examples: ["From my perspective, this is a long-term value."],
-    topic: "expression",
-  },
-];
-
 function masteryToVocab(item: MasteryItem): VocabItem {
   const examples = item.examples || [];
   return {
@@ -590,15 +743,55 @@ function masteryToVocab(item: MasteryItem): VocabItem {
 
 export async function fetchVocabulary(): Promise<VocabItem[]> {
   try {
-    return await apiRequest<VocabItem[]>("/api/vocabulary/today");
+    return await apiRequest<VocabItem[]>("/api/vocabulary/queue");
   } catch {
     try {
       const queue = await apiRequest<MasteryItem[]>("/api/grammar/queue");
-      const vocab = queue.filter((q) => q.item_type === "vocabulary").map(masteryToVocab);
-      if (vocab.length > 0) return vocab;
-    } catch { /* ignore */ }
-    return MOCK_VOCAB;
+      return queue.filter((q) => q.item_type === "vocabulary").map(masteryToVocab);
+    } catch {
+      return [];
+    }
   }
+}
+
+export async function startVocabBatch(size = 10): Promise<VocabBatchStart> {
+  return apiRequest<VocabBatchStart>(`/api/vocabulary/practice/batch?size=${size}`);
+}
+
+export async function startGrammarBatch(size = 10): Promise<GrammarBatchStart> {
+  return apiRequest<GrammarBatchStart>(`/api/grammar/practice/batch?size=${size}`);
+}
+
+export async function submitGrammarBatchSummary(
+  results: GrammarBatchResult[]
+): Promise<GrammarBatchSummary> {
+  return apiRequest<GrammarBatchSummary>("/api/grammar/practice/batch-summary", {
+    method: "POST",
+    body: JSON.stringify({ results }),
+  });
+}
+
+export async function fetchVocabPractice(id: string): Promise<VocabPracticeResponse> {
+  return apiRequest<VocabPracticeResponse>(`/api/vocabulary/${id}/practice`);
+}
+
+export async function submitVocabPractice(
+  id: string,
+  payload: { answer: string; exercise_token: string }
+): Promise<VocabPracticeResponse> {
+  return apiRequest<VocabPracticeResponse>(`/api/vocabulary/${id}/practice`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function submitVocabBatchSummary(
+  results: VocabBatchResult[]
+): Promise<VocabBatchSummary> {
+  return apiRequest<VocabBatchSummary>("/api/vocabulary/practice/batch-summary", {
+    method: "POST",
+    body: JSON.stringify({ results }),
+  });
 }
 
 export async function fetchGrammarPractice(id: string): Promise<GrammarPracticeResponse> {
@@ -659,6 +852,29 @@ export async function fetchUserStats(): Promise<UserStats> {
     vocab_count: vocabItems.length,
     mastered_count: mastered,
   };
+}
+
+export async function sendPasswordResetCode(email: string): Promise<{
+  message: string;
+  email: string;
+  expires_in_seconds: number;
+  dev_code?: string | null;
+}> {
+  return apiRequest("/api/auth/send-password-reset-code", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPasswordWithCode(
+  email: string,
+  verification_code: string,
+  new_password: string,
+): Promise<{ message: string }> {
+  return apiRequest("/api/auth/reset-password-with-code", {
+    method: "POST",
+    body: JSON.stringify({ email, verification_code, new_password }),
+  });
 }
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {

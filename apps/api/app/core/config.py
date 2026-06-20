@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     jwt_refresh_token_expire_days: int = 30
     jwt_reset_token_expire_minutes: int = 30
     cors_origins: str = "http://localhost:7075,http://localhost:7072,http://localhost:7076"
+    cors_allow_lan: bool = True
     default_llm_provider: str = "auto"
     default_voice_provider: str = "auto"
     dashscope_api_key: str = ""
@@ -82,3 +83,23 @@ def get_database_url() -> str:
 
 def get_cors_origins() -> list[str]:
     return [origin.strip() for origin in get_settings().cors_origins.split(",") if origin.strip()]
+
+
+# Private LAN / loopback origins for development (phones on same Wi‑Fi, etc.)
+_LAN_ORIGIN_REGEX = (
+    r"https?://("
+    r"localhost|"
+    r"127\.0\.0\.1|"
+    r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+    r"192\.168\.\d{1,3}\.\d{1,3}|"
+    r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+    r")(:\d+)?$"
+)
+
+
+def get_cors_origin_regex() -> str | None:
+    """In development, allow any private-network origin so LAN devices work without editing CORS."""
+    settings = get_settings()
+    if settings.is_production or not settings.cors_allow_lan:
+        return None
+    return _LAN_ORIGIN_REGEX

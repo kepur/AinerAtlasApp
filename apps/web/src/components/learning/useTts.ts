@@ -70,22 +70,30 @@ export function useTts() {
       if (src) {
         const audio = new Audio(src);
         audioRef.current = audio;
-        audio.onended = () => {
-          if (audioRef.current === audio) audioRef.current = null;
-        };
-        audio.onerror = () => {
-          if (audioRef.current === audio) audioRef.current = null;
-        };
-        audio.play().catch(() => {});
+        await new Promise<void>((resolve) => {
+          audio.onended = () => {
+            if (audioRef.current === audio) audioRef.current = null;
+            resolve();
+          };
+          audio.onerror = () => {
+            if (audioRef.current === audio) audioRef.current = null;
+            resolve();
+          };
+          audio.play().catch(() => resolve());
+        });
         return;
       }
 
       if (!window.speechSynthesis) return;
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang || (/[一-鿿]/.test(text) ? "zh-CN" : "en-US");
-      u.rate = cfg.speed;
-      u.pitch = cfg.pitch;
-      window.speechSynthesis.speak(u);
+      await new Promise<void>((resolve) => {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang || (/[一-鿿]/.test(text) ? "zh-CN" : "en-US");
+        u.rate = cfg.speed;
+        u.pitch = cfg.pitch;
+        u.onend = () => resolve();
+        u.onerror = () => resolve();
+        window.speechSynthesis.speak(u);
+      });
     },
     [cfg]
   );

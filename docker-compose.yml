@@ -8,8 +8,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg2://ainerwise:ainerwise@postgres:5432/ainerwise
       REDIS_URL: redis://redis:6379/0
+      CORS_ALLOW_LAN: "true"
     ports:
-      - "7070:8000"
+      - "0.0.0.0:7070:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,7 +38,7 @@ services:
       POSTGRES_USER: ainerwise
       POSTGRES_PASSWORD: ainerwise
     ports:
-      - "7073:5432"
+      - "0.0.0.0:7073:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -50,7 +51,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "7074:6379"
+      - "0.0.0.0:7074:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -75,7 +76,7 @@ services:
       - ./apps/web:/app
       - web_node_modules:/app/node_modules
     ports:
-      - "7075:7075"
+      - "0.0.0.0:7075:7075"
     healthcheck:
       test: ["CMD-SHELL", "wget --no-check-certificate -q -O /dev/null https://127.0.0.1:7075/ || exit 1"]
       interval: 10s
@@ -90,7 +91,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "7072:80"
+      - "0.0.0.0:7072:80"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
       interval: 10s

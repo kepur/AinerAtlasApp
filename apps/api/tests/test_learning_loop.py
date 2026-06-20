@@ -1,9 +1,14 @@
 from uuid import uuid4
+import time
+
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from redis import Redis
 
 from app.main import app
+from app.services.llm import MockLLMProvider
+from tests.test_thought_freeze import _poll_freeze_asset, _seed_conversation_messages
 
 
 def _configure_rate_limit_bypass() -> Redis:
@@ -104,13 +109,26 @@ def test_thoughts_and_asset_versions_after_freeze() -> None:
         )
         conversation_id = conversation.json()["id"]
 
-        freeze = client.post(
-            f"/api/conversations/{conversation_id}/freeze",
-            json={"title": "Freeze thoughts"},
-            headers=headers,
+        _seed_conversation_messages(
+            conversation_id,
+            ("user", "长期稳定比短期收益更重要"),
+            ("assistant", "Long-term stability often outweighs short-term gains."),
         )
-        assert freeze.status_code == 200
-        asset_id = freeze.json()["id"]
+
+        with patch(
+            "app.services.conversation_freeze_service.require_llm_provider",
+            return_value=MockLLMProvider(),
+        ), patch(
+            "app.services.conversation_freeze_service.assert_real_llm_usage",
+        ):
+            freeze = client.post(
+                f"/api/conversations/{conversation_id}/freeze",
+                json={"title": "Freeze thoughts"},
+                headers=headers,
+            )
+            assert freeze.status_code == 200
+            asset_payload = _poll_freeze_asset(client, conversation_id, headers)
+        asset_id = asset_payload["id"]
 
         thoughts = client.get("/api/thoughts", headers=headers)
         assert thoughts.status_code == 200

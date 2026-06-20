@@ -41,6 +41,7 @@ export default {
     hasAccount: "已有账号？",
     goLogin: "去登录",
     devCode: "开发模式验证码",
+    trialBadge: "注册即享 {{days}} 天 {{level}} 会员",
     googleTrialBadge: "Google 邮箱 · {{days}} 天 {{level}} 试用"
   },
   home: {
@@ -328,8 +329,19 @@ export default {
   },
   forgotPassword: {
     title: "忘记密码",
+    subtitleEmail: "输入注册邮箱，获取验证码",
+    subtitleReset: "输入验证码并设置新密码",
     email: "邮箱",
     emailPlaceholder: "请输入注册邮箱",
+    code: "验证码",
+    codePlaceholder: "6 位数字",
+    sendCode: "获取验证码",
+    sendingCode: "发送中...",
+    resendCode: "重新发送验证码",
+    changeEmail: "更换邮箱",
+    sendCodeFailed: "验证码发送失败",
+    codeSent: "验证码已发送，请查收邮箱",
+    devCode: "开发环境验证码",
     submit: "发送重置链接",
     loading: "发送中...",
     success: "重置邮件已发送，请检查邮箱。",
@@ -343,6 +355,7 @@ export default {
     submit: "重置密码",
     loading: "重置中...",
     success: "密码重置成功，即将跳转登录页。",
+    failed: "重置失败，请检查验证码",
     mismatch: "两次密码不一致",
     invalidToken: "无效的重置链接"
   }

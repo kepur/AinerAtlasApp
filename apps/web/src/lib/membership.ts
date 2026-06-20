@@ -13,6 +13,13 @@ export function normalizeMembershipLevel(level: string | null | undefined): stri
   return LEGACY_ALIASES[normalized] ?? normalized;
 }
 
+export function hasProAccess(user: Pick<AuthUser, "membership_level" | "role" | "status"> | null | undefined): boolean {
+  if (!user) return false;
+  if (user.status === "disabled" || user.status === "expired") return false;
+  if (user.role === "admin" || user.role === "super_admin") return true;
+  return normalizeMembershipLevel(user.membership_level) === "pro";
+}
+
 export function hasVoiceCoachAccess(user: Pick<AuthUser, "membership_level" | "role" | "status"> | null | undefined): boolean {
   if (!user) return false;
   if (user.status === "disabled" || user.status === "expired") return false;

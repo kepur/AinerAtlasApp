@@ -41,6 +41,22 @@ interface MatchRadarProps {
   apiPost: <T>(path: string, token: string, body?: unknown) => Promise<T>;
 }
 
+interface FriendshipRow {
+  id: string;
+  user_a_id: string;
+  user_a_email: string;
+  user_b_id: string;
+  user_b_email: string;
+  match_type: string;
+  source: string;
+  status: string;
+  dissolved_by_id: string | null;
+  dissolved_by_email: string;
+  greeted_at: string | null;
+  last_interaction_at: string | null;
+  created_at: string | null;
+}
+
 function TagPills({ tags }: { tags: string[] }) {
   if (!tags.length) return <span className="text-muted">—</span>;
   return (
@@ -65,10 +81,27 @@ export function MatchRadar({ token, apiGet, apiPost }: MatchRadarProps) {
   const [analysis, setAnalysis] = useState<any[]>([]);
   const [matches, setMatches] = useState<MatchHistoryItem[]>([]);
   const [activeTab, setActiveTab] = useState("Profile");
+  const [friendships, setFriendships] = useState<FriendshipRow[]>([]);
+  const [friendshipsLoading, setFriendshipsLoading] = useState(false);
+  const [friendFilterUserId, setFriendFilterUserId] = useState("");
 
   useEffect(() => {
     loadUsers();
+    void loadFriendships();
   }, []);
+
+  async function loadFriendships(userId?: string) {
+    setFriendshipsLoading(true);
+    try {
+      const query = userId?.trim() ? `?user_id=${encodeURIComponent(userId.trim())}&limit=200` : "?limit=200";
+      const data = await apiGet<{ items: FriendshipRow[] }>(`/api/admin/friendships${query}`, token);
+      setFriendships(data.items || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFriendshipsLoading(false);
+    }
+  }
 
   async function loadUsers() {
     setLoading(true);
@@ -384,6 +417,77 @@ export function MatchRadar({ token, apiGet, apiPost }: MatchRadarProps) {
               <tr>
                 <td colSpan={7} className="empty-state">
                   暂无匹配会员数据
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="page-header" style={{ marginTop: 32 }}>
+        <h2>好友关系列表</h2>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            type="text"
+            placeholder="按用户 ID 筛选"
+            value={friendFilterUserId}
+            onChange={(e) => setFriendFilterUserId(e.target.value)}
+            style={{ minWidth: 220, padding: "6px 10px", borderRadius: 8, border: "1px solid #444" }}
+          />
+          <button
+            className="btn btn-secondary"
+            onClick={() => void loadFriendships(friendFilterUserId)}
+            disabled={friendshipsLoading}
+          >
+            {friendshipsLoading ? "加载中..." : "查询关系"}
+          </button>
+          <button className="btn btn-text" onClick={() => { setFriendFilterUserId(""); void loadFriendships(); }}>
+            全部
+          </button>
+        </div>
+      </div>
+
+      <div className="table-wrapper module-card">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>用户 A</th>
+              <th>用户 B</th>
+              <th>类型</th>
+              <th>来源</th>
+              <th>状态</th>
+              <th>打招呼</th>
+              <th>最近互动</th>
+              <th>解除者</th>
+            </tr>
+          </thead>
+          <tbody>
+            {friendships.map((row) => (
+              <tr key={row.id}>
+                <td>
+                  <div>{row.user_a_email || row.user_a_id}</div>
+                  <div className="text-muted" style={{ fontSize: "0.75rem" }}>{row.user_a_id}</div>
+                </td>
+                <td>
+                  <div>{row.user_b_email || row.user_b_id}</div>
+                  <div className="text-muted" style={{ fontSize: "0.75rem" }}>{row.user_b_id}</div>
+                </td>
+                <td>{row.match_type || "—"}</td>
+                <td>{row.source || "—"}</td>
+                <td>
+                  <span className={`status-badge ${row.status === "active" ? "active" : "inactive"}`}>
+                    {row.status === "active" ? "好友" : "已解除"}
+                  </span>
+                </td>
+                <td>{row.greeted_at ? new Date(row.greeted_at).toLocaleString() : "—"}</td>
+                <td>{row.last_interaction_at ? new Date(row.last_interaction_at).toLocaleString() : "—"}</td>
+                <td>{row.dissolved_by_email || (row.dissolved_by_id ? row.dissolved_by_id : "—")}</td>
+              </tr>
+            ))}
+            {friendships.length === 0 && !friendshipsLoading && (
+              <tr>
+                <td colSpan={8} className="empty-state">
+                  暂无好友关系记录
                 </td>
               </tr>
             )}

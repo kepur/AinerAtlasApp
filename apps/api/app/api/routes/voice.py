@@ -2,6 +2,7 @@ import asyncio
 import base64
 import contextlib
 import json
+import logging
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
@@ -28,6 +29,8 @@ from app.schemas import (
 )
 from app.services.voice import get_voice_provider
 from app.services.voice_call_summary import generate_realtime_call_summary
+from app.services.voice_group_match import join_queue, leave_queue, poll_match
+from app.services.voice_learning_backfill import backfill_turn_huds
 from app.services.voice_coach_profile import (
     build_session_coach_context,
     get_voice_coach_profile,
@@ -37,6 +40,7 @@ from app.services.voice_realtime import get_realtime_adapter
 from app.services.voice_report import generate_voice_report
 
 router = APIRouter(prefix="/voice", tags=["voice"])
+logger = logging.getLogger(__name__)
 
 
 class TTSRequest(BaseModel):
@@ -65,6 +69,56 @@ def _resolve_audio_url(audio_url: str, audio_base64: str) -> str:
             payload = payload.split("base64,", 1)[1]
         return f"base64:{payload}"
     return audio_url
+
+
+async def _transcribe_audio(
+    db: DBSession,
+    audio_ref: str,
+    language: str,
+    mime_type: str = "audio/webm",
+) -> tuple[str, str]:
+    """Transcribe with TTS-provider fallback to DashScope ASR / OpenAI / mock."""
+    from app.services.aliyun_speech_assessment import _decode_audio_ref, transcribe_general_audio
+    from app.services.dashscope_client import dashscope_enabled, resolve_dashscope_config
+    from app.services.voice import MockVoiceProvider
+
+    try:
+        audio_bytes = _decode_audio_ref(audio_ref)
+    except Exception:
+        audio_bytes = b""
+
+    provider_name = resolve_default_voice_provider(db)
+    provider = get_voice_provider(provider_name, db)
+    text = (await provider.transcribe(audio_ref, language)).strip()
+    if text:
+        return text, provider_name
+
+    if dashscope_enabled(db):
+        cfg = resolve_dashscope_config(db)
+        if cfg and cfg.api_key:
+            try:
+                text = await transcribe_general_audio(
+                    cfg.api_key,
+                    audio_bytes,
+                    mime=mime_type,
+                    language=language,
+                )
+                if text.strip():
+                    return text.strip(), "fun-asr-flash"
+            except Exception as exc:
+                logger.warning("DashScope chat ASR failed: %s", exc)
+
+    openai_provider = get_voice_provider("openai", db)
+    text = (await openai_provider.transcribe(audio_ref, language, mime_type=mime_type)).strip()
+    if text:
+        return text, "openai"
+
+    if len(audio_bytes) < 512:
+        mock = MockVoiceProvider()
+        return (await mock.transcribe(audio_ref, language)).strip(), "mock"
+
+    logger.warning("ASR failed for %d byte recording (mime=%s)", len(audio_bytes), mime_type)
+    return "", "none"
 
 
 # ── In-memory TTS cache ────────────────────────────────────────────────────
@@ -134,6 +188,21 @@ def list_voice_sessions(current_user: CurrentUser, db: DBSession) -> list[VoiceS
             .order_by(VoiceSession.created_at.desc())
         )
     )
+
+
+@router.post("/group/match/join")
+def voice_group_match_join(current_user: CurrentUser) -> dict:
+    return join_queue(current_user.id)
+
+
+@router.get("/group/match/status")
+def voice_group_match_status(current_user: CurrentUser) -> dict:
+    return poll_match(current_user.id)
+
+
+@router.post("/group/match/leave")
+def voice_group_match_leave(current_user: CurrentUser) -> dict:
+    return leave_queue(current_user.id)
 
 
 @router.post("/tts")
@@ -306,11 +375,13 @@ async def word_tts(payload: WordTTSRequest, db: DBSession) -> dict:
 
 @router.post("/transcribe", response_model=TranscribeResponse)
 async def transcribe(payload: TranscribeRequest, db: DBSession) -> TranscribeResponse:
-    provider_name = resolve_default_voice_provider(db)
-    provider = get_voice_provider(provider_name, db)
     audio_ref = _resolve_audio_url(payload.audio_url, payload.audio_base64)
-    text = await provider.transcribe(audio_ref, payload.language)
-    return TranscribeResponse(text=text, provider=provider_name, language=payload.language)
+    lang = (payload.language or "").strip()
+    if lang in {"", "auto"}:
+        lang = ""
+    mime = (payload.mime_type or "audio/webm").strip() or "audio/webm"
+    text, provider_name = await _transcribe_audio(db, audio_ref, lang, mime_type=mime)
+    return TranscribeResponse(text=text, provider=provider_name, language=lang or "auto")
 
 
 class AnalyzeRequest(BaseModel):
@@ -450,7 +521,7 @@ def complete_voice_session(
 
 
 @router.post("/realtime/summary", response_model=RealtimeCallSummaryRead)
-def create_realtime_call_summary(
+async def create_realtime_call_summary(
     payload: RealtimeCallSummaryRequest,
     current_user: CurrentUser,
     db: DBSession,
@@ -461,6 +532,13 @@ def create_realtime_call_summary(
 
     provider = payload.provider or resolve_default_voice_provider(db)
     turns_data = [t.model_dump() for t in payload.turns]
+    turns_data = await backfill_turn_huds(
+        db,
+        current_user.id,
+        turns_data,
+        mode=payload.mode,
+        topic=payload.topic,
+    )
 
     session = VoiceSession(
         user_id=current_user.id,
@@ -596,11 +674,32 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
 
     # Map the practice mode to a dialogue topic the realtime adapter threads
     # into the AI partner's reply generation.
-    _MODE_TOPICS = {
-        "interview": "English job interview practice — the AI acts as a professional interviewer, asks one interview question at a time, and briefly evaluates each answer.",
-        "free": "free natural conversation",
-    }
-    session_topic = _MODE_TOPICS.get(mode, _MODE_TOPICS["free"])
+    industry = (websocket.query_params.get("industry") or "").strip()
+    ielts_band = (websocket.query_params.get("ielts_band") or "").strip()
+    room_id = (websocket.query_params.get("room_id") or "").strip()
+
+    if mode == "interview":
+        parts = ["English job interview practice"]
+        if industry:
+            parts.append(f"industry: {industry}")
+        if ielts_band:
+            parts.append(f"IELTS speaking band target: {ielts_band}")
+        session_topic = (
+            " — ".join(parts)
+            + " — the AI acts as a professional interviewer, asks one question at a time, "
+            "and briefly evaluates each answer."
+        )
+    elif mode == "group":
+        room_hint = f" room {room_id}" if room_id else ""
+        session_topic = (
+            f"group voice English practice{room_hint} — multiple learners practice together; "
+            "the AI facilitates turn-taking, keeps everyone engaged, and gives brief feedback."
+        )
+    else:
+        _MODE_TOPICS = {
+            "free": "free natural conversation",
+        }
+        session_topic = _MODE_TOPICS.get(mode, _MODE_TOPICS["free"])
 
     with SessionLocal() as db:
         if user_id:
@@ -617,7 +716,14 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
                 return
 
         adapter = get_realtime_adapter(resolve_realtime_asr_provider(db), db=db)
-        coach_ctx = build_session_coach_context(db, user_id, mode=mode, topic=session_topic) if user_id else {}
+        coach_ctx = build_session_coach_context(
+            db,
+            user_id,
+            mode=mode,
+            topic=session_topic,
+            industry=industry,
+            ielts_band=ielts_band,
+        ) if user_id else {}
         if user_id:
             db.commit()
         session_info = await adapter.create_session({
@@ -668,6 +774,17 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
 
                 if data.get("type") == "close":
                     break
+
+                # High-frequency PCM chunks should not pause the outbound event pump.
+                is_streaming_pcm = (
+                    data.get("type") == "audio"
+                    and data.get("action") not in {"start", "end"}
+                    and (data.get("data") or data.get("format") == "pcm16")
+                )
+                if is_streaming_pcm:
+                    responses = await adapter.handle_client_message(data)
+                    await _send_adapter_messages(websocket, responses)
+                    continue
 
                 pump_resume.clear()
                 try:

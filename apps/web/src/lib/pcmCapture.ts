@@ -1,4 +1,6 @@
 const TARGET_SAMPLE_RATE = 16000;
+const SEND_BATCH_MS = 48;
+const MAX_PENDING_FRAMES = 10;
 
 function floatTo16BitPCM(input: Float32Array): Int16Array {
   const output = new Int16Array(input.length);
@@ -33,11 +35,25 @@ function downsampleBuffer(buffer: Float32Array, inputRate: number, outputRate: n
 
 function arrayBufferToBase64(buffer: ArrayBufferLike): string {
   const bytes = new Uint8Array(buffer);
+  const step = 0x8000;
   let binary = "";
-  for (let i = 0; i < bytes.byteLength; i += 1) {
-    binary += String.fromCharCode(bytes[i]);
+  for (let i = 0; i < bytes.length; i += step) {
+    const slice = bytes.subarray(i, i + step);
+    binary += String.fromCharCode.apply(null, slice as unknown as number[]);
   }
   return btoa(binary);
+}
+
+function mergePcmFrames(frames: Int16Array[]): Int16Array {
+  if (frames.length === 1) return frames[0];
+  const total = frames.reduce((sum, frame) => sum + frame.length, 0);
+  const merged = new Int16Array(total);
+  let offset = 0;
+  for (const frame of frames) {
+    merged.set(frame, offset);
+    offset += frame.length;
+  }
+  return merged;
 }
 
 export type PcmCaptureHandle = {
@@ -48,7 +64,7 @@ export type PcmCaptureHandle = {
 import { assertMicrophoneAvailable } from "./microphone";
 
 export async function startPcmCapture(
-  onChunk: (payload: { base64: string; sampleRate: number }) => void
+  onChunk: (payload: { base64: string; sampleRate: number }) => void,
 ): Promise<PcmCaptureHandle> {
   assertMicrophoneAvailable();
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -66,27 +82,65 @@ export async function startPcmCapture(
   }
   const source = audioContext.createMediaStreamSource(stream);
   const processor = audioContext.createScriptProcessor(4096, 1, 1);
+  const muteGain = audioContext.createGain();
+  muteGain.gain.value = 0;
 
-  processor.onaudioprocess = (event) => {
-    const channel = event.inputBuffer.getChannelData(0);
-    const downsampled = downsampleBuffer(channel, audioContext.sampleRate, TARGET_SAMPLE_RATE);
-    const pcm = floatTo16BitPCM(downsampled);
+  let stopped = false;
+  const pendingFrames: Int16Array[] = [];
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const flushPending = () => {
+    flushTimer = null;
+    if (stopped || pendingFrames.length === 0) return;
+    const frames = pendingFrames.splice(0, pendingFrames.length);
+    const pcm = mergePcmFrames(frames);
     onChunk({
-      base64: arrayBufferToBase64(pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength)),
-      sampleRate: TARGET_SAMPLE_RATE
+      base64: arrayBufferToBase64(
+        pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength),
+      ),
+      sampleRate: TARGET_SAMPLE_RATE,
     });
   };
 
+  const scheduleFlush = () => {
+    if (flushTimer !== null) return;
+    flushTimer = window.setTimeout(flushPending, SEND_BATCH_MS);
+  };
+
+  processor.onaudioprocess = (event) => {
+    if (stopped) return;
+    const channel = event.inputBuffer.getChannelData(0);
+    const downsampled = downsampleBuffer(channel, audioContext.sampleRate, TARGET_SAMPLE_RATE);
+    pendingFrames.push(floatTo16BitPCM(downsampled));
+    if (pendingFrames.length >= MAX_PENDING_FRAMES) {
+      if (flushTimer !== null) {
+        window.clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      flushPending();
+      return;
+    }
+    scheduleFlush();
+  };
+
   source.connect(processor);
-  processor.connect(audioContext.destination);
+  processor.connect(muteGain);
+  muteGain.connect(audioContext.destination);
 
   return {
     sampleRate: TARGET_SAMPLE_RATE,
     stop: () => {
+      stopped = true;
+      if (flushTimer !== null) {
+        window.clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      flushPending();
       processor.disconnect();
       source.disconnect();
+      muteGain.disconnect();
       stream.getTracks().forEach((track) => track.stop());
       void audioContext.close();
-    }
+    },
   };
 }

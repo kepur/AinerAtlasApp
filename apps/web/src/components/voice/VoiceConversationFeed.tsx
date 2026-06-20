@@ -1,5 +1,5 @@
 import { Loader, MessageSquare, Sparkles, Volume2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { VoiceDialogueTurn } from "../../lib/voiceTurnHelpers";
 
 type GrammarTip = { pattern: string; explanation: string };
@@ -40,12 +40,15 @@ export default function VoiceConversationFeed({
   onFeedTap,
   tapToEnd,
 }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null);
   const msgById = new Map(messages.map((m) => [m.id, m]));
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, turns]);
+    if (!activeTurnId) return;
+    const root = feedRef.current;
+    if (!root) return;
+    const el = root.querySelector(`[data-turn-id="${activeTurnId}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [activeTurnId, messages, turns, feedRef]);
 
   const dialogueTurns = turns.filter((t) => msgById.has(t.userBubbleId));
 
@@ -75,11 +78,13 @@ export default function VoiceConversationFeed({
         const assistantMsg = turn.assistantBubbleId ? msgById.get(turn.assistantBubbleId) : undefined;
         if (!userMsg) return null;
         const isActive = turn.turn_id === activeTurnId;
+        const isLive = isActive && (turn.status === "replying" || turn.status === "analyzing" || userMsg.status === "streaming" || assistantMsg?.status === "streaming");
 
         return (
           <div
             key={turn.turn_id}
-            className={`turn-block voice-turn-block ${isActive ? "active" : ""}`}
+            data-turn-id={turn.turn_id}
+            className={`turn-block voice-turn-block ${isActive ? "active" : ""}${isLive ? " voice-turn-block--live" : ""}`}
             onClick={() => onTurnClick(turn.turn_id)}
           >
             <div className="conv-row user">
@@ -138,8 +143,9 @@ export default function VoiceConversationFeed({
 
       {messages
         .filter((m) => m.role === "system" || !turns.some((t) => t.userBubbleId === m.id || t.assistantBubbleId === m.id))
+        .filter((msg) => !(inCall && /正在连接语音教练/.test(msg.text)))
         .map((msg) => {
-          const isConnecting = /连接/.test(msg.text);
+          const isConnecting = (connecting || msg.status === "streaming") && /正在连接|连接中/.test(msg.text);
           const isSuccess = /接通|已连接/.test(msg.text);
           const isError = msg.status === "error" || /断开|失败|超时/.test(msg.text);
           const bannerClass = isError
@@ -155,8 +161,6 @@ export default function VoiceConversationFeed({
             </div>
           );
         })}
-
-      <div ref={bottomRef} />
     </div>
   );
 }

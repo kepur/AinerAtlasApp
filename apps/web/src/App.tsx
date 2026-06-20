@@ -22,6 +22,7 @@ import PuzzleGame from "./pages/game/PuzzleGame";
 import GameDetail from "./pages/game/GameDetail";
 import CustomStoryBuilder from "./pages/game/CustomStoryBuilder";
 import InterrogationRoom from "./pages/game/InterrogationRoom";
+import WerewolfRoom from "./pages/game/WerewolfRoom";
 import PartyRoom from "./pages/game/PartyRoom";
 import LuminaForge from "./pages/game/LuminaForge";
 import GameSummaryScreen from "./pages/game/GameSummaryScreen";
@@ -102,6 +103,7 @@ function AppLayout() {
           <Route path="/game/roleplay-setup" element={<RoleplaySetup />} />
           <Route path="/game/custom-story-builder" element={<CustomStoryBuilder />} />
           <Route path="/game/lumina-forge" element={<LuminaForge />} />
+          <Route path="/game/werewolf-room/:id" element={<WerewolfRoom />} />
           <Route path="/game/party-room/:id" element={<PartyRoom />} />
           <Route path="/game/detective-board" element={<DetectiveBoard />} />
           <Route path="/game/detective-board/:id" element={<DetectiveBoard />} />
@@ -175,8 +177,8 @@ export default function App() {
     <main className="app-shell">
       <section className="phone-frame">
         <Routes>
-          <Route path="/forgot-password" element={isLoggedIn ? <Navigate to="/home" replace /> : <ForgotPassword />} />
-          <Route path="/reset-password" element={isLoggedIn ? <Navigate to="/home" replace /> : <ResetPassword />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/login" element={isLoggedIn ? <Navigate to="/home" replace /> : <Login />} />
           <Route path="/register" element={isLoggedIn ? <Navigate to="/home" replace /> : <Register />} />
           <Route element={<PrivateRoute />}>

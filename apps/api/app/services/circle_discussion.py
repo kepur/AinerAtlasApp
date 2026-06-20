@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models import CircleMessage, CircleRoom, Thought, Topic, utc_now
 from app.services.circle_moderator import generate_room_summary
+from app.services.freeze_helpers import ensure_expression_versions
 from app.services.llm import require_llm_provider
 from app.services.runtime_config import resolve_default_llm_provider
 
@@ -45,6 +46,8 @@ async def freeze_circle_room(db: Session, room: CircleRoom, user_id: str) -> Tho
     transcript = _room_transcript(db, room.id)
     provider = require_llm_provider(resolve_default_llm_provider(db), db=db)
     result = await provider.generate_expression_asset(transcript, "en", room.title)
+    versions = ensure_expression_versions(result, source_text=transcript, title=room.title)
+    result.expression_versions = versions
 
     thoughts = list(
         db.scalars(
@@ -64,8 +67,8 @@ async def freeze_circle_room(db: Session, room: CircleRoom, user_id: str) -> Tho
         "summary": summary,
         "keywords": result.keywords or result.vocabulary or summary.get("keywords", []),
         "core_patterns": result.core_patterns or result.patterns or summary.get("patterns", []),
-        "expression_versions": result.expression_versions,
-        "golden_quote": result.expression_versions.get("golden_quote", result.suggested_expression),
+        "expression_versions": versions,
+        "golden_quote": versions.get("golden_quote", result.suggested_expression),
         "main_points": summary.get("main_points", []),
         "consensus": summary.get("consensus", []),
         "disagreements": summary.get("disagreements", []),
@@ -75,7 +78,7 @@ async def freeze_circle_room(db: Session, room: CircleRoom, user_id: str) -> Tho
         existing.title = room.title
         existing.summary = narrative
         existing.final_content_native = transcript
-        existing.final_content_target = result.expression_versions.get("advanced", "") or result.main_reply_target
+        existing.final_content_target = versions.get("advanced", "") or result.main_reply_target
         existing.freeze_payload = freeze_payload
         existing.status = "frozen"
         existing.frozen_at = utc_now()
@@ -87,7 +90,7 @@ async def freeze_circle_room(db: Session, room: CircleRoom, user_id: str) -> Tho
             title=room.title,
             summary=narrative,
             final_content_native=transcript,
-            final_content_target=result.expression_versions.get("advanced", "") or result.main_reply_target,
+            final_content_target=versions.get("advanced", "") or result.main_reply_target,
             freeze_payload=freeze_payload,
             status="frozen",
             frozen_at=utc_now(),

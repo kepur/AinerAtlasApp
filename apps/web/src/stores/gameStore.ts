@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { apiRequest } from "../api";
+import { apiRequest, findResumableGameSession } from "../api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,15 +106,25 @@ interface GameStore {
   feedItems: FeedItem[];
   currentHud: Record<string, unknown> | null;
   turnLoading: boolean;
+  inFlightTurns: number;
   summary: GameSummary | null;
 
   loadTemplates: (gameType?: string) => Promise<void>;
   loadTemplate: (id: string) => Promise<GameTemplate>;
   loadSessions: (status?: string) => Promise<void>;
+  findResumableSession: (
+    gameType: string,
+    opts?: { target_id?: string; template_id?: string },
+  ) => Promise<{ id: string } | null>;
   createSession: (gameType: string, templateId?: string, config?: Record<string, unknown>) => Promise<GameSession>;
   loadSession: (sessionId: string) => Promise<void>;
   sendTurn: (sessionId: string, actionType: string, userInput?: string, extra?: Record<string, unknown>) => Promise<TurnResult>;
   sendTurnStream: (sessionId: string, actionType: string, userInput?: string, extra?: Record<string, unknown>) => Promise<TurnResult>;
+  sendDetectiveInterrogate: (
+    sessionId: string,
+    question: string,
+    extra?: Record<string, unknown>
+  ) => Promise<TurnResult | null>;
   loadSummary: (sessionId: string) => Promise<GameSummary>;
   generateStoryOutline: (prompt: string, length?: string) => Promise<GeneratedStoryOutline>;
   createGameTemplate: (payload: {
@@ -135,6 +145,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   feedItems: [],
   currentHud: null,
   turnLoading: false,
+  inFlightTurns: 0,
   summary: null,
 
   loadTemplates: async (gameType) => {
@@ -161,6 +172,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } finally {
       set({ sessionsLoading: false });
     }
+  },
+
+  findResumableSession: async (gameType, opts) => {
+    return findResumableGameSession(gameType, opts);
   },
 
   createSession: async (gameType, templateId, config) => {
@@ -396,6 +411,136 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  sendDetectiveInterrogate: async (sessionId, question, extra) => {
+    const turnId = crypto.randomUUID();
+    const suspectId = String(extra?.suspect_id ?? "");
+    const token = localStorage.getItem("ainerspeak_token") || "";
+    const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+
+    set((s) => ({
+      inFlightTurns: (s.inFlightTurns ?? 0) + 1,
+      feedItems: [
+        ...s.feedItems,
+        {
+          type: "user_question",
+          text: question,
+          suspect_id: suspectId,
+          turn_id: turnId,
+        },
+        {
+          type: "suspect_answer",
+          suspect_id: suspectId,
+          text: "",
+          turn_id: turnId,
+          _streaming: true,
+          _thinking: true,
+        },
+      ],
+    }));
+
+    const mergeSuspectDelta = (items: FeedItem[]) => {
+      set((s) => {
+        const fi = [...s.feedItems];
+        for (const it of items) {
+          if (it.type !== "suspect_answer" || !it.turn_id) continue;
+          const idx = fi.findIndex(
+            (row) => row.type === "suspect_answer" && row.turn_id === it.turn_id
+          );
+          if (idx >= 0) {
+            fi[idx] = {
+              ...fi[idx],
+              ...it,
+              text: `${fi[idx].text || ""}${it.text || ""}`,
+              _streaming: true,
+              _thinking: false,
+            };
+          }
+        }
+        return { feedItems: fi };
+      });
+    };
+
+    try {
+      const response = await fetch(`${baseUrl}/api/games/sessions/${sessionId}/turns/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action_type: "interrogate",
+          user_input: question,
+          extra: { ...(extra || {}), turn_id: turnId },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Stream request failed: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body reader");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() || "";
+
+        for (const raw of events) {
+          const lines = raw.split("\n");
+          let eventType = "";
+          let dataStr = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event: ")) eventType = line.slice(7).trim();
+            else if (line.startsWith("data: ")) dataStr = line.slice(6).trim();
+          }
+          if (!eventType || !dataStr) continue;
+
+          if (eventType === "feed") {
+            const parsed = JSON.parse(dataStr);
+            mergeSuspectDelta(parsed.feed_items || []);
+          } else if (eventType === "complete") {
+            const result = JSON.parse(dataStr) as TurnResult;
+            const hud =
+              result.turn.hud && Object.keys(result.turn.hud).length > 0
+                ? result.turn.hud
+                : null;
+
+            set((s) => ({
+              feedItems: [
+                ...s.feedItems.filter((row) => row.turn_id !== turnId),
+                ...(result.turn.feed_items || []),
+              ],
+              currentHud: hud || s.currentHud,
+              currentSession: result.session,
+            }));
+            return result;
+          } else if (eventType === "error") {
+            const err = JSON.parse(dataStr);
+            throw new Error(err.detail || "Stream error");
+          }
+        }
+      }
+
+      throw new Error("Stream ended without complete event");
+    } catch (e) {
+      set((s) => ({
+        feedItems: s.feedItems.filter((row) => row.turn_id !== turnId),
+      }));
+      console.error("sendDetectiveInterrogate error:", e);
+      throw e;
+    } finally {
+      set((s) => ({ inFlightTurns: Math.max(0, (s.inFlightTurns ?? 0) - 1) }));
+    }
+  },
+
   loadSummary: async (sessionId) => {
     const data = await apiRequest<GameSummary>(`/api/games/sessions/${sessionId}/summary`);
     set({ summary: data });
@@ -423,6 +568,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   clearCurrent: () => {
-    set({ currentSession: null, feedItems: [], currentHud: null, summary: null });
+    set({ currentSession: null, feedItems: [], currentHud: null, summary: null, inFlightTurns: 0 });
   },
 }));

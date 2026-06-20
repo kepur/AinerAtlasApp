@@ -1,5 +1,5 @@
 from app.models import User
-from app.services.membership_access import has_voice_coach_access
+from app.services.membership_access import has_pro_access, has_voice_coach_access
 
 
 def _user(level: str, role: str = "user", status: str = "active") -> User:
@@ -24,6 +24,13 @@ def test_legacy_premium_maps_to_pro_voice():
 
 def test_expired_user_no_voice():
     assert has_voice_coach_access(_user("vip", status="expired")) is False
+
+
+def test_pro_access():
+    assert has_pro_access(_user("pro")) is True
+    assert has_pro_access(_user("vip")) is False
+    assert has_pro_access(_user("free")) is False
+    assert has_pro_access(_user("free", role="admin")) is True
 
 
 def test_normalize_membership_level():

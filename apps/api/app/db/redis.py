@@ -95,6 +95,12 @@ class QuotaManager:
         used = int(raw) if raw else 0
         return QuotaSnapshot(used=used, limit=limit)
 
+    def reset_match_cards(self, user: User) -> QuotaSnapshot:
+        """Clear today's match-card consumption for a user (admin reset)."""
+        key = self._build_key(user.id, "match_cards")
+        self.redis.delete(key)
+        return self.snapshot_match_cards(user)
+
     def _consume(self, user: User, bucket: str, amount: int) -> QuotaSnapshot:
         limit = self._get_limit(user, bucket)
         if limit < 0:

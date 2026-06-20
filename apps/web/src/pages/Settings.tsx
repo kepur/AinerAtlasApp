@@ -200,7 +200,7 @@ export default function Settings() {
             </div>
             <button
               type="button"
-              onClick={() => navigate("/forgot-password")}
+              onClick={() => navigate(`/forgot-password?email=${encodeURIComponent(user?.email ?? "")}`)}
               className="text-sm text-primary font-medium"
             >
               {t("settings.changePassword")}

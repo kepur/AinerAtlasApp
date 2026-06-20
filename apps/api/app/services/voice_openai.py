@@ -54,7 +54,7 @@ class OpenAIVoiceProvider(VoiceProvider):
         self.whisper_model = whisper_model
         self._fallback = MockVoiceProvider()
 
-    async def transcribe(self, audio_url: str, language: str) -> str:
+    async def transcribe(self, audio_url: str, language: str, mime_type: str = "audio/webm") -> str:
         if not self.api_key:
             return await self._fallback.transcribe(audio_url, language)
 
@@ -62,13 +62,22 @@ class OpenAIVoiceProvider(VoiceProvider):
         if not audio_bytes:
             return await self._fallback.transcribe(audio_url, language)
 
+        ext = "webm"
+        if "mp4" in mime_type or "aac" in mime_type:
+            ext = "mp4"
+        elif "wav" in mime_type:
+            ext = "wav"
+
         started = time.perf_counter()
         async with httpx.AsyncClient(timeout=60) as client:
+            form: dict[str, str] = {"model": self.whisper_model}
+            if language and language not in {"auto"}:
+                form["language"] = language
             response = await client.post(
                 f"{self.api_base_url}/audio/transcriptions",
                 headers={"Authorization": f"Bearer {self.api_key}"},
-                data={"model": self.whisper_model, "language": language},
-                files={"file": ("audio.webm", audio_bytes, "audio/webm")},
+                data=form,
+                files={"file": (f"audio.{ext}", audio_bytes, mime_type or f"audio/{ext}")},
             )
             response.raise_for_status()
             payload = response.json()

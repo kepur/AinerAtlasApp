@@ -52,10 +52,11 @@ export default function Thoughts() {
               在对话页点击 Freeze，将多轮思想沉淀为可复用的表达资产。
             </p>
             <button
+              type="button"
               onClick={() => navigate("/chat")}
-              className="bg-primary text-white px-6 py-3 rounded-full font-bold text-[14px] shadow-[0_8px_30px_rgba(99,14,212,0.25)] active:scale-95 transition-all"
+              className="as-btn as-btn--primary"
             >
-              去对话
+              开始思想对话
             </button>
           </div>
         ) : (

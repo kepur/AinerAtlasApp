@@ -6,7 +6,9 @@ import { applyTheme, readStoredTheme, resolveTheme } from "./lib/theme";
 import { enabledLocaleCodes, useAppConfigStore } from "./stores/appConfigStore";
 import { useAuthStore } from "./stores/authStore";
 import "./styles.css";
+import "./styles/action-chips.css";
 import "./premium.css";
+import "./theme-contrast.css";
 
 function LocaleThemeSync() {
   const config = useAppConfigStore((s) => s.config);

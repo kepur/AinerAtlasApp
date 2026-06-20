@@ -1,10 +1,16 @@
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.api.deps import CurrentUser, DBSession
 from app.models import GrammarPattern, UserMastery, utc_now
 from app.schemas import (
     CrushCandidateCreate,
+    GrammarBatchExerciseReady,
+    GrammarBatchInsight,
+    GrammarBatchResultItem,
+    GrammarBatchStartResponse,
+    GrammarBatchSummaryRequest,
+    GrammarBatchSummaryResponse,
     MasteryRead,
     PracticeExercise,
     PracticeExercisePublic,
@@ -13,7 +19,8 @@ from app.schemas import (
     PracticeSubmit,
 )
 from app.services.pattern_mining import _upsert_mastery_item
-from app.services.crush_exercise_llm import generate_exercise_smart
+from app.services.crush_batch import prepare_grammar_batch_exercises, select_grammar_batch
+from app.services.crush_exercise_llm import generate_exercise_smart, generate_grammar_batch_analysis
 from app.services.practice import generate_exercise, grade_answer, stash_exercise, take_exercise
 
 router = APIRouter(prefix="/grammar", tags=["grammar"])
@@ -80,6 +87,65 @@ def review_queue(
     if language_code:
         stmt = stmt.where(UserMastery.language_code == language_code)
     return list(db.scalars(stmt))
+
+
+def _count_grammar_remaining(user_id: str, db: DBSession) -> int:
+    return db.scalar(
+        select(func.count())
+        .select_from(UserMastery)
+        .where(
+            UserMastery.user_id == user_id,
+            UserMastery.item_type != "vocabulary",
+            UserMastery.status.not_in(["mastered", "archived", "ignored"]),
+        )
+    ) or 0
+
+
+@router.get("/practice/batch", response_model=GrammarBatchStartResponse)
+def start_grammar_batch(current_user: CurrentUser, db: DBSession, size: int = 10) -> GrammarBatchStartResponse:
+    batch = select_grammar_batch(db, current_user.id, size=size)
+    prepared = prepare_grammar_batch_exercises(current_user.id, batch)
+    exercises = [
+        GrammarBatchExerciseReady(
+            item_id=row["item_id"],
+            exercise=_public_exercise(row["exercise"]),
+            exercise_token=row["exercise_token"],
+        )
+        for row in prepared
+    ]
+    return GrammarBatchStartResponse(
+        batch_size=len(batch),
+        total_remaining=int(_count_grammar_remaining(current_user.id, db)),
+        items=batch,
+        exercises=exercises,
+    )
+
+
+@router.post("/practice/batch-summary", response_model=GrammarBatchSummaryResponse)
+async def grammar_batch_summary(
+    payload: GrammarBatchSummaryRequest,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> GrammarBatchSummaryResponse:
+    if not payload.results:
+        raise HTTPException(status_code=400, detail="results is required")
+
+    raw = [row.model_dump() for row in payload.results]
+    data = await generate_grammar_batch_analysis(db, raw)
+    insights = [
+        GrammarBatchInsight(
+            title=str(row.get("title", "")),
+            correct=bool(row.get("correct")),
+            explanation=str(row.get("explanation", "")),
+            tip=str(row.get("tip", "")),
+        )
+        for row in data.get("insights", [])
+    ]
+    return GrammarBatchSummaryResponse(
+        summary=str(data.get("summary", "")),
+        insights=insights,
+        encouragement=str(data.get("encouragement", "")),
+    )
 
 
 @router.get("/patterns")

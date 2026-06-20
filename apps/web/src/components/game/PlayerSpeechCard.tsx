@@ -51,18 +51,26 @@ export default function PlayerSpeechCard({
           )}
           
           {/* Actions - visible on tap/hover or permanent in this UI */}
-          <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/10">
-            <button onClick={onSpeak} className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white/80 px-2.5 py-1 rounded-full transition-all text-[11px]">
-              <Volume2 size={12} className="text-[#7c5cff]" /> 朗读
-            </button>
-            <button onClick={onChallenge} className="flex items-center gap-1.5 bg-orange-500/10 hover:bg-orange-500/20 backdrop-blur-md border border-orange-500/20 text-orange-300 px-2.5 py-1 rounded-full transition-all text-[11px]">
-              <ShieldAlert size={12} className="text-orange-400" /> 质疑
-            </button>
-            <div className="flex-1"></div>
-            <button onClick={onSave} className="flex items-center justify-center w-6 h-6 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-white/50 hover:text-white/80">
-              <Bookmark size={12} />
-            </button>
+          {(onSpeak || onChallenge || onSave) && (
+          <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/10 as-inline-actions">
+            {onSpeak && (
+              <button type="button" onClick={onSpeak} className="as-chip as-chip--sm as-chip--ghost">
+                <Volume2 size={12} /> 朗读
+              </button>
+            )}
+            {onChallenge && (
+              <button type="button" onClick={onChallenge} className="as-chip as-chip--sm as-chip--ghost" style={{ borderColor: "rgba(251, 146, 60, 0.25)", color: "#fb923c" }}>
+                <ShieldAlert size={12} /> 质疑
+              </button>
+            )}
+            <div className="flex-1" />
+            {onSave && (
+              <button type="button" onClick={onSave} className="as-chip as-chip--sm as-chip--accent" aria-label="收藏">
+                <Bookmark size={12} />
+              </button>
+            )}
           </div>
+          )}
         </div>
       </div>
     </div>

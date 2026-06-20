@@ -1,0 +1,245 @@
+/* ─── Learning HUD · Apple glass system ─── */
+
+.learning-hud {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="dark"] .learning-hud {
+  background: rgba(18, 16, 28, 0.55);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.hud-status {
+  padding: 14px 18px;
+}
+
+.hud-status-icon {
+  color: #630ed4;
+}
+
+[data-theme="dark"] .hud-status-icon {
+  color: #a78bfa;
+}
+
+.hud-scroll {
+  padding: 12px 16px 14px;
+  gap: 14px;
+}
+
+.hud-card {
+  flex: 0 0 78%;
+  max-width: 320px;
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 20px;
+  padding: 14px 16px;
+  gap: 10px;
+  max-height: 190px;
+  box-shadow:
+    0 10px 40px rgba(99, 14, 212, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] .hud-card {
+  background: rgba(36, 32, 52, 0.72);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.hud-card-crush {
+  background: rgba(255, 247, 237, 0.75);
+  border-color: rgba(234, 88, 12, 0.22);
+}
+
+[data-theme="dark"] .hud-card-crush {
+  background: rgba(67, 32, 12, 0.45);
+  border-color: rgba(251, 146, 60, 0.25);
+}
+
+.hud-card-title {
+  color: #630ed4;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .hud-card-title {
+  color: #c4b5fd;
+}
+
+/* iOS segmented control */
+.hud-variant-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .hud-variant-tabs {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.hud-variant-tab {
+  background: transparent;
+  border: none;
+  color: #5c5568;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+[data-theme="dark"] .hud-variant-tab {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hud-variant-tab:hover:not(.active) {
+  color: #630ed4;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.hud-variant-tab.active {
+  background: #ffffff;
+  color: #630ed4;
+  box-shadow:
+    0 2px 8px rgba(99, 14, 212, 0.14),
+    0 0 0 0.5px rgba(99, 14, 212, 0.1);
+}
+
+[data-theme="dark"] .hud-variant-tab.active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #e9d5ff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.hud-expression-text {
+  color: #131b2e;
+}
+
+[data-theme="dark"] .hud-expression-text {
+  color: #f3f0ff;
+}
+
+/* TTS — glass circle, explicit contrast */
+.learning-hud .tts-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(99, 14, 212, 0.2);
+  background: rgba(99, 14, 212, 0.1);
+  color: #630ed4;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.learning-hud .tts-btn:hover {
+  background: rgba(99, 14, 212, 0.18);
+  border-color: rgba(99, 14, 212, 0.35);
+  transform: scale(1.05);
+}
+
+.learning-hud .tts-btn.tts-playing {
+  color: #630ed4;
+  background: rgba(99, 14, 212, 0.22);
+  border-color: rgba(99, 14, 212, 0.4);
+}
+
+.learning-hud .tts-btn.tts-failed {
+  color: #ba1a1a;
+  background: rgba(186, 26, 26, 0.1);
+  border-color: rgba(186, 26, 26, 0.25);
+}
+
+.learning-hud .tts-btn.tts-loading {
+  color: #7b7487;
+}
+
+[data-theme="dark"] .learning-hud .tts-btn {
+  background: rgba(167, 139, 250, 0.15);
+  border-color: rgba(167, 139, 250, 0.3);
+  color: #c4b5fd;
+}
+
+/* Vocab pills */
+.hud-pills .pill {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(99, 14, 212, 0.16);
+  color: #630ed4;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hud-pills .pill:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px rgba(99, 14, 212, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .hud-pills .pill {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(167, 139, 250, 0.25);
+  color: #ddd6fe;
+}
+
+.hud-agent-name {
+  color: #630ed4;
+}
+
+[data-theme="dark"] .hud-agent-name {
+  color: #a78bfa;
+}
+
+/* Game dark shell */
+.game-dark .learning-hud {
+  background: rgba(5, 7, 15, 0.72);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-dark .hud-variant-tab {
+  color: rgba(244, 244, 245, 0.55);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.game-dark .hud-variant-tab.active {
+  background: rgba(139, 124, 248, 0.28);
+  color: #f4f4f5;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.25);
+}
+
+.game-dark .hud-pills .pill {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(244, 244, 245, 0.88);
+}
+
+.game-dark .learning-hud .tts-btn {
+  background: rgba(139, 124, 248, 0.2);
+  border-color: rgba(167, 139, 250, 0.38);
+  color: #c4b5fd;
+}

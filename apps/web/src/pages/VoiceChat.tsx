@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { useNavigate } from "react-router-dom";
-import { getToken, addCrushCandidate, submitRealtimeCallSummary, API_BASE_URL, type RealtimeCallSummary } from "../api";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { getToken, addCrushCandidate, submitRealtimeCallSummary, API_BASE_URL, listVoiceSessions, joinVoiceGroupMatch, pollVoiceGroupMatch, leaveVoiceGroupMatch, type RealtimeCallSummary, type VoiceSessionRecord } from "../api";
 import { LearningHUD, TokenExplainSheet, TurnSelector, useTts } from "../components/learning";
 import VipVoicePrompt from "../components/VipVoicePrompt";
 import { AmbientScene, CompanionPet, deriveVoiceSceneMood, type SceneMood } from "../components/ambient";
@@ -11,7 +11,7 @@ import {
   mergeHudData,
   type VoiceDialogueTurn,
 } from "../lib/voiceTurnHelpers";
-import { hasVoiceCoachAccess, isMembershipReady, isVoiceCoachBlocked } from "../lib/membership";
+import { hasVoiceCoachAccess, hasProAccess, isMembershipReady, isVoiceCoachBlocked } from "../lib/membership";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import type { DialogueTurn, HudData } from "../stores/chatStore";
@@ -45,6 +45,7 @@ type CoachBriefing = {
   interests?: string[];
   focus_topics?: string[];
   opening_greeting?: string;
+  focus_topics?: string[];
   analyzed_at?: string | null;
 };
 
@@ -61,21 +62,30 @@ function formatCallDuration(totalSec: number) {
 }
 
 const MODES = ["自由对话", "跟读训练", "面试练习", "小组语音"];
+const CONNECTION_STATUS_BUBBLE_ID = "voice-connection-status";
+const INTERVIEW_INDUSTRIES = ["通用", "科技", "金融", "医疗", "教育", "零售"];
+const IELTS_BANDS = ["5.5", "6.0", "6.5", "7.0", "7.5"];
 
 function buildCoachMarqueeLine(
   briefing: CoachBriefing | null,
   silenceMs: number,
   tapToEnd: boolean,
   tapAck: boolean,
+  interviewMode: boolean,
 ): string {
   const pauseHint = tapToEnd
     ? `说完轻点屏幕，或停顿约 ${(silenceMs / 1000).toFixed(1)} 秒`
     : `说完后停顿约 ${(silenceMs / 1000).toFixed(1)} 秒`;
   const chunks: string[] = [];
   if (briefing?.user_summary) chunks.push(briefing.user_summary);
-  for (const tag of (briefing?.interests ?? []).slice(0, 4)) chunks.push(tag);
-  for (const s of (briefing?.strengths ?? []).slice(0, 2)) chunks.push(s);
-  const profile = chunks.length ? chunks.join(" · ") : "教练已就绪";
+  if (interviewMode) {
+    for (const tag of (briefing?.interests ?? []).slice(0, 4)) chunks.push(tag);
+    for (const q of (briefing?.focus_topics ?? []).slice(0, 1)) chunks.push(String(q));
+  } else {
+    for (const tag of (briefing?.interests ?? []).slice(0, 4)) chunks.push(tag);
+    for (const s of (briefing?.strengths ?? []).slice(0, 2)) chunks.push(s);
+  }
+  const profile = chunks.length ? chunks.join(" · ") : interviewMode ? "面试场景已就绪" : "教练已就绪";
   const ack = tapAck ? " · 已发送" : "";
   return `${profile} · ${pauseHint}${ack}`;
 }
@@ -119,6 +129,8 @@ function voiceTurnsToSelector(turns: VoiceDialogueTurn[]): DialogueTurn[] {
 export default function VoiceChat() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const presetGroupRoom = searchParams.get("groupRoom");
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const userHydrated = useAuthStore((s) => s.userHydrated);
@@ -143,6 +155,14 @@ export default function VoiceChat() {
   const [tapAck, setTapAck] = useState(false);
   const [explainToken, setExplainToken] = useState<{ token: string; context: string } | null>(null);
   const [coachBriefing, setCoachBriefing] = useState<CoachBriefing | null>(null);
+  const [interviewIndustry, setInterviewIndustry] = useState("通用");
+  const [ieltsBand, setIeltsBand] = useState("6.5");
+  const [groupRoomId, setGroupRoomId] = useState<string | null>(null);
+  const [groupMatching, setGroupMatching] = useState(false);
+  const [groupMatchStatus, setGroupMatchStatus] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [voiceHistory, setVoiceHistory] = useState<VoiceSessionRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const { speak } = useTts();
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -158,9 +178,18 @@ export default function VoiceChat() {
   activeModeRef.current = activeMode;
   const omniAudioCtxRef = useRef<AudioContext | null>(null);
   const omniPlayTimeRef = useRef(0);
+  const omniSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const omniModeRef = useRef(false);
+  const userSpeakingRef = useRef(false);
+  const aiSpeakingRef = useRef(false);
+  const speechStartedAtRef = useRef<number | null>(null);
+  const pendingTranscriptRef = useRef<{ text: string; isFinal: boolean } | null>(null);
+  const transcriptFlushRef = useRef<number | null>(null);
+  const wsSendQueueRef = useRef<string[]>([]);
+  const wsFlushTimerRef = useRef<number | null>(null);
+  const lastInterruptAtRef = useRef(0);
   const feedRef = useRef<HTMLDivElement>(null);
-  const stickToBottomRef = useRef(true);
+  const stickToBottomRef = useRef(false);
   const userBubbleIdRef = useRef<string | null>(null);
   const assistantBubbleIdRef = useRef<string | null>(null);
   const lastUserTextRef = useRef("");
@@ -168,7 +197,16 @@ export default function VoiceChat() {
   const tapAckTimerRef = useRef<number | null>(null);
   const sessionVoiceUiRef = useRef<RealtimeSessionInfo["voice_ui"]>(undefined);
   const inCallRef = useRef(false);
+  const summaryOnceRef = useRef(false);
+  const interviewIndustryRef = useRef(interviewIndustry);
+  const ieltsBandRef = useRef(ieltsBand);
+  const groupRoomIdRef = useRef(groupRoomId);
+  interviewIndustryRef.current = interviewIndustry;
+  ieltsBandRef.current = ieltsBand;
+  groupRoomIdRef.current = groupRoomId;
   const [disconnectFlash, setDisconnectFlash] = useState(false);
+  const [aiSpeaking, setAiSpeaking] = useState(false);
+  const [userSpeaking, setUserSpeaking] = useState(false);
 
   const upsertBubble = useCallback((bubble: VoiceBubbleMsg) => {
     setMessages((prev) => {
@@ -186,6 +224,133 @@ export default function VoiceChat() {
     setMessages((prev) => [...prev, bubble]);
   }, []);
 
+  const stopOmniPlayback = useCallback(() => {
+    const ctx = omniAudioCtxRef.current;
+    omniPlayTimeRef.current = ctx?.currentTime ?? 0;
+    for (const src of omniSourcesRef.current) {
+      try {
+        src.stop(0);
+      } catch {
+        /* already stopped */
+      }
+      try {
+        src.disconnect();
+      } catch {
+        /* ignore */
+      }
+    }
+    omniSourcesRef.current = [];
+    aiSpeakingRef.current = false;
+    setAiSpeaking(false);
+  }, []);
+
+  const flushWsSendQueue = useCallback(() => {
+    wsFlushTimerRef.current = null;
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      wsSendQueueRef.current = [];
+      return;
+    }
+    while (wsSendQueueRef.current.length > 0 && ws.bufferedAmount < 256_000) {
+      const next = wsSendQueueRef.current.shift();
+      if (next) ws.send(next);
+    }
+    if (wsSendQueueRef.current.length > 0 && wsFlushTimerRef.current === null) {
+      wsFlushTimerRef.current = window.setTimeout(flushWsSendQueue, 32);
+    }
+  }, []);
+
+  const queueWsSend = useCallback((payload: string, priority = false) => {
+    if (priority) {
+      wsSendQueueRef.current.unshift(payload);
+    } else {
+      wsSendQueueRef.current.push(payload);
+    }
+    if (!priority && wsSendQueueRef.current.length > 64) {
+      wsSendQueueRef.current = wsSendQueueRef.current.slice(-48);
+    }
+    flushWsSendQueue();
+  }, [flushWsSendQueue]);
+
+  const sendWsControl = useCallback((payload: Record<string, unknown>) => {
+    queueWsSend(JSON.stringify(payload), true);
+  }, [queueWsSend]);
+
+  const markUserSpeaking = useCallback((speaking: boolean) => {
+    userSpeakingRef.current = speaking;
+    setUserSpeaking(speaking);
+    if (speaking) {
+      if (speechStartedAtRef.current === null) {
+        speechStartedAtRef.current = Date.now();
+      }
+      return;
+    }
+    speechStartedAtRef.current = null;
+  }, []);
+
+  const applyTranscriptUpdate = useCallback((text: string, isFinal: boolean) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    if (!userBubbleIdRef.current) {
+      userBubbleIdRef.current = bubbleId("user");
+    }
+    const uid = userBubbleIdRef.current;
+    markUserSpeaking(!isFinal);
+    upsertBubble({
+      id: uid,
+      role: "user",
+      text: trimmed,
+      status: isFinal ? "final" : "streaming",
+    });
+    if (isFinal) {
+      lastUserTextRef.current = trimmed;
+      const turnId = bubbleId("turn");
+      currentTurnIdRef.current = turnId;
+      setTurns((prev) => [
+        ...prev,
+        {
+          turn_id: turnId,
+          userBubbleId: uid,
+          assistantBubbleId: null,
+          user_text: trimmed,
+          ai_reply: "",
+          hud: null,
+          status: "replying",
+          label: deriveTurnLabel(null, trimmed, prev.length),
+          pinned: false,
+          focusCount: 0,
+        },
+      ]);
+      setActiveTurnId(turnId);
+      userBubbleIdRef.current = null;
+      markUserSpeaking(false);
+    }
+  }, [markUserSpeaking, upsertBubble]);
+
+  const flushPendingTranscript = useCallback(() => {
+    const pending = pendingTranscriptRef.current;
+    if (!pending) return;
+    pendingTranscriptRef.current = null;
+    applyTranscriptUpdate(pending.text, pending.isFinal);
+  }, [applyTranscriptUpdate]);
+
+  const scheduleTranscriptUpdate = useCallback((text: string, isFinal: boolean) => {
+    pendingTranscriptRef.current = { text, isFinal };
+    if (isFinal) {
+      if (transcriptFlushRef.current !== null) {
+        window.cancelAnimationFrame(transcriptFlushRef.current);
+        transcriptFlushRef.current = null;
+      }
+      flushPendingTranscript();
+      return;
+    }
+    if (transcriptFlushRef.current !== null) return;
+    transcriptFlushRef.current = window.requestAnimationFrame(() => {
+      transcriptFlushRef.current = null;
+      flushPendingTranscript();
+    });
+  }, [flushPendingTranscript]);
+
   const scrollFeedToBottom = useCallback((force = false) => {
     const el = feedRef.current;
     if (!el) return;
@@ -195,7 +360,9 @@ export default function VoiceChat() {
   }, []);
 
   useEffect(() => {
-    scrollFeedToBottom();
+    if (stickToBottomRef.current) {
+      scrollFeedToBottom();
+    }
   }, [messages, turns, scrollFeedToBottom]);
 
   const selectorTurns = useMemo(() => voiceTurnsToSelector(turns), [turns]);
@@ -259,6 +426,13 @@ export default function VoiceChat() {
   }, []);
 
   useEffect(() => {
+    if (presetGroupRoom) {
+      setActiveMode(3);
+      setGroupRoomId(presetGroupRoom);
+    }
+  }, [presetGroupRoom]);
+
+  useEffect(() => {
     inCallRef.current = inCall;
   }, [inCall]);
 
@@ -280,6 +454,35 @@ export default function VoiceChat() {
     setShowVipVoicePrompt(voiceBlocked);
   }, [membershipReady, voiceBlocked]);
 
+  const finishCallSummaryRef = useRef<() => Promise<void>>(async () => {});
+
+  async function waitForPendingAnalysis(maxMs = 28000) {
+    const deadline = Date.now() + maxMs;
+    while (Date.now() < deadline) {
+      const snapshot = turnsSnapshotRef.current;
+      const pending = snapshot.some((t) => {
+        if (t.status === "analyzing") return true;
+        if (!t.user_text.trim()) return false;
+        if (t.status === "replying" && !t.ai_reply.trim()) return true;
+        const hud = t.hud;
+        if (
+          !hud
+          || (
+            !hud.main_expression
+            && !hud.corrected_sentence
+            && !(hud.grammar_tips?.length)
+            && !(hud.patterns_v2?.length)
+          )
+        ) {
+          return t.status !== "ready";
+        }
+        return false;
+      });
+      if (!pending) return;
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    }
+  }
+
   const connect = useCallback((): Promise<WebSocket> => {
     const token = getToken();
     if (!token) {
@@ -287,8 +490,17 @@ export default function VoiceChat() {
     }
     const apiOrigin = API_BASE_URL || window.location.origin;
     const wsBase = toWebSocketBase(apiOrigin);
-    const wsMode = activeMode === 2 ? "interview" : "free";
-    const ws = new WebSocket(`${wsBase}/api/voice/realtime?token=${token}&mode=${wsMode}`);
+    const modeIdx = activeModeRef.current;
+    const wsMode = modeIdx === 2 ? "interview" : modeIdx === 3 ? "group" : "free";
+    const params = new URLSearchParams({ token, mode: wsMode });
+    if (wsMode === "interview") {
+      params.set("industry", interviewIndustryRef.current);
+      params.set("ielts_band", ieltsBandRef.current);
+    }
+    if (wsMode === "group" && groupRoomIdRef.current) {
+      params.set("room_id", groupRoomIdRef.current);
+    }
+    const ws = new WebSocket(`${wsBase}/api/voice/realtime?${params}`);
     wsRef.current = ws;
 
     return new Promise((resolve, reject) => {
@@ -327,6 +539,7 @@ export default function VoiceChat() {
               text: "通话已断开",
               status: "error",
             });
+            void finishCallSummaryRef.current();
           } else {
             appendBubble({
               id: bubbleId("sys"),
@@ -409,51 +622,41 @@ export default function VoiceChat() {
 
         if (data.type === "turn_committed") {
           setTapAck(true);
+          markUserSpeaking(false);
           if (tapAckTimerRef.current) window.clearTimeout(tapAckTimerRef.current);
           tapAckTimerRef.current = window.setTimeout(() => setTapAck(false), 1500);
           return;
         }
 
+        if (data.type === "interrupted") {
+          stopOmniPlayback();
+          assistantBubbleIdRef.current = null;
+          return;
+        }
+
+        if (data.type === "speech_started") {
+          markUserSpeaking(true);
+          return;
+        }
+
+        if (data.type === "speech_stopped") {
+          return;
+        }
+
+        if (data.type === "response_done") {
+          aiSpeakingRef.current = false;
+          setAiSpeaking(false);
+          return;
+        }
+
         if (data.type === "transcript" && typeof data.text === "string") {
-          const text = data.text.trim();
-          if (!text) return;
-          const isFinal = Boolean(data.is_final);
-          if (!userBubbleIdRef.current) {
-            userBubbleIdRef.current = bubbleId("user");
-          }
-          const uid = userBubbleIdRef.current;
-          upsertBubble({
-            id: uid,
-            role: "user",
-            text,
-            status: isFinal ? "final" : "streaming",
-          });
-          if (isFinal) {
-            lastUserTextRef.current = text;
-            const turnId = bubbleId("turn");
-            currentTurnIdRef.current = turnId;
-            setTurns((prev) => [
-              ...prev,
-              {
-                turn_id: turnId,
-                userBubbleId: uid,
-                assistantBubbleId: null,
-                user_text: text,
-                ai_reply: "",
-                hud: null,
-                status: "replying",
-                label: deriveTurnLabel(null, text, prev.length),
-                pinned: false,
-                focusCount: 0,
-              },
-            ]);
-            setActiveTurnId(turnId);
-            userBubbleIdRef.current = null;
-          }
+          scheduleTranscriptUpdate(data.text, Boolean(data.is_final));
           return;
         }
 
         if (data.type === "thinking") {
+          aiSpeakingRef.current = true;
+          setAiSpeaking(true);
           assistantBubbleIdRef.current = bubbleId("ai");
           patchCurrentTurn({ assistantBubbleId: assistantBubbleIdRef.current, status: "replying" });
           upsertBubble({
@@ -466,6 +669,8 @@ export default function VoiceChat() {
         }
 
         if (data.type === "response_partial" && typeof data.text === "string") {
+          aiSpeakingRef.current = true;
+          setAiSpeaking(true);
           if (!assistantBubbleIdRef.current) {
             assistantBubbleIdRef.current = bubbleId("ai");
             patchCurrentTurn({ assistantBubbleId: assistantBubbleIdRef.current, status: "replying" });
@@ -501,6 +706,8 @@ export default function VoiceChat() {
         }
 
         if (data.type === "audio" && typeof data.data === "string") {
+          aiSpeakingRef.current = true;
+          setAiSpeaking(true);
           void playOmniPcmChunk(data.data as string, Number(data.sample_rate) || 24000);
           return;
         }
@@ -520,7 +727,7 @@ export default function VoiceChat() {
         }
       };
     });
-  }, [activeMode, appendBubble, applyHudToCurrentTurn, patchCurrentTurn, t, upsertBubble]);
+  }, [activeMode, appendBubble, applyHudToCurrentTurn, markUserSpeaking, patchCurrentTurn, scheduleTranscriptUpdate, stopOmniPlayback, t, upsertBubble]);
 
   async function playOmniPcmChunk(b64: string, sampleRate: number) {
     try {
@@ -539,6 +746,14 @@ export default function VoiceChat() {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
+      omniSourcesRef.current.push(source);
+      source.onended = () => {
+        omniSourcesRef.current = omniSourcesRef.current.filter((node) => node !== source);
+        if (omniSourcesRef.current.length === 0) {
+          aiSpeakingRef.current = false;
+          setAiSpeaking(false);
+        }
+      };
       const startAt = Math.max(ctx.currentTime, omniPlayTimeRef.current);
       source.start(startAt);
       omniPlayTimeRef.current = startAt + buffer.duration;
@@ -549,17 +764,32 @@ export default function VoiceChat() {
 
   useEffect(() => () => {
     captureRef.current?.stop();
+    stopOmniPlayback();
     wsRef.current?.close();
     if (tapAckTimerRef.current) window.clearTimeout(tapAckTimerRef.current);
-  }, []);
+    if (transcriptFlushRef.current !== null) window.cancelAnimationFrame(transcriptFlushRef.current);
+    if (wsFlushTimerRef.current !== null) window.clearTimeout(wsFlushTimerRef.current);
+  }, [stopOmniPlayback]);
+
+  useEffect(() => {
+    if (!inCall) return;
+    const timer = window.setInterval(() => {
+      const startedAt = speechStartedAtRef.current;
+      if (!startedAt || !userSpeakingRef.current) return;
+      if (Date.now() - startedAt < 55_000) return;
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+      sendWsControl({ type: "turn_complete" });
+      speechStartedAtRef.current = Date.now();
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [inCall, sendWsControl]);
 
   async function startMicStream() {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     if (captureRef.current) return;
-    wsRef.current.send(JSON.stringify({ type: "audio", action: "start" }));
+    sendWsControl({ type: "audio", action: "start" });
     const capture = await startPcmCapture(({ base64, sampleRate }) => {
-      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-      wsRef.current.send(JSON.stringify({
+      queueWsSend(JSON.stringify({
         type: "audio",
         format: "pcm16",
         sample_rate: sampleRate,
@@ -575,7 +805,7 @@ export default function VoiceChat() {
     const now = Date.now();
     if (now - lastTapAtRef.current < 900) return;
     lastTapAtRef.current = now;
-    wsRef.current.send(JSON.stringify({ type: "turn_complete" }));
+    sendWsControl({ type: "turn_complete" });
   }
 
   async function startCall() {
@@ -586,38 +816,40 @@ export default function VoiceChat() {
       setShowVipVoicePrompt(true);
       return;
     }
+    summaryOnceRef.current = false;
     setConnecting(true);
     setTurns([]);
     setActiveTurnId(null);
     setPinnedTurnId(null);
     currentTurnIdRef.current = null;
     setCoachBriefing(null);
-    appendBubble({
-      id: bubbleId("sys"),
+    upsertBubble({
+      id: CONNECTION_STATUS_BUBBLE_ID,
       role: "system",
       text: "正在连接语音教练…",
       status: "streaming",
     });
     try {
       await connect();
-      await startMicStream();
+      setConnecting(false);
       setInCall(true);
       setCallSeconds(0);
       const silenceSec = ((sessionVoiceUiRef.current?.silence_ms ?? 1000) / 1000).toFixed(1);
       const tapHint = sessionVoiceUiRef.current?.tap_to_end !== false
         ? `说完可轻点屏幕，或停顿约 ${silenceSec} 秒`
         : `说完后停顿约 ${silenceSec} 秒即可`;
-      appendBubble({
-        id: bubbleId("sys"),
+      upsertBubble({
+        id: CONNECTION_STATUS_BUBBLE_ID,
         role: "system",
         text: `通话已接通 · ${tapHint}，点击红色挂断结束`,
         status: "final",
       });
+      await startMicStream();
     } catch (err) {
       setConnected(false);
       setInCall(false);
-      appendBubble({
-        id: bubbleId("err"),
+      upsertBubble({
+        id: CONNECTION_STATUS_BUBBLE_ID,
         role: "system",
         text: err instanceof Error ? err.message : "语音连接失败",
         status: "error",
@@ -635,11 +867,21 @@ export default function VoiceChat() {
     setReport(null);
     setReportSaved(false);
 
-    const wsMode = activeModeRef.current === 2 ? "interview" : "free";
+    const modeIdx = activeModeRef.current;
+    const wsMode = modeIdx === 2 ? "interview" : modeIdx === 3 ? "group" : "free";
+    let topic: string | undefined;
+    if (wsMode === "interview") {
+      topic = `English job interview — ${interviewIndustryRef.current} — IELTS ${ieltsBandRef.current}`;
+    } else if (wsMode === "group") {
+      topic = groupRoomIdRef.current
+        ? `group voice room ${groupRoomIdRef.current}`
+        : "group voice practice";
+    }
     const payload = {
       duration_seconds: Math.max(1, callSecondsRef.current),
       mode: wsMode,
       provider: sessionInfoRef.current?.provider ?? "qwen-omni-realtime",
+      topic,
       turns: snapshot.map((t) => ({
         user_text: t.user_text,
         ai_reply: t.ai_reply,
@@ -683,11 +925,21 @@ export default function VoiceChat() {
     }
   }
 
+  finishCallSummaryRef.current = async () => {
+    if (summaryOnceRef.current) return;
+    summaryOnceRef.current = true;
+    await waitForPendingAnalysis();
+    await fetchCallSummary();
+  };
+
   async function endCall() {
     captureRef.current?.stop();
     captureRef.current = null;
+    stopOmniPlayback();
     userBubbleIdRef.current = null;
     assistantBubbleIdRef.current = null;
+    markUserSpeaking(false);
+    wsSendQueueRef.current = [];
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "audio", action: "end" }));
       wsRef.current.send(JSON.stringify({ type: "close" }));
@@ -697,11 +949,103 @@ export default function VoiceChat() {
     setInCall(false);
     setConnected(false);
     setConnecting(false);
-    void fetchCallSummary();
+    await waitForPendingAnalysis();
+    void finishCallSummaryRef.current();
+  }
+
+  async function loadVoiceHistory() {
+    setHistoryLoading(true);
+    try {
+      const rows = await listVoiceSessions();
+      setVoiceHistory(
+        rows.filter((row) => {
+          const analysis = row.analysis || {};
+          return Boolean(analysis.realtime_summary || analysis.report);
+        }),
+      );
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function continueFromHistory(session: VoiceSessionRecord) {
+    const analysis = session.analysis || {};
+    const mode = typeof analysis.mode === "string" ? analysis.mode : "free";
+    if (mode === "interview") setActiveMode(2);
+    else if (mode === "group") setActiveMode(3);
+    else setActiveMode(0);
+    setHistoryOpen(false);
+    void startCall();
+  }
+
+  async function startGroupMatch() {
+    if (connecting || inCall || groupMatching) return;
+    if (isLoggedIn && !userHydrated) await loadUser();
+    const fresh = useAuthStore.getState();
+    if (isVoiceCoachBlocked(fresh.isLoggedIn, fresh.userHydrated, fresh.user)) {
+      setShowVipVoicePrompt(true);
+      return;
+    }
+    if (presetGroupRoom || groupRoomIdRef.current) {
+      if (!hasProAccess(fresh.user)) {
+        setShowVipVoicePrompt(true);
+        return;
+      }
+      await startCall();
+      return;
+    }
+    setGroupMatching(true);
+    setGroupMatchStatus("正在匹配小组…");
+    try {
+      let status = await joinVoiceGroupMatch();
+      setGroupMatchStatus(status.message || "匹配中…");
+      if (status.status === "ready" && status.room_id) {
+        setGroupRoomId(status.room_id);
+        await startCall();
+        return;
+      }
+      const deadline = Date.now() + 11000;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        status = await pollVoiceGroupMatch();
+        setGroupMatchStatus(status.message || "匹配中…");
+        if (status.status === "ready" && status.room_id) {
+          setGroupRoomId(status.room_id);
+          await startCall();
+          return;
+        }
+        if (status.status === "timeout" || status.status === "idle") {
+          setGroupMatchStatus(status.message || "10 秒内未凑齐 3 人");
+          break;
+        }
+      }
+    } finally {
+      setGroupMatching(false);
+      void leaveVoiceGroupMatch();
+    }
   }
 
   function interruptAi() {
-    wsRef.current?.send(JSON.stringify({ type: "interrupt" }));
+    const now = Date.now();
+    if (now - lastInterruptAtRef.current < 350) return;
+    lastInterruptAtRef.current = now;
+
+    stopOmniPlayback();
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+    if (userSpeakingRef.current || userBubbleIdRef.current) {
+      sendWsControl({ type: "turn_complete" });
+      return;
+    }
+
+    sendWsControl({ type: "interrupt" });
+    if (assistantBubbleIdRef.current) {
+      setMessages((prev) => prev.map((msg) => (
+        msg.id === assistantBubbleIdRef.current && msg.status === "streaming"
+          ? { ...msg, status: "final" as const }
+          : msg
+      )));
+    }
   }
 
   const statusLabel = connecting
@@ -719,8 +1063,9 @@ export default function VoiceChat() {
       silenceMs,
       sessionInfo?.voice_ui?.tap_to_end !== false,
       tapAck,
+      activeMode === 2,
     ),
-    [coachBriefing, silenceMs, sessionInfo?.voice_ui?.tap_to_end, tapAck],
+    [coachBriefing, silenceMs, sessionInfo?.voice_ui?.tap_to_end, tapAck, activeMode],
   );
 
   const shellClass = [
@@ -774,7 +1119,6 @@ export default function VoiceChat() {
               type="button"
               onClick={() => {
                 if (mode === "跟读训练") { navigate("/follow-read"); return; }
-                if (mode === "小组语音") { navigate("/home#today-topics"); return; }
                 setActiveMode(i);
               }}
               className={
@@ -788,11 +1132,63 @@ export default function VoiceChat() {
         </nav>
       )}
 
+      {!inCall && activeMode === 2 && (
+        <div className="flex-shrink-0 mx-margin-mobile mt-3 p-3 rounded-xl bg-surface-container border border-outline-variant/20 space-y-3">
+          <p className="text-[12px] font-semibold text-on-surface">面试设定</p>
+          <div className="flex flex-wrap gap-2">
+            {INTERVIEW_INDUSTRIES.map((ind) => (
+              <button
+                key={ind}
+                type="button"
+                onClick={() => setInterviewIndustry(ind)}
+                className={
+                  "px-3 py-1.5 rounded-full text-[12px] font-bold border transition-colors " +
+                  (interviewIndustry === ind
+                    ? "bg-primary text-white border-primary"
+                    : "bg-surface-container-high text-on-surface-variant border-outline-variant/30")
+                }
+              >
+                {ind}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px] text-outline">雅思难度</span>
+            {IELTS_BANDS.map((band) => (
+              <button
+                key={band}
+                type="button"
+                onClick={() => setIeltsBand(band)}
+                className={
+                  "px-2.5 py-1 rounded-lg text-[12px] font-bold " +
+                  (ieltsBand === band ? "bg-tertiary-fixed text-tertiary-container" : "text-outline")
+                }
+              >
+                {band}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!inCall && activeMode === 3 && (
+        <div className="flex-shrink-0 mx-margin-mobile mt-3 p-3 rounded-xl bg-surface-container border border-outline-variant/20">
+          <p className="text-[12px] text-on-surface-variant leading-relaxed">
+            {presetGroupRoom
+              ? "与语伴 + AI 语音群练（双方 Pro）。点击开始即可，无需等待第三人匹配。"
+              : "小组语音：进入后自动匹配，至少 3 人、最多 5 人；10 秒内未凑齐则放弃。匹配成功后与 AI 一起群聊练习。"}
+          </p>
+          {groupMatchStatus && (
+            <p className="text-[12px] font-semibold text-primary mt-2">{groupMatchStatus}</p>
+          )}
+        </div>
+      )}
+
       {inCall && (
         <div className="voice-coach-marquee mt-1 mb-1">
           <div className="voice-coach-marquee-track">
-            <span><strong>教练了解你</strong> · {coachMarqueeLine}</span>
-            <span aria-hidden><strong>教练了解你</strong> · {coachMarqueeLine}</span>
+            <span><strong>{activeMode === 2 ? "面试场景" : "教练了解你"}</strong> · {coachMarqueeLine}</span>
+            <span aria-hidden><strong>{activeMode === 2 ? "面试场景" : "教练了解你"}</strong> · {coachMarqueeLine}</span>
           </div>
         </div>
       )}
@@ -823,12 +1219,6 @@ export default function VoiceChat() {
       )}
 
       <div className="voice-chat-layout chat-detail-layout flex-1 min-h-0 flex flex-col">
-        {inCall && (
-          <div className="voice-pet-float">
-            <CompanionPet mood={petMood} compact playRandomIdle />
-          </div>
-        )}
-
         {(turns.length > 0) && (
           <div className={`voice-hud-strip${inCall ? " voice-hud-strip--in-call" : ""}${connecting ? " voice-hud-strip--connecting" : ""}`}>
             <TurnSelector
@@ -853,57 +1243,83 @@ export default function VoiceChat() {
           </div>
         )}
 
-        <VoiceConversationFeed
-          messages={messages}
-          turns={turns}
-          activeTurnId={activeTurnId}
-          inCall={inCall}
-          connecting={connecting}
-          onTurnClick={setActiveTurn}
-          speak={speak}
-          feedRef={feedRef}
-          onFeedScroll={() => {
-            const el = feedRef.current;
-            if (!el) return;
-            stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
-          }}
-          onFeedTap={() => {
-            if (inCall && sessionVoiceUiRef.current?.tap_to_end !== false) signalTurnComplete();
-          }}
-          tapToEnd={sessionInfo?.voice_ui?.tap_to_end !== false}
-        />
+        <div className="voice-feed-stage flex-1 min-h-0 flex flex-col">
+          {inCall && (
+            <div className="voice-pet-float" aria-hidden>
+              <CompanionPet mood={petMood} compact playRandomIdle />
+            </div>
+          )}
+          <VoiceConversationFeed
+            messages={messages}
+            turns={turns}
+            activeTurnId={activeTurnId}
+            inCall={inCall}
+            connecting={connecting}
+            onTurnClick={setActiveTurn}
+            speak={speak}
+            feedRef={feedRef}
+            onFeedScroll={() => {
+              const el = feedRef.current;
+              if (!el) return;
+              stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96;
+            }}
+            onFeedTap={() => {
+              if (inCall && sessionVoiceUiRef.current?.tap_to_end !== false) signalTurnComplete();
+            }}
+            tapToEnd={sessionInfo?.voice_ui?.tap_to_end !== false}
+          />
+        </div>
       </div>
 
       {/* Bottom call controls — phone metaphor */}
-      <div className="flex-shrink-0 px-margin-mobile py-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-surface/90 backdrop-blur-xl border-t border-outline-variant/20 flex items-center justify-center gap-8 z-50">
+      <div className="flex-shrink-0 px-margin-mobile py-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-surface/90 backdrop-blur-xl border-t border-outline-variant/20 flex items-end justify-center gap-10 z-50">
         {!inCall ? (
-          <button
-            type="button"
-            onClick={() => void startCall()}
-            disabled={connecting || !membershipReady || voiceBlocked}
-            className="flex flex-col items-center gap-2 touch-manipulation disabled:opacity-60"
-          >
-            <span className="w-[72px] h-[72px] rounded-full bg-primary text-white flex items-center justify-center shadow-[0_8px_32px_rgba(99,14,212,0.45)] active:scale-95 transition-transform">
-              {connecting ? (
-                <div className="w-7 h-7 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <span className="material-symbols-outlined text-[32px]">call</span>
-              )}
-            </span>
-            <span className="text-[15px] font-extrabold text-primary">{connecting ? "连接中…" : "开始通话"}</span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => { setHistoryOpen(true); void loadVoiceHistory(); }}
+              className="flex flex-col items-center gap-2 touch-manipulation active:scale-95 transition-transform"
+            >
+              <span className="w-14 h-14 rounded-full glass-panel border border-outline-variant/30 flex items-center justify-center text-primary shadow-sm">
+                <span className="material-symbols-outlined text-[26px]">history</span>
+              </span>
+              <span className="text-[13px] font-bold text-primary">历史通话</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void (activeMode === 3 ? startGroupMatch() : startCall())}
+              disabled={connecting || groupMatching || !membershipReady || voiceBlocked}
+              className="flex flex-col items-center gap-2 touch-manipulation disabled:opacity-60"
+            >
+              <span className="w-[72px] h-[72px] rounded-full bg-primary text-white flex items-center justify-center shadow-[0_8px_32px_rgba(99,14,212,0.45)] active:scale-95 transition-transform">
+                {connecting || groupMatching ? (
+                  <div className="w-7 h-7 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <span className="material-symbols-outlined text-[32px]">call</span>
+                )}
+              </span>
+              <span className="text-[15px] font-extrabold text-primary">
+                {connecting ? "连接中…" : groupMatching ? "匹配中…" : activeMode === 3 ? (presetGroupRoom ? "开始群练" : "开始匹配") : "开始通话"}
+              </span>
+            </button>
+          </>
         ) : (
           <>
             <button
               type="button"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                interruptAi();
+              }}
               onClick={interruptAi}
-              className="flex flex-col items-center gap-1 touch-manipulation active:scale-95 transition-transform"
-              aria-label="打断 AI 说话"
+              className={`flex flex-col items-center gap-1 touch-manipulation active:scale-95 transition-transform voice-interrupt-btn${aiSpeaking || userSpeaking ? " voice-interrupt-btn--active" : ""}`}
+              aria-label={userSpeaking ? "结束说话并发送" : "打断 AI 说话"}
             >
               <span className="w-12 h-12 rounded-full glass-panel flex items-center justify-center text-on-surface-variant">
-                <span className="material-symbols-outlined">front_hand</span>
+                <span className="material-symbols-outlined">{userSpeaking ? "done" : "front_hand"}</span>
               </span>
-              <span className="text-[11px] text-outline">打断</span>
+              <span className="text-[11px] text-outline">{userSpeaking ? "发送" : "打断"}</span>
             </button>
 
             <button
@@ -920,7 +1336,10 @@ export default function VoiceChat() {
 
             <button
               type="button"
-              onClick={() => scrollFeedToBottom(true)}
+              onClick={() => {
+                stickToBottomRef.current = true;
+                scrollFeedToBottom(true);
+              }}
               className="flex flex-col items-center gap-1 touch-manipulation active:scale-95 transition-transform"
               aria-label="滚到最新"
             >
@@ -1015,6 +1434,52 @@ export default function VoiceChat() {
       )}
 
       <VipVoicePrompt open={showVipVoicePrompt} onClose={() => setShowVipVoicePrompt(false)} />
+
+      {historyOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end justify-center" onClick={() => setHistoryOpen(false)}>
+          <div
+            className="w-full max-w-md bg-surface-container-lowest rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-[18px] text-on-surface">历史通话</h3>
+              <button type="button" onClick={() => setHistoryOpen(false)} className="material-symbols-outlined text-on-surface-variant">close</button>
+            </div>
+            {historyLoading && <p className="text-[13px] text-outline py-4">加载中…</p>}
+            {!historyLoading && voiceHistory.length === 0 && (
+              <p className="text-[13px] text-outline py-4">暂无通话记录，完成一次语音练习后会出现在这里。</p>
+            )}
+            {!historyLoading && voiceHistory.map((session) => {
+              const analysis = session.analysis || {};
+              const report = (analysis.report || {}) as Record<string, unknown>;
+              const mode = typeof analysis.mode === "string" ? analysis.mode : "free";
+              const modeLabel = mode === "interview" ? "面试练习" : mode === "group" ? "小组语音" : "自由对话";
+              const summary = typeof report.summary === "string" ? report.summary : "";
+              const turnCount = typeof report.turn_count === "number" ? report.turn_count : 0;
+              const created = session.created_at ? new Date(session.created_at).toLocaleString() : "";
+              return (
+                <div key={session.id} className="mb-3 p-4 rounded-2xl bg-surface-container border border-outline-variant/20">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[12px] font-bold text-primary">{modeLabel}</span>
+                    <span className="text-[11px] text-outline">{created}</span>
+                  </div>
+                  <p className="text-[12px] text-on-surface-variant line-clamp-2 mb-2">
+                    {summary || `时长 ${formatCallDuration(session.duration_seconds)} · ${turnCount} 轮`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => continueFromHistory(session)}
+                    className="text-[12px] font-bold text-primary"
+                  >
+                    继续练习 →
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {explainToken && (
         <TokenExplainSheet
           token={explainToken.token}

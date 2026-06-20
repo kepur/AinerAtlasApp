@@ -7,6 +7,9 @@ import { useAuthStore } from "../stores/authStore";
 type RegistrationPreview = {
   email: string;
   is_google_email: boolean;
+  registration_trial_enabled: boolean;
+  registration_trial_days: number;
+  registration_trial_membership_level: string | null;
   google_trial_enabled: boolean;
   google_trial_days: number;
   google_trial_membership_level: string | null;
@@ -97,11 +100,11 @@ export default function Register() {
             <span className="material-symbols-outlined text-primary text-[16px] mt-0.5 flex-shrink-0">info</span>
             <div>
               <span>{preview.message}</span>
-              {preview.google_trial_enabled && (
+              {preview.registration_trial_enabled && (
                 <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-secondary/15 text-secondary text-[11px] font-bold">
-                  {t("register.googleTrialBadge", {
-                    days: preview.google_trial_days,
-                    level: preview.google_trial_membership_level?.toUpperCase() ?? ""
+                  {t("register.trialBadge", {
+                    days: preview.registration_trial_days,
+                    level: preview.registration_trial_membership_level?.toUpperCase() ?? "VIP",
                   })}
                 </span>
               )}

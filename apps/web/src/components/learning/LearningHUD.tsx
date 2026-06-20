@@ -11,6 +11,7 @@ import {
 import type { ChatV2AgentItem, ChatV2PatternItem, ChatV2WhyItem } from "../../api";
 import type { HudData } from "../../stores/chatStore";
 import { CrushPatternRow } from "./CrushPatternRow";
+import "./LearningHUD.css";
 
 type Props = {
   hud: HudData;

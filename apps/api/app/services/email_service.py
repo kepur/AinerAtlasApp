@@ -85,6 +85,40 @@ def send_verification_email(
     logger.info("Verification email sent to {}", to_email)
 
 
+def send_password_reset_code_email(
+    db: Session,
+    *,
+    to_email: str,
+    code: str,
+    ttl_minutes: int,
+) -> None:
+    settings = get_auth_settings(db)
+    subject = "AinerSpeak 密码重置验证码"
+    body = (
+        f"你的 AinerSpeak 密码重置验证码是：{code}\n\n"
+        f"验证码 {ttl_minutes} 分钟内有效，请勿泄露给他人。\n\n"
+        "如果这不是你本人的操作，请忽略此邮件。"
+    )
+
+    if not smtp_configured(settings):
+        logger.info(
+            "SMTP not configured — password reset code for {}: {} (valid {} min)",
+            to_email,
+            code,
+            ttl_minutes,
+        )
+        return
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = settings.smtp_from_email
+    message["To"] = to_email
+    message.set_content(body, charset="utf-8")
+
+    _send_message(settings, message)
+    logger.info("Password reset code email sent to {}", to_email)
+
+
 def send_password_reset_email(
     db: Session,
     *,

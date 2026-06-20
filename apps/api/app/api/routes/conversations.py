@@ -7,7 +7,7 @@ import unicodedata
 import json
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -52,6 +52,10 @@ from app.services.llm import (
 from app.services.pattern_mining import mine_from_analysis, mine_learning_items
 from app.services.vocabulary_mining import mine_vocabulary_from_analysis
 from app.services.conversation_activity import log_conversation_activity
+from app.services.conversation_mode import (
+    opening_greeting_for_mode,
+    resolve_mode_task_type,
+)
 from app.services.conversation_moderation import (
     flag_conversation_from_result,
     soft_delete_conversation,
@@ -71,6 +75,21 @@ def create_conversation(
     conversation = Conversation(user_id=current_user.id, **payload.model_dump())
     db.add(conversation)
     db.flush()
+
+    opening = opening_greeting_for_mode(conversation.mode)
+    if opening:
+        db.add(
+            ConversationMessage(
+                conversation_id=conversation.id,
+                user_id=None,
+                role="assistant",
+                content=opening,
+                content_language=conversation.native_language,
+                analysis={"kind": "mode_opening", "mode": conversation.mode},
+            )
+        )
+        conversation.updated_at = utc_now()
+
     log_conversation_activity(
         db,
         user_id=current_user.id,
@@ -79,7 +98,9 @@ def create_conversation(
         details={"title": conversation.title, "mode": conversation.mode, "topic": conversation.topic},
     )
     db.commit()
-    db.refresh(conversation)
+    conversation = _get_user_conversation(db, conversation.id, current_user.id)
+    if not conversation:
+        raise HTTPException(status_code=500, detail="Failed to create conversation")
     return conversation
 
 
@@ -190,28 +211,15 @@ async def send_message(
         resolved_language, conversation.target_language
     )
 
-    mode_task_type = f"thought_dialogue_{conversation.mode}" if conversation.mode and conversation.mode != "socratic" else "thought_dialogue"
-    system_prompt = _load_prompt_template(
+    mode_task_type = resolve_mode_task_type(conversation.mode)
+    system_prompt = _load_mode_system_prompt(
         db,
-        task_type=mode_task_type,
-        native_language=conversation.native_language,
-        target_language=conversation.target_language,
+        conversation=conversation,
+        profile_read=profile_read,
         explanation_language=explanation_language,
-        user_level=profile_read.current_level if profile_read else "B1",
-        user_topics=conversation.topic,
-        detect_target_language_input=detect_correction,
+        detect_correction=detect_correction,
+        mode_task_type=mode_task_type,
     )
-    if not system_prompt and mode_task_type != "thought_dialogue":
-        system_prompt = _load_prompt_template(
-            db,
-            task_type="thought_dialogue",
-            native_language=conversation.native_language,
-            target_language=conversation.target_language,
-            explanation_language=explanation_language,
-            user_level=profile_read.current_level if profile_read else "B1",
-            user_topics=conversation.topic,
-            detect_target_language_input=detect_correction,
-        )
 
     # --- T-114: inject user long-term memory ---
     memory_summary = load_user_memory_summary(db, current_user.id)
@@ -370,28 +378,15 @@ async def stream_message(
         resolved_language, conversation.target_language
     )
     
-    mode_task_type = f"thought_dialogue_{conversation.mode}" if conversation.mode and conversation.mode != "socratic" else "thought_dialogue"
-    system_prompt = _load_prompt_template(
+    mode_task_type = resolve_mode_task_type(conversation.mode)
+    system_prompt = _load_mode_system_prompt(
         db,
-        task_type=mode_task_type,
-        native_language=conversation.native_language,
-        target_language=conversation.target_language,
+        conversation=conversation,
+        profile_read=profile_read,
         explanation_language=explanation_language,
-        user_level=profile_read.current_level if profile_read else "B1",
-        user_topics=conversation.topic,
-        detect_target_language_input=detect_correction,
+        detect_correction=detect_correction,
+        mode_task_type=mode_task_type,
     )
-    if not system_prompt and mode_task_type != "thought_dialogue":
-        system_prompt = _load_prompt_template(
-            db,
-            task_type="thought_dialogue",
-            native_language=conversation.native_language,
-            target_language=conversation.target_language,
-            explanation_language=explanation_language,
-            user_level=profile_read.current_level if profile_read else "B1",
-            user_topics=conversation.topic,
-            detect_target_language_input=detect_correction,
-        )
     
     memory_summary = load_user_memory_summary(db, current_user.id)
     
@@ -462,6 +457,7 @@ async def stream_message(
                 topic=conversation.topic,
                 memory_summary=memory_summary,
                 conversation_history=conversation_history,
+                system_prompt_override=system_prompt,
             ):
                 if chunk:
                     reply_text += chunk
@@ -631,211 +627,61 @@ def switch_target_language(
     return conversation
 
 
-@router.post("/{conversation_id}/freeze", response_model=AssetRead)
+@router.post("/{conversation_id}/freeze")
 async def freeze_conversation(
     conversation_id: str,
     payload: FreezeRequest,
     current_user: CurrentUser,
     db: DBSession,
-) -> ExpressionAsset:
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Start async Thought Freeze — poll GET /freeze/status for result."""
+    from app.services.conversation_freeze_service import (
+        get_conversation_freeze_status,
+        run_conversation_freeze_job,
+    )
+    from app.services.freeze_job_store import freeze_job_store
+
     conversation = get_conversation(conversation_id, current_user, db)
     text = "\n".join(
         f"{message.role}: {message.content}" for message in conversation.messages if message.content
     )
-    title = payload.title or conversation.title
-    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
-    profile_read = ProfileRead.model_validate(profile) if profile else None
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="对话内容为空，无法 Freeze")
 
-    # --- T-104: load PromptTemplate for thought_freeze ---
-    system_prompt = _load_prompt_template(
-        db,
-        task_type="thought_freeze",
-        native_language=conversation.native_language,
-        target_language=conversation.target_language,
-        explanation_language=_explanation_language(profile_read, conversation.native_language),
-        user_level=profile_read.current_level if profile_read else "B1",
-        user_topics=conversation.topic,
+    job = get_conversation_freeze_status(conversation_id, current_user.id)
+    if job.get("status") == "processing":
+        return {"status": "processing"}
+    if job.get("status") == "done" and job.get("asset"):
+        return {"status": "done", "asset": job["asset"]}
+
+    freeze_job_store.set(
+        "conversation",
+        conversation_id,
+        current_user.id,
+        {"status": "processing"},
     )
-
-    try:
-        provider = require_llm_provider(resolve_default_llm_provider(db), db=db)
-    except LLMUnavailableError as exc:
-        raise HTTPException(status_code=503, detail=exc.message) from exc
-
-    started = time.perf_counter()
-    try:
-        result = await provider.generate_expression_asset(
-            text, conversation.target_language, title,
-            system_prompt_override=system_prompt,
-        )
-        assert_real_llm_usage(provider)
-    except LLMUnavailableError as exc:
-        raise HTTPException(status_code=503, detail=exc.message) from exc
-    except Exception as exc:
-        logger.exception("LLM freeze failed for conversation %s", conversation_id)
-        raise HTTPException(
-            status_code=503,
-            detail=f"LLM 调用失败：{exc}。请到 Admin 检查 Provider 配置与 API Key。",
-        ) from exc
-    latency_ms = int((time.perf_counter() - started) * 1000)
-
-    _write_usage_log(
-        db,
-        user_id=current_user.id,
-        provider=provider,
-        task_type="thought_freeze",
-        latency_ms=latency_ms,
+    background_tasks.add_task(
+        run_conversation_freeze_job,
+        conversation_id,
+        current_user.id,
+        payload.title,
     )
+    return {"status": "processing"}
 
-    thought = db.scalar(
-        select(Thought).where(
-            Thought.conversation_id == conversation.id,
-            Thought.user_id == current_user.id,
-        )
-    )
-    if thought:
-        db.add(
-            ThoughtVersion(
-                thought_id=thought.id,
-                version=thought.version,
-                title=thought.title,
-                summary=thought.summary,
-                final_content_native=thought.final_content_native,
-                final_content_target=thought.final_content_target,
-                freeze_payload=thought.freeze_payload,
-                mind_graph=thought.mind_graph,
-            )
-        )
-        thought.version += 1
-    else:
-        thought = Thought(
-            user_id=current_user.id,
-            conversation_id=conversation.id,
-            title=title,
-            topic=conversation.topic,
-            version=1,
-        )
-        db.add(thought)
-        db.flush()
 
-    thought.title = title
-    thought.topic = conversation.topic
-    thought.summary = result.main_reply_native
-    thought.final_content_native = text
-    thought.final_content_target = result.expression_versions.get("advanced", "")
-    thought.freeze_payload = {
-        "keywords": result.keywords or result.vocabulary,
-        "core_patterns": result.core_patterns or result.patterns,
-        "grammar_structures": result.grammar_structures,
-        "facts": result.facts,
-        "values": result.values,
-        "arguments": result.arguments,
-        "expression_versions": result.expression_versions,
-        "golden_quote": result.expression_versions.get(
-            "golden_quote", result.suggested_expression
-        ),
-    }
-    thought.status = "frozen"
-    thought.frozen_at = utc_now()
-    thought.mind_graph = {
-        "nodes": [
-            {"id": "topic", "label": conversation.topic, "type": "topic"},
-            *[
-                {"id": f"value-{index}", "label": value, "type": "value"}
-                for index, value in enumerate(result.values)
-            ],
-            *[
-                {"id": f"fact-{index}", "label": fact, "type": "fact"}
-                for index, fact in enumerate(result.facts)
-            ],
-            *[
-                {"id": f"argument-{index}", "label": argument, "type": "argument"}
-                for index, argument in enumerate(result.arguments)
-            ],
-        ],
-        "edges": [
-            *[
-                {"from": "topic", "to": f"value-{index}"}
-                for index, _ in enumerate(result.values)
-            ],
-            *[
-                {"from": "topic", "to": f"fact-{index}"}
-                for index, _ in enumerate(result.facts)
-            ],
-            *[
-                {"from": "topic", "to": f"argument-{index}"}
-                for index, _ in enumerate(result.arguments)
-            ],
-        ],
-        "facts": result.facts,
-        "values": result.values,
-        "arguments": result.arguments,
-    }
+@router.get("/{conversation_id}/freeze/status")
+def freeze_conversation_status(
+    conversation_id: str,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> dict:
+    from app.services.conversation_freeze_service import get_conversation_freeze_status
 
-    asset = db.scalar(
-        select(ExpressionAsset).where(
-            ExpressionAsset.thought_id == thought.id,
-            ExpressionAsset.user_id == current_user.id,
-        )
-    )
-    if asset:
-        db.add(
-            ExpressionAssetVersion(
-                asset_id=asset.id,
-                version=asset.current_version,
-                variants=asset.variants,
-                keywords=asset.keywords,
-                patterns=asset.patterns,
-                note="before freeze update",
-            )
-        )
-        asset.title = title
-        asset.source_text = text
-        asset.target_language = conversation.target_language
-        asset.variants = result.expression_versions
-        asset.keywords = result.keywords or result.vocabulary
-        asset.patterns = result.core_patterns or result.patterns
-        asset.current_version += 1
-        db.add(
-            ExpressionAssetVersion(
-                asset_id=asset.id,
-                version=asset.current_version,
-                variants=result.expression_versions,
-                keywords=result.keywords or result.vocabulary,
-                patterns=result.core_patterns or result.patterns,
-                note="freeze update",
-            )
-        )
-    else:
-        asset = ExpressionAsset(
-            user_id=current_user.id,
-            thought_id=thought.id,
-            title=title,
-            source_text=text,
-            target_language=conversation.target_language,
-            variants=result.expression_versions,
-            keywords=result.keywords or result.vocabulary,
-            patterns=result.core_patterns or result.patterns,
-            current_version=1,
-        )
-        db.add(asset)
-        db.flush()
-        db.add(
-            ExpressionAssetVersion(
-                asset_id=asset.id,
-                version=1,
-                variants=result.expression_versions,
-                keywords=result.keywords or result.vocabulary,
-                patterns=result.core_patterns or result.patterns,
-                note="initial freeze",
-            )
-        )
-    db.commit()
-    db.refresh(asset)
-    from app.services.gamification import award_xp
-    award_xp(db, current_user.id, "freeze_thought", f"冻结思想: {thought.title}", thought.id)
-    db.commit()
-    return asset
+    conversation = _get_user_conversation(db, conversation_id, current_user.id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return get_conversation_freeze_status(conversation_id, current_user.id)
 
 
 @router.post("/{conversation_id}/archive", response_model=ConversationRead)
@@ -965,6 +811,39 @@ def _explanation_language(profile: ProfileRead | None, native_language: str) -> 
     return native_language
 
 
+
+
+def _load_mode_system_prompt(
+    db: DBSession,
+    *,
+    conversation: Conversation,
+    profile_read: ProfileRead | None,
+    explanation_language: str,
+    detect_correction: bool,
+    mode_task_type: str,
+) -> str | None:
+    system_prompt = _load_prompt_template(
+        db,
+        task_type=mode_task_type,
+        native_language=conversation.native_language,
+        target_language=conversation.target_language,
+        explanation_language=explanation_language,
+        user_level=profile_read.current_level if profile_read else "B1",
+        user_topics=conversation.topic,
+        detect_target_language_input=detect_correction,
+    )
+    if not system_prompt and mode_task_type != "thought_dialogue":
+        system_prompt = _load_prompt_template(
+            db,
+            task_type="thought_dialogue",
+            native_language=conversation.native_language,
+            target_language=conversation.target_language,
+            explanation_language=explanation_language,
+            user_level=profile_read.current_level if profile_read else "B1",
+            user_topics=conversation.topic,
+            detect_target_language_input=detect_correction,
+        )
+    return system_prompt
 
 
 def _load_prompt_template(

@@ -194,11 +194,13 @@ export default function CircleSummary() {
             <li className={step === "published" ? "text-primary font-bold" : ""}>③ 发布到话题广场（多人可继续加入）</li>
           </ol>
 
+          <div className="as-btn-row pt-1">
           {data?.status === "active" && (
             <button
+              type="button"
               onClick={() => void handleEndDiscussion()}
               disabled={!!busy}
-              className="w-full h-11 bg-primary text-white rounded-full font-bold text-[14px] disabled:opacity-60"
+              className="as-btn as-btn--primary as-btn--block"
             >
               {busy === "end" ? "AI 总结生成中..." : "结束讨论并生成总结"}
             </button>
@@ -206,9 +208,10 @@ export default function CircleSummary() {
 
           {(step === "ended" || step === "frozen" || step === "published") && (
             <button
+              type="button"
               onClick={() => void handleFreeze()}
               disabled={!!busy || step === "frozen" || step === "published"}
-              className="w-full h-11 bg-tertiary-container/20 text-tertiary-container rounded-full font-bold text-[14px] border border-tertiary-container/30 disabled:opacity-60"
+              className={`as-btn as-btn--block ${thoughtId || step === "frozen" ? "as-btn--success" : "as-btn--soft"}`}
             >
               {busy === "freeze" ? "冻结中..." : thoughtId || step === "frozen" ? "已 Freeze 到思想库" : "Freeze 讨论到思想库"}
             </button>
@@ -216,9 +219,10 @@ export default function CircleSummary() {
 
           {(step === "ended" || step === "frozen" || step === "published") && (
             <button
+              type="button"
               onClick={() => void handlePublish()}
               disabled={!!busy || step === "published"}
-              className="w-full h-11 bg-primary/10 text-primary rounded-full font-bold text-[14px] border border-primary/25 disabled:opacity-60"
+              className={`as-btn as-btn--block ${step === "published" ? "as-btn--success" : "as-btn--glass"}`}
             >
               {busy === "publish" ? "发布中..." : step === "published" ? "已发布到话题广场" : "发布为公开话题"}
             </button>
@@ -226,8 +230,10 @@ export default function CircleSummary() {
 
           {thoughtId && (
             <button
+              type="button"
               onClick={() => navigate(`/thoughts/${thoughtId}`)}
-              className="w-full h-10 text-[13px] text-primary font-bold"
+              className="as-btn as-btn--muted as-btn--block"
+              style={{ minHeight: "40px", fontSize: "13px" }}
             >
               查看思想详情 →
             </button>
@@ -242,16 +248,18 @@ export default function CircleSummary() {
                   body: JSON.stringify({ topic_id: topicId }),
                 }).then((room) => navigate(`/circles/${room.id}`));
               }}
-              className="w-full h-11 bg-primary text-white rounded-full font-bold text-[14px]"
+              className="as-btn as-btn--primary as-btn--block"
             >
               进入公开讨论室
             </button>
           )}
+          </div>
         </section>
 
         <button
+          type="button"
           onClick={() => navigate("/home#today-topics")}
-          className="w-full h-12 bg-surface-container text-on-surface rounded-full font-bold text-[15px] active:scale-95 transition-all"
+          className="as-btn as-btn--muted as-btn--block"
         >
           返回话题广场
         </button>

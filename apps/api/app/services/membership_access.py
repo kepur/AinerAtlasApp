@@ -6,6 +6,7 @@ from app.db.redis import MEMBERSHIP_DAILY_LIMITS, normalize_membership_level
 from app.models import User
 
 PAID_MEMBERSHIP_LEVELS = frozenset({"vip", "pro"})
+PRO_MEMBERSHIP_LEVELS = frozenset({"pro"})
 
 
 def _effective_membership(user: User) -> str:
@@ -23,3 +24,14 @@ def has_voice_coach_access(user: User | None) -> bool:
     membership = _effective_membership(user)
     limits = MEMBERSHIP_DAILY_LIMITS.get(membership, MEMBERSHIP_DAILY_LIMITS["free"])
     return int(limits.get("voice_minutes", 0)) > 0
+
+
+def has_pro_access(user: User | None) -> bool:
+    """True for Pro tier (or admin) — required for friend+AI trio features."""
+    if user is None:
+        return False
+    if user.status in {"disabled", "expired"}:
+        return False
+    if user.role in {"admin", "super_admin"}:
+        return True
+    return _effective_membership(user) in PRO_MEMBERSHIP_LEVELS

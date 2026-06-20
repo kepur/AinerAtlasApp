@@ -95,6 +95,34 @@ def test_profile_freshness(fresh_test_database, voice_user) -> None:
     asyncio.run(run())
 
 
+def test_interview_mode_uses_scenario_not_user_profile(fresh_test_database, voice_user) -> None:
+    async def run() -> None:
+        with SessionLocal() as db:
+            provider = MockLLMProvider()
+            await analyze_user_voice_coach(db, voice_user, provider, source="test")
+            db.commit()
+        with SessionLocal() as db:
+            ctx = build_session_coach_context(
+                db,
+                voice_user,
+                mode="interview",
+                topic="English job interview — industry: 科技 — IELTS 7.0",
+                industry="科技",
+                ielts_band="7.0",
+            )
+            lowered = ctx["coach_instructions"].lower()
+            assert "interviewer" in lowered
+            assert "interview" in lowered
+            assert "欧洲生活" not in ctx["coach_instructions"]
+            briefing = ctx["coach_briefing"]
+            assert briefing is not None
+            assert "科技" in briefing["user_summary"]
+            assert "7.0" in briefing["user_summary"]
+            assert "技术栈" in briefing.get("interests", [])
+
+    asyncio.run(run())
+
+
 def test_bootstrap_when_no_prior_row(fresh_test_database, voice_user) -> None:
     with SessionLocal() as db:
         ctx = build_session_coach_context(db, voice_user, mode="free", topic="voice chat")

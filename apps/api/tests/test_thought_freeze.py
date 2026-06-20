@@ -1,4 +1,6 @@
 from uuid import uuid4
+import time
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from redis import Redis
@@ -6,7 +8,40 @@ from sqlalchemy import select
 
 from app.db.session import SessionLocal
 from app.main import app
-from app.models import Thought
+from app.models import ConversationMessage, Thought
+from app.services.llm import MockLLMProvider
+
+
+def _seed_conversation_messages(conversation_id: str, *lines: tuple[str, str]) -> None:
+    with SessionLocal() as db:
+        for role, content in lines:
+            db.add(
+                ConversationMessage(
+                    conversation_id=conversation_id,
+                    role=role,
+                    content=content,
+                    content_language="zh",
+                )
+            )
+        db.commit()
+
+
+def _poll_freeze_asset(client: TestClient, conversation_id: str, headers: dict) -> dict:
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        status = client.get(
+            f"/api/conversations/{conversation_id}/freeze/status",
+            headers=headers,
+        )
+        assert status.status_code == 200
+        payload = status.json()
+        if payload["status"] == "done":
+            assert payload.get("asset")
+            return payload["asset"]
+        if payload["status"] == "failed":
+            raise AssertionError(payload.get("error") or "freeze failed")
+        time.sleep(0.3)
+    raise AssertionError("freeze timed out")
 
 
 def _configure_rate_limit_bypass() -> Redis:
@@ -51,18 +86,31 @@ def test_freeze_generates_full_asset_package_and_persists_snapshot() -> None:
         assert conversation.status_code == 200
         conversation_id = conversation.json()["id"]
 
-        freeze = client.post(
-            f"/api/conversations/{conversation_id}/freeze",
-            json={"title": "Why Europe"},
-            headers=headers,
+        _seed_conversation_messages(
+            conversation_id,
+            ("user", "为什么很多人想移民欧洲？"),
+            ("assistant", "Many people seek stability and opportunity abroad."),
         )
-        assert freeze.status_code == 200
 
-        payload = freeze.json()
-        assert len(payload["variants"]) >= 10
-        assert payload["variants"]["speech_1min"]
-        assert payload["variants"]["speech_3min"]
-        assert payload["variants"]["golden_quote"]
+        with patch(
+            "app.services.conversation_freeze_service.require_llm_provider",
+            return_value=MockLLMProvider(),
+        ), patch(
+            "app.services.conversation_freeze_service.assert_real_llm_usage",
+        ):
+            freeze = client.post(
+                f"/api/conversations/{conversation_id}/freeze",
+                json={"title": "Why Europe"},
+                headers=headers,
+            )
+            assert freeze.status_code == 200
+            assert freeze.json()["status"] in {"processing", "done"}
+
+            payload = _poll_freeze_asset(client, conversation_id, headers)
+            assert len(payload["variants"]) >= 10
+            assert payload["variants"]["speech_1min"]
+            assert payload["variants"]["speech_3min"]
+            assert payload["variants"]["golden_quote"]
 
         with SessionLocal() as db:
             thought = db.scalar(

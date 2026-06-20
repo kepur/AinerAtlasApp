@@ -17,34 +17,43 @@ class CodeStore(Protocol):
 
 
 class MemoryCodeStore:
+    def __init__(self, purpose: str) -> None:
+        self._purpose = purpose
+
+    def _key(self, email: str) -> str:
+        return f"{self._purpose}:{email.lower().strip()}"
+
     def save(self, email: str, code: str, ttl_seconds: int) -> None:
-        key = email.lower().strip()
-        _MEMORY_CODES[key] = (code, time.time() + ttl_seconds)
+        _MEMORY_CODES[self._key(email)] = (code, time.time() + ttl_seconds)
 
     def verify(self, email: str, code: str) -> bool:
-        key = email.lower().strip()
-        stored = _MEMORY_CODES.get(key)
+        stored = _MEMORY_CODES.get(self._key(email))
         if not stored:
             return False
         stored_code, expires_at = stored
         if time.time() > expires_at:
-            _MEMORY_CODES.pop(key, None)
+            _MEMORY_CODES.pop(self._key(email), None)
             return False
         return stored_code == code.strip()
 
     def delete(self, email: str) -> None:
-        _MEMORY_CODES.pop(email.lower().strip(), None)
+        _MEMORY_CODES.pop(self._key(email), None)
 
 
 class RedisCodeStore:
+    def __init__(self, purpose: str) -> None:
+        self._purpose = purpose
+
+    def _key(self, email: str) -> str:
+        return f"verify:{self._purpose}:{email.lower().strip()}"
+
     def save(self, email: str, code: str, ttl_seconds: int) -> None:
         client = get_redis()
-        client.setex(f"verify:register:{email.lower().strip()}", ttl_seconds, code)
+        client.setex(self._key(email), ttl_seconds, code)
 
     def verify(self, email: str, code: str) -> bool:
         client = get_redis()
-        key = f"verify:register:{email.lower().strip()}"
-        stored = client.get(key)
+        stored = client.get(self._key(email))
         if stored is None:
             return False
         if isinstance(stored, bytes):
@@ -53,17 +62,17 @@ class RedisCodeStore:
 
     def delete(self, email: str) -> None:
         client = get_redis()
-        client.delete(f"verify:register:{email.lower().strip()}")
+        client.delete(self._key(email))
 
 
-def get_code_store() -> CodeStore:
+def get_code_store(purpose: str = "register") -> CodeStore:
     try:
         client = get_redis()
         client.ping()
-        return RedisCodeStore()
+        return RedisCodeStore(purpose)
     except Exception:
         logger.warning("Redis unavailable for verification codes, using in-memory store")
-        return MemoryCodeStore()
+        return MemoryCodeStore(purpose)
 
 
 def generate_verification_code(length: int = 6) -> str:

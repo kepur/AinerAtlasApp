@@ -52,6 +52,147 @@ DEFAULT_COACH_IDENTITY = (
     "practice natural spoken English (or their target language). Never wait silently for the user."
 )
 
+INTERVIEW_SCENARIOS: dict[str, dict[str, Any]] = {
+    "通用": {
+        "topic_labels": ["自我介绍", "优缺点", "职业规划", "团队协作"],
+        "question_pool": [
+            "Tell me about yourself.",
+            "What are your greatest strengths and weaknesses?",
+            "Why do you want this role?",
+            "Describe a challenge you overcame at work.",
+        ],
+        "evaluation": ["回答结构 STAR", "逻辑清晰", "专业语气", "细节与例证"],
+        "opening": "Good morning. Thank you for joining today. Let's begin — please introduce yourself briefly.",
+    },
+    "科技": {
+        "topic_labels": ["技术栈", "系统设计", "项目难点", "跨团队协作"],
+        "question_pool": [
+            "Walk me through a technical project you are proud of.",
+            "How do you handle trade-offs in system design?",
+            "Tell me about a bug or outage you resolved under pressure.",
+            "How do you stay current with new technologies?",
+        ],
+        "evaluation": ["技术深度", "问题拆解", "英文技术表达", "结论先行"],
+        "opening": "Hi, I'm your interviewer today for a tech role. Start with a brief intro and your core technical stack.",
+    },
+    "金融": {
+        "topic_labels": ["风险意识", "合规", "数据分析", "客户沟通"],
+        "question_pool": [
+            "Why finance, and why this position?",
+            "Describe a time you managed risk or compliance carefully.",
+            "How do you explain complex numbers to non-experts?",
+            "Tell me about a high-pressure deadline you met.",
+        ],
+        "evaluation": ["严谨表达", "数字与逻辑", "合规意识", "客户导向"],
+        "opening": "Welcome. This is a finance interview simulation. Please introduce yourself and your relevant experience.",
+    },
+    "医疗": {
+        "topic_labels": ["患者沟通", "伦理", "应急处理", "跨学科合作"],
+        "question_pool": [
+            "Why are you interested in healthcare?",
+            "Describe communicating bad news or difficult information.",
+            "How do you handle stress in clinical or care settings?",
+            "Tell me about teamwork with non-clinical staff.",
+        ],
+        "evaluation": ["共情表达", "专业术语准确", "伦理敏感度", "清晰有条理"],
+        "opening": "Hello. We'll simulate a healthcare-related interview. Please introduce yourself and your background.",
+    },
+    "教育": {
+        "topic_labels": ["教学方法", "课堂管理", "学生激励", "课程设计"],
+        "question_pool": [
+            "What is your teaching philosophy?",
+            "How do you adapt lessons for different learners?",
+            "Describe a difficult classroom situation you handled.",
+            "How do you assess student progress?",
+        ],
+        "evaluation": ["表达感染力", "结构化回答", "实例具体", "反思能力"],
+        "opening": "Welcome to our education interview practice. Please tell me about your teaching experience and approach.",
+    },
+    "零售": {
+        "topic_labels": ["客户服务", "销售目标", "投诉处理", "门店运营"],
+        "question_pool": [
+            "Why retail, and what motivates you in customer-facing roles?",
+            "Describe handling an unhappy customer.",
+            "How do you prioritize tasks during a busy shift?",
+            "Tell me about exceeding a sales or service target.",
+        ],
+        "evaluation": ["服务意识", "抗压表达", "结果导向", "沟通自然度"],
+        "opening": "Hi there. This is a retail industry interview practice. Introduce yourself and your customer service experience.",
+    },
+}
+
+
+def _ielts_band_rubric(band: str) -> str:
+    return (
+        f"Target IELTS Speaking band: {band}. "
+        f"Adjust question difficulty and follow-up depth to band {band} expectations. "
+        "After each answer, give ONE brief evaluation on fluency, vocabulary range, grammar, or pronunciation — "
+        "then ask the next interview question."
+    )
+
+
+def build_interview_briefing(industry: str, ielts_band: str) -> dict[str, Any]:
+    scenario = INTERVIEW_SCENARIOS.get(industry) or INTERVIEW_SCENARIOS["通用"]
+    band = ielts_band or "6.5"
+    return {
+        "user_summary": f"英语面试模拟 · {industry} · 雅思口语 Band {band}",
+        "coach_identity": "Professional English interviewer",
+        "ability_snapshot": {
+            "grammar": 0,
+            "vocabulary": 0,
+            "fluency": 0,
+            "expression": 0,
+            "overall_level": f"IELTS {band}",
+        },
+        "strengths": list(scenario.get("evaluation", []))[:3],
+        "weaknesses_to_improve": [
+            "面试回答结构（STAR）",
+            "行业相关英文词汇",
+            f"雅思 Band {band} 流利度与连贯性",
+        ],
+        "interests": list(scenario.get("topic_labels", []))[:6],
+        "focus_topics": list(scenario.get("question_pool", []))[:4],
+        "opening_greeting": scenario.get("opening", ""),
+        "opening_questions": list(scenario.get("question_pool", []))[:3],
+        "analyzed_at": None,
+        "analysis_source": "interview_scenario",
+    }
+
+
+def compose_interview_session_instructions(
+    industry: str,
+    ielts_band: str,
+    *,
+    topic: str,
+    db: Session | None = None,
+) -> str:
+    scenario = INTERVIEW_SCENARIOS.get(industry) or INTERVIEW_SCENARIOS["通用"]
+    band = ielts_band or "6.5"
+    cfg = get_voice_platform_config(db)
+    base = str(cfg.get("omni_instructions") or "").strip()
+    questions = "\n".join(f"- {q}" for q in scenario.get("question_pool", [])[:6])
+    eval_points = ", ".join(scenario.get("evaluation", []))
+    rubric = _ielts_band_rubric(band)
+
+    return (
+        f"{base}\n\n" if base else ""
+    ) + (
+        "## Role\n"
+        "You are a professional English job interviewer in a mock interview session. "
+        "Do NOT act as a general language tutor or discuss the candidate's unrelated hobbies.\n\n"
+        f"## Scenario\nIndustry: {industry}\n{topic}\n\n"
+        f"## {rubric}\n\n"
+        f"## Interview focus for this industry\n{eval_points}\n\n"
+        f"## Question pool (pick one at a time; do not ask multiple at once)\n{questions}\n\n"
+        "## Rules\n"
+        "- Ask exactly ONE interview question per turn, then wait for the candidate.\n"
+        "- After the candidate answers, give a brief professional evaluation (2-3 sentences), "
+        "then move to the next question.\n"
+        "- Keep language natural interview English; adjust complexity to the IELTS band target.\n"
+        "- Do NOT reveal you are an AI unless asked.\n"
+        "- Do NOT use the candidate's personal chat history or unrelated profile topics.\n"
+    )
+
 
 def build_voice_coach_payload(db: Session, user_id: str) -> str:
     """Rich payload: base user analysis + voice sessions + pattern mastery."""
@@ -251,8 +392,23 @@ def build_session_coach_context(
     *,
     mode: str,
     topic: str,
+    industry: str = "",
+    ielts_band: str = "",
 ) -> dict[str, Any]:
     """Load cached profile from DB for voice session (no LLM on hot path)."""
+    if mode == "interview":
+        ind = (industry or "通用").strip() or "通用"
+        band = (ielts_band or "6.5").strip() or "6.5"
+        briefing = build_interview_briefing(ind, band)
+        instructions = compose_interview_session_instructions(
+            ind, band, topic=topic, db=db
+        )
+        return {
+            "coach_instructions": instructions,
+            "opening_greeting": briefing.get("opening_greeting") or "",
+            "coach_briefing": briefing,
+        }
+
     if not user_id:
         return {
             "coach_instructions": DEFAULT_COACH_IDENTITY,

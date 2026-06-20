@@ -1,0 +1,259 @@
+/* ─── Global action chips & buttons (Apple glass) ─── */
+
+.as-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  color: #4a4455;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow:
+    0 2px 10px rgba(99, 14, 212, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.as-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 14, 212, 0.12);
+}
+
+.as-chip:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.as-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.as-chip--accent {
+  border-color: rgba(99, 14, 212, 0.22);
+  background: rgba(99, 14, 212, 0.1);
+  color: #630ed4;
+}
+
+.as-chip--ghost {
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #5c5568;
+}
+
+.as-chip--saved,
+.as-chip--success {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.as-chip--sm {
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 11px;
+  gap: 4px;
+}
+
+.as-chip .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.as-chip--sm .material-symbols-outlined {
+  font-size: 14px;
+}
+
+/* Block CTAs */
+.as-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.as-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.as-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.as-btn--primary {
+  background: linear-gradient(145deg, #630ed4 0%, #7c3aed 100%);
+  color: #fff;
+  box-shadow:
+    0 8px 28px rgba(99, 14, 212, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.as-btn--primary:hover:not(:disabled) {
+  box-shadow: 0 10px 32px rgba(99, 14, 212, 0.35);
+}
+
+.as-btn--glass {
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border-color: rgba(99, 14, 212, 0.18);
+  color: #630ed4;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.as-btn--soft {
+  background: rgba(99, 14, 212, 0.1);
+  border-color: rgba(99, 14, 212, 0.2);
+  color: #630ed4;
+}
+
+.as-btn--success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+  color: #047857;
+}
+
+.as-btn--muted {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #4a4455;
+}
+
+.as-btn.w-full,
+.as-btn--block {
+  width: 100%;
+}
+
+.as-btn-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.as-btn-row--horizontal {
+  flex-direction: row;
+}
+
+.as-btn-row--horizontal .as-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.as-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Legacy ghost buttons (Freeze modal etc.) */
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 14, 212, 0.16);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #630ed4;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ghost-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 14, 212, 0.1);
+}
+
+.ghost-btn.saved {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+.bookmark-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 14, 212, 0.18);
+  background: rgba(99, 14, 212, 0.08);
+  color: #630ed4;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.freeze-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+
+.freeze-footer .primary-btn {
+  min-height: 44px;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #630ed4, #7c3aed);
+  box-shadow: 0 8px 24px rgba(99, 14, 212, 0.25);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .as-chip {
+  background: rgba(36, 32, 52, 0.72);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e9d5ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .as-chip--accent {
+  background: rgba(99, 14, 212, 0.22);
+  border-color: rgba(167, 139, 250, 0.28);
+  color: #ddd6fe;
+}
+
+[data-theme="dark"] .as-btn--glass,
+[data-theme="dark"] .as-btn--soft {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(167, 139, 250, 0.22);
+  color: #ddd6fe;
+}
+
+[data-theme="dark"] .ghost-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(167, 139, 250, 0.22);
+  color: #ddd6fe;
+}

@@ -46,6 +46,9 @@ class SendVerificationCodeResponse(BaseModel):
 class RegistrationPreview(BaseModel):
     email: str
     is_google_email: bool
+    registration_trial_enabled: bool = False
+    registration_trial_days: int = 0
+    registration_trial_membership_level: str | None = None
     google_trial_enabled: bool
     google_trial_days: int
     google_trial_membership_level: str | None = None
@@ -64,6 +67,12 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
+    new_password: str = Field(min_length=8)
+
+
+class ResetPasswordWithCodeRequest(BaseModel):
+    email: EmailStr
+    verification_code: str
     new_password: str = Field(min_length=8)
 
 
@@ -402,6 +411,66 @@ class VocabularyRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class VocabPracticeExercisePublic(BaseModel):
+    exercise_type: str
+    prompt: str
+    sentence: str = ""
+    hint: str = ""
+    options: list[str] = Field(default_factory=list)
+
+
+class VocabPracticeSubmit(BaseModel):
+    answer: str = ""
+    exercise_token: str = ""
+
+
+class VocabPracticeResponse(BaseModel):
+    item: VocabularyRead
+    exercise: VocabPracticeExercisePublic | None = None
+    exercise_token: str = ""
+    correct: bool | None = None
+    message: str = ""
+
+
+class VocabBatchResultItem(BaseModel):
+    item_id: str
+    word: str
+    meaning: str = ""
+    sentence: str = ""
+    correct: bool
+    user_answer: str = ""
+
+
+class VocabBatchSummaryRequest(BaseModel):
+    results: list[VocabBatchResultItem] = Field(default_factory=list)
+
+
+class VocabWordInsight(BaseModel):
+    word: str
+    correct: bool = False
+    explanation: str = ""
+    tip: str = ""
+
+
+class VocabBatchSummaryResponse(BaseModel):
+    summary: str
+    word_insights: list[VocabWordInsight] = Field(default_factory=list)
+    encouragement: str = ""
+
+
+class VocabBatchExerciseReady(BaseModel):
+    item_id: str
+    exercise: VocabPracticeExercisePublic
+    exercise_token: str
+
+
+class VocabBatchStartResponse(BaseModel):
+    batch_size: int
+    total_remaining: int
+    items: list[VocabularyRead]
+    exercises: list[VocabBatchExerciseReady] = Field(default_factory=list)
+
+
 class AIMemoryRead(BaseModel):
     id: str
     memory_type: str
@@ -463,6 +532,44 @@ class PracticeResponse(BaseModel):
     exercise_token: str = ""
     correct: bool | None = None
     message: str
+
+
+class GrammarBatchExerciseReady(BaseModel):
+    item_id: str
+    exercise: PracticeExercisePublic
+    exercise_token: str
+
+
+class GrammarBatchStartResponse(BaseModel):
+    batch_size: int
+    total_remaining: int
+    items: list[MasteryRead]
+    exercises: list[GrammarBatchExerciseReady] = Field(default_factory=list)
+
+
+class GrammarBatchResultItem(BaseModel):
+    item_id: str
+    title: str
+    example: str = ""
+    correct: bool
+    user_answer: str = ""
+
+
+class GrammarBatchSummaryRequest(BaseModel):
+    results: list[GrammarBatchResultItem] = Field(default_factory=list)
+
+
+class GrammarBatchInsight(BaseModel):
+    title: str
+    correct: bool = False
+    explanation: str = ""
+    tip: str = ""
+
+
+class GrammarBatchSummaryResponse(BaseModel):
+    summary: str
+    insights: list[GrammarBatchInsight] = Field(default_factory=list)
+    encouragement: str = ""
 
 
 class CrushCandidateCreate(BaseModel):
@@ -712,6 +819,7 @@ class UserDetailRead(BaseModel):
     voice_coach_profile: VoiceCoachProfileSummary | None = None
     ai_memory_preview: list[str] = Field(default_factory=list)
     stats: dict[str, int | float] = Field(default_factory=dict)
+    match_quota: dict[str, Any] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -766,6 +874,7 @@ class TranscribeRequest(BaseModel):
     audio_url: str = ""
     audio_base64: str = ""
     language: str = "en"
+    mime_type: str = "audio/webm"
 
 
 class TranscribeResponse(BaseModel):
@@ -798,6 +907,7 @@ class RealtimeCallSummaryRequest(BaseModel):
     duration_seconds: int = 0
     mode: str = "free"
     provider: str = "qwen-omni-realtime"
+    topic: str | None = None
     turns: list[RealtimeTurnSummary] = Field(default_factory=list)
 
 
@@ -1048,6 +1158,9 @@ class AuthSettingsRead(BaseModel):
     google_trial_enabled: bool
     google_trial_days: int
     google_trial_membership_level: str
+    registration_trial_enabled: bool
+    registration_trial_days: int
+    registration_trial_membership_level: str
     google_email_domains: list[str]
     demo_mode_enabled: bool
     demo_user_email: str
@@ -1069,6 +1182,9 @@ class AuthSettingsUpdate(BaseModel):
     google_trial_enabled: bool = True
     google_trial_days: int = Field(default=30, ge=1, le=365)
     google_trial_membership_level: str = "vip"
+    registration_trial_enabled: bool = True
+    registration_trial_days: int = Field(default=30, ge=1, le=365)
+    registration_trial_membership_level: str = "vip"
     google_email_domains: list[str] = Field(default_factory=lambda: ["gmail.com", "googlemail.com"])
     demo_mode_enabled: bool = True
     demo_user_email: str = "demo@ainerspeak.com"

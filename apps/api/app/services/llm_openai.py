@@ -9,6 +9,7 @@ import asyncio
 from openai import AsyncOpenAI, APIError, APITimeoutError, RateLimitError
 
 from app.schemas import ConversationAIResult, GrammarTip, ProfileRead
+from app.services.freeze_helpers import extract_expression_versions
 from app.services.llm import LLMProvider, language_name
 
 logger = logging.getLogger(__name__)
@@ -114,6 +115,44 @@ if they wrote in {target_language_name}, reply in {target_language_name}).
 - Be encouraging and human. NO grammar analysis, NO translations, NO lists, NO JSON.
 - Output ONLY the conversational reply text. Nothing else.
 """
+
+CHAT_REPLY_ROLE_TURN_RULES = """\
+## This turn — stay in character
+Native: {native_language_name} | Target: {target_language_name} | Level: {user_level}
+- Read the conversation history before replying.
+- Reply fully in the role/persona described above (1-3 sentences).
+- Use the same language the user wrote in for natural flow.
+- Stay in character throughout — do NOT slip into generic assistant tone.
+- NO grammar analysis, NO translations, NO lists, NO JSON.
+- Output ONLY the in-character conversational reply."""
+
+
+def build_chat_reply_system_prompt(
+    *,
+    role_prompt: str | None,
+    native_language_name: str,
+    target_language_name: str,
+    user_level: str,
+    memory_summary: str = "",
+) -> str:
+    if role_prompt and role_prompt.strip():
+        system_prompt = (
+            f"{role_prompt.strip()}\n\n"
+            + CHAT_REPLY_ROLE_TURN_RULES.format(
+                native_language_name=native_language_name,
+                target_language_name=target_language_name,
+                user_level=user_level,
+            )
+        )
+    else:
+        system_prompt = CHAT_REPLY_PROMPT.format(
+            native_language_name=native_language_name,
+            target_language_name=target_language_name,
+            user_level=user_level,
+        )
+    if memory_summary:
+        system_prompt = f"{system_prompt}\n\nUser memory:\n{memory_summary}"
+    return system_prompt
 
 CHAT_V2_PROMPT = """\
 You are AinerSpeak — a warm, sharp language partner helping the user improve their {target_language_name}.
@@ -381,12 +420,13 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 explanation_code = native_language
             explanation_name = language_name(explanation_code)
 
-            main_system_prompt = f"""You are AinerSpeak — a warm, sharp language partner. Have a REAL multi-turn conversation.
-    Native: {native_name} | Target: {target_name} | Level: {level}
-    - Read the conversation history before replying.
-    - Output ONLY the reply text in {target_name}. Do NOT output any analysis or JSON."""
-            if memory_summary:
-                main_system_prompt += f"\n\nMemory:\n{memory_summary}"
+            main_system_prompt = build_chat_reply_system_prompt(
+                role_prompt=system_prompt_override,
+                native_language_name=native_name,
+                target_language_name=target_name,
+                user_level=level,
+                memory_summary=memory_summary,
+            )
 
             user_content = f"[Topic: {topic}] [Mode: {mode}]\n\n{user_input}"
             conversation_history = kwargs.get("conversation_history") or []
@@ -396,7 +436,13 @@ class OpenAICompatibleLLMProvider(LLMProvider):
             expression_task = asyncio.create_task(
                 self._expression_agent(user_input, target_name, explanation_name))
             coach_task = asyncio.create_task(self._coach_agent(
-                user_input, native_name, target_name, mode, conversation_history))
+                user_input,
+                native_name,
+                target_name,
+                mode,
+                conversation_history,
+                mode_role_hint=(system_prompt_override or "").strip()[:400],
+            ))
 
             stream_gen = self._stream_text_only(
                 main_system_prompt,
@@ -463,14 +509,15 @@ class OpenAICompatibleLLMProvider(LLMProvider):
         level = profile.current_level if profile else "B1"
         native_name = language_name(native_language)
         target_name = language_name(target_language)
+        role_prompt = kwargs.get("system_prompt_override")
 
-        system_prompt = CHAT_REPLY_PROMPT.format(
+        system_prompt = build_chat_reply_system_prompt(
+            role_prompt=role_prompt,
             native_language_name=native_name,
             target_language_name=target_name,
             user_level=level,
+            memory_summary=memory_summary,
         )
-        if memory_summary:
-            system_prompt = f"{system_prompt}\n\nUser memory:\n{memory_summary}"
 
         user_content = f"[Topic: {topic}] [Mode: {mode}]\n\n{user_input}"
 
@@ -515,13 +562,22 @@ class OpenAICompatibleLLMProvider(LLMProvider):
         else:
             correction_block = ""
 
-        system_prompt = CHAT_V2_PROMPT.format(
+        base_v2_prompt = CHAT_V2_PROMPT.format(
             native_language_name=native_name,
             target_language_name=target_name,
             explanation_language_name=explanation_name,
             user_level=level,
             correction_block=correction_block,
         )
+        if system_prompt_override and system_prompt_override.strip():
+            system_prompt = (
+                f"{system_prompt_override.strip()}\n\n"
+                "## Structured analysis for this turn\n"
+                "Stay aligned with your role/persona above while filling the JSON fields below.\n\n"
+                f"{base_v2_prompt}"
+            )
+        else:
+            system_prompt = base_v2_prompt
 
         if memory_summary:
             system_prompt = f"{system_prompt}\n\nUser memory:\n{memory_summary}"
@@ -795,8 +851,27 @@ class OpenAICompatibleLLMProvider(LLMProvider):
         res = await self._call_llm(prompt, text, task="expression_agent")
         return res.model_dump() if hasattr(res, 'model_dump') else {}
 
-    async def _coach_agent(self, text: str, native: str, target: str, mode: str, history: list):
-        prompt = f"You are a conversation coach. Mode: {mode}. Read the input and generate a follow-up question and a challenge in {target} (or {native} if appropriate). Also generate a brief native translation of the assistant\'s hypothetical reply in {native}. Output strict JSON.\n"
+    async def _coach_agent(
+        self,
+        text: str,
+        native: str,
+        target: str,
+        mode: str,
+        history: list,
+        *,
+        mode_role_hint: str = "",
+    ):
+        role_line = (
+            f"Conversation mode persona (stay aligned):\n{mode_role_hint}\n"
+            if mode_role_hint
+            else f"Mode: {mode}.\n"
+        )
+        prompt = (
+            f"You are a conversation coach. {role_line}"
+            f"Read the input and generate a follow-up question and a challenge in {target} "
+            f"(or {native} if appropriate). Also generate a brief native translation of the "
+            f"assistant's hypothetical reply in {native}. Output strict JSON.\n"
+        )
         prompt += f'Format: {{"question": "...", "challenge": "...", "main_reply_native": "..."}}'
         prompt = _ensure_json_instruction(prompt)
         res = await self._call_llm(prompt, text, task="coach_agent", conversation_history=history[-4:])
@@ -893,12 +968,13 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 if role in {"user", "assistant"} and content:
                     messages.append({"role": role, "content": content})
         messages.append({"role": "user", "content": user_content})
+        max_tokens = 4096 if task == "thought_freeze" else 2048
         try:
             response = await self._client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=2048,
+                max_tokens=max_tokens,
                 response_format={"type": "json_object"},
             )
             latency_ms = int((time.perf_counter() - started) * 1000)
@@ -1144,7 +1220,7 @@ def _build_result(data: dict) -> ConversationAIResult:
         facts=_to_str_list(data.get("facts", [])),
         values=_to_str_list(data.get("values", [])),
         arguments=_to_str_list(data.get("arguments", [])),
-        expression_versions=_ensure_dict_str_str(data.get("expression_versions", {})),
+        expression_versions=extract_expression_versions(data),
         corrected_sentence=data.get("corrected_sentence"),
         mistakes=data.get("mistakes"),
     )

@@ -294,10 +294,11 @@ export default function RomanceSocial() {
 
   const {
     currentSession, feedItems, currentHud, turnLoading,
-    createSession, loadSession, sendTurn, clearCurrent,
+    createSession, loadSession, sendTurn, clearCurrent, findResumableSession,
   } = useGameStore();
 
   const [inputText, setInputText] = useState("");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const prevTurnLoadingRef = useRef(false);
@@ -316,6 +317,15 @@ export default function RomanceSocial() {
       if (creating) return;
       setCreating(true);
       try {
+        const resumed = await findResumableSession(
+          "romance",
+          templateId ? { template_id: templateId } : { target_id: targetId },
+        );
+        if (resumed?.id) {
+          await loadSession(resumed.id);
+          navigate(`/game/romance-social/${resumed.id}`, { replace: true });
+          return;
+        }
         const sess = await createSession(
           "romance",
           templateId,
@@ -596,14 +606,24 @@ export default function RomanceSocial() {
             </button>
           ))}
         </div>
-        <div className={`flex items-center gap-2 bg-white rounded-2xl pl-3 pr-2 py-2 border ${th.accentBorderStrong} ${th.shadow}`}>
+        <div className={`relative flex items-center gap-2 bg-white rounded-2xl pl-3 pr-2 py-2 border ${th.accentBorderStrong} ${th.shadow}`}>
+          {voiceError ? (
+            <p className="absolute -top-8 left-4 right-4 text-[11px] font-semibold text-red-600 bg-red-50/95 border border-red-200 rounded-lg px-2 py-1">
+              {voiceError}
+            </p>
+          ) : null}
           <VoiceInput
-            className={`w-9 h-9 rounded-xl flex items-center justify-center ${th.micBg} transition-colors shrink-0 border-0 shadow-none`}
+            className="voice-input-glass voice-input-glass--compact"
             iconSize={18}
             disabled={turnLoading}
-            mode="hold"
+            mode="tap"
+            autoStopSilenceMs={1400}
             onTranscript={(text) => { if (text.trim()) send(text); }}
-            title="按住说话，松开发送 · 上滑取消"
+            onError={(msg) => {
+              setVoiceError(msg);
+              window.setTimeout(() => setVoiceError(null), 3200);
+            }}
+            title="点击说话 · 再点或停顿自动转文字"
           />
           <input
             value={inputText}

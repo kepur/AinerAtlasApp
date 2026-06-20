@@ -175,7 +175,12 @@ def test_circle_message_uses_chat_v2_hud(monkeypatch) -> None:
                 headers=headers,
             )
             assert msg.status_code == 200, msg.text
-            analysis = msg.json()["analysis"]
+            assert msg.json()["analysis"].get("analysis_status") == "pending"
+
+            room_resp = client.get(f"/api/circles/{room_id}", headers=headers)
+            assert room_resp.status_code == 200
+            saved = room_resp.json()["messages"][-1]
+            analysis = saved["analysis"]
             assert analysis.get("v2") is True
             assert analysis.get("main_expression")
             assert "patterns_v2" in analysis
@@ -377,3 +382,96 @@ def test_realtime_session() -> None:
         )
         assert resp.status_code == 200
         assert "provider" in resp.json()
+
+
+def test_admin_reset_match_quota() -> None:
+    shared_quota_manager.reset()
+    app.dependency_overrides[get_quota_manager] = override_quota_manager
+
+    with TestClient(app) as client:
+        admin_login = client.post(
+            "/api/auth/login",
+            json={"email": "admin@ainerspeak.com", "password": "ChangeMe123!"},
+        )
+        assert admin_login.status_code == 200
+        admin_headers = _auth_headers(admin_login.json()["access_token"])
+
+        user_token = _register_and_login(client, "reset_quota_user")
+        user_headers = _auth_headers(user_token)
+        me = client.get("/api/auth/me", headers=user_headers)
+        user_id = me.json()["id"]
+
+        client.put(
+            "/api/connect/profile",
+            json={"bio": "x", "interests": ["a"], "target_languages": ["en"]},
+            headers=user_headers,
+        )
+        client.post(
+            "/api/connect/enable",
+            json={"enabled": True, "match_mode": "language_partner"},
+            headers=user_headers,
+        )
+        client.get("/api/connect/recommendations", headers=user_headers)
+
+        before = client.get("/api/connect/quota", headers=user_headers)
+        assert before.json()["cards_used"] >= 1
+
+        reset = client.post(
+            f"/api/admin/users/{user_id}/reset-match-quota",
+            headers=admin_headers,
+        )
+        assert reset.status_code == 200
+        assert reset.json()["cards_used"] == 0
+
+    app.dependency_overrides.clear()
+
+
+def test_friendship_created_on_dm_greet() -> None:
+    with TestClient(app) as client:
+        token_a = _register_and_login(client, "friend_a")
+        token_b = _register_and_login(client, "friend_b")
+        headers_a = _auth_headers(token_a)
+        headers_b = _auth_headers(token_b)
+
+        me_a = client.get("/api/auth/me", headers=headers_a).json()
+        me_b = client.get("/api/auth/me", headers=headers_b).json()
+
+        req = client.post(
+            "/api/connect/requests",
+            json={"to_user_id": me_b["id"], "message": "hi"},
+            headers=headers_a,
+        )
+        assert req.status_code == 201
+        request_id = req.json()["id"]
+
+        accepted = client.post(f"/api/connect/requests/{request_id}/accept", headers=headers_b)
+        assert accepted.status_code == 200
+
+        dm = client.post(
+            "/api/connect/dm",
+            json={"friend_user_id": me_a["id"]},
+            headers=headers_b,
+        )
+        assert dm.status_code == 200
+        room_id = dm.json()["id"]
+
+        msg = client.post(
+            f"/api/circles/{room_id}/messages",
+            json={"content": "Hello friend!", "content_language": "en"},
+            headers=headers_b,
+        )
+        assert msg.status_code == 200
+
+        friends = client.get("/api/connect/friends", headers=headers_b)
+        assert friends.status_code == 200
+        items = friends.json()["items"]
+        assert any(i.get("is_friend") for i in items)
+
+        deleted = client.delete(f"/api/connect/friends/{me_a['id']}", headers=headers_b)
+        assert deleted.status_code == 200
+
+        friends_after = client.get("/api/connect/friends", headers=headers_b)
+        assert not any(
+            (i.get("user_id") or i.get("id")) == me_a["id"] and i.get("is_friend")
+            for i in friends_after.json()["items"]
+        )
