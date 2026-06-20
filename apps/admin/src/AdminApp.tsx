@@ -1412,7 +1412,7 @@ function AdminApp() {
   async function saveAuthSettings() {
     if (!token) return;
     try {
-      setStatus("正在保存 SMTP / 注册配置...");
+      setStatus("正在保存 SMTP / 注册 / 演示配置...");
       const saved = await apiPut<AuthSettings>("/api/admin/auth-settings", token, {
         ...authForm,
         google_email_domains: authForm.google_email_domains
@@ -1421,9 +1421,45 @@ function AdminApp() {
           .filter(Boolean)
       });
       setAuthSettings(saved);
-      setStatus("SMTP 与注册策略已保存。");
+      setAuthForm((prev) => ({
+        ...prev,
+        demo_mode_enabled: saved.demo_mode_enabled,
+        demo_user_email: saved.demo_user_email,
+        demo_user_password: "",
+      }));
+      setStatus("SMTP、注册策略与演示模式已保存。");
     } catch (error) {
       setStatus(`保存失败：${errorMessage(error)}`);
+    }
+  }
+
+  async function saveDemoSettings(partial: {
+    demo_mode_enabled?: boolean;
+    demo_user_email?: string;
+    demo_user_password?: string;
+  }) {
+    if (!token) return;
+    try {
+      setStatus("正在保存 H5 演示模式...");
+      const saved = await apiPatch<AuthSettings>("/api/admin/auth-settings/demo", token, {
+        demo_mode_enabled: partial.demo_mode_enabled ?? authForm.demo_mode_enabled,
+        demo_user_email: partial.demo_user_email ?? authForm.demo_user_email,
+        demo_user_password: partial.demo_user_password ?? "",
+      });
+      setAuthSettings(saved);
+      setAuthForm((prev) => ({
+        ...prev,
+        demo_mode_enabled: saved.demo_mode_enabled,
+        demo_user_email: saved.demo_user_email,
+        demo_user_password: "",
+      }));
+      setStatus(
+        saved.demo_mode_enabled
+          ? "H5 演示模式已开启，登录页将自动填充测试账号。"
+          : "H5 演示模式已关闭，登录页将同步隐藏演示入口。"
+      );
+    } catch (error) {
+      setStatus(`保存演示模式失败：${errorMessage(error)}`);
     }
   }
 
@@ -3666,6 +3702,38 @@ function AdminApp() {
                 <label className="toggle-row"><span>启用邮箱验证码</span><input type="checkbox" checked={authForm.email_verification_enabled} onChange={(e) => setAuthForm({ ...authForm, email_verification_enabled: e.target.checked })} /></label>
                 <label className="toggle-row"><span>Google 邮箱额外试用（天数更长时覆盖默认）</span><input type="checkbox" checked={authForm.google_trial_enabled} onChange={(e) => setAuthForm({ ...authForm, google_trial_enabled: e.target.checked })} /></label>
                 <label className="toggle-row"><span>SMTP STARTTLS（587 开；465 请关，走 SSL）</span><input type="checkbox" checked={authForm.smtp_use_tls} onChange={(e) => setAuthForm({ ...authForm, smtp_use_tls: e.target.checked })} /></label>
+
+                <article className="module-card wide">
+                  <strong>H5 演示模式</strong>
+                  <span>由后台开关控制（写入数据库，H5 登录页实时读取 /api/auth/demo-config，不依赖 .env）。</span>
+                </article>
+                <label className="toggle-row wide">
+                  <span>开启 H5 演示模式（登录页自动填充测试账密）</span>
+                  <input
+                    type="checkbox"
+                    checked={authForm.demo_mode_enabled}
+                    onChange={(e) => void saveDemoSettings({ demo_mode_enabled: e.target.checked })}
+                  />
+                </label>
+                <label>演示测试邮箱
+                  <input
+                    value={authForm.demo_user_email}
+                    onChange={(e) => setAuthForm({ ...authForm, demo_user_email: e.target.value })}
+                    placeholder="demo@ainerspeak.com"
+                  />
+                </label>
+                <label>演示测试密码
+                  <input
+                    type="password"
+                    value={authForm.demo_user_password}
+                    placeholder={authSettings.demo_password_configured ? "留空则不修改" : "默认 Demo123!"}
+                    onChange={(e) => setAuthForm({ ...authForm, demo_user_password: e.target.value })}
+                  />
+                </label>
+                <div className="wide mini-actions">
+                  <button type="button" onClick={() => void saveDemoSettings({})}>保存演示账号</button>
+                </div>
+
                 <article className="module-card wide">
                   <strong>当前状态</strong>
                   <span>SMTP 已配置：{authSettings.smtp_configured ? "是" : "否（开发模式会在 API 日志返回 dev_code）"}</span>
@@ -3681,7 +3749,7 @@ function AdminApp() {
                       ? `${authSettings.google_trial_days} 天 ${authSettings.google_trial_membership_level.toUpperCase()}（仅当长于默认赠送时生效）`
                       : "已关闭"}
                   </span>
-                  <span>H5 演示模式：{authSettings.demo_mode_enabled ? "已开启" : "已关闭"}</span>
+                  <span>H5 演示模式：{authSettings.demo_mode_enabled ? "已开启" : "已关闭"}（H5 登录页实时同步）</span>
                 </article>
               </div>
             )}
@@ -3752,51 +3820,6 @@ function AdminApp() {
                     ))}
                   </div>
                   <span>仅启用的语言会出现在 H5 用户语言切换列表中；LLM 解释语言会跟随用户选择的界面语言。</span>
-                </article>
-              </div>
-            )}
-
-            <div className="panel-header" style={{ marginTop: 24 }}>
-              <div>
-                <span>Demo Mode</span>
-                <h2>H5 演示阶段</h2>
-              </div>
-            </div>
-
-            {authSettings && (
-              <div className="form-grid" style={{ marginBottom: 24 }}>
-                <label className="toggle-row wide">
-                  <span>开启 Demo 演示阶段（H5 登录页自动填充测试账密）</span>
-                  <input
-                    type="checkbox"
-                    checked={authForm.demo_mode_enabled}
-                    onChange={(e) => setAuthForm({ ...authForm, demo_mode_enabled: e.target.checked })}
-                  />
-                </label>
-                <label>演示测试邮箱
-                  <input
-                    value={authForm.demo_user_email}
-                    onChange={(e) => setAuthForm({ ...authForm, demo_user_email: e.target.value })}
-                    placeholder="demo@ainerspeak.com"
-                  />
-                </label>
-                <label>演示测试密码
-                  <input
-                    type="password"
-                    value={authForm.demo_user_password}
-                    placeholder={authSettings.demo_password_configured ? "留空则不修改" : "默认 Demo123!"}
-                    onChange={(e) => setAuthForm({ ...authForm, demo_user_password: e.target.value })}
-                  />
-                </label>
-                <article className="module-card wide">
-                  <strong>演示说明</strong>
-                  <span>
-                    开启后 H5 登录页会预填测试账号并显示「演示登录」；关闭后用户需自行注册/登录，注册入口才会显示。
-                  </span>
-                  <span>
-                    当前演示账号：<strong>{authSettings.demo_user_email}</strong>
-                    {authSettings.demo_password_configured ? "（已自定义密码）" : "（默认密码 Demo123!）"}
-                  </span>
                 </article>
               </div>
             )}
@@ -3937,6 +3960,16 @@ async function apiPut<T>(path: string, token: string, body: unknown): Promise<T>
   return parseResponse<T>(
     await fetch(path, {
       method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    })
+  );
+}
+
+async function apiPatch<T>(path: string, token: string, body: unknown): Promise<T> {
+  return parseResponse<T>(
+    await fetch(path, {
+      method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(body)
     })

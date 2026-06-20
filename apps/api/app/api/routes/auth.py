@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from loguru import logger
 from sqlalchemy import select
 
@@ -51,7 +51,9 @@ def _record_login(db: DBSession, user_id: str, request: Request, success: bool, 
 
 
 @router.get("/demo-config", response_model=DemoConfigRead)
-def demo_config(db: DBSession) -> DemoConfigRead:
+def demo_config(response: Response, db: DBSession) -> DemoConfigRead:
+    # H5 must always reflect the admin toggle — never cache this response.
+    response.headers["Cache-Control"] = "no-store"
     settings = get_auth_settings(db)
     if not settings.demo_mode_enabled:
         return DemoConfigRead(

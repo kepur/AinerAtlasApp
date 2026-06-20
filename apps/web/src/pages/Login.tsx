@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
@@ -19,17 +19,32 @@ export default function Login() {
   const { t } = useI18n();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    void apiRequest<DemoConfig>("/api/auth/demo-config")
-      .then((config) => {
-        setDemoConfig(config);
-        if (config.enabled && config.email && config.password) {
-          setEmail(config.email);
-          setPassword(config.password);
-        }
-      })
-      .catch(() => setDemoConfig({ enabled: false }));
+  const loadDemoConfig = useCallback(async () => {
+    try {
+      const config = await apiRequest<DemoConfig>("/api/auth/demo-config", { cache: "no-store" });
+      setDemoConfig(config);
+      if (config.enabled && config.email && config.password) {
+        setEmail(config.email);
+        setPassword(config.password);
+      } else {
+        setEmail("");
+        setPassword("");
+      }
+    } catch {
+      setDemoConfig({ enabled: false });
+      setEmail("");
+      setPassword("");
+    }
   }, []);
+
+  useEffect(() => {
+    void loadDemoConfig();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadDemoConfig();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [loadDemoConfig]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -88,7 +103,7 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              autoComplete="email"
+              autoComplete={demoConfig?.enabled ? "username" : "email"}
               className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-4 py-3 text-[15px] text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
             />
           </div>
@@ -108,7 +123,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t("login.passwordPlaceholder")}
               required
-              autoComplete="current-password"
+              autoComplete={demoConfig?.enabled ? "current-password" : "password"}
               className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-4 py-3 text-[15px] text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
             />
           </div>

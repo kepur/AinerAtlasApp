@@ -44,6 +44,7 @@ from app.schemas import (
     AuditLogRead,
     AuthSettingsRead,
     AuthSettingsUpdate,
+    DemoModeSettingsUpdate,
     CostSummary,
     MembershipPlanRead,
     MembershipPlanUpdate,
@@ -908,6 +909,33 @@ def update_auth_settings(
         resource_type="auth_settings",
         resource_id=settings.id,
         details={"before": previous, "after": payload.model_dump(exclude={"smtp_password"})},
+    )
+    db.commit()
+    db.refresh(settings)
+    return _auth_settings_read(settings)
+
+
+@router.patch("/auth-settings/demo", response_model=AuthSettingsRead)
+def update_demo_mode_settings(
+    payload: DemoModeSettingsUpdate,
+    admin: AdminUser,
+    db: DBSession,
+) -> AuthSettingsRead:
+    """Toggle H5 demo mode immediately without resubmitting all SMTP fields."""
+    settings = get_auth_settings(db)
+    previous = _auth_settings_read(settings).model_dump(mode="json")
+    settings.demo_mode_enabled = payload.demo_mode_enabled
+    settings.demo_user_email = payload.demo_user_email.lower().strip()
+    if payload.demo_user_password:
+        set_demo_password(settings, payload.demo_user_password)
+    sync_demo_user_from_settings(db, settings)
+    write_audit_log(
+        db,
+        admin,
+        action="update_demo_mode",
+        resource_type="auth_settings",
+        resource_id=settings.id,
+        details={"before": previous, "after": payload.model_dump(exclude={"demo_user_password"})},
     )
     db.commit()
     db.refresh(settings)

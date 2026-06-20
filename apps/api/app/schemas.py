@@ -1191,6 +1191,12 @@ class AuthSettingsUpdate(BaseModel):
     demo_user_password: str = ""
 
 
+class DemoModeSettingsUpdate(BaseModel):
+    demo_mode_enabled: bool
+    demo_user_email: str = "demo@ainerspeak.com"
+    demo_user_password: str = ""
+
+
 class DemoConfigRead(BaseModel):
     enabled: bool
     email: str | None = None
