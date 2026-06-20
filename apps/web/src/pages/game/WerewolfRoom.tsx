@@ -218,43 +218,97 @@ export default function WerewolfRoom() {
 
     let ws: WebSocket | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let pingTimer: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    let cancelled = false;
 
     const startPolling = () => {
       if (pollTimer) return;
       pollTimer = setInterval(() => void reloadRoom(roomId).catch(() => {}), 4000);
     };
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    };
+    const clearPing = () => {
+      if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+      }
+    };
 
-    const token = getToken();
-    if (token) {
+    const scheduleReconnect = () => {
+      if (cancelled || reconnectTimer) return;
+      attempts += 1;
+      const delay = Math.min(1000 * 2 ** Math.min(attempts, 4), 15_000);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
+    };
+
+    const connect = () => {
+      if (cancelled) return;
+      const token = getToken();
+      if (!token) {
+        startPolling();
+        return;
+      }
       const wsBase = (API_BASE_URL || window.location.origin).replace(/^http/i, "ws");
       const wsUrl = `${wsBase}/api/games/werewolf-rooms/ws/${encodeURIComponent(roomId)}?token=${encodeURIComponent(token)}`;
       try {
         ws = new WebSocket(wsUrl);
-        ws.onmessage = (ev) => {
-          try {
-            const msg = JSON.parse(ev.data) as { type?: string; data?: WerewolfRoomView };
-            if (msg.type === "room" && msg.data) setRoom(msg.data);
-            if (msg.type === "room_sync") {
-              if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-              syncTimerRef.current = setTimeout(() => {
-                syncTimerRef.current = null;
-                void reloadRoom(roomId).catch(() => {});
-              }, 300);
-            }
-          } catch { /* ignore */ }
-        };
-        ws.onerror = () => startPolling();
-        ws.onclose = () => startPolling();
       } catch {
         startPolling();
+        scheduleReconnect();
+        return;
       }
-    } else {
-      startPolling();
-    }
+      ws.onopen = () => {
+        attempts = 0;
+        stopPolling();
+        void reloadRoom(roomId).catch(() => {});
+        clearPing();
+        pingTimer = setInterval(() => {
+          try {
+            if (ws?.readyState === WebSocket.OPEN) ws.send("ping");
+          } catch { /* ignore */ }
+        }, 25_000);
+      };
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data) as { type?: string; data?: WerewolfRoomView };
+          if (msg.type === "room" && msg.data) setRoom(msg.data);
+          if (msg.type === "room_sync") {
+            if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+            syncTimerRef.current = setTimeout(() => {
+              syncTimerRef.current = null;
+              void reloadRoom(roomId).catch(() => {});
+            }, 300);
+          }
+        } catch { /* ignore */ }
+      };
+      ws.onerror = () => {
+        startPolling();
+      };
+      ws.onclose = () => {
+        clearPing();
+        if (cancelled) return;
+        startPolling();
+        scheduleReconnect();
+      };
+    };
+
+    connect();
 
     return () => {
+      cancelled = true;
+      clearPing();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      stopPolling();
       ws?.close();
-      if (pollTimer) clearInterval(pollTimer);
       if (syncTimerRef.current) {
         clearTimeout(syncTimerRef.current);
         syncTimerRef.current = null;
@@ -281,16 +335,64 @@ export default function WerewolfRoom() {
     const wsBase = (API_BASE_URL || window.location.origin).replace(/^http/i, "ws");
     const wsUrl = `${wsBase}/api/connect/notifications/ws?token=${encodeURIComponent(token)}`;
     let ws: WebSocket | null = null;
-    try {
-      ws = new WebSocket(wsUrl);
+    let pingTimer: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    let cancelled = false;
+
+    const clearPing = () => {
+      if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+      }
+    };
+    const scheduleReconnect = () => {
+      if (cancelled || reconnectTimer) return;
+      attempts += 1;
+      const delay = Math.min(1000 * 2 ** Math.min(attempts, 4), 15_000);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
+    };
+    const connect = () => {
+      if (cancelled) return;
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch {
+        scheduleReconnect();
+        return;
+      }
+      ws.onopen = () => {
+        attempts = 0;
+        clearPing();
+        pingTimer = setInterval(() => {
+          try {
+            if (ws?.readyState === WebSocket.OPEN) ws.send("ping");
+          } catch { /* ignore */ }
+        }, 25_000);
+      };
       ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(ev.data) as { type?: string };
           if (msg.type === "werewolf_invite") void loadPendingInvites();
         } catch { /* ignore */ }
       };
-    } catch { /* ignore */ }
-    return () => ws?.close();
+      ws.onclose = () => {
+        clearPing();
+        if (cancelled) return;
+        scheduleReconnect();
+      };
+    };
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      clearPing();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      ws?.close();
+    };
   }, [loadPendingInvites]);
 
   async function handleAcceptInvite(roomId: string) {

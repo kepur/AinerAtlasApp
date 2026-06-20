@@ -171,45 +171,90 @@ export default function CircleRoom() {
       await ensureJoined(roomId);
     })();
 
-    const token = getToken();
-    if (token) {
+    let pingTimer: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    };
+    const clearPing = () => {
+      if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+      }
+    };
+    const scheduleReconnect = () => {
+      if (cancelled || reconnectTimer) return;
+      attempts += 1;
+      const delay = Math.min(1000 * 2 ** Math.min(attempts, 4), 15_000);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
+    };
+
+    const connect = () => {
+      if (cancelled) return;
+      const token = getToken();
+      if (!token) {
+        startPolling();
+        return;
+      }
       const wsBase = (API_BASE_URL || window.location.origin).replace(/^http/i, "ws");
       const wsUrl = `${wsBase}/api/circles/ws/${encodeURIComponent(roomId)}?token=${encodeURIComponent(token)}`;
       try {
         ws = new WebSocket(wsUrl);
-        ws.onopen = () => {
-          if (pollTimer) {
-            clearInterval(pollTimer);
-            pollTimer = null;
-          }
-        };
-        ws.onmessage = (ev) => {
-          try {
-            const data = JSON.parse(ev.data) as {
-              type?: string;
-              message?: CircleMessage;
-            };
-            if (!data.message) return;
-            if (data.type === "message" || data.type === "message_updated") {
-              applyWsMessage(data.message);
-            }
-          } catch {
-            /* ignore */
-          }
-        };
-        ws.onerror = () => startPolling();
-        ws.onclose = () => startPolling();
       } catch {
         startPolling();
+        scheduleReconnect();
+        return;
       }
-    } else {
-      startPolling();
-    }
+      ws.onopen = () => {
+        attempts = 0;
+        stopPolling();
+        void loadRoom(roomId);
+        clearPing();
+        pingTimer = setInterval(() => {
+          try {
+            if (ws?.readyState === WebSocket.OPEN) ws.send("ping");
+          } catch { /* ignore */ }
+        }, 25_000);
+      };
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data) as {
+            type?: string;
+            message?: CircleMessage;
+          };
+          if (!data.message) return;
+          if (data.type === "message" || data.type === "message_updated") {
+            applyWsMessage(data.message);
+          }
+        } catch {
+          /* ignore */
+        }
+      };
+      ws.onerror = () => startPolling();
+      ws.onclose = () => {
+        clearPing();
+        if (cancelled) return;
+        startPolling();
+        scheduleReconnect();
+      };
+    };
+
+    connect();
 
     return () => {
       cancelled = true;
+      clearPing();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      stopPolling();
       ws?.close();
-      if (pollTimer) clearInterval(pollTimer);
     };
   }, [roomId, searchParams, navigate, loadRoom, ensureJoined, applyWsMessage]);
 

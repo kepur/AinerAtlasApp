@@ -95,6 +95,10 @@ export default function PartyRoom() {
 
     let ws: WebSocket | null = null;
     let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let pingTimer: ReturnType<typeof setInterval> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    let cancelled = false;
 
     const startPolling = () => {
       if (pollTimer) return;
@@ -103,46 +107,83 @@ export default function PartyRoom() {
         void reloadRoom(roomId).catch(() => {});
       }, 4000);
     };
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    };
+    const clearPing = () => {
+      if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+      }
+    };
+    const scheduleReconnect = () => {
+      if (cancelled || reconnectTimer) return;
+      attempts += 1;
+      const delay = Math.min(1000 * 2 ** Math.min(attempts, 4), 15_000);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
+    };
 
-    const token = getToken();
-    if (token) {
+    const connect = () => {
+      if (cancelled) return;
+      const token = getToken();
+      if (!token) {
+        startPolling();
+        return;
+      }
       const wsBase = (API_BASE_URL || window.location.origin).replace(/^http/i, "ws");
       const wsUrl = `${wsBase}/api/games/party-rooms/ws/${encodeURIComponent(roomId)}?token=${encodeURIComponent(token)}`;
       try {
         ws = new WebSocket(wsUrl);
-        ws.onopen = () => {
-          setWsConnected(true);
-          if (pollTimer) {
-            clearInterval(pollTimer);
-            pollTimer = null;
-          }
-        };
-        ws.onmessage = (ev) => {
-          try {
-            const data = JSON.parse(ev.data) as { type?: string; data?: PartyRoomState };
-            if (data.type === "room" && data.data) {
-              setRoom(data.data);
-            } else if (data.type === "room_sync") {
-              void reloadRoom(roomId);
-            }
-          } catch { /* ignore */ }
-        };
-        ws.onerror = () => startPolling();
-        ws.onclose = () => startPolling();
       } catch {
         startPolling();
+        scheduleReconnect();
+        return;
       }
-    } else {
-      startPolling();
-    }
+      ws.onopen = () => {
+        attempts = 0;
+        setWsConnected(true);
+        stopPolling();
+        void reloadRoom(roomId).catch(() => {});
+        clearPing();
+        pingTimer = setInterval(() => {
+          try {
+            if (ws?.readyState === WebSocket.OPEN) ws.send("ping");
+          } catch { /* ignore */ }
+        }, 25_000);
+      };
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data) as { type?: string; data?: PartyRoomState };
+          if (data.type === "room" && data.data) {
+            setRoom(data.data);
+          } else if (data.type === "room_sync") {
+            void reloadRoom(roomId);
+          }
+        } catch { /* ignore */ }
+      };
+      ws.onerror = () => startPolling();
+      ws.onclose = () => {
+        clearPing();
+        setWsConnected(false);
+        if (cancelled) return;
+        startPolling();
+        scheduleReconnect();
+      };
+    };
 
-    const pingTimer = setInterval(() => {
-      if (ws?.readyState === WebSocket.OPEN) ws.send("ping");
-    }, 25000);
+    connect();
 
     return () => {
-      clearInterval(pingTimer);
-      if (pollTimer) clearInterval(pollTimer);
+      cancelled = true;
+      clearPing();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      stopPolling();
       ws?.close();
     };
   }, [room?.room_id]);
