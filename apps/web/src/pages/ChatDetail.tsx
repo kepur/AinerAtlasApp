@@ -330,11 +330,11 @@ export default function ChatDetail() {
           iconSize={20}
           disabled={sending}
           mode="tap"
-          autoStopSilenceMs={1400}
+          autoStopSilenceMs={1000}
           language="auto"
           onTranscript={handleVoiceTranscript}
           onError={handleVoiceError}
-          title="点击说话 · 再点或停顿 1.4 秒自动转文字"
+          title="点击说话 · 再点或停顿 1 秒自动转文字"
         />
         <div className="composer-input-wrapper">
           <input

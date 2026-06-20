@@ -77,7 +77,7 @@ async def _transcribe_audio(
     language: str,
     mime_type: str = "audio/webm",
 ) -> tuple[str, str]:
-    """Transcribe with TTS-provider fallback to DashScope ASR / OpenAI / mock."""
+    """Transcribe with DashScope ASR first, then provider fallbacks."""
     from app.services.aliyun_speech_assessment import _decode_audio_ref, transcribe_general_audio
     from app.services.dashscope_client import dashscope_enabled, resolve_dashscope_config
     from app.services.voice import MockVoiceProvider
@@ -87,11 +87,8 @@ async def _transcribe_audio(
     except Exception:
         audio_bytes = b""
 
-    provider_name = resolve_default_voice_provider(db)
-    provider = get_voice_provider(provider_name, db)
-    text = (await provider.transcribe(audio_ref, language)).strip()
-    if text:
-        return text, provider_name
+    if not audio_bytes:
+        return "", "none"
 
     if dashscope_enabled(db):
         cfg = resolve_dashscope_config(db)
@@ -108,10 +105,26 @@ async def _transcribe_audio(
             except Exception as exc:
                 logger.warning("DashScope chat ASR failed: %s", exc)
 
-    openai_provider = get_voice_provider("openai", db)
-    text = (await openai_provider.transcribe(audio_ref, language, mime_type=mime_type)).strip()
-    if text:
-        return text, "openai"
+    provider_name = resolve_default_voice_provider(db)
+    provider = get_voice_provider(provider_name, db)
+    try:
+        try:
+            text = (await provider.transcribe(audio_ref, language, mime_type=mime_type)).strip()
+        except TypeError:
+            text = (await provider.transcribe(audio_ref, language)).strip()
+        if text:
+            return text, provider_name
+    except Exception as exc:
+        logger.warning("Primary voice provider ASR failed (%s): %s", provider_name, exc)
+
+    if provider_name != "openai":
+        openai_provider = get_voice_provider("openai", db)
+        try:
+            text = (await openai_provider.transcribe(audio_ref, language, mime_type=mime_type)).strip()
+            if text:
+                return text, "openai"
+        except Exception as exc:
+            logger.warning("OpenAI ASR fallback failed: %s", exc)
 
     if len(audio_bytes) < 512:
         mock = MockVoiceProvider()

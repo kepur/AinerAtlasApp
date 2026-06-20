@@ -617,13 +617,13 @@ export default function RomanceSocial() {
             iconSize={18}
             disabled={turnLoading}
             mode="tap"
-            autoStopSilenceMs={1400}
+            autoStopSilenceMs={1000}
             onTranscript={(text) => { if (text.trim()) send(text); }}
             onError={(msg) => {
               setVoiceError(msg);
               window.setTimeout(() => setVoiceError(null), 3200);
             }}
-            title="点击说话 · 再点或停顿自动转文字"
+            title="点击说话 · 再点或停顿 1 秒自动转文字"
           />
           <input
             value={inputText}
