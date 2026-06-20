@@ -31,6 +31,7 @@ from app.schemas import (
 )
 from app.services.friendship_service import (
     are_friends,
+    ensure_friendship_on_greet,
     friendship_to_friend_item,
     list_active_friendships,
     remove_friendship,
@@ -554,6 +555,90 @@ def open_dm(
     db.add(CircleMember(room_id=room.id, user_id=friend_user_id, role="member"))
     db.commit()
     return {"id": room.id, "reused": False, "ai_host": False}
+
+
+@router.post("/greet")
+async def greet_match(
+    current_user: CurrentUser,
+    db: DBSession,
+    to_user_id: str = Body("", embed=True),
+    message: str = Body("", embed=True),
+) -> dict:
+    """Greet a matched user: connect, open a 1:1 DM room and send the first message.
+
+    Uses a message-request model — sending a greeting establishes the connection so
+    both sides can start chatting immediately, instead of waiting on a separate accept step.
+    """
+    if not to_user_id or to_user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Invalid to_user_id")
+    target = db.get(User, to_user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    greeting = (message or "").strip() or "Hi! 很高兴匹配到你，一起练习表达吧 👋"
+
+    req = db.scalar(
+        select(MatchRequest)
+        .where(
+            ((MatchRequest.from_user_id == current_user.id) & (MatchRequest.to_user_id == to_user_id))
+            | ((MatchRequest.from_user_id == to_user_id) & (MatchRequest.to_user_id == current_user.id))
+        )
+        .order_by(MatchRequest.created_at.desc())
+    )
+    if req is None:
+        req = MatchRequest(
+            from_user_id=current_user.id,
+            to_user_id=to_user_id,
+            message=greeting,
+            status="accepted",
+            responded_at=utc_now(),
+        )
+        db.add(req)
+    elif req.status != "accepted":
+        req.status = "accepted"
+        req.responded_at = utc_now()
+    db.flush()
+
+    room = _dm_room_for(db, current_user.id, to_user_id)
+    reused = room is not None
+    if room is None:
+        room = CircleRoom(
+            creator_id=current_user.id,
+            title=f"私聊 · {target.username}",
+            max_members=2,
+            room_type="dm",
+            allowed_languages=["zh", "en"],
+            summary={"ai_host": False},
+        )
+        db.add(room)
+        db.flush()
+        db.add(CircleMember(room_id=room.id, user_id=current_user.id, role="host"))
+        db.add(CircleMember(room_id=room.id, user_id=to_user_id, role="member"))
+        db.flush()
+
+    msg = CircleMessage(
+        room_id=room.id,
+        user_id=current_user.id,
+        role="user",
+        content=greeting,
+        content_language="zh",
+        translated_content="",
+        analysis={},
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+
+    ensure_friendship_on_greet(db, current_user.id, to_user_id)
+
+    await circle_hub.broadcast(
+        room.id,
+        {
+            "type": "message",
+            "message": CircleMessageRead.model_validate(msg).model_dump(mode="json"),
+        },
+    )
+    return {"room_id": room.id, "reused": reused}
 
 
 @router.post("/rooms/{room_id}/enable-ai")

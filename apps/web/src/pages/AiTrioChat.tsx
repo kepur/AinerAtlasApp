@@ -39,6 +39,13 @@ type ChatTurn = {
 
 const QUICK_CHIPS = ["In my view...", "Building on that...", "Contrarily...", "Precisely."];
 
+const EMOJIS = [
+  "😀", "😄", "😁", "😊", "😍", "🥰", "😎", "🤔",
+  "😅", "😂", "🙂", "😉", "😇", "🥳", "😢", "😭",
+  "👍", "👏", "🙌", "🙏", "💪", "👋", "🤝", "🤙",
+  "❤️", "🔥", "✨", "💯", "🌟", "🎉", "🚀", "☕",
+];
+
 function analysisToHud(analysis: Record<string, unknown> | undefined): HudData | null {
   if (!analysis) return null;
   if (analysis.analysis_status === "pending") return null;
@@ -70,6 +77,7 @@ export default function AiTrioChat() {
   const [aiHost, setAiHost] = useState(false);
   const [enablingAi, setEnablingAi] = useState(false);
   const [activeTurnId, setActiveTurnId] = useState<string | null>(null);
+  const [showEmoji, setShowEmoji] = useState(false);
   const [explainToken, setExplainToken] = useState<{ token: string; context: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -298,6 +306,11 @@ export default function AiTrioChat() {
     textareaRef.current?.focus();
   }
 
+  function handleEmoji(emoji: string) {
+    setInput((prev) => prev + emoji);
+    textareaRef.current?.focus();
+  }
+
   const messages = room?.messages ?? [];
   const partnerMember = room?.members.find((m) => m.user_id !== currentUserId);
 
@@ -449,12 +462,37 @@ export default function AiTrioChat() {
       </main>
 
       <div className="flex-shrink-0 z-40 bg-surface/90 backdrop-blur-2xl border-t border-outline-variant/30 px-margin-mobile pt-3 pb-6">
-        <div className="flex items-center gap-3 bg-surface-container-low border border-outline-variant/30 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-primary/30">
+        {showEmoji && (
+          <div className="mb-2 grid grid-cols-8 gap-1 p-2 rounded-2xl bg-surface-container-high border border-outline-variant/20 shadow-sm">
+            {EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => handleEmoji(emoji)}
+                className="h-9 rounded-lg text-[20px] flex items-center justify-center active:bg-primary-container/20 transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-2 bg-surface-container-low border border-outline-variant/30 rounded-2xl px-3 py-3 focus-within:ring-2 focus-within:ring-primary/30">
+          <button
+            type="button"
+            onClick={() => setShowEmoji((v) => !v)}
+            aria-label="表情"
+            className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center active:scale-95 transition-transform ${
+              showEmoji ? "text-primary bg-primary-container/20" : "text-on-surface-variant"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[22px]">mood</span>
+          </button>
           <textarea
             ref={textareaRef}
             rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onFocus={() => setShowEmoji(false)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

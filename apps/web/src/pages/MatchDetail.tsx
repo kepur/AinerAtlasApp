@@ -52,13 +52,25 @@ export default function MatchDetail() {
 
   async function sendRequest() {
     if (!rec) return;
+    if (rec.target_user_id.startsWith("u")) {
+      setRequested(true);
+      setErr("这是示例用户，开启真实匹配后即可打招呼对话");
+      window.setTimeout(() => setErr(""), 2600);
+      return;
+    }
     try {
-      await apiRequest("/api/connect/requests", {
+      const room = await apiRequest<{ room_id: string }>("/api/connect/greet", {
         method: "POST",
-        body: JSON.stringify({ to_user_id: rec.target_user_id, message: rec.icebreaker || "想一起练习表达！" }),
+        body: JSON.stringify({ to_user_id: rec.target_user_id, message: rec.icebreaker || "想一起练习表达！👋" }),
       });
-    } catch { /* ignore */ }
-    setRequested(true);
+      setRequested(true);
+      if (room?.room_id) {
+        navigate(`/trio-chat?room=${room.room_id}`);
+      }
+    } catch {
+      setErr("打招呼失败，请稍后重试");
+      window.setTimeout(() => setErr(""), 2600);
+    }
   }
 
   async function startTrioChat() {

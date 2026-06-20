@@ -87,6 +87,7 @@ export default function Chat() {
   const [friends, setFriends] = useState<ConnectFriend[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [circles, setCircles] = useState<CircleStrip[]>([]);
+  const [chatErr, setChatErr] = useState("");
 
   useEffect(() => {
     loadConversations();
@@ -129,14 +130,30 @@ export default function Chat() {
   }
 
   async function openFriendChat(friend: ConnectFriend) {
+    const targetId = friend.user_id ?? friend.id;
     try {
       const room = await apiRequest<{ id: string }>("/api/connect/dm", {
         method: "POST",
-        body: JSON.stringify({ friend_user_id: friend.user_id ?? friend.id }),
+        body: JSON.stringify({ friend_user_id: targetId }),
       });
       navigate(`/trio-chat?room=${room.id}`);
+      return;
     } catch {
-      navigate("/match");
+      /* fall through to greet — establishes the connection then opens the room */
+    }
+    try {
+      const room = await apiRequest<{ room_id: string }>("/api/connect/greet", {
+        method: "POST",
+        body: JSON.stringify({ to_user_id: targetId, message: "想一起练习表达！👋" }),
+      });
+      if (room?.room_id) {
+        navigate(`/trio-chat?room=${room.room_id}`);
+        return;
+      }
+      throw new Error("no room");
+    } catch {
+      setChatErr("无法打开对话，请稍后重试");
+      window.setTimeout(() => setChatErr(""), 2600);
     }
   }
 
@@ -162,6 +179,11 @@ export default function Chat() {
 
   return (
     <div className="premium min-h-full bg-surface text-on-surface">
+      {chatErr && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-full bg-[#1f2937]/90 text-white text-[13px] font-bold shadow-lg whitespace-nowrap">
+          {chatErr}
+        </div>
+      )}
       {/* Top AppBar */}
       <header className="sticky top-0 z-40 flex items-center justify-between px-margin-mobile h-touch-target-min bg-surface/80 backdrop-blur-xl">
         <div className="flex items-center gap-3">
