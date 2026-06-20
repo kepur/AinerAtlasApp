@@ -123,7 +123,7 @@ class ProfileBase(BaseModel):
     coach_style: str = "socratic"
     explanation_language: str = "zh"
     ui_language: str = "zh"
-    ui_theme: str = "dark"
+    ui_theme: str = "light"
     voice_preference: str = "warm-neutral"
     birthday: date | None = None
     avatar_url: str = ""
@@ -1242,7 +1242,7 @@ class AppSettingsRead(BaseModel):
 
 
 class AppSettingsUpdate(BaseModel):
-    default_theme: str = "dark"
+    default_theme: str = "light"
     default_locale: str = "zh"
     enabled_locales: list[str] = Field(
         default_factory=lambda: [

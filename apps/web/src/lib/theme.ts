@@ -12,7 +12,7 @@ export function readStoredTheme(): ThemeMode | null {
   return value === "light" || value === "dark" ? value : null;
 }
 
-export function resolveTheme(preferred: string | null | undefined, fallback: ThemeMode = "dark"): ThemeMode {
+export function resolveTheme(preferred: string | null | undefined, fallback: ThemeMode = "light"): ThemeMode {
   if (preferred === "light" || preferred === "dark") {
     return preferred;
   }

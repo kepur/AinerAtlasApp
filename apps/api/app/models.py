@@ -49,7 +49,7 @@ class UserProfile(Base):
     coach_style: Mapped[str] = mapped_column(String(40), default="socratic")
     explanation_language: Mapped[str] = mapped_column(String(20), default="zh")
     ui_language: Mapped[str] = mapped_column(String(20), default="zh")
-    ui_theme: Mapped[str] = mapped_column(String(20), default="dark")
+    ui_theme: Mapped[str] = mapped_column(String(20), default="light")
     voice_preference: Mapped[str] = mapped_column(String(60), default="warm-neutral")
     birthday: Mapped[date | None] = mapped_column(Date, nullable=True)
     avatar_url: Mapped[str] = mapped_column(String(512), default="")
@@ -904,7 +904,7 @@ class AppSettings(Base):
     __tablename__ = "app_settings"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default="default")
-    default_theme: Mapped[str] = mapped_column(String(20), default="dark")
+    default_theme: Mapped[str] = mapped_column(String(20), default="light")
     enabled_locales: Mapped[list[str]] = mapped_column(
         JSON,
         default=lambda: ["en", "zh", "hi", "es", "fr", "ar", "bn", "pt", "ru", "sr"],

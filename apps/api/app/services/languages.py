@@ -26,7 +26,7 @@ DEFAULT_ENABLED_LOCALES = [
     "sr",
 ]
 DEFAULT_LOCALE = "zh"
-DEFAULT_THEME = "dark"
+DEFAULT_THEME = "light"
 
 
 def normalize_locale(code: str) -> str:
