@@ -1,4 +1,5 @@
 import { Settings, Users, Moon, Globe, StarHalf, Bot, User } from "lucide-react";
+import PresenceAvatar from "../PresenceAvatar";
 
 type Player = {
   id: string;
@@ -88,9 +89,16 @@ export default function LobbyReady({
             <div key={p.id} className={`game-glass-card p-3 flex items-center gap-4 relative overflow-hidden transition-all ${p.isHuman ? 'border border-[#7c5cff]/50 bg-[#7c5cff]/10' : ''}`}>
               {p.isHuman && <div className="absolute top-0 left-0 w-1 h-full bg-[#7c5cff]"></div>}
               
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center relative ${p.isHuman ? 'bg-[#7c5cff] text-white' : 'bg-white/10'}`}>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center relative ${p.isHuman ? '' : 'bg-white/10'}`}>
                 {p.isHuman ? (
-                  <span className="text-xl font-bold">{p.name.charAt(0)}</span>
+                  <PresenceAvatar
+                    name={p.name}
+                    isOnline
+                    size="lg"
+                    offlineMuted={false}
+                    showDot={false}
+                    faceClassName="!bg-[#7c5cff] !text-white !border-[#a78bfa]/40"
+                  />
                 ) : (
                   <Bot size={24} className="text-white/70" />
                 )}
@@ -129,36 +137,37 @@ export default function LobbyReady({
               </p>
               <p className="text-[10px] game-text-muted mb-2">仅显示 3 分钟内在线的匹配好友，离线用户不可邀请</p>
               {inviteFriends.length === 0 ? (
-                <p className="text-[12px] game-text-muted">暂无在线好友，请稍后再试或让对方打开 App</p>
+                <p className="text-[12px] game-text-muted">暂无匹配好友，先去 Connect 添加好友吧</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-2">
                   {inviteFriends.map((f) => {
                     const disabled = inviteBusyId === f.id || f.invited || !f.can_invite || f.is_online === false;
-                    const label = inviteBusyId === f.id
-                      ? "邀请中…"
-                      : f.invited
-                        ? `${f.username} · 已邀请`
-                        : f.is_online
-                          ? `+ ${f.username}`
-                          : `${f.username} · 离线`;
                     return (
-                      <button
+                      <div
                         key={f.id}
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => onInviteFriend(f.id)}
-                        className={`game-btn-secondary px-3 py-1.5 rounded-full text-[12px] font-semibold active:scale-95 disabled:opacity-45 inline-flex items-center gap-1.5 ${
-                          f.is_online && !f.invited ? "border-emerald-400/40" : ""
-                        }`}
+                        className="flex items-center gap-3 rounded-xl px-2 py-2 bg-black/15 border border-white/10"
                       >
-                        <span
-                          className={`w-2 h-2 rounded-full shrink-0 ${
-                            f.is_online ? "bg-emerald-400" : "bg-white/25"
-                          }`}
-                          aria-hidden
+                        <PresenceAvatar
+                          name={f.username}
+                          isOnline={f.is_online === true}
+                          size="sm"
+                          offlineMuted
                         />
-                        {label}
-                      </button>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold game-text-primary truncate">{f.username}</p>
+                          <p className={`text-[10px] font-medium ${f.is_online ? "presence-avatar__label--online" : "presence-avatar__label--offline"}`}>
+                            {f.invited ? "已邀请" : f.is_online ? "在线 · 可邀请" : "离线"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => onInviteFriend!(f.id)}
+                          className="game-btn-secondary shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold active:scale-95 disabled:opacity-45"
+                        >
+                          {inviteBusyId === f.id ? "邀请中…" : f.invited ? "已邀请" : "邀请"}
+                        </button>
+                      </div>
                     );
                   })}
                 </div>

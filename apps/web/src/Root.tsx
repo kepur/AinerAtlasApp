@@ -9,6 +9,7 @@ import "./styles.css";
 import "./styles/action-chips.css";
 import "./premium.css";
 import "./theme-contrast.css";
+import "./components/PresenceAvatar.css";
 
 function LocaleThemeSync() {
   const config = useAppConfigStore((s) => s.config);

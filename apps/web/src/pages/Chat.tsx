@@ -5,6 +5,7 @@ import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
 import { apiRequest, removeConnectFriend } from "../api";
+import PresenceAvatar from "../components/PresenceAvatar";
 import { motion } from "framer-motion";
 
 const MODE_ICONS: Record<string, string> = {
@@ -32,6 +33,7 @@ type ConnectFriend = {
   score: number;
   is_friend?: boolean;
   pending_greet?: boolean;
+  is_online?: boolean;
 };
 
 const MATCH_TYPE_META: Record<MatchType, { label: string; ring: string; badge: string; dot: string }> = {
@@ -94,13 +96,18 @@ export default function Chat() {
   }, [loadConversations]);
 
   useEffect(() => {
-    if (chatTab === "friends") {
-      setFriendsLoading(true);
+    if (chatTab !== "friends") return;
+    setFriendsLoading(true);
+    apiRequest<{ items?: ConnectFriend[] }>("/api/connect/friends")
+      .then((data) => setFriends(data?.items ?? []))
+      .catch(() => setFriends([]))
+      .finally(() => setFriendsLoading(false));
+    const timer = setInterval(() => {
       apiRequest<{ items?: ConnectFriend[] }>("/api/connect/friends")
         .then((data) => setFriends(data?.items ?? []))
-        .catch(() => setFriends([]))
-        .finally(() => setFriendsLoading(false));
-    }
+        .catch(() => {});
+    }, 30_000);
+    return () => clearInterval(timer);
   }, [chatTab]);
 
   async function reloadFriends() {
@@ -376,7 +383,6 @@ export default function Chat() {
                 <div className="space-y-2">
                   {filteredFriends.map((friend) => {
                     const meta = MATCH_TYPE_META[friend.match_type];
-                    const initial = friend.username.charAt(0).toUpperCase();
                     return (
                       <div
                         key={friend.id}
@@ -407,14 +413,20 @@ export default function Chat() {
                             className="w-full flex items-center gap-3 p-2.5 rounded-2xl active:scale-[0.98] text-left"
                           >
                             <div className={`p-[2px] rounded-full bg-gradient-to-br ${meta.ring} flex-shrink-0`}>
-                              <div className="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center font-bold text-on-surface text-base">
-                                {initial}
-                              </div>
+                              <PresenceAvatar
+                                name={friend.username}
+                                isOnline={friend.is_online === true}
+                                size="md"
+                                faceClassName="bg-surface-container"
+                              />
                             </div>
 
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5">
                                 <h4 className="text-[14px] font-bold text-on-surface truncate m-0 leading-tight">{friend.username}</h4>
+                                <span className={`text-[9px] font-semibold ${friend.is_online ? "presence-avatar__label--online" : "presence-avatar__label--offline"}`}>
+                                  {friend.is_online ? "在线" : "离线"}
+                                </span>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${meta.badge} flex-shrink-0 leading-none`}>
                                   {friend.pending_greet ? "待打招呼" : meta.label}
                                 </span>

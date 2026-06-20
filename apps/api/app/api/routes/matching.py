@@ -428,6 +428,7 @@ def _dm_room_for(db, user_a: str, user_b: str) -> CircleRoom | None:
 def list_friends(current_user: CurrentUser, db: DBSession) -> dict:
     """Active friendships + matched users who haven't greeted yet."""
     from app.models import CircleMessage
+    from app.services import presence_service
 
     rows = list_active_friendships(db, current_user.id)
     items = []
@@ -497,6 +498,11 @@ def list_friends(current_user: CurrentUser, db: DBSession) -> dict:
             "is_friend": False,
             "pending_greet": True,
         })
+    user_ids = [i.get("user_id") or i.get("id") for i in items if i.get("user_id") or i.get("id")]
+    online_map = presence_service.online_status(user_ids)
+    for item in items:
+        uid = item.get("user_id") or item.get("id")
+        item["is_online"] = online_map.get(uid, False)
     return {"items": items}
 
 
