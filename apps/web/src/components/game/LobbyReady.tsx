@@ -35,33 +35,33 @@ export default function LobbyReady({
   return (
     <div className="flex flex-col gap-6 px-4 py-6 max-w-md mx-auto w-full relative z-10 pb-36">
       {/* Game Settings Card */}
-      <section className="game-glass-card p-5 mt-4">
-        <h2 className="text-xs text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Settings size={16} /> Game Configuration
+      <section className="game-glass-card werewolf-lobby-config p-5 mt-4">
+        <h2 className="text-xs game-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2 font-semibold">
+          <Settings size={16} className="text-[#a78bfa]" /> Game Configuration
         </h2>
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-black/20 rounded-lg p-3 flex flex-col">
-            <span className="text-[11px] text-white/50">Format</span>
-            <span className="text-sm text-white font-medium flex items-center gap-1 mt-1">
-              <Users size={16} className="text-[#7c5cff]" /> 6人局
+          <div className="werewolf-lobby-config-cell rounded-lg p-3 flex flex-col">
+            <span className="text-[11px] game-text-muted font-medium">Format</span>
+            <span className="text-sm game-text-primary font-semibold flex items-center gap-1 mt-1">
+              <Users size={16} className="text-[#a78bfa]" /> 6人局
             </span>
           </div>
-          <div className="bg-black/20 rounded-lg p-3 flex flex-col">
-            <span className="text-[11px] text-white/50">Setup</span>
-            <span className="text-sm text-white font-medium flex items-center gap-1 mt-1">
-              <Moon size={16} className="text-red-400" /> 2 狼人 / 4 好人
+          <div className="werewolf-lobby-config-cell rounded-lg p-3 flex flex-col">
+            <span className="text-[11px] game-text-muted font-medium">Setup</span>
+            <span className="text-sm game-text-primary font-semibold flex items-center gap-1 mt-1">
+              <Moon size={16} className="text-red-300" /> 2 狼人 / 4 好人
             </span>
           </div>
-          <div className="bg-black/20 rounded-lg p-3 flex flex-col">
-            <span className="text-[11px] text-white/50">Language</span>
-            <span className="text-sm text-white font-medium flex items-center gap-1 mt-1">
-              <Globe size={16} className="text-blue-400" /> English
+          <div className="werewolf-lobby-config-cell rounded-lg p-3 flex flex-col">
+            <span className="text-[11px] game-text-muted font-medium">Language</span>
+            <span className="text-sm game-text-primary font-semibold flex items-center gap-1 mt-1">
+              <Globe size={16} className="text-sky-300" /> English
             </span>
           </div>
-          <div className="bg-black/20 rounded-lg p-3 flex flex-col">
-            <span className="text-[11px] text-white/50">Difficulty</span>
-            <span className="text-sm text-white font-medium flex items-center gap-1 mt-1">
-              <StarHalf size={16} className="text-emerald-400" /> Normal
+          <div className="werewolf-lobby-config-cell rounded-lg p-3 flex flex-col">
+            <span className="text-[11px] game-text-muted font-medium">Difficulty</span>
+            <span className="text-sm game-text-primary font-semibold flex items-center gap-1 mt-1">
+              <StarHalf size={16} className="text-emerald-300" /> Normal
             </span>
           </div>
         </div>
@@ -69,8 +69,11 @@ export default function LobbyReady({
 
       {/* Player Roster */}
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-white px-1">
-          Lobby Roster <span className="text-white/50 text-sm font-normal ml-2">({players.length}/{maxPlayers})</span>
+        <h2 className="text-lg font-bold game-text-primary px-1">
+          Lobby Roster{" "}
+          <span className="game-text-secondary text-sm font-semibold ml-2">
+            ({players.length}/{maxPlayers})
+          </span>
         </h2>
         
         <div className="flex flex-col gap-3">
@@ -99,7 +102,7 @@ export default function LobbyReady({
                       {p.personality}
                     </span>
                   ) : (
-                    <span className="text-white/50 text-xs">人类玩家</span>
+                    <span className="game-text-secondary text-xs font-medium">人类玩家</span>
                   )}
                 </div>
               </div>
@@ -139,7 +142,7 @@ export default function LobbyReady({
           <button 
             onClick={onStartDealing}
             disabled={startDisabled}
-            className="game-btn-primary w-full h-14 rounded-full text-lg shadow-[0_0_24px_rgba(124,92,255,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 disabled:shadow-none"
+            className="game-btn-primary game-btn-primary--waiting w-full h-14 rounded-full text-lg shadow-[0_0_24px_rgba(124,92,255,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:shadow-none"
           >
             {startLabel || "开始发牌"}
           </button>

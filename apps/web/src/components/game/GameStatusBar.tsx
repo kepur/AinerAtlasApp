@@ -20,8 +20,13 @@ export default function GameStatusBar({
   return (
     <header className="w-full z-50 px-3 pb-1 pt-1 bg-transparent shrink-0">
       <div className="flex justify-between items-center h-12">
-        <button onClick={onBack} className="p-2 -ml-2 text-white/70 hover:text-white rounded-full transition-colors">
-          <ArrowLeft size={24} />
+        <button
+          type="button"
+          onClick={onBack}
+          className="game-status-icon-btn p-2 -ml-2 rounded-full transition-colors"
+          aria-label="返回"
+        >
+          <ArrowLeft size={22} />
         </button>
         
         <div className="flex flex-col items-center">
@@ -41,8 +46,13 @@ export default function GameStatusBar({
           </div>
         </div>
         
-        <button onClick={onOptions} className="p-2 -mr-2 text-white/70 hover:text-white rounded-full transition-colors">
-          <MoreHorizontal size={24} />
+        <button
+          type="button"
+          onClick={onOptions}
+          className="game-status-icon-btn p-2 -mr-2 rounded-full transition-colors"
+          aria-label="更多"
+        >
+          <MoreHorizontal size={22} />
         </button>
       </div>
     </header>

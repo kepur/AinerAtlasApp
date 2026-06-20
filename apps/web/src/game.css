@@ -207,9 +207,13 @@
   box-shadow: 0 4px 20px rgba(124, 92, 255, 0.35);
 }
 
-.game-dark .game-btn-primary:disabled {
-  opacity: 0.42;
+.game-dark .game-btn-primary:disabled,
+.game-dark .game-btn-primary.game-btn-primary--waiting:disabled {
+  background: rgba(88, 72, 180, 0.55);
+  color: rgba(244, 244, 245, 0.92);
+  opacity: 1;
   box-shadow: none;
+  border-color: rgba(167, 139, 250, 0.28);
 }
 
 .game-dark .game-btn-secondary {
@@ -325,4 +329,31 @@
 .game-dark [class*="border-[#f3f4f6]"],
 .game-dark [class*="border-[#ede9fe]"] {
   border-color: var(--gd-border) !important;
+}
+
+/* Werewolf real-room lobby — header icons + config readability */
+.game-dark .game-status-icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--gd-border-strong);
+  color: var(--gd-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.game-dark .game-status-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.game-dark .werewolf-lobby-config-cell {
+  background: rgba(5, 7, 15, 0.55);
+  border: 1px solid var(--gd-border);
+}
+
+.game-dark .werewolf-lobby-config .game-text-muted {
+  color: rgba(244, 244, 245, 0.68);
+}
+
+.game-dark .werewolf-lobby-config .game-text-primary {
+  color: var(--gd-text);
 }
