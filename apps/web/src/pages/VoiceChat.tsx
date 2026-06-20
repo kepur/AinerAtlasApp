@@ -551,7 +551,12 @@ export default function VoiceChat() {
         }
       };
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data) as Record<string, unknown>;
+        let data: Record<string, unknown>;
+        try {
+          data = JSON.parse(event.data) as Record<string, unknown>;
+        } catch {
+          return;
+        }
 
         if (data.type === "session") {
           const ready = data.ready !== false;
@@ -846,6 +851,10 @@ export default function VoiceChat() {
       });
       await startMicStream();
     } catch (err) {
+      captureRef.current?.stop();
+      captureRef.current = null;
+      wsRef.current?.close();
+      wsRef.current = null;
       setConnected(false);
       setInCall(false);
       upsertBubble({

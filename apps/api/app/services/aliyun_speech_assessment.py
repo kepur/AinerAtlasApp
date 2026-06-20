@@ -196,7 +196,15 @@ async def transcribe_general_audio(
     """DashScope Fun-ASR-Flash sync transcription for chat voice input."""
     b64 = base64.b64encode(audio_bytes).decode("ascii")
     data_uri = f"data:{mime};base64,{b64}"
-    fmt = "webm" if "webm" in mime else "wav"
+    mime_lower = (mime or "").lower()
+    if "webm" in mime_lower:
+        fmt = "webm"
+    elif any(token in mime_lower for token in ("mp4", "m4a", "aac")):
+        fmt = "mp4"
+    elif "wav" in mime_lower:
+        fmt = "wav"
+    else:
+        fmt = "wav"
     hint = "Transcribe the user's speech verbatim. Output only the transcript."
     if language in {"zh", "zh-CN", "cn"}:
         hint = "请识别用户说的中文或中英文混合内容，只输出转写文本。"
@@ -249,7 +257,15 @@ async def transcribe_follow_read_audio(
     """DashScope Fun-ASR-Flash sync transcription with reference-text context."""
     b64 = base64.b64encode(audio_bytes).decode("ascii")
     data_uri = f"data:{mime};base64,{b64}"
-    fmt = "webm" if "webm" in mime else "wav"
+    mime_lower = (mime or "").lower()
+    if "webm" in mime_lower:
+        fmt = "webm"
+    elif any(token in mime_lower for token in ("mp4", "m4a", "aac")):
+        fmt = "mp4"
+    elif "wav" in mime_lower:
+        fmt = "wav"
+    else:
+        fmt = "wav"
     body = {
         "model": "fun-asr-flash-2026-06-15",
         "input": {

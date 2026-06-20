@@ -243,7 +243,9 @@ export default function VoiceInput({
       }
 
       recordingRef.current = true;
-      holdActiveRef.current = true;
+      if (mode === "hold") {
+        holdActiveRef.current = true;
+      }
       setRecording(true);
       setHoldCancel(false);
       holdCancelRef.current = false;
@@ -279,9 +281,10 @@ export default function VoiceInput({
   }, [cancelRecording, stopRecording]);
 
   useEffect(() => {
-    if (!recording && !pendingStartRef.current) return;
+    if (mode !== "hold") return;
+    if (!recording) return;
     const onGlobalPointerUp = () => {
-      if (pointerDownRef.current || pendingStartRef.current || holdActiveRef.current) {
+      if (pointerDownRef.current || holdActiveRef.current) {
         endHold();
       }
     };
@@ -291,7 +294,7 @@ export default function VoiceInput({
       window.removeEventListener("pointerup", onGlobalPointerUp);
       window.removeEventListener("pointercancel", onGlobalPointerUp);
     };
-  }, [recording, endHold]);
+  }, [mode, recording, endHold]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (disabled || processing) return;
@@ -321,7 +324,7 @@ export default function VoiceInput({
   };
 
   const handleTap = () => {
-    if (processing) return;
+    if (processing || pendingStartRef.current) return;
     if (recordingRef.current) void stopRecording();
     else void startRecording();
   };

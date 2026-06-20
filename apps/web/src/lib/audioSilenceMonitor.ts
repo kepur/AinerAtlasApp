@@ -33,6 +33,7 @@ export function attachSilenceMonitor(
   const minSpeechMs = options.minSpeechMs ?? 350;
 
   const audioCtx = new AudioContext();
+  void audioCtx.resume().catch(() => {});
   const source = audioCtx.createMediaStreamSource(stream);
   const analyser = audioCtx.createAnalyser();
   analyser.fftSize = 2048;
