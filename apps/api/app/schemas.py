@@ -1186,7 +1186,7 @@ class AuthSettingsUpdate(BaseModel):
     registration_trial_days: int = Field(default=30, ge=1, le=365)
     registration_trial_membership_level: str = "vip"
     google_email_domains: list[str] = Field(default_factory=lambda: ["gmail.com", "googlemail.com"])
-    demo_mode_enabled: bool = True
+    demo_mode_enabled: bool = False
     demo_user_email: str = "demo@ainerspeak.com"
     demo_user_password: str = ""
 

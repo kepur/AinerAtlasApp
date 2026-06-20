@@ -570,7 +570,7 @@ function AdminApp() {
     registration_trial_days: 30,
     registration_trial_membership_level: "vip",
     google_email_domains: "gmail.com,googlemail.com",
-    demo_mode_enabled: true,
+    demo_mode_enabled: false,
     demo_user_email: "demo@ainerspeak.com",
     demo_user_password: ""
   });

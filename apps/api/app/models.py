@@ -892,7 +892,7 @@ class AuthSettings(Base):
     google_email_domains: Mapped[list[str]] = mapped_column(
         JSON, default=lambda: ["gmail.com", "googlemail.com"]
     )
-    demo_mode_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    demo_mode_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     demo_user_email: Mapped[str] = mapped_column(String(255), default="demo@ainerspeak.com")
     demo_user_password_encrypted: Mapped[str] = mapped_column(String(500), default="")
     updated_at: Mapped[datetime] = mapped_column(
