@@ -1349,6 +1349,80 @@
   cursor: not-allowed;
 }
 
+.composer-emoji-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.composer-emoji-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.composer-emoji-btn.active {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.25);
+}
+
+.composer-emoji-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+[data-theme="dark"] .composer-emoji-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.chat-emoji-panel {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+[data-theme="dark"] .chat-emoji-panel {
+  background: rgba(18, 16, 28, 0.78);
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.chat-emoji-item {
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.chat-emoji-item:hover {
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.chat-emoji-item:active {
+  transform: scale(0.9);
+}
+
 /* User Bubble Rich (Fixes) */
 .user-rich {
   align-items: flex-end;

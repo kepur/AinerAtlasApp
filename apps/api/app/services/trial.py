@@ -59,7 +59,11 @@ def expire_user_if_needed(user: User) -> bool:
         return False
     if not user.membership_expires_at:
         return False
-    if datetime.now(UTC) <= user.membership_expires_at:
+    expires_at = user.membership_expires_at
+    if expires_at.tzinfo is None:
+        # SQLite (and naive stores) drop tzinfo; treat stored value as UTC.
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if datetime.now(UTC) <= expires_at:
         return False
     user.status = "expired"
     user.membership_level = "free"

@@ -2,7 +2,7 @@ import "../MessageBubble.css";
 import "../components/ambient/ambient.css";
 import {
   ArrowLeft, Loader, Send, Volume2, VolumeX, Lightbulb,
-  MessageSquare, Flame, X, Sparkles, Pin,
+  MessageSquare, Flame, X, Sparkles, Pin, Smile,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -15,6 +15,13 @@ import { useI18n } from "../i18n";
 import { useChatStore, type DialogueTurn, type HudData } from "../stores/chatStore";
 import { useChatPrefsStore } from "../stores/chatPrefsStore";
 import VoiceInput from "../components/VoiceInput";
+
+const EMOJIS = [
+  "😀", "😄", "😁", "😊", "😍", "🥰", "😎", "🤔",
+  "😅", "😂", "🙂", "😉", "😇", "🥳", "😢", "😭",
+  "👍", "👏", "🙌", "🙏", "💪", "👋", "🤝", "🤙",
+  "❤️", "🔥", "✨", "💯", "🌟", "🎉", "🚀", "☕",
+];
 
 /* ─── Conversation Feed (pure chat bubbles grouped by turn) ─── */
 function ConversationFeed({ messages, turns, activeTurnId, sending, streamPhase, speak, onTurnClick }: {
@@ -180,6 +187,8 @@ export default function ChatDetail() {
   } = useChatStore();
 
   const [draft, setDraft] = useState("");
+  const [showEmoji, setShowEmoji] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [freezing, setFreezing] = useState(false);
   const [freezeAsset, setFreezeAsset] = useState<Asset | null>(null);
   const [freezeError, setFreezeError] = useState<string | null>(null);
@@ -323,6 +332,23 @@ export default function ChatDetail() {
       {/* Mode indicator + Composer */}
       <CompanionPet mood={petMood} compact />
       <ModeIndicator hud={hud} />
+      {showEmoji && (
+        <div className="chat-emoji-panel">
+          {EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className="chat-emoji-item"
+              onClick={() => {
+                setDraft((prev) => prev + emoji);
+                inputRef.current?.focus();
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="chat-composer-rich flex-wrap">
         {voiceError ? <p className="composer-voice-error">{voiceError}</p> : null}
         <VoiceInput
@@ -336,11 +362,23 @@ export default function ChatDetail() {
           onError={handleVoiceError}
           title="点击说话 · 再点或停顿 1 秒自动转文字"
         />
+        <button
+          type="button"
+          onClick={() => setShowEmoji((v) => !v)}
+          disabled={sending}
+          className={`composer-emoji-btn${showEmoji ? " active" : ""}`}
+          aria-label="表情"
+          title="插入表情"
+        >
+          <Smile size={20} />
+        </button>
         <div className="composer-input-wrapper">
           <input
+            ref={inputRef}
             value={draft}
             placeholder="输入中文或英文，AI 帮你升级表达..."
             onChange={e => setDraft(e.target.value)}
+            onFocus={() => setShowEmoji(false)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             disabled={sending}
           />
