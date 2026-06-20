@@ -9,6 +9,7 @@ from app.api.deps import CurrentUser, DBSession
 from app.core.security import decode_access_token
 from app.services import werewolf_room_service as svc
 from app.services.party_room_hub import party_room_hub
+from app.services.ws_send import safe_send_json
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/games/werewolf-rooms", tags=["werewolf-rooms"])
@@ -84,11 +85,11 @@ async def werewolf_room_ws(websocket: WebSocket, room_id: str) -> None:
 
     await party_room_hub.connect(room_id, websocket)
     try:
-        await websocket.send_json({"type": "room", "data": view})
+        await safe_send_json(websocket, {"type": "room", "data": view})
         while True:
             raw = await websocket.receive_text()
             if raw.strip().lower() == "ping":
-                await websocket.send_json({"type": "pong"})
+                await safe_send_json(websocket, {"type": "pong"})
     except WebSocketDisconnect:
         pass
     finally:

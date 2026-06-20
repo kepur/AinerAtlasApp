@@ -25,6 +25,7 @@ from app.services.circle_discussion import freeze_circle_room, publish_circle_to
 from app.services.circle_message_worker import analyze_circle_message_background
 from app.services.circle_moderator import generate_room_summary
 from app.services.circle_hub import circle_hub
+from app.services.ws_send import safe_send_json
 from app.services.llm import LLMUnavailableError
 from app.services.moderation import moderate_text
 
@@ -198,7 +199,7 @@ async def circle_room_ws(websocket: WebSocket, room_id: str) -> None:
         while True:
             raw = await websocket.receive_text()
             if raw.strip().lower() == "ping":
-                await websocket.send_json({"type": "pong"})
+                await safe_send_json(websocket, {"type": "pong"})
     except WebSocketDisconnect:
         pass
     finally:

@@ -700,6 +700,7 @@ def presence_heartbeat(current_user: CurrentUser) -> dict:
 async def notifications_ws(websocket: WebSocket) -> None:
     from app.core.security import decode_access_token
     from app.services.user_notify_hub import user_notify_hub
+    from app.services.ws_send import safe_send_json
 
     await websocket.accept()
     token = websocket.query_params.get("token", "")
@@ -716,11 +717,11 @@ async def notifications_ws(websocket: WebSocket) -> None:
 
     await user_notify_hub.connect(user_id, websocket)
     try:
-        await websocket.send_json({"type": "connected"})
+        await safe_send_json(websocket, {"type": "connected"})
         while True:
             raw = await websocket.receive_text()
             if raw.strip().lower() == "ping":
-                await websocket.send_json({"type": "pong"})
+                await safe_send_json(websocket, {"type": "pong"})
     except WebSocketDisconnect:
         pass
     finally:

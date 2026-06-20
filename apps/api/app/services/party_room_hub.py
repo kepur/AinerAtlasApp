@@ -7,6 +7,8 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from app.services.ws_send import safe_send_json
+
 
 class PartyRoomHub:
     def __init__(self) -> None:
@@ -29,7 +31,7 @@ class PartyRoomHub:
         dead: list[WebSocket] = []
         for ws in sockets:
             try:
-                await ws.send_json(payload)
+                await safe_send_json(ws, payload)
             except Exception:
                 dead.append(ws)
         for ws in dead:
