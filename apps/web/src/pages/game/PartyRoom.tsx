@@ -5,6 +5,7 @@ import {
   MoreHorizontal, Volume2, ChevronRight, Play, Lightbulb, ArrowLeft, Send,
 } from "lucide-react";
 import { apiRequest, API_BASE_URL, getToken } from "../../api";
+import VoiceInput from "../../components/VoiceInput";
 
 type PartyRoomState = {
   room_id: string;
@@ -44,6 +45,7 @@ export default function PartyRoom() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [voiceErr, setVoiceErr] = useState<string | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
   const feedEndRef = useRef<HTMLDivElement>(null);
   const creatingRef = useRef(false);
@@ -192,13 +194,14 @@ export default function PartyRoom() {
     feedEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [room?.feed?.length]);
 
-  const sendMessage = async () => {
-    if (!room || !text.trim() || busy) return;
+  const sendMessage = async (overrideText?: string) => {
+    const body = (overrideText ?? text).trim();
+    if (!room || !body || busy) return;
     setBusy(true);
     try {
       const data = await apiRequest<PartyRoomState>(
         `/api/games/party-rooms/${room.room_id}/message`,
-        { method: "POST", body: JSON.stringify({ text: text.trim() }) },
+        { method: "POST", body: JSON.stringify({ text: body }) },
       );
       setRoom(data);
       setText("");
@@ -348,7 +351,29 @@ export default function PartyRoom() {
           </button>
         </div>
 
-        <div className="px-4 py-3 flex gap-2">
+        {voiceErr && (
+          <p className="px-4 -mb-1 text-center text-[11px] font-semibold text-rose-300">{voiceErr}</p>
+        )}
+        <div className="px-4 py-3 flex gap-2 items-center">
+          <VoiceInput
+            mode="tap"
+            autoStopSilenceMs={1000}
+            language="auto"
+            disabled={busy}
+            onTranscript={(t) => {
+              const v = t.trim();
+              if (!v || busy) return;
+              setVoiceErr(null);
+              void sendMessage(v);
+            }}
+            onError={(m) => {
+              setVoiceErr(m);
+              window.setTimeout(() => setVoiceErr(null), 3200);
+            }}
+            iconSize={18}
+            className="w-10 h-10 rounded-xl bg-[#1f2937] border border-white/10 flex items-center justify-center text-white shrink-0 active:scale-95 transition-transform disabled:opacity-40"
+            title="点击说话 · 再点或停顿 1 秒自动转文字"
+          />
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}

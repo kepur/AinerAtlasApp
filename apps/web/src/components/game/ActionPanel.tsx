@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Send, Zap } from "lucide-react";
+import VoiceInput from "../VoiceInput";
 
 type ActionPanelProps = {
   mode: "default" | "question";
@@ -35,6 +36,7 @@ export default function ActionPanel({
 }: ActionPanelProps) {
   const [text, setText] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [voiceErr, setVoiceErr] = useState<string | null>(null);
 
   const locked = mode === "default";
   const quotaExhausted = questionsRemaining <= 0;
@@ -137,36 +139,63 @@ export default function ActionPanel({
             </button>
           </div>
 
-          <div className="relative">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  submit();
-                }
-              }}
-              autoFocus
-              className="w-full min-h-[44px] rounded-xl bg-white/10 border border-white/20 text-white px-4 pr-12 outline-none focus:border-[#7c5cff] placeholder:text-white/40 text-sm disabled:opacity-50"
-              placeholder={
-                quotaExhausted
-                  ? "本轮已提问"
-                  : locked
-                    ? "先选择上方玩家"
-                    : "质疑 TA…(English or 中文)"
-              }
-              type="text"
+          {voiceErr && (
+            <p className="text-center text-[11px] font-semibold text-rose-300">{voiceErr}</p>
+          )}
+
+          <div className="flex items-center gap-2">
+            <VoiceInput
+              mode="tap"
+              autoStopSilenceMs={1000}
+              language="auto"
               disabled={disabled || locked || quotaExhausted}
+              onTranscript={(t) => {
+                const v = t.trim();
+                if (!v || disabled || quotaExhausted) return;
+                setVoiceErr(null);
+                onSend(v);
+                setText("");
+                setPanelExpanded(false);
+              }}
+              onError={(m) => {
+                setVoiceErr(m);
+                window.setTimeout(() => setVoiceErr(null), 3200);
+              }}
+              iconSize={16}
+              className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white shrink-0 active:scale-95 transition-transform disabled:opacity-40"
+              title="点击说话 · 再点或停顿 1 秒自动转文字"
             />
-            <button
-              type="button"
-              onClick={submit}
-              disabled={disabled || locked || quotaExhausted || !text.trim()}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#7c5cff] flex items-center justify-center hover:scale-95 transition-transform disabled:opacity-40"
-            >
-              <Send size={14} className="text-white" />
-            </button>
+            <div className="relative flex-1">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    submit();
+                  }
+                }}
+                autoFocus
+                className="w-full min-h-[44px] rounded-xl bg-white/10 border border-white/20 text-white px-4 pr-12 outline-none focus:border-[#7c5cff] placeholder:text-white/40 text-sm disabled:opacity-50"
+                placeholder={
+                  quotaExhausted
+                    ? "本轮已提问"
+                    : locked
+                      ? "先选择上方玩家"
+                      : "质疑 TA…(English or 中文)"
+                }
+                type="text"
+                disabled={disabled || locked || quotaExhausted}
+              />
+              <button
+                type="button"
+                onClick={submit}
+                disabled={disabled || locked || quotaExhausted || !text.trim()}
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#7c5cff] flex items-center justify-center hover:scale-95 transition-transform disabled:opacity-40"
+              >
+                <Send size={14} className="text-white" />
+              </button>
+            </div>
           </div>
         </div>
       )}

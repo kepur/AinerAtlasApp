@@ -1,4 +1,5 @@
-import { Mic, Send, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
+import VoiceInput from "../../VoiceInput";
 
 interface Choice { label: string; action: string }
 
@@ -14,6 +15,9 @@ interface Props {
   choices?: Choice[];
   disabled?: boolean;
   placeholder?: string;
+  onVoiceTranscript?: (text: string) => void;
+  onVoiceError?: (message: string) => void;
+  voiceError?: string | null;
 }
 
 export default function AdaptiveActionPanel({
@@ -28,6 +32,9 @@ export default function AdaptiveActionPanel({
   choices = [],
   disabled,
   placeholder,
+  onVoiceTranscript,
+  onVoiceError,
+  voiceError,
 }: Props) {
   const ph =
     placeholder ||
@@ -39,6 +46,10 @@ export default function AdaptiveActionPanel({
 
   return (
     <div className="w-full shrink-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-4 pt-3 pb-[max(env(safe-area-inset-bottom,16px),16px)] z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
+
+      {voiceError && (
+        <div className="mb-2 text-center text-[11px] font-semibold text-red-500">{voiceError}</div>
+      )}
 
       {/* ============  Roleplay  ============ */}
       {mode === "roleplay" && (
@@ -67,9 +78,17 @@ export default function AdaptiveActionPanel({
           )}
 
           <div className="flex items-center gap-2">
-            <button className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#6b7280] border border-gray-200 shrink-0 shadow-sm active:scale-95 transition-transform">
-              <Mic size={18} />
-            </button>
+            <VoiceInput
+              mode="tap"
+              autoStopSilenceMs={1000}
+              language="auto"
+              disabled={turnLoading || disabled}
+              onTranscript={(t) => onVoiceTranscript?.(t)}
+              onError={(m) => onVoiceError?.(m)}
+              iconSize={18}
+              className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#6b7280] border border-gray-200 shrink-0 shadow-sm active:scale-95 transition-transform"
+              title="点击说话 · 再点或停顿 1 秒自动转文字"
+            />
             <div className="flex-1 h-10 bg-gray-50 border border-gray-200 rounded-full flex items-center px-4 shadow-inner focus-within:border-[#8b5cf6] focus-within:ring-1 focus-within:ring-[#8b5cf6] transition-all">
               <input
                 type="text"
@@ -125,9 +144,17 @@ export default function AdaptiveActionPanel({
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#4b5563] border border-gray-200 shrink-0 shadow-sm active:scale-95 transition-transform hover:text-[#8b5cf6]">
-              <Mic size={20} />
-            </button>
+            <VoiceInput
+              mode="tap"
+              autoStopSilenceMs={1000}
+              language="auto"
+              disabled={turnLoading || disabled}
+              onTranscript={(t) => onVoiceTranscript?.(t)}
+              onError={(m) => onVoiceError?.(m)}
+              iconSize={20}
+              className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#4b5563] border border-gray-200 shrink-0 shadow-sm active:scale-95 transition-transform hover:text-[#8b5cf6]"
+              title="点击说话 · 再点或停顿 1 秒自动转文字"
+            />
             <div className="flex-1 h-12 bg-white border border-gray-200/80 rounded-full flex items-center px-5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#8b5cf6] focus-within:ring-2 focus-within:ring-[#ede9fe] transition-all">
               <input
                 type="text"
@@ -171,6 +198,17 @@ export default function AdaptiveActionPanel({
             <button onClick={() => onChoice?.("deduce")} disabled={turnLoading || disabled} className="py-3.5 bg-gradient-to-r from-[#eab308] to-[#ca8a04] border border-transparent rounded-2xl text-sm font-bold text-white shadow-[0_4px_12px_rgba(234,179,8,0.25)] hover:opacity-95 active:scale-95 transition-transform disabled:opacity-40">提交推理</button>
           </div>
           <div className="flex items-center gap-2.5 mt-1">
+            <VoiceInput
+              mode="tap"
+              autoStopSilenceMs={1000}
+              language="auto"
+              disabled={turnLoading || disabled}
+              onTranscript={(t) => onVoiceTranscript?.(t)}
+              onError={(m) => onVoiceError?.(m)}
+              iconSize={20}
+              className="w-12 h-12 rounded-full bg-[#fefce8] flex items-center justify-center text-[#854d0e] border border-[#fef08a] shrink-0 shadow-sm active:scale-95 transition-transform"
+              title="点击说话 · 再点或停顿 1 秒自动转文字"
+            />
             <div className="flex-1 h-12 bg-[#f9fafb] border border-gray-200/80 rounded-full flex items-center px-5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-[#eab308] focus-within:ring-2 focus-within:ring-[#fef9c3] transition-all">
               <input
                 type="text"

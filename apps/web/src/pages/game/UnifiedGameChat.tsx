@@ -21,6 +21,7 @@ export default function UnifiedGameChat() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [solveMode, setSolveMode] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [savedAssets, setSavedAssets] = useState(false);
   const [savingAssets, setSavingAssets] = useState(false);
 
@@ -59,9 +60,9 @@ export default function UnifiedGameChat() {
     }
   };
 
-  const handleSend = async () => {
-    if (!currentSession || !input.trim() || turnLoading) return;
-    const text = input.trim();
+  const handleSend = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
+    if (!currentSession || !text || turnLoading) return;
     setInput("");
     if (solveMode) {
       await sendTurn(currentSession.id, "solve", text);
@@ -69,6 +70,17 @@ export default function UnifiedGameChat() {
     } else {
       await sendTurn(currentSession.id, "message", text);
     }
+  };
+
+  const handleVoiceTranscript = (text: string) => {
+    if (!text.trim() || turnLoading) return;
+    setVoiceError(null);
+    void handleSend(text);
+  };
+
+  const handleVoiceError = (message: string) => {
+    setVoiceError(message);
+    window.setTimeout(() => setVoiceError(null), 3200);
   };
 
   const handleChoice = async (action: string) => {
@@ -191,6 +203,9 @@ export default function UnifiedGameChat() {
           choices={choices}
           disabled={!isActive}
           placeholder={solveMode ? "输入你的推理答案..." : undefined}
+          onVoiceTranscript={handleVoiceTranscript}
+          onVoiceError={handleVoiceError}
+          voiceError={voiceError}
         />
       )}
 
