@@ -95,18 +95,23 @@ export function useTts() {
     if (src) {
       const audio = new Audio(src);
       audioRef.current = audio;
-      await new Promise<void>((resolve) => {
+      const played = await new Promise<boolean>((resolve) => {
         audio.onended = () => {
           if (audioRef.current === audio) audioRef.current = null;
-          resolve();
+          resolve(true);
         };
         audio.onerror = () => {
           if (audioRef.current === audio) audioRef.current = null;
-          resolve();
+          resolve(false);
         };
-        audio.play().catch(() => resolve());
+        // play() rejects when the blob is invalid or autoplay is blocked — fall
+        // back to the browser voice instead of failing silently.
+        audio.play().catch(() => {
+          if (audioRef.current === audio) audioRef.current = null;
+          resolve(false);
+        });
       });
-      return;
+      if (played) return;
     }
 
     if (!window.speechSynthesis) return;

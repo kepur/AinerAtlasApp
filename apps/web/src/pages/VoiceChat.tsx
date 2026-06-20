@@ -225,6 +225,10 @@ export default function VoiceChat() {
   const omniModeRef = useRef(false);
   const userSpeakingRef = useRef(false);
   const aiSpeakingRef = useRef(false);
+  // True while a text-only engine reply is being voiced via browser/HTTP TTS, so
+  // the mic capture can skip streaming our own playback back into ASR (echo).
+  const ttsPlayingRef = useRef(false);
+  const ttsGenRef = useRef(0);
   const speechStartedAtRef = useRef<number | null>(null);
   const pendingTranscriptRef = useRef<{ text: string; isFinal: boolean } | null>(null);
   const transcriptFlushRef = useRef<number | null>(null);
@@ -562,6 +566,26 @@ export default function VoiceChat() {
     }
   }
 
+  const speakAssistantText = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    const gen = ++ttsGenRef.current;
+    ttsPlayingRef.current = true;
+    aiSpeakingRef.current = true;
+    setAiSpeaking(true);
+    try {
+      await speak(text);
+    } finally {
+      // Only the latest request restores mic/UI state — a superseded call's
+      // audio promise may never settle, so it must not clear the flags.
+      if (ttsGenRef.current === gen) {
+        ttsPlayingRef.current = false;
+        aiSpeakingRef.current = false;
+        setAiSpeaking(false);
+        void captureRef.current?.resume?.();
+      }
+    }
+  }, [speak]);
+
   const connect = useCallback((): Promise<WebSocket> => {
     const token = getToken();
     if (!token) {
@@ -679,6 +703,20 @@ export default function VoiceChat() {
           });
           if (data.coach_briefing && typeof data.coach_briefing === "object") {
             setCoachBriefing(data.coach_briefing as CoachBriefing);
+          }
+          // Omni streams its own greeting audio; for text-only engines speak the
+          // opening line so the call has voice the moment it connects.
+          if (!omniModeRef.current && typeof data.opening_greeting === "string" && data.opening_greeting.trim()) {
+            const greeting = data.opening_greeting.trim();
+            assistantBubbleIdRef.current = bubbleId("ai");
+            upsertBubble({
+              id: assistantBubbleIdRef.current,
+              role: "assistant",
+              text: greeting,
+              status: "final",
+            });
+            assistantBubbleIdRef.current = null;
+            void speakAssistantText(greeting);
           }
           return;
         }
@@ -805,6 +843,17 @@ export default function VoiceChat() {
             status: "replying",
           });
           assistantBubbleIdRef.current = null;
+          // Non-Omni engines (Fun-ASR / mock) only stream text and never emit an
+          // "audio" event, so the call would be silent. Voice the reply via TTS,
+          // preferring the target-language line over the bilingual bubble text.
+          if (!omniModeRef.current) {
+            const spoken = (typeof data.text_target === "string" && data.text_target.trim())
+              ? data.text_target
+              : data.text;
+            if (typeof spoken === "string" && spoken.trim()) {
+              void speakAssistantText(spoken);
+            }
+          }
           return;
         }
 
@@ -830,7 +879,7 @@ export default function VoiceChat() {
         }
       };
     });
-  }, [activeMode, appendBubble, applyHudToCurrentTurn, markUserSpeaking, patchCurrentTurn, scheduleTranscriptUpdate, sendWsControl, stopOmniPlayback, t, upsertBubble]);
+  }, [activeMode, appendBubble, applyHudToCurrentTurn, markUserSpeaking, patchCurrentTurn, scheduleTranscriptUpdate, sendWsControl, speakAssistantText, stopOmniPlayback, t, upsertBubble]);
 
   async function playOmniPcmChunk(b64: string, sampleRate: number) {
     try {
@@ -901,6 +950,9 @@ export default function VoiceChat() {
     }
     sendWsControl({ type: "audio", action: "start" });
     const capture = await startPcmCapture(({ base64, sampleRate }) => {
+      // While we voice a text-only reply via TTS, don't push the playback back
+      // to the server's ASR or it would transcribe the AI's own voice.
+      if (ttsPlayingRef.current) return;
       const coachPlaying = coachAudioPlaying(
         omniSourcesRef.current.length,
         omniAudioCtxRef.current,
@@ -1049,6 +1101,9 @@ export default function VoiceChat() {
     summaryOnceRef.current = false;
     manualCloseRef.current = false;
     reconnectAttemptsRef.current = 0;
+    // Clear any lingering TTS gate from a previous session so the mic streams.
+    ttsGenRef.current += 1;
+    ttsPlayingRef.current = false;
     setConnecting(true);
     setTurns([]);
     setActiveTurnId(null);
