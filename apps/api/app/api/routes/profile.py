@@ -5,6 +5,7 @@ from app.api.deps import CurrentUser, DBSession
 from app.models import User, UserAIMemory, UserMatchProfile, UserProfile
 from app.schemas import AIMemoryRead, AIMemoryUpsert, APIMessage, ProfileRead, ProfileUpsert
 from app.services.ai_memory import upsert_memory
+from app.services.app_settings import get_app_settings, resolved_default_theme
 from app.services.avatar_storage import save_user_avatar
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -20,11 +21,16 @@ def _sync_match_birthday(db: DBSession, user_id: str, birthday) -> None:
     match_profile.birthday = birthday
 
 
+def _default_profile(db: DBSession, user_id: str) -> UserProfile:
+    settings = get_app_settings(db)
+    return UserProfile(user_id=user_id, ui_theme=resolved_default_theme(settings))
+
+
 @router.get("", response_model=ProfileRead)
 def get_profile(current_user: CurrentUser, db: DBSession) -> UserProfile:
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
     if not profile:
-        profile = UserProfile(user_id=current_user.id)
+        profile = _default_profile(db, current_user.id)
         db.add(profile)
         db.commit()
         db.refresh(profile)
@@ -39,7 +45,7 @@ def update_profile(
 ) -> UserProfile:
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
     if not profile:
-        profile = UserProfile(user_id=current_user.id)
+        profile = _default_profile(db, current_user.id)
         db.add(profile)
 
     data = payload.model_dump(exclude={"username"})
@@ -68,7 +74,7 @@ async def upload_avatar(
 ) -> UserProfile:
     profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
     if not profile:
-        profile = UserProfile(user_id=current_user.id)
+        profile = _default_profile(db, current_user.id)
         db.add(profile)
         db.flush()
 

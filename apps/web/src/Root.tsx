@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { I18nProvider, isLocaleCode, resolveProfileLocale, useI18n, type LocaleCode } from "./i18n";
-import { applyTheme, readStoredTheme, resolveTheme, type ThemeMode } from "./lib/theme";
+import { resolveAppTheme, setDocumentTheme } from "./lib/theme";
 import { enabledLocaleCodes, useAppConfigStore } from "./stores/appConfigStore";
 import { useAuthStore } from "./stores/authStore";
 import "./styles.css";
@@ -22,16 +22,7 @@ function LocaleThemeSync() {
     if (isLocaleCode(preferredLocale) && config.enabled_locales.includes(preferredLocale)) {
       setLocale(preferredLocale);
     }
-    // Login/register: always day theme; ignore stale localStorage dark from old defaults.
-    if (!profile) {
-      applyTheme("light");
-      return;
-    }
-    const storedTheme = readStoredTheme();
-    const theme = config.allow_user_theme_override
-      ? resolveTheme(profile.ui_theme || storedTheme, config.default_theme as ThemeMode)
-      : (config.default_theme as ThemeMode);
-    applyTheme(theme);
+    setDocumentTheme(resolveAppTheme(config));
   }, [config, profile, setLocale]);
 
   return null;

@@ -29,6 +29,7 @@ from app.schemas import (
     UserLogin,
     UserRead,
 )
+from app.services.app_settings import get_app_settings, resolved_default_theme
 from app.services.auth_settings import get_auth_settings
 from app.services.demo_user import ensure_demo_user, resolve_demo_credentials, sync_demo_user_from_settings
 from app.services.email_service import (
@@ -131,7 +132,8 @@ def register(payload: UserCreate, db: DBSession, request: Request) -> AuthToken:
     apply_registration_benefits(db, user)
     db.add(user)
     db.flush()
-    db.add(UserProfile(user_id=user.id))
+    app_settings = get_app_settings(db)
+    db.add(UserProfile(user_id=user.id, ui_theme=resolved_default_theme(app_settings)))
     db.commit()
     db.refresh(user)
 
