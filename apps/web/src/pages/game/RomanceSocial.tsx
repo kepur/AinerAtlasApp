@@ -502,6 +502,7 @@ export default function RomanceSocial() {
             hud={learningHud}
             streamPhase={streamPhase}
             speak={speak}
+            onTokenClick={() => {}}
             className="romance-learning-hud"
           />
         </div>

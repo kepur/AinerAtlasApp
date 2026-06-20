@@ -45,7 +45,6 @@ type CoachBriefing = {
   interests?: string[];
   focus_topics?: string[];
   opening_greeting?: string;
-  focus_topics?: string[];
   analyzed_at?: string | null;
 };
 
@@ -208,6 +207,9 @@ export default function VoiceChat() {
 
   const wsRef = useRef<WebSocket | null>(null);
   const captureRef = useRef<PcmCaptureHandle | null>(null);
+  const manualCloseRef = useRef(false);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectVoiceRef = useRef<() => void>(() => {});
   const currentTurnIdRef = useRef<string | null>(null);
   const turnsSnapshotRef = useRef(turns);
   turnsSnapshotRef.current = turns;
@@ -601,31 +603,37 @@ export default function VoiceChat() {
       };
       ws.onclose = () => {
         window.clearTimeout(timeout);
-        const wasInCall = inCallRef.current;
         setConnected(false);
-        setInCall(false);
+        if (!settled) {
+          // Handshake never completed; the connect() rejection drives the UI.
+          return;
+        }
+        // A fresh connect() may have already replaced wsRef with a new socket
+        // (during auto-reconnect). Ignore stale close events from old sockets.
+        if (wsRef.current && wsRef.current !== ws) return;
+
         captureRef.current?.stop();
         captureRef.current = null;
-        if (settled) {
-          if (wasInCall) {
-            setDisconnectFlash(true);
-            window.setTimeout(() => setDisconnectFlash(false), 3200);
-            appendBubble({
-              id: bubbleId("sys"),
-              role: "system",
-              text: "通话已断开",
-              status: "error",
-            });
-            void finishCallSummaryRef.current();
-          } else {
-            appendBubble({
-              id: bubbleId("sys"),
-              role: "system",
-              text: "通话已结束",
-              status: "final",
-            });
-          }
+
+        if (manualCloseRef.current) {
+          setInCall(false);
+          return;
         }
+
+        if (inCallRef.current) {
+          // Unexpected drop mid-call — try to silently reconnect instead of
+          // ending the session.
+          reconnectVoiceRef.current();
+          return;
+        }
+
+        setInCall(false);
+        appendBubble({
+          id: bubbleId("sys"),
+          role: "system",
+          text: "通话已结束",
+          status: "final",
+        });
       };
       ws.onmessage = (event) => {
         let data: Record<string, unknown>;
@@ -862,6 +870,7 @@ export default function VoiceChat() {
   }
 
   useEffect(() => () => {
+    manualCloseRef.current = true;
     captureRef.current?.stop();
     stopOmniPlayback();
     wsRef.current?.close();
@@ -968,6 +977,58 @@ export default function VoiceChat() {
     return () => window.clearInterval(timer);
   }, [inCall, ensureCallAlive]);
 
+  const finalizeDisconnect = useCallback(() => {
+    setInCall(false);
+    setConnected(false);
+    captureRef.current?.stop();
+    captureRef.current = null;
+    setDisconnectFlash(true);
+    window.setTimeout(() => setDisconnectFlash(false), 3200);
+    appendBubble({
+      id: bubbleId("sys"),
+      role: "system",
+      text: "通话已断开",
+      status: "error",
+    });
+    void finishCallSummaryRef.current();
+  }, [appendBubble]);
+
+  async function attemptReconnect() {
+    if (manualCloseRef.current || !inCallRef.current) return;
+    if (reconnectAttemptsRef.current >= 3) {
+      finalizeDisconnect();
+      return;
+    }
+    reconnectAttemptsRef.current += 1;
+    captureRef.current?.stop();
+    captureRef.current = null;
+    upsertBubble({
+      id: CONNECTION_STATUS_BUBBLE_ID,
+      role: "system",
+      text: `连接中断，正在自动重连…（${reconnectAttemptsRef.current}/3）`,
+      status: "streaming",
+    });
+    try {
+      await connect();
+      if (manualCloseRef.current || !inCallRef.current) return;
+      reconnectAttemptsRef.current = 0;
+      await startMicStream(true);
+      upsertBubble({
+        id: CONNECTION_STATUS_BUBBLE_ID,
+        role: "system",
+        text: "已重新接通，请继续说话",
+        status: "final",
+      });
+    } catch {
+      if (manualCloseRef.current || !inCallRef.current) return;
+      window.setTimeout(() => reconnectVoiceRef.current(), 1500);
+    }
+  }
+
+  useEffect(() => {
+    reconnectVoiceRef.current = () => void attemptReconnect();
+  });
+
   function signalTurnComplete() {
     if (!inCall || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     if (sessionVoiceUiRef.current?.tap_to_end === false) return;
@@ -986,6 +1047,8 @@ export default function VoiceChat() {
       return;
     }
     summaryOnceRef.current = false;
+    manualCloseRef.current = false;
+    reconnectAttemptsRef.current = 0;
     setConnecting(true);
     setTurns([]);
     setActiveTurnId(null);
@@ -1106,6 +1169,7 @@ export default function VoiceChat() {
   };
 
   async function endCall() {
+    manualCloseRef.current = true;
     captureRef.current?.stop();
     captureRef.current = null;
     stopOmniPlayback();

@@ -189,9 +189,10 @@ class OmniRealtimeBridge:
                         bridge._handle_event(payload)
 
                 def on_close(self, close_status_code, close_msg) -> None:
-                    with bridge._lock:
-                        bridge._conv = None
-                        bridge._started = False
+                    # Runs on the SDK's websocket thread. Avoid acquiring _lock
+                    # here: close() may invoke this synchronously and the lock is
+                    # not reentrant. Simple attribute writes are atomic under GIL.
+                    bridge._started = False
                     bridge._emit(
                         {
                             "type": "omni_closed",
@@ -222,17 +223,17 @@ class OmniRealtimeBridge:
             self._started = True
 
     def append_audio_b64(self, audio_b64: str) -> None:
-        if not audio_b64:
+        # Reconnect (a blocking network call) is handled off the event loop via
+        # the adapter's ``audio/start`` path; here we only write when live and
+        # never touch a closed/stale conversation.
+        if not audio_b64 or not self._started or not self._conv:
             return
-        if not self._started or not self._conv:
-            try:
-                self.start()
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Omni reconnect on append failed: {}", exc)
-                return
         with self._lock:
-            if self._conv:
-                self._conv.append_audio(audio_b64)
+            if self._started and self._conv:
+                try:
+                    self._conv.append_audio(audio_b64)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Omni append_audio failed: {}", exc)
 
     def cancel_response(self) -> None:
         with self._lock:

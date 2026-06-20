@@ -608,13 +608,21 @@ async def realtime_session(payload: VoiceSessionCreate, db: DBSession) -> dict:
     return await adapter.create_session(payload.model_dump())
 
 
-async def _send_adapter_messages(websocket: WebSocket, messages: list[dict] | dict | None) -> None:
+async def _send_adapter_messages(
+    websocket: WebSocket,
+    messages: list[dict] | dict | None,
+    lock: asyncio.Lock | None = None,
+) -> None:
     if not messages:
         return
     payload = messages if isinstance(messages, list) else [messages]
     for message in payload:
         if message:
-            await websocket.send_json(message)
+            if lock is not None:
+                async with lock:
+                    await websocket.send_json(message)
+            else:
+                await websocket.send_json(message)
 
 
 @router.websocket("/realtime-tts")
@@ -762,6 +770,10 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
         pump_stop = asyncio.Event()
         pump_resume = asyncio.Event()
         pump_resume.set()
+        # Starlette WebSockets do not allow concurrent sends. The pump task and
+        # the inbound message loop both emit events, so every outbound write must
+        # go through this lock to avoid interleaved frames that crash the socket.
+        send_lock = asyncio.Lock()
 
         async def pump_asr_events() -> None:
             while not pump_stop.is_set():
@@ -770,7 +782,8 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
                 for event in events:
                     if event.get("type") in {"asr_ready", "asr_closed", "asr_complete"}:
                         continue
-                    await websocket.send_json(event)
+                    async with send_lock:
+                        await websocket.send_json(event)
                 if adapter.is_active():
                     continue
                 await asyncio.sleep(0.05)
@@ -789,7 +802,8 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
                     break
 
                 if data.get("type") == "ping":
-                    await websocket.send_json({"type": "pong"})
+                    async with send_lock:
+                        await websocket.send_json({"type": "pong"})
                     continue
 
                 # High-frequency PCM chunks should not pause the outbound event pump.
@@ -800,13 +814,13 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
                 )
                 if is_streaming_pcm:
                     responses = await adapter.handle_client_message(data)
-                    await _send_adapter_messages(websocket, responses)
+                    await _send_adapter_messages(websocket, responses, send_lock)
                     continue
 
                 pump_resume.clear()
                 try:
                     responses = await adapter.handle_client_message(data)
-                    await _send_adapter_messages(websocket, responses)
+                    await _send_adapter_messages(websocket, responses, send_lock)
                 finally:
                     pump_resume.set()
         except WebSocketDisconnect:

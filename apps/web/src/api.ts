@@ -281,7 +281,7 @@ export async function findResumableGameSession(
   if (opts?.target_id) qs.set("target_id", opts.target_id);
   if (opts?.template_id) qs.set("template_id", opts.template_id);
   try {
-    return await apiRequest<GameSession>(`/api/games/sessions/resume?${qs}`);
+    return await apiRequest<ResumableGameSession>(`/api/games/sessions/resume?${qs}`);
   } catch {
     return null;
   }
