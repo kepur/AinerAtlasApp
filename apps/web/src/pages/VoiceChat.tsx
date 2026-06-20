@@ -90,6 +90,18 @@ function coachAudioPlaying(
   return scheduledUntilSec > audioCtx.currentTime + 0.03;
 }
 
+/** Short silent PCM chunk to keep Omni / mic pipeline alive during long pauses. */
+function pcm16SilenceBase64(durationMs: number, sampleRate = 16000): string {
+  const samples = Math.max(1, Math.round((sampleRate * durationMs) / 1000));
+  const bytes = new Uint8Array(samples * 2);
+  let binary = "";
+  const step = 0x8000;
+  for (let i = 0; i < bytes.length; i += step) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + step) as unknown as number[]);
+  }
+  return btoa(binary);
+}
+
 const MODES = ["自由对话", "跟读训练", "面试练习", "小组语音"];
 const CONNECTION_STATUS_BUBBLE_ID = "voice-connection-status";
 const INTERVIEW_INDUSTRIES = ["通用", "科技", "金融", "医疗", "教育", "零售"];
@@ -219,6 +231,7 @@ export default function VoiceChat() {
   const lastInterruptAtRef = useRef(0);
   const bargeInStreakRef = useRef(0);
   const triggerBargeInRef = useRef<() => void>(() => {});
+  const lastAudioSentAtRef = useRef(Date.now());
   const feedRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(false);
   const userBubbleIdRef = useRef<string | null>(null);
@@ -310,6 +323,7 @@ export default function VoiceChat() {
   }, [queueWsSend]);
 
   const sendPcmAudio = useCallback((payload: string) => {
+    lastAudioSentAtRef.current = Date.now();
     const ws = wsRef.current;
     if (ws?.readyState === WebSocket.OPEN && ws.bufferedAmount < PCM_DIRECT_SEND_LIMIT) {
       ws.send(payload);
@@ -702,6 +716,16 @@ export default function VoiceChat() {
           return;
         }
 
+        if (data.type === "omni_closed") {
+          sendWsControl({ type: "audio", action: "start" });
+          void captureRef.current?.resume?.();
+          return;
+        }
+
+        if (data.type === "pong") {
+          return;
+        }
+
         if (data.type === "speech_started") {
           triggerBargeInRef.current();
           markUserSpeaking(true);
@@ -798,7 +822,7 @@ export default function VoiceChat() {
         }
       };
     });
-  }, [activeMode, appendBubble, applyHudToCurrentTurn, markUserSpeaking, patchCurrentTurn, scheduleTranscriptUpdate, stopOmniPlayback, t, upsertBubble]);
+  }, [activeMode, appendBubble, applyHudToCurrentTurn, markUserSpeaking, patchCurrentTurn, scheduleTranscriptUpdate, sendWsControl, stopOmniPlayback, t, upsertBubble]);
 
   async function playOmniPcmChunk(b64: string, sampleRate: number) {
     try {
@@ -859,9 +883,13 @@ export default function VoiceChat() {
     return () => window.clearInterval(timer);
   }, [inCall, sendWsControl]);
 
-  async function startMicStream() {
+  async function startMicStream(force = false) {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    if (captureRef.current) return;
+    if (captureRef.current) {
+      if (!force) return;
+      captureRef.current.stop();
+      captureRef.current = null;
+    }
     sendWsControl({ type: "audio", action: "start" });
     const capture = await startPcmCapture(({ base64, sampleRate }) => {
       const coachPlaying = coachAudioPlaying(
@@ -895,7 +923,50 @@ export default function VoiceChat() {
       maxPendingFrames: 3,
     });
     captureRef.current = capture;
+    lastAudioSentAtRef.current = Date.now();
   }
+
+  const ensureCallAlive = useCallback(async () => {
+    if (!inCallRef.current) return;
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    try {
+      ws.send(JSON.stringify({ type: "ping" }));
+    } catch {
+      /* ignore */
+    }
+
+    void captureRef.current?.resume?.();
+
+    const capture = captureRef.current;
+    if (!capture?.isHealthy?.()) {
+      await startMicStream(true);
+      return;
+    }
+
+    const coachPlaying = coachAudioPlaying(
+      omniSourcesRef.current.length,
+      omniAudioCtxRef.current,
+      omniPlayTimeRef.current,
+    );
+    if (!coachPlaying && Date.now() - lastAudioSentAtRef.current > 5000) {
+      sendPcmAudio(JSON.stringify({
+        type: "audio",
+        format: "pcm16",
+        sample_rate: 16000,
+        data: pcm16SilenceBase64(120),
+      }));
+    }
+  }, [sendPcmAudio]);
+
+  useEffect(() => {
+    if (!inCall) return;
+    const timer = window.setInterval(() => {
+      void ensureCallAlive();
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [inCall, ensureCallAlive]);
 
   function signalTurnComplete() {
     if (!inCall || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;

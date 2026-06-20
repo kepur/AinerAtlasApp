@@ -189,6 +189,9 @@ class OmniRealtimeBridge:
                         bridge._handle_event(payload)
 
                 def on_close(self, close_status_code, close_msg) -> None:
+                    with bridge._lock:
+                        bridge._conv = None
+                        bridge._started = False
                     bridge._emit(
                         {
                             "type": "omni_closed",
@@ -219,8 +222,14 @@ class OmniRealtimeBridge:
             self._started = True
 
     def append_audio_b64(self, audio_b64: str) -> None:
-        if not audio_b64 or not self._conv:
+        if not audio_b64:
             return
+        if not self._started or not self._conv:
+            try:
+                self.start()
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Omni reconnect on append failed: {}", exc)
+                return
         with self._lock:
             if self._conv:
                 self._conv.append_audio(audio_b64)

@@ -64,6 +64,7 @@ function mergePcmFrames(frames: Int16Array[]): Int16Array {
 export type PcmCaptureHandle = {
   stop: () => void;
   resume: () => Promise<void>;
+  isHealthy: () => boolean;
   sampleRate: number;
 };
 
@@ -139,8 +140,15 @@ export async function startPcmCapture(
   return {
     sampleRate: TARGET_SAMPLE_RATE,
     resume: async () => {
-      if (stopped || audioContext.state === "running") return;
-      await audioContext.resume().catch(() => {});
+      if (stopped) return;
+      if (audioContext.state === "suspended" || audioContext.state === "interrupted") {
+        await audioContext.resume().catch(() => {});
+      }
+    },
+    isHealthy: () => {
+      if (stopped || audioContext.state === "closed") return false;
+      const tracks = stream.getAudioTracks();
+      return tracks.length > 0 && tracks.every((track) => track.readyState === "live");
     },
     stop: () => {
       stopped = true;

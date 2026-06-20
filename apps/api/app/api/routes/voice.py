@@ -788,6 +788,10 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
                 if data.get("type") == "close":
                     break
 
+                if data.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                    continue
+
                 # High-frequency PCM chunks should not pause the outbound event pump.
                 is_streaming_pcm = (
                     data.get("type") == "audio"
