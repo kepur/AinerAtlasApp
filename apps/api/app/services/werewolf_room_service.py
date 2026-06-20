@@ -276,6 +276,20 @@ def list_invite_candidates(db: Session, room_id: str, host_user_id: str) -> list
 
 
 def create_room(db: Session, user_id: str, *, title: str = "狼人杀 · 真实房间") -> dict:
+    open_rooms = list(
+        db.scalars(
+            select(PartyRoom).where(
+                PartyRoom.host_user_id == user_id,
+                PartyRoom.status == "open",
+                PartyRoom.phase == "waiting",
+            )
+        )
+    )
+    for existing in open_rooms:
+        state = existing.state or {}
+        if state.get("game_mode") == GAME_MODE:
+            return _public_view(existing, user_id)
+
     code = _invite_code()
     while db.scalar(select(PartyRoom.id).where(PartyRoom.invite_code == code)):
         code = _invite_code()

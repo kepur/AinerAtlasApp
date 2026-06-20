@@ -66,6 +66,20 @@ const PHASE_LABEL: Record<string, string> = {
   ended: "已结束",
 };
 
+let createRoomInFlight: Promise<WerewolfRoomView> | null = null;
+
+function requestCreateRoom(): Promise<WerewolfRoomView> {
+  if (!createRoomInFlight) {
+    createRoomInFlight = apiRequest<WerewolfRoomView>("/api/games/werewolf-rooms", {
+      method: "POST",
+      body: JSON.stringify({ title: "狼人杀 · 真实房间" }),
+    }).finally(() => {
+      createRoomInFlight = null;
+    });
+  }
+  return createRoomInFlight;
+}
+
 export default function WerewolfRoom() {
   const navigate = useNavigate();
   const { id: routeId } = useParams<{ id: string }>();
@@ -88,15 +102,28 @@ export default function WerewolfRoom() {
   }[]>([]);
   const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
   const [pendingInvites, setPendingInvites] = useState<{ room_id: string; title: string; invite_code: string; host_name: string }[]>([]);
-  const creatingRef = useRef(false);
+  const bootstrapKeyRef = useRef<string | null>(null);
+  const reloadInFlightRef = useRef<Map<string, Promise<WerewolfRoomView>>>(new Map());
+  const postBusyRef = useRef(false);
+  const joinBusyRef = useRef(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedEndRef = useRef<HTMLDivElement>(null);
   const lastTtsRef = useRef("");
   const { speak } = useTts();
 
   const reloadRoom = useCallback(async (roomId: string) => {
-    const data = await apiRequest<WerewolfRoomView>(`/api/games/werewolf-rooms/${roomId}`);
-    setRoom(data);
-    return data;
+    const inflight = reloadInFlightRef.current.get(roomId);
+    if (inflight) return inflight;
+    const request = apiRequest<WerewolfRoomView>(`/api/games/werewolf-rooms/${roomId}`)
+      .then((data) => {
+        setRoom(data);
+        return data;
+      })
+      .finally(() => {
+        reloadInFlightRef.current.delete(roomId);
+      });
+    reloadInFlightRef.current.set(roomId, request);
+    return request;
   }, []);
 
   const loadInviteCandidates = useCallback(async (roomId: string) => {
@@ -134,7 +161,8 @@ export default function WerewolfRoom() {
   }, []);
 
   const post = useCallback(async (path: string, body?: unknown) => {
-    if (!room?.room_id) return null;
+    if (!room?.room_id || postBusyRef.current) return null;
+    postBusyRef.current = true;
     setBusy(true);
     try {
       const data = await apiRequest<WerewolfRoomView>(
@@ -144,20 +172,27 @@ export default function WerewolfRoom() {
       setRoom(data);
       return data;
     } finally {
+      postBusyRef.current = false;
       setBusy(false);
     }
   }, [room?.room_id]);
 
   useEffect(() => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
+    const joinCode = searchParams.get("join");
+    const bootstrapKey = joinCode
+      ? `join:${joinCode}`
+      : routeId && routeId !== "new"
+        ? `room:${routeId}`
+        : "new";
+    if (bootstrapKeyRef.current === bootstrapKey) return;
+    bootstrapKeyRef.current = bootstrapKey;
+
     (async () => {
       try {
-        const code = searchParams.get("join");
-        if (code) {
+        if (joinCode) {
           const joined = await apiRequest<WerewolfRoomView>("/api/games/werewolf-rooms/join", {
             method: "POST",
-            body: JSON.stringify({ invite_code: code }),
+            body: JSON.stringify({ invite_code: joinCode }),
           });
           setRoom(joined);
           navigate(`/game/werewolf-room/${joined.room_id}`, { replace: true });
@@ -167,13 +202,11 @@ export default function WerewolfRoom() {
           await reloadRoom(routeId);
           return;
         }
-        const created = await apiRequest<WerewolfRoomView>("/api/games/werewolf-rooms", {
-          method: "POST",
-          body: JSON.stringify({ title: "狼人杀 · 真实房间" }),
-        });
+        const created = await requestCreateRoom();
         setRoom(created);
         navigate(`/game/werewolf-room/${created.room_id}`, { replace: true });
       } catch (e) {
+        bootstrapKeyRef.current = null;
         setError(e instanceof Error ? e.message : "加载房间失败");
       }
     })();
@@ -201,7 +234,13 @@ export default function WerewolfRoom() {
           try {
             const msg = JSON.parse(ev.data) as { type?: string; data?: WerewolfRoomView };
             if (msg.type === "room" && msg.data) setRoom(msg.data);
-            if (msg.type === "room_sync") void reloadRoom(roomId).catch(() => {});
+            if (msg.type === "room_sync") {
+              if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+              syncTimerRef.current = setTimeout(() => {
+                syncTimerRef.current = null;
+                void reloadRoom(roomId).catch(() => {});
+              }, 300);
+            }
           } catch { /* ignore */ }
         };
         ws.onerror = () => startPolling();
@@ -216,6 +255,10 @@ export default function WerewolfRoom() {
     return () => {
       ws?.close();
       if (pollTimer) clearInterval(pollTimer);
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
     };
   }, [room?.room_id, reloadRoom]);
 
@@ -251,6 +294,8 @@ export default function WerewolfRoom() {
   }, [loadPendingInvites]);
 
   async function handleAcceptInvite(roomId: string) {
+    if (joinBusyRef.current || busy) return;
+    joinBusyRef.current = true;
     setBusy(true);
     try {
       const joined = await apiRequest<WerewolfRoomView>("/api/games/werewolf-rooms/invites/accept", {
@@ -263,6 +308,7 @@ export default function WerewolfRoom() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "加入失败");
     } finally {
+      joinBusyRef.current = false;
       setBusy(false);
     }
   }
@@ -298,7 +344,9 @@ export default function WerewolfRoom() {
   }, [room?.feed, speak]);
 
   async function handleJoinByCode() {
-    if (!joinCode.trim()) return;
+    if (!joinCode.trim() || joinBusyRef.current || busy) return;
+    joinBusyRef.current = true;
+    setBusy(true);
     try {
       const joined = await apiRequest<WerewolfRoomView>("/api/games/werewolf-rooms/join", {
         method: "POST",
@@ -308,6 +356,9 @@ export default function WerewolfRoom() {
       navigate(`/game/werewolf-room/${joined.room_id}`, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "加入失败");
+    } finally {
+      joinBusyRef.current = false;
+      setBusy(false);
     }
   }
 

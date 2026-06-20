@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Play, Brain, Search, Heart, Dices, RotateCcw, Users, Bell, Search as SearchIcon, Loader2, Library } from "lucide-react";
 import { useGameStore, GameTemplate } from "../../stores/gameStore";
@@ -53,6 +53,7 @@ function sessionPath(gameType: string, id: string): string {
 
 export default function GameHome() {
   const navigate = useNavigate();
+  const werewolfNavRef = useRef(false);
   const { templates, templatesLoading, sessions, loadTemplates, loadSessions } = useGameStore();
 
   useEffect(() => {
@@ -255,7 +256,11 @@ export default function GameHome() {
 
             <button
               type="button"
-              onClick={() => navigate("/game/werewolf-room/new")}
+              onClick={() => {
+                if (werewolfNavRef.current) return;
+                werewolfNavRef.current = true;
+                navigate("/game/werewolf-room/new");
+              }}
               className="game-home-quick-card"
             >
               <div className="game-home-quick-icon bg-gradient-to-br from-emerald-500 to-emerald-700">
