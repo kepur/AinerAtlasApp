@@ -371,7 +371,7 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
                 bridge = self._ensure_bridge()
                 if not bridge.started:
                     await asyncio.to_thread(bridge.start)
-                    self._listening = True
+                self._listening = True
                 b64 = base64.b64encode(pcm).decode("ascii")
                 bridge.append_audio_b64(b64)
                 return await self._collect_bridge_events(timeout=0.0)
@@ -386,10 +386,10 @@ class OmniRealtimeAdapter(RealtimeAdapterBase):
                 *await self._collect_bridge_events(timeout=0.35),
             ]
         if msg_type == "interrupt":
-            self._listening = False
             if self._bridge:
                 self._bridge.cancel_response()
             self._reset_utterance()
+            self._listening = True
             return [{"type": "interrupted", "status": "ok"}]
         if msg_type == "text":
             return [{"type": "error", "message": "Omni mode only supports audio input"}]
