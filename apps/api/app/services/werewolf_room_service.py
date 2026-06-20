@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.models import PartyRoom, User, new_id
+from app.models import PartyRoom, User, MatchRequest, new_id
 
 MIN_PLAYERS = 4
 MAX_PLAYERS = 12
@@ -191,6 +191,88 @@ def _public_view(room: PartyRoom, viewer_id: str) -> dict:
         "reveal_on_death": state.get("reveal_on_death", True),
         "invited_user_ids": list(state.get("invited_user_ids") or []),
     }
+
+
+def _can_invite_user(db: Session, host_user_id: str, target_user_id: str) -> bool:
+    from app.services.friendship_service import are_friends
+
+    if host_user_id == target_user_id:
+        return False
+    if are_friends(db, host_user_id, target_user_id):
+        return True
+    req = db.scalar(
+        select(MatchRequest).where(
+            MatchRequest.status == "accepted",
+            (
+                ((MatchRequest.from_user_id == host_user_id) & (MatchRequest.to_user_id == target_user_id))
+                | ((MatchRequest.from_user_id == target_user_id) & (MatchRequest.to_user_id == host_user_id))
+            ),
+        )
+    )
+    return req is not None
+
+
+def list_invite_candidates(db: Session, room_id: str, host_user_id: str) -> list[dict]:
+    from app.services.friendship_service import friendship_to_friend_item, list_active_friendships
+    from app.services import presence_service
+
+    room = _load(db, room_id)
+    if room.host_user_id != host_user_id:
+        raise ValueError("Only host can list invite candidates")
+    if room.phase != "waiting":
+        raise ValueError("Game already started")
+
+    state = room.state or {}
+    players: list[dict] = list(state.get("players") or [])
+    in_room = {p.get("user_id") for p in players}
+    invited = set(state.get("invited_user_ids") or [])
+
+    candidate_ids: list[str] = []
+    seen: set[str] = set()
+    for row in list_active_friendships(db, host_user_id):
+        item = friendship_to_friend_item(db, host_user_id, row)
+        if not item:
+            continue
+        uid = item["user_id"]
+        if uid in seen:
+            continue
+        seen.add(uid)
+        candidate_ids.append(uid)
+
+    accepted = list(
+        db.scalars(
+            select(MatchRequest).where(
+                ((MatchRequest.from_user_id == host_user_id) | (MatchRequest.to_user_id == host_user_id)),
+                MatchRequest.status == "accepted",
+            )
+        )
+    )
+    for req in accepted:
+        other_id = req.to_user_id if req.from_user_id == host_user_id else req.from_user_id
+        if other_id in seen:
+            continue
+        if not db.get(User, other_id):
+            continue
+        seen.add(other_id)
+        candidate_ids.append(other_id)
+
+    online_map = presence_service.online_status(candidate_ids)
+    items: list[dict] = []
+    for uid in candidate_ids:
+        if uid in in_room:
+            continue
+        user = db.get(User, uid)
+        if not user:
+            continue
+        items.append({
+            "user_id": uid,
+            "username": user.username or user.email.split("@")[0],
+            "is_online": online_map.get(uid, False),
+            "invited": uid in invited,
+            "can_invite": online_map.get(uid, False) and uid not in invited,
+        })
+    items.sort(key=lambda x: (not x["is_online"], x["invited"], x["username"].lower()))
+    return items
 
 
 def create_room(db: Session, user_id: str, *, title: str = "狼人杀 · 真实房间") -> dict:
@@ -718,15 +800,17 @@ async def parse_voice_intent(
 
 
 def invite_friend(db: Session, room_id: str, host_user_id: str, friend_user_id: str) -> dict:
-    from app.services.friendship_service import are_friends
+    from app.services import presence_service
 
     room = _load(db, room_id)
     if room.host_user_id != host_user_id:
         raise ValueError("Only host can invite friends")
     if room.phase != "waiting":
         raise ValueError("Game already started")
-    if not are_friends(db, host_user_id, friend_user_id):
-        raise ValueError("只能邀请已成为好友的用户")
+    if not _can_invite_user(db, host_user_id, friend_user_id):
+        raise ValueError("只能邀请已匹配并成为好友的用户")
+    if not presence_service.is_online(friend_user_id):
+        raise ValueError("对方当前离线，只能邀请 3 分钟内在线的用户")
 
     state = room.state or {}
     players: list[dict] = list(state.get("players") or [])
@@ -736,20 +820,32 @@ def invite_friend(db: Session, room_id: str, host_user_id: str, friend_user_id: 
         raise ValueError("Room is full")
 
     invited = list(state.get("invited_user_ids") or [])
-    if friend_user_id not in invited:
-        invited.append(friend_user_id)
+    if friend_user_id in invited:
+        raise ValueError("已发送邀请，等待对方加入")
+    invited.append(friend_user_id)
     state["invited_user_ids"] = invited
     friend_name = _display_name(db, friend_user_id)
     _append_feed(
         state,
         kind="system",
-        text=f"房主邀请了 {friend_name} 加入（邀请码 {room.invite_code}）",
+        text=f"房主邀请了 {friend_name} 加入房间",
         round_no=0,
     )
     room.state = state
     _save(room, db)
     db.refresh(room)
     return _public_view(room, host_user_id)
+
+
+def accept_invite(db: Session, room_id: str, user_id: str) -> dict:
+    room = _load(db, room_id)
+    if room.phase != "waiting":
+        raise ValueError("Game already started")
+    state = room.state or {}
+    invited = set(state.get("invited_user_ids") or [])
+    if user_id not in invited:
+        raise ValueError("没有收到该房间的邀请")
+    return join_room(db, room.invite_code, user_id)
 
 
 def list_pending_invites(db: Session, user_id: str) -> list[dict]:

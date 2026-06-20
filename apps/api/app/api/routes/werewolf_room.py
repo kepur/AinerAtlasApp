@@ -44,8 +44,18 @@ class InviteFriendRequest(BaseModel):
     friend_user_id: str
 
 
+class AcceptInviteRequest(BaseModel):
+    room_id: str
+
+
 async def _notify(room_id: str) -> None:
     await party_room_hub.broadcast(room_id, {"type": "room_sync"})
+
+
+async def _notify_user_invite(user_id: str, invite: dict) -> None:
+    from app.services.user_notify_hub import user_notify_hub
+
+    await user_notify_hub.notify(user_id, {"type": "werewolf_invite", "data": invite})
 
 
 @router.websocket("/ws/{room_id}")
@@ -181,6 +191,25 @@ def pending_invites(current_user: CurrentUser, db: DBSession) -> dict:
     return {"items": svc.list_pending_invites(db, current_user.id)}
 
 
+@router.post("/invites/accept")
+async def accept_invite(payload: AcceptInviteRequest, current_user: CurrentUser, db: DBSession) -> dict:
+    try:
+        view = svc.accept_invite(db, payload.room_id, current_user.id)
+        await _notify(view["room_id"])
+        return view
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/{room_id}/invite-candidates")
+def invite_candidates(room_id: str, current_user: CurrentUser, db: DBSession) -> dict:
+    try:
+        items = svc.list_invite_candidates(db, room_id, current_user.id)
+        return {"items": items}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/{room_id}/invite-friend")
 async def invite_friend(
     room_id: str,
@@ -191,6 +220,12 @@ async def invite_friend(
     try:
         view = svc.invite_friend(db, room_id, current_user.id, payload.friend_user_id)
         await _notify(room_id)
+        invite = next(
+            (i for i in svc.list_pending_invites(db, payload.friend_user_id) if i["room_id"] == room_id),
+            None,
+        )
+        if invite:
+            await _notify_user_invite(payload.friend_user_id, invite)
         return view
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

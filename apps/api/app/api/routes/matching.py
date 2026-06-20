@@ -1,5 +1,5 @@
 import asyncio
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DBSession, QuotaManagerDep
@@ -680,3 +680,42 @@ def get_feedback(
             .order_by(MatchFeedback.created_at.desc())
         )
     )
+
+
+@router.post("/presence/heartbeat")
+def presence_heartbeat(current_user: CurrentUser) -> dict:
+    from app.services import presence_service
+
+    presence_service.touch(current_user.id)
+    return {"ok": True, "online_window_seconds": presence_service.ONLINE_TTL_SECONDS}
+
+
+@router.websocket("/notifications/ws")
+async def notifications_ws(websocket: WebSocket) -> None:
+    from app.core.security import decode_access_token
+    from app.services.user_notify_hub import user_notify_hub
+
+    await websocket.accept()
+    token = websocket.query_params.get("token", "")
+    user_id: str | None = None
+    if token:
+        try:
+            user_id = decode_access_token(token).get("sub")
+        except Exception:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+    if not user_id:
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+
+    await user_notify_hub.connect(user_id, websocket)
+    try:
+        await websocket.send_json({"type": "connected"})
+        while True:
+            raw = await websocket.receive_text()
+            if raw.strip().lower() == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await user_notify_hub.disconnect(user_id, websocket)

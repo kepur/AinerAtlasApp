@@ -60,6 +60,7 @@ import MindGraph from "./pages/studio/MindGraph";
 import ThoughtWorkspace from "./pages/studio/ThoughtWorkspace";
 import VersionDiff from "./pages/studio/VersionDiff";
 import { useAuthStore } from "./stores/authStore";
+import { startPresenceHeartbeat, stopPresenceHeartbeat } from "./lib/presenceHeartbeat";
 
 import MatchDetail from "./pages/MatchDetail";
 import CircleSummary from "./pages/CircleSummary";
@@ -170,7 +171,11 @@ export default function App() {
     if (isLoggedIn) {
       loadUser();
       loadProfile();
+      startPresenceHeartbeat(true);
+    } else {
+      stopPresenceHeartbeat();
     }
+    return () => stopPresenceHeartbeat();
   }, [isLoggedIn, loadUser, loadProfile]);
 
   return (

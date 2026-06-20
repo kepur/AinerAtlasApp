@@ -79,7 +79,13 @@ export default function WerewolfRoom() {
   const [voteReason, setVoteReason] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
-  const [inviteFriends, setInviteFriends] = useState<{ id: string; username: string; is_friend?: boolean }[]>([]);
+  const [inviteFriends, setInviteFriends] = useState<{
+    id: string;
+    username: string;
+    is_online?: boolean;
+    invited?: boolean;
+    can_invite?: boolean;
+  }[]>([]);
   const [inviteBusyId, setInviteBusyId] = useState<string | null>(null);
   const [pendingInvites, setPendingInvites] = useState<{ room_id: string; title: string; invite_code: string; host_name: string }[]>([]);
   const creatingRef = useRef(false);
@@ -91,6 +97,40 @@ export default function WerewolfRoom() {
     const data = await apiRequest<WerewolfRoomView>(`/api/games/werewolf-rooms/${roomId}`);
     setRoom(data);
     return data;
+  }, []);
+
+  const loadInviteCandidates = useCallback(async (roomId: string) => {
+    try {
+      const data = await apiRequest<{
+        items?: {
+          user_id: string;
+          username: string;
+          is_online?: boolean;
+          invited?: boolean;
+          can_invite?: boolean;
+        }[];
+      }>(`/api/games/werewolf-rooms/${roomId}/invite-candidates`);
+      setInviteFriends(
+        (data.items ?? []).map((f) => ({
+          id: f.user_id,
+          username: f.username,
+          is_online: f.is_online,
+          invited: f.invited,
+          can_invite: f.can_invite,
+        })),
+      );
+    } catch {
+      setInviteFriends([]);
+    }
+  }, []);
+
+  const loadPendingInvites = useCallback(async () => {
+    try {
+      const data = await apiRequest<{ items?: typeof pendingInvites }>("/api/games/werewolf-rooms/invites/pending");
+      setPendingInvites(data.items ?? []);
+    } catch {
+      setPendingInvites([]);
+    }
   }, []);
 
   const post = useCallback(async (path: string, body?: unknown) => {
@@ -180,27 +220,52 @@ export default function WerewolfRoom() {
   }, [room?.room_id, reloadRoom]);
 
   useEffect(() => {
-    if (room?.phase !== "waiting" || !room.is_host) return;
-    apiRequest<{ items?: { user_id?: string; id: string; username: string; is_friend?: boolean }[] }>("/api/connect/friends")
-      .then((data) => {
-        const inRoom = new Set(room.players.map((p) => p.user_id));
-        const invited = new Set(room.invited_user_ids ?? []);
-        setInviteFriends(
-          (data.items ?? [])
-            .filter((f) => f.is_friend === true)
-            .filter((f) => !inRoom.has(f.user_id ?? f.id))
-            .filter((f) => !invited.has(f.user_id ?? f.id))
-            .map((f) => ({ id: f.user_id ?? f.id, username: f.username, is_friend: true })),
-        );
-      })
-      .catch(() => setInviteFriends([]));
-  }, [room?.phase, room?.is_host, room?.players, room?.invited_user_ids]);
+    if (room?.phase !== "waiting" || !room.is_host || !room.room_id) return;
+    void loadInviteCandidates(room.room_id);
+    const timer = setInterval(() => void loadInviteCandidates(room.room_id), 15_000);
+    return () => clearInterval(timer);
+  }, [room?.phase, room?.is_host, room?.room_id, room?.players.length, room?.invited_user_ids, loadInviteCandidates]);
 
   useEffect(() => {
-    apiRequest<{ items?: typeof pendingInvites }>("/api/games/werewolf-rooms/invites/pending")
-      .then((data) => setPendingInvites(data.items ?? []))
-      .catch(() => setPendingInvites([]));
-  }, [room?.room_id]);
+    void loadPendingInvites();
+    const timer = setInterval(() => void loadPendingInvites(), 4000);
+    return () => clearInterval(timer);
+  }, [loadPendingInvites]);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    const wsBase = (API_BASE_URL || window.location.origin).replace(/^http/i, "ws");
+    const wsUrl = `${wsBase}/api/connect/notifications/ws?token=${encodeURIComponent(token)}`;
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data) as { type?: string };
+          if (msg.type === "werewolf_invite") void loadPendingInvites();
+        } catch { /* ignore */ }
+      };
+    } catch { /* ignore */ }
+    return () => ws?.close();
+  }, [loadPendingInvites]);
+
+  async function handleAcceptInvite(roomId: string) {
+    setBusy(true);
+    try {
+      const joined = await apiRequest<WerewolfRoomView>("/api/games/werewolf-rooms/invites/accept", {
+        method: "POST",
+        body: JSON.stringify({ room_id: roomId }),
+      });
+      setRoom(joined);
+      setPendingInvites((prev) => prev.filter((p) => p.room_id !== roomId));
+      navigate(`/game/werewolf-room/${joined.room_id}`, { replace: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "加入失败");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleInviteFriend(friendUserId: string) {
     if (!room?.room_id) return;
@@ -211,7 +276,7 @@ export default function WerewolfRoom() {
         { method: "POST", body: JSON.stringify({ friend_user_id: friendUserId }) },
       );
       setRoom(data);
-      setInviteFriends((prev) => prev.filter((f) => f.id !== friendUserId));
+      void loadInviteCandidates(room.room_id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "邀请失败");
     } finally {
@@ -335,19 +400,27 @@ export default function WerewolfRoom() {
         </button>
       </div>
 
-      {pendingInvites.length > 0 && room.phase === "waiting" && (
+      {pendingInvites.length > 0 && room.phase === "waiting" && !room.players.some((p) => p.is_self && p.is_host) && (
         <div className="mx-4 mt-2 p-3 rounded-xl bg-[#7c5cff]/15 border border-[#7c5cff]/40">
           <p className="text-[12px] text-white/80 mb-2">收到狼人杀邀请</p>
           {pendingInvites.slice(0, 3).map((inv) => (
-            <button
-              key={inv.room_id}
-              type="button"
-              onClick={() => navigate(`/game/werewolf-room/new?join=${inv.invite_code}`)}
-              className="game-btn-secondary w-full text-left px-3 py-2 rounded-lg text-[12px] mb-1 last:mb-0"
-            >
-              {inv.host_name} 邀请你 · 码 {inv.invite_code}
-            </button>
+            <div key={inv.room_id} className="flex gap-2 mb-2 last:mb-0">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleAcceptInvite(inv.room_id)}
+                className="game-btn-primary flex-1 text-left px-3 py-2 rounded-lg text-[12px]"
+              >
+                接受 · {inv.host_name} 的 {inv.title}
+              </button>
+            </div>
           ))}
+        </div>
+      )}
+
+      {pendingInvites.length > 0 && room.phase === "waiting" && room.is_host && (
+        <div className="mx-4 mt-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/30">
+          <p className="text-[11px] game-text-secondary">已发出邀请，等待好友在线接受</p>
         </div>
       )}
 
