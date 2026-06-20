@@ -61,6 +61,35 @@ function formatCallDuration(totalSec: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+const BARGE_IN_RMS = 0.028;
+const BARGE_IN_FRAMES = 2;
+const PCM_DIRECT_SEND_LIMIT = 320_000;
+
+function pcm16Base64Rms(base64: string): number {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  const pcm = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
+  if (!pcm.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < pcm.length; i += 1) {
+    const n = pcm[i] / 32768;
+    sum += n * n;
+  }
+  return Math.sqrt(sum / pcm.length);
+}
+
+/** Local coach TTS still playing (not LLM "thinking" state). */
+function coachAudioPlaying(
+  activeSources: number,
+  audioCtx: AudioContext | null,
+  scheduledUntilSec: number,
+): boolean {
+  if (activeSources > 0) return true;
+  if (!audioCtx) return false;
+  return scheduledUntilSec > audioCtx.currentTime + 0.03;
+}
+
 const MODES = ["自由对话", "跟读训练", "面试练习", "小组语音"];
 const CONNECTION_STATUS_BUBBLE_ID = "voice-connection-status";
 const INTERVIEW_INDUSTRIES = ["通用", "科技", "金融", "医疗", "教育", "零售"];
@@ -188,6 +217,8 @@ export default function VoiceChat() {
   const wsSendQueueRef = useRef<string[]>([]);
   const wsFlushTimerRef = useRef<number | null>(null);
   const lastInterruptAtRef = useRef(0);
+  const bargeInStreakRef = useRef(0);
+  const triggerBargeInRef = useRef<() => void>(() => {});
   const feedRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(false);
   const userBubbleIdRef = useRef<string | null>(null);
@@ -240,8 +271,10 @@ export default function VoiceChat() {
       }
     }
     omniSourcesRef.current = [];
+    omniPlayTimeRef.current = 0;
     aiSpeakingRef.current = false;
     setAiSpeaking(false);
+    void captureRef.current?.resume?.();
   }, []);
 
   const flushWsSendQueue = useCallback(() => {
@@ -256,7 +289,7 @@ export default function VoiceChat() {
       if (next) ws.send(next);
     }
     if (wsSendQueueRef.current.length > 0 && wsFlushTimerRef.current === null) {
-      wsFlushTimerRef.current = window.setTimeout(flushWsSendQueue, 32);
+      wsFlushTimerRef.current = window.setTimeout(flushWsSendQueue, 16);
     }
   }, []);
 
@@ -266,8 +299,8 @@ export default function VoiceChat() {
     } else {
       wsSendQueueRef.current.push(payload);
     }
-    if (!priority && wsSendQueueRef.current.length > 64) {
-      wsSendQueueRef.current = wsSendQueueRef.current.slice(-48);
+    if (!priority && wsSendQueueRef.current.length > 96) {
+      wsSendQueueRef.current = wsSendQueueRef.current.slice(-72);
     }
     flushWsSendQueue();
   }, [flushWsSendQueue]);
@@ -275,6 +308,36 @@ export default function VoiceChat() {
   const sendWsControl = useCallback((payload: Record<string, unknown>) => {
     queueWsSend(JSON.stringify(payload), true);
   }, [queueWsSend]);
+
+  const sendPcmAudio = useCallback((payload: string) => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN && ws.bufferedAmount < PCM_DIRECT_SEND_LIMIT) {
+      ws.send(payload);
+      return;
+    }
+    queueWsSend(payload);
+  }, [queueWsSend]);
+
+  const triggerBargeIn = useCallback(() => {
+    const now = Date.now();
+    if (now - lastInterruptAtRef.current < 350) return;
+    const coachPlaying = coachAudioPlaying(
+      omniSourcesRef.current.length,
+      omniAudioCtxRef.current,
+      omniPlayTimeRef.current,
+    );
+    if (!coachPlaying && !aiSpeakingRef.current) return;
+    lastInterruptAtRef.current = now;
+    bargeInStreakRef.current = 0;
+    stopOmniPlayback();
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      sendWsControl({ type: "interrupt" });
+    }
+  }, [sendWsControl, stopOmniPlayback]);
+
+  useEffect(() => {
+    triggerBargeInRef.current = triggerBargeIn;
+  }, [triggerBargeIn]);
 
   const markUserSpeaking = useCallback((speaking: boolean) => {
     userSpeakingRef.current = speaking;
@@ -640,17 +703,20 @@ export default function VoiceChat() {
         }
 
         if (data.type === "speech_started") {
+          triggerBargeInRef.current();
           markUserSpeaking(true);
           return;
         }
 
         if (data.type === "speech_stopped") {
+          if (!userBubbleIdRef.current) {
+            markUserSpeaking(false);
+          }
           return;
         }
 
         if (data.type === "response_done") {
-          aiSpeakingRef.current = false;
-          setAiSpeaking(false);
+          void captureRef.current?.resume?.();
           return;
         }
 
@@ -757,6 +823,10 @@ export default function VoiceChat() {
         if (omniSourcesRef.current.length === 0) {
           aiSpeakingRef.current = false;
           setAiSpeaking(false);
+          void captureRef.current?.resume?.();
+          if (userSpeakingRef.current && !userBubbleIdRef.current) {
+            markUserSpeaking(false);
+          }
         }
       };
       const startAt = Math.max(ctx.currentTime, omniPlayTimeRef.current);
@@ -794,13 +864,36 @@ export default function VoiceChat() {
     if (captureRef.current) return;
     sendWsControl({ type: "audio", action: "start" });
     const capture = await startPcmCapture(({ base64, sampleRate }) => {
-      queueWsSend(JSON.stringify({
+      const coachPlaying = coachAudioPlaying(
+        omniSourcesRef.current.length,
+        omniAudioCtxRef.current,
+        omniPlayTimeRef.current,
+      );
+      const rms = pcm16Base64Rms(base64);
+      if (coachPlaying) {
+        if (rms >= BARGE_IN_RMS) {
+          bargeInStreakRef.current += 1;
+          if (bargeInStreakRef.current >= BARGE_IN_FRAMES) {
+            triggerBargeInRef.current();
+          }
+        } else {
+          bargeInStreakRef.current = 0;
+          return;
+        }
+      } else {
+        bargeInStreakRef.current = 0;
+      }
+      sendPcmAudio(JSON.stringify({
         type: "audio",
         format: "pcm16",
         sample_rate: sampleRate,
         data: base64,
       }));
-    }, { vadThreshold: 0.018, gateSilence: false });
+    }, {
+      gateSilence: false,
+      sendBatchMs: 20,
+      maxPendingFrames: 3,
+    });
     captureRef.current = capture;
   }
 

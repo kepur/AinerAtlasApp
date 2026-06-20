@@ -1,6 +1,11 @@
 const TARGET_SAMPLE_RATE = 16000;
-const SEND_BATCH_MS = 48;
-const MAX_PENDING_FRAMES = 10;
+const DEFAULT_SEND_BATCH_MS = 48;
+const DEFAULT_MAX_PENDING_FRAMES = 10;
+
+export type PcmCaptureStartOptions = {
+  sendBatchMs?: number;
+  maxPendingFrames?: number;
+};
 
 function floatTo16BitPCM(input: Float32Array): Int16Array {
   const output = new Int16Array(input.length);
@@ -58,6 +63,7 @@ function mergePcmFrames(frames: Int16Array[]): Int16Array {
 
 export type PcmCaptureHandle = {
   stop: () => void;
+  resume: () => Promise<void>;
   sampleRate: number;
 };
 
@@ -65,7 +71,10 @@ import { assertMicrophoneAvailable } from "./microphone";
 
 export async function startPcmCapture(
   onChunk: (payload: { base64: string; sampleRate: number }) => void,
+  options: PcmCaptureStartOptions = {},
 ): Promise<PcmCaptureHandle> {
+  const sendBatchMs = options.sendBatchMs ?? DEFAULT_SEND_BATCH_MS;
+  const maxPendingFrames = options.maxPendingFrames ?? DEFAULT_MAX_PENDING_FRAMES;
   assertMicrophoneAvailable();
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
@@ -104,7 +113,7 @@ export async function startPcmCapture(
 
   const scheduleFlush = () => {
     if (flushTimer !== null) return;
-    flushTimer = window.setTimeout(flushPending, SEND_BATCH_MS);
+    flushTimer = window.setTimeout(flushPending, sendBatchMs);
   };
 
   processor.onaudioprocess = (event) => {
@@ -112,7 +121,7 @@ export async function startPcmCapture(
     const channel = event.inputBuffer.getChannelData(0);
     const downsampled = downsampleBuffer(channel, audioContext.sampleRate, TARGET_SAMPLE_RATE);
     pendingFrames.push(floatTo16BitPCM(downsampled));
-    if (pendingFrames.length >= MAX_PENDING_FRAMES) {
+    if (pendingFrames.length >= maxPendingFrames) {
       if (flushTimer !== null) {
         window.clearTimeout(flushTimer);
         flushTimer = null;
@@ -129,6 +138,10 @@ export async function startPcmCapture(
 
   return {
     sampleRate: TARGET_SAMPLE_RATE,
+    resume: async () => {
+      if (stopped || audioContext.state === "running") return;
+      await audioContext.resume().catch(() => {});
+    },
     stop: () => {
       stopped = true;
       if (flushTimer !== null) {

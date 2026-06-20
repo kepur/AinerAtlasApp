@@ -145,7 +145,12 @@ class OmniRealtimeBridge:
             self._emit({"type": "thinking", "status": "start", "provider": "qwen-omni-realtime"})
             return
         if event_type == "response.done":
+            self._assistant_text = ""
             self._emit({"type": "response_done", "provider": "qwen-omni-realtime"})
+            return
+        if event_type in {"response.cancelled", "response.canceled"}:
+            self._assistant_text = ""
+            self._emit({"type": "interrupted", "status": "ok", "provider": "qwen-omni-realtime"})
             return
         if event_type == "input_audio_buffer.speech_started":
             self._emit({"type": "speech_started", "provider": "qwen-omni-realtime"})

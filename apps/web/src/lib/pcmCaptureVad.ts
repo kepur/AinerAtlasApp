@@ -10,6 +10,8 @@ export type PcmCaptureOptions = {
   gateSilence?: boolean;
   /** RMS threshold 0–1; only used when gateSilence is true. */
   vadThreshold?: number;
+  sendBatchMs?: number;
+  maxPendingFrames?: number;
 };
 
 function pcmRms(pcm: Int16Array): number {
@@ -37,5 +39,8 @@ export async function startPcmCapture(
       if (pcmRms(pcm) < threshold) return;
     }
     onChunk({ base64, sampleRate });
+  }, {
+    sendBatchMs: options.sendBatchMs,
+    maxPendingFrames: options.maxPendingFrames,
   });
 }
