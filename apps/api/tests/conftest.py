@@ -1,6 +1,15 @@
+import os
+import tempfile
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
+
+# Tests must never point at the developer or production database.  Set the
+# process-local database before importing the app, because the SQLAlchemy
+# engine is created at import time.
+_TEST_DATABASE_DIR = Path(tempfile.mkdtemp(prefix="ainerspeak-pytest-"))
+os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DATABASE_DIR / 'test.db'}"
 
 import app.models  # noqa: F401
 import app.api.deps as deps_module
@@ -78,6 +87,7 @@ def configure_test_rate_limits(monkeypatch: pytest.MonkeyPatch) -> Iterator[None
 def configure_test_auth_settings(
     request: pytest.FixtureRequest,
     monkeypatch: pytest.MonkeyPatch,
+    fresh_test_database: None,
 ) -> Iterator[None]:
     with SessionLocal() as db:
         settings = db.get(AuthSettings, "default")

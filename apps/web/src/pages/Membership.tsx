@@ -197,7 +197,7 @@ export default function Membership() {
         <section ref={contactRef} id="contact" className="bg-primary/5 border border-primary/10 rounded-2xl p-5 space-y-4 scroll-mt-24">
           <div>
             <h3 className="font-bold text-[18px] text-on-surface mb-1">人工开通会员</h3>
-            <p className="text-[14px] text-on-surface-variant">暂不集成支付。点微信扫码添加客服，备注「AinerWise」即可开通 VIP / Pro。</p>
+            <p className="text-[14px] text-on-surface-variant">暂不集成支付。点微信扫码添加客服，备注「AinerSpeak」即可开通 VIP / Pro。</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button

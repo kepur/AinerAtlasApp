@@ -584,13 +584,14 @@ function AdminApp() {
     default_voice_provider: "",
     realtime_asr_provider: "auto",
     default_embedding_provider: "",
-    tts_provider: "browser",
-    tts_voice: "Xiaoxiao",
+    tts_provider: "edge",
+    tts_voice: "zh-CN-XiaoxiaoNeural",
     tts_speed: 0.9,
     tts_pitch: 1.1,
     global_api_keys: [] as { platform: string; api_key: string; base_url: string }[],
     llm_routing: {} as Record<string, string>,
     voice_platform_config: {
+      realtime_dialogue_enabled: true,
       realtime_engine: "fun-asr",
       omni_models: "qwen3.5-omni-flash-realtime,qwen3.5-omni-plus-realtime",
       omni_voice: "Tina",
@@ -599,7 +600,7 @@ function AdminApp() {
       omni_silence_ms: 1200,
       omni_tap_to_end: true,
       omni_instructions:
-        "You are AinerWise, a warm English expression coach. Keep spoken replies short (1-3 sentences). Gently correct grammar when helpful.",
+        "You are AinerSpeak, a warm English expression coach. Keep spoken replies short (1-3 sentences). Gently correct grammar when helpful.",
       voice_coach_schedule: "daily",
       voice_coach_vip_only: true,
       voice_coach_cron_hour: 3,
@@ -728,13 +729,14 @@ function AdminApp() {
       default_voice_provider: appData.default_voice_provider ?? "",
       realtime_asr_provider: appData.realtime_asr_provider ?? "auto",
       default_embedding_provider: appData.default_embedding_provider ?? "",
-      tts_provider: (appData as any).tts_provider ?? "browser",
-      tts_voice: (appData as any).tts_voice ?? "Xiaoxiao",
+      tts_provider: (appData as any).tts_provider === "browser" ? "edge" : ((appData as any).tts_provider ?? "edge"),
+      tts_voice: (appData as any).tts_voice ?? "zh-CN-XiaoxiaoNeural",
       tts_speed: (appData as any).tts_speed ?? 0.9,
       tts_pitch: (appData as any).tts_pitch ?? 1.1,
       global_api_keys: Array.isArray((appData as any).global_api_keys) ? (appData as any).global_api_keys : [],
       llm_routing: appData.llm_routing ?? {},
       voice_platform_config: {
+        realtime_dialogue_enabled: true,
         realtime_engine: "fun-asr",
         omni_models: "qwen3.5-omni-flash-realtime,qwen3.5-omni-plus-realtime",
         omni_voice: "Tina",
@@ -2635,6 +2637,25 @@ function AdminApp() {
                     <option value="qwen-omni">Qwen-Omni-Realtime 端到端</option>
                   </select>
                 </label>
+                <label className="flex items-center gap-2" style={{ alignSelf: "end" }}>
+                  <input
+                    type="checkbox"
+                    checked={appForm.voice_platform_config?.realtime_dialogue_enabled !== false}
+                    onChange={(e) =>
+                      setAppForm({
+                        ...appForm,
+                        voice_platform_config: {
+                          ...appForm.voice_platform_config,
+                          realtime_dialogue_enabled: e.target.checked,
+                        },
+                      })
+                    }
+                  />
+                  显示并开放实时语音教练
+                </label>
+                <p className="helper-text" style={{ gridColumn: "1 / -1", marginTop: -8 }}>
+                  关闭后前端不显示 Coach 入口，HTTP 与 WebSocket 会同时拒绝会话；模型不可用时系统也会自动关闭。
+                </p>
                 <label>
                   Omni 模型轮询（逗号分隔）
                   <input
@@ -2990,7 +3011,7 @@ function AdminApp() {
                 <label>
                   TTS 平台
                   <select value={appForm.tts_provider} onChange={(e) => setAppForm({ ...appForm, tts_provider: e.target.value })}>
-                    <option value="browser">Edge 浏览器原生</option>
+                    <option value="edge">Microsoft Edge TTS（服务端默认）</option>
                     <option value="qwentts">阿里云 Qwen-TTS (推荐)</option>
                     <option value="cosyvoice">阿里云 CosyVoice</option>
                     <option value="openai">OpenAI TTS</option>
@@ -3013,9 +3034,14 @@ function AdminApp() {
                       <option value="longxiaoxia_v2">龙小夏 V2 (清新)</option>
                       <option value="longxiaoyue_v2">龙小悦 V2 (温柔)</option>
                     </optgroup>
-                    <optgroup label="Edge 浏览器 (微软语音)">
-                      <option value="Xiaoxiao">晓晓 Xiaoxiao (甜美)</option>
-                      <option value="Yunjian">云间 Yunjian (温柔)</option>
+                    <optgroup label="Microsoft Edge TTS 神经语音">
+                      <option value="zh-CN-XiaoxiaoNeural">晓晓 Xiaoxiao（中文女声）</option>
+                      <option value="zh-CN-YunjianNeural">云健 Yunjian（中文男声）</option>
+                      <option value="en-US-AriaNeural">Aria（英文女声）</option>
+                      <option value="en-US-GuyNeural">Guy（英文男声）</option>
+                      <option value="sr-RS-SophieNeural">Sophie（塞尔维亚语女声）</option>
+                      <option value="sr-RS-NicholasNeural">Nicholas（塞尔维亚语男声）</option>
+                      <option value="es-ES-ElviraNeural">Elvira（西班牙语女声）</option>
                     </optgroup>
                     <optgroup label="英文女声">
                       <option value="Aria">Aria (清亮)</option>

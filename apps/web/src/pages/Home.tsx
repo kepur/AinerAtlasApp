@@ -9,6 +9,7 @@ import { hasVoiceCoachAccess, isMembershipReady, isVoiceCoachBlocked } from "../
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
 import { useChatStore } from "../stores/chatStore";
+import { useRealtimeDialogueAvailability } from "../hooks/useFeatureAvailability";
 
 export default function Home() {
   const user = useAuthStore((s) => s.user);
@@ -19,6 +20,7 @@ export default function Home() {
   const { createConversation } = useChatStore();
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { realtimeDialogueEnabled } = useRealtimeDialogueAvailability();
 
   const [topics, setTopics] = useState<TodayTopic[]>([]);
   const [topicsLoading, setTopicsLoading] = useState(true);
@@ -82,18 +84,40 @@ export default function Home() {
           >
             {greetingName.charAt(0).toUpperCase()}
           </button>
-          <span className="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerWise</span>
+          <span className="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerSpeak</span>
         </div>
-        <button
-          onClick={openVoiceCoach}
-          className="material-symbols-outlined text-primary hover:opacity-80 transition-opacity"
-          aria-label="Voice Coach"
-        >
-          settings_voice
-        </button>
+        {realtimeDialogueEnabled && (
+          <button
+            onClick={openVoiceCoach}
+            className="material-symbols-outlined text-primary hover:opacity-80 transition-opacity"
+            aria-label="Voice Coach"
+          >
+            settings_voice
+          </button>
+        )}
       </nav>
 
       <main className="pt-2 pb-8 px-margin-mobile space-y-5">
+        <section>
+          <button
+            type="button"
+            onClick={() => navigate("/survival-sprint")}
+            className="w-full text-left rounded-[20px] p-4 bg-gradient-to-br from-[#0058be] to-[#6d5bd0] text-white shadow-lg active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[24px]">rocket_launch</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">Survival Sprint · 塞尔维亚语 MVP</span>
+                <h2 className="text-[16px] font-bold mt-1">快速学一门语言</h2>
+                <p className="text-[12px] text-white/80 mt-1 leading-relaxed">先抓语言 DNA 和功能按钮，第一天就练购物、问路与求助。</p>
+              </div>
+              <span className="material-symbols-outlined mt-2">arrow_forward</span>
+            </div>
+          </button>
+        </section>
+
         {/* 1. Express Your Thought — 主卡片 */}
         <section>
           <div className="relative overflow-hidden rounded-[20px] p-5 ai-glow glass-card border border-primary/10">
@@ -124,8 +148,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 2. AinerWise Coach — 直达语音对话 */}
-        <section>
+        {/* 2. AinerSpeak Coach — only rendered when backend says it is usable */}
+        {realtimeDialogueEnabled && <section>
           <button
             type="button"
             onClick={openVoiceCoach}
@@ -139,7 +163,7 @@ export default function Home() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-[14px] text-on-surface truncate">AinerWise Coach</h3>
+                <h3 className="font-bold text-[14px] text-on-surface truncate">AinerSpeak Coach</h3>
                 <span className="text-[9px] text-primary font-bold uppercase tracking-wide">Live</span>
                 {!membershipReady ? null : !voiceAccess ? (
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-tertiary-fixed/25 text-tertiary-container font-bold">VIP</span>
@@ -151,7 +175,7 @@ export default function Home() {
               <span className="material-symbols-outlined text-[20px]">call</span>
             </div>
           </button>
-        </section>
+        </section>}
 
         {/* 3. 今日话题 */}
         <TodayTopicsSection topics={topics} loading={topicsLoading} />

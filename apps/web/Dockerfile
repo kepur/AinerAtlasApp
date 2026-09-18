@@ -1,9 +1,10 @@
 FROM node:20-alpine AS build
 
 WORKDIR /app
-COPY package.json tsconfig.json vite.config.ts index.html /app/
+COPY package.json package-lock.json tsconfig.json vite.config.ts index.html /app/
+COPY postcss.config.js tailwind.config.cjs tailwind.config.js /app/
 COPY src /app/src
-RUN npm install && npm run build
+RUN npm ci && npm run build
 
 FROM nginx:1.27-alpine
 

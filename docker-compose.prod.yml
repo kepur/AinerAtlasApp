@@ -1,7 +1,19 @@
 # 生产/预览：Nginx 静态打包（改代码后需 docker compose -f docker-compose.yml -f docker-compose.prod.yml build web）
 services:
   api:
-    volumes:
+    # 生产只读取服务器自己的 .env；不要叠加仓库内的开发配置。
+    env_file: !override
+      - .env
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      CORS_ALLOW_LAN: "false"
+      DATABASE_URL: postgresql+psycopg2://ainerwise:ainerwise@postgres:5432/ainerwise
+      REDIS_URL: redis://redis:6379/0
+      TTS_CACHE_DIR: /app/storage/tts_cache
+      TTS_CACHE_URL_PREFIX: /audio/tts
+    # 生产代码来自镜像，仅保留真正的运行时持久化目录。
+    volumes: !override
       - ./storage:/app/storage
       - ./apps/api/uploads:/app/uploads
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
@@ -10,9 +22,9 @@ services:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
-    environment: {}
+    environment: !reset {}
     volumes: !reset []
-    ports:
+    ports: !override
       - "7075:80"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]

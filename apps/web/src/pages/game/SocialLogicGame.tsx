@@ -350,12 +350,7 @@ export default function SocialLogicGame() {
       const url = await useAudioCacheStore.getState().getOrFetch(text, "en", voice);
       await new Audio(url).play();
     } catch {
-      if (window.speechSynthesis) {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = "en-US";
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(u);
-      }
+      // Keep playback provider-consistent; never fall back to OS speech.
     }
   };
 

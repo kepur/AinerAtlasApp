@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, date
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -260,6 +260,58 @@ class UserMastery(Base):
     examples: Mapped[list[str]] = mapped_column(JSON, default=list)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class LanguageCourseProgress(Base):
+    __tablename__ = "language_course_progress"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "course_code",
+            "language_code",
+            name="uq_language_course_progress_user_course_language",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    course_code: Mapped[str] = mapped_column(String(80), default="survival-sprint", index=True)
+    language_code: Mapped[str] = mapped_column(String(20), index=True)
+    current_step: Mapped[int] = mapped_column(Integer, default=0)
+    scenario_index: Mapped[int] = mapped_column(Integer, default=0)
+    turn_index: Mapped[int] = mapped_column(Integer, default=0)
+    completed_steps: Mapped[list[int]] = mapped_column(JSON, default=list)
+    correct_count: Mapped[int] = mapped_column(Integer, default=0)
+    mistake_count: Mapped[int] = mapped_column(Integer, default=0)
+    total_sessions: Mapped[int] = mapped_column(Integer, default=0)
+    streak_days: Mapped[int] = mapped_column(Integer, default=0)
+    last_practice_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    mistake_items: Mapped[dict] = mapped_column(JSON, default=dict)
+    state: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class LanguagePracticeAttempt(Base):
+    __tablename__ = "language_practice_attempts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    progress_id: Mapped[str] = mapped_column(
+        ForeignKey("language_course_progress.id"), index=True
+    )
+    course_code: Mapped[str] = mapped_column(String(80), default="survival-sprint", index=True)
+    language_code: Mapped[str] = mapped_column(String(20), index=True)
+    activity_type: Mapped[str] = mapped_column(String(40), default="scenario")
+    item_id: Mapped[str] = mapped_column(String(160), index=True)
+    correct: Mapped[bool] = mapped_column(Boolean, default=False)
+    user_answer: Mapped[str] = mapped_column(Text, default="")
+    expected_answer: Mapped[str] = mapped_column(Text, default="")
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+    practiced_on: Mapped[date] = mapped_column(Date, default=lambda: utc_now().date(), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
@@ -916,8 +968,8 @@ class AppSettings(Base):
     default_voice_provider: Mapped[str] = mapped_column(String(64), default="")
     realtime_asr_provider: Mapped[str] = mapped_column(String(32), default="auto")
     default_embedding_provider: Mapped[str] = mapped_column(String(64), default="")
-    tts_provider: Mapped[str] = mapped_column(String(32), default="browser")
-    tts_voice: Mapped[str] = mapped_column(String(40), default="longanhuan")
+    tts_provider: Mapped[str] = mapped_column(String(32), default="edge")
+    tts_voice: Mapped[str] = mapped_column(String(80), default="zh-CN-XiaoxiaoNeural")
     tts_speed: Mapped[float] = mapped_column(Float, default=0.9)
     tts_pitch: Mapped[float] = mapped_column(Float, default=1.1)
     global_api_keys: Mapped[dict] = mapped_column(JSON, default=dict)

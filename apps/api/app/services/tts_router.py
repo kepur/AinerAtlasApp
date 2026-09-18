@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # Per-provider language proficiency (0-100) + cost tier. Mirrors the spec's
 # provider_voice_capabilities table, scoped to the providers we actually ship.
 PROVIDER_VOICE_CAPABILITIES: dict[str, dict] = {
+    "edge":      {"zh": 92, "en": 92, "sr": 92, "es": 92, "fr": 92, "de": 92, "it": 92, "pt": 92, "ru": 92, "ja": 92, "ko": 92, "hi": 92, "ar": 92, "emotion": 65, "cost": "free"},
     "cosyvoice": {"zh": 95, "en": 60, "ja": 50, "ko": 50, "emotion": 80, "cost": "low"},
     "qwentts":   {"zh": 92, "en": 65, "ja": 45, "ko": 45, "emotion": 70, "cost": "low"},
     "openai":    {"zh": 82, "en": 92, "ja": 85, "ko": 85, "emotion": 85, "cost": "medium"},
@@ -34,6 +35,18 @@ PROVIDER_VOICE_CAPABILITIES: dict[str, dict] = {
 
 # Default voice per provider, keyed by language ("*" = fallback).
 DEFAULT_VOICE: dict[str, dict[str, str]] = {
+    "edge": {
+        "zh": "zh-CN-XiaoxiaoNeural",
+        "en": "en-US-AriaNeural",
+        "sr": "sr-RS-SophieNeural",
+        "es": "es-ES-ElviraNeural",
+        "fr": "fr-FR-DeniseNeural",
+        "de": "de-DE-KatjaNeural",
+        "ru": "ru-RU-SvetlanaNeural",
+        "ja": "ja-JP-NanamiNeural",
+        "ko": "ko-KR-SunHiNeural",
+        "*": "en-US-AriaNeural",
+    },
     "cosyvoice": {"*": "longanhuan"},
     "qwentts":   {"zh": "Cherry", "*": "Cherry"},
     "openai":    {"en": "alloy", "zh": "alloy", "*": "alloy"},
@@ -189,7 +202,7 @@ async def synthesize_routed(
     *,
     language: str | None = None,
     speed: float = 1.0,
-    configured_default: str = "browser",
+    configured_default: str = "edge",
 ) -> dict | None:
     """Detect language, route to the best provider, synthesize.
 
@@ -199,7 +212,10 @@ async def synthesize_routed(
     from app.services.tts_cache import cache_hit_as_response, set_cached_audio
 
     lang = (language or "").split("-")[0].lower() or detect_text_language(text)
-    if lang not in {"zh", "en", "ja", "ko", "ru"}:
+    # Respect an explicit BCP-47 language hint. Script detection cannot tell
+    # Serbian, Spanish, French, etc. apart because they all use Latin letters.
+    supported = set(DEFAULT_VOICE["edge"]) - {"*"}
+    if lang not in supported:
         lang = detect_text_language(text)
 
     cache_voice_key = f"{lang}_{configured_default}"
@@ -213,7 +229,7 @@ async def synthesize_routed(
     provider_name, voice = choose_provider(db, lang, base_default)
 
     api_key = _resolve_provider_key(db, provider_name)
-    if not api_key and provider_name != "openai":
+    if not api_key and provider_name not in {"openai", "edge"}:
         return None
 
     try:
@@ -235,10 +251,13 @@ async def synthesize_routed(
 
 
 def _build_provider(provider_name: str, api_key: str, voice: str):
+    from app.services.voice_edge_tts import EdgeTTSProvider
     from app.services.voice_cosyvoice import CosyVoiceProvider
     from app.services.voice_qwentts import QwenTTSProvider
     from app.services.voice_openai import OpenAIVoiceProvider
 
+    if provider_name == "edge":
+        return EdgeTTSProvider(voice=voice)
     if provider_name == "cosyvoice":
         return CosyVoiceProvider(api_key=api_key, voice=voice)
     if provider_name == "qwentts":
@@ -253,7 +272,7 @@ async def synthesize_segments(
     text: str,
     *,
     speed: float = 1.0,
-    configured_default: str = "browser",
+    configured_default: str = "edge",
 ) -> list[dict]:
     """Split mixed-language text and synthesize each run with its best provider.
 
@@ -278,7 +297,7 @@ async def synthesize_segments(
         provider_name, voice = choose_provider(db, lang, base_default)
         api_key = _resolve_provider_key(db, provider_name)
         clip: dict = {"text": seg_text, "language": lang, "provider": provider_name, "audio_url": "", "audio_base64": ""}
-        if api_key or provider_name == "openai":
+        if api_key or provider_name in {"openai", "edge"}:
             try:
                 provider = _build_provider(provider_name, api_key, voice)
                 if provider is not None:
@@ -314,7 +333,7 @@ async def synthesize_mixed_single(
     text: str,
     *,
     speed: float = 1.0,
-    configured_default: str = "browser",
+    configured_default: str = "edge",
 ) -> dict:
     """Mixed-language synthesis returned as ONE concatenated MP3 + the segments.
 

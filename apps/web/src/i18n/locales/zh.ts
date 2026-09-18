@@ -70,7 +70,7 @@ export default {
     coachStart: "开始语音对话",
     vipVoiceTitle: "开通 VIP 解锁语音教练",
     vipVoiceSubtitle: "实时全双工 · 像打电话一样练口语",
-    vipVoiceBody: "免费用户暂不支持语音对话。升级 VIP 即可使用 AinerWise Coach 实时语音互动，随时开口、即时纠偏。",
+    vipVoiceBody: "免费用户暂不支持语音对话。升级 VIP 即可使用 AinerSpeak Coach 实时语音互动，随时开口、即时纠偏。",
     vipVoiceCta: "立即开通 VIP",
     vipVoiceLater: "稍后再说",
     dailyResonance: "每日共鸣"
@@ -222,7 +222,7 @@ export default {
     intro: "遇到问题、有产品建议，或想分享使用体验，欢迎通过以下方式联系我们。",
     contactTitle: "联系方式",
     wechat: "微信",
-    wechatHint: "添加微信时请备注「AinerWise」",
+    wechatHint: "添加微信时请备注「AinerSpeak」",
     telegram: "Telegram",
     telegramHint: "点击打开 Telegram 私信，或复制用户名",
     email: "邮箱",
@@ -287,7 +287,7 @@ export default {
   },
   membership: {
     wechatModalTitle: "微信扫码开通会员",
-    wechatModalHint: "扫一扫添加客服，备注「AinerWise」即可人工开通 VIP / Pro",
+    wechatModalHint: "扫一扫添加客服，备注「AinerSpeak」即可人工开通 VIP / Pro",
     wechatQrAlt: "微信客服二维码",
     wechatIdLabel: "微信号",
     wechatModalDone: "我知道了",

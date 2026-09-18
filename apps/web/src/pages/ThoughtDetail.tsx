@@ -2,13 +2,12 @@ import { ArrowLeft, Loader, MessageCircle, Volume2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchThought, orderedVariantKeys, variantLabel, type Thought } from "../api";
+import { useAudioCacheStore } from "../stores/audioCacheStore";
 
-function speak(text: string) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = /[一-鿿]/.test(text) ? "zh-CN" : "en-US";
-  window.speechSynthesis.speak(u);
+async function speak(text: string) {
+  const language = /[一-鿿]/.test(text) ? "zh" : "en";
+  const url = await useAudioCacheStore.getState().getOrFetch(text, language, "auto");
+  await new Audio(url).play();
 }
 
 export default function ThoughtDetail() {
@@ -130,7 +129,7 @@ export default function ThoughtDetail() {
               <div className="flex gap-4 items-start">
                 <p className="flex-1 font-bold text-[20px] text-on-surface leading-relaxed">{activeText}</p>
                 <button
-                  onClick={() => speak(activeText)}
+                  onClick={() => void speak(activeText)}
                   className="w-12 h-12 flex-shrink-0 bg-primary-fixed rounded-full flex items-center justify-center text-primary active:scale-90 transition-transform shadow-md"
                 >
                   <Volume2 size={22} />

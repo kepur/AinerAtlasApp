@@ -11,7 +11,6 @@ from app.schemas import (
     APIMessage,
     TokenExplainRequest,
     TokenExplainResponse,
-    VocabBatchResultItem,
     VocabBatchExerciseReady,
     VocabBatchStartResponse,
     VocabBatchSummaryRequest,
@@ -22,10 +21,10 @@ from app.schemas import (
     VocabWordInsight,
     VocabularyRead,
 )
+from app.services.crush_batch import prepare_vocab_batch_exercises
 from app.services.llm import LLMUnavailableError, require_llm_provider
 from app.services.practice import stash_exercise, take_exercise
 from app.services.runtime_config import resolve_default_llm_provider
-from app.services.crush_batch import prepare_vocab_batch_exercises
 from app.services.vocab_practice import (
     apply_vocab_practice_result,
     generate_batch_analysis,
@@ -33,8 +32,18 @@ from app.services.vocab_practice import (
     grade_vocab_answer,
     select_vocab_batch,
 )
+from app.services.vocabulary_ladder import build_vocabulary_ladder
 
 router = APIRouter(prefix="/vocabulary", tags=["vocabulary"])
+
+
+@router.get("/ladder")
+def vocabulary_ladder(
+    current_user: CurrentUser,
+    db: DBSession,
+    language: str = "en",
+) -> dict:
+    return build_vocabulary_ladder(db, current_user.id, language)
 
 
 @router.post("/explain", response_model=TokenExplainResponse)
@@ -56,7 +65,11 @@ async def explain_token(
         )
     )
     if cached and cached.meaning:
-        extra = cached.examples[0] if cached.examples and isinstance(cached.examples[0], dict) else {}
+        extra = (
+            cached.examples[0]
+            if cached.examples and isinstance(cached.examples[0], dict)
+            else {}
+        )
         cached.last_seen_at = utc_now()
         db.commit()
         return TokenExplainResponse(
@@ -107,23 +120,28 @@ async def explain_token(
     )
 
 
-def _count_remaining(user_id: str, db: DBSession) -> int:
+def _count_remaining(user_id: str, db: DBSession, language: str | None = None) -> int:
+    vocab_filters = [
+        VocabularyItem.user_id == user_id,
+        VocabularyItem.mastery_status.not_in(["mastered", "ignored"]),
+    ]
+    mastery_filters = [
+        UserMastery.user_id == user_id,
+        UserMastery.item_type == "vocabulary",
+        UserMastery.status.not_in(["mastered", "ignored"]),
+    ]
+    if language:
+        vocab_filters.append(VocabularyItem.language_code == language)
+        mastery_filters.append(UserMastery.language_code == language)
     vocab_count = db.scalar(
         select(func.count())
         .select_from(VocabularyItem)
-        .where(
-            VocabularyItem.user_id == user_id,
-            VocabularyItem.mastery_status.not_in(["mastered", "ignored"]),
-        )
+        .where(*vocab_filters)
     ) or 0
     mastery_count = db.scalar(
         select(func.count())
         .select_from(UserMastery)
-        .where(
-            UserMastery.user_id == user_id,
-            UserMastery.item_type == "vocabulary",
-            UserMastery.status.not_in(["mastered", "ignored"]),
-        )
+        .where(*mastery_filters)
     ) or 0
     return int(vocab_count + mastery_count)
 
@@ -239,15 +257,29 @@ def _persist_vocab_result(item: VocabularyItem, db: DBSession) -> VocabularyItem
 
 
 @router.get("/queue", response_model=list[VocabularyRead])
-def vocabulary_queue(current_user: CurrentUser, db: DBSession, limit: int = 50) -> list:
+def vocabulary_queue(
+    current_user: CurrentUser,
+    db: DBSession,
+    limit: int = 50,
+    language: str | None = None,
+) -> list:
     cap = max(1, min(limit, 100))
+    vocab_filters = [
+        VocabularyItem.user_id == current_user.id,
+        VocabularyItem.mastery_status.not_in(["mastered", "ignored"]),
+    ]
+    mastery_filters = [
+        UserMastery.user_id == current_user.id,
+        UserMastery.item_type == "vocabulary",
+        UserMastery.status.not_in(["mastered", "ignored"]),
+    ]
+    if language:
+        vocab_filters.append(VocabularyItem.language_code == language)
+        mastery_filters.append(UserMastery.language_code == language)
     items = list(
         db.scalars(
             select(VocabularyItem)
-            .where(
-                VocabularyItem.user_id == current_user.id,
-                VocabularyItem.mastery_status.not_in(["mastered", "ignored"]),
-            )
+            .where(*vocab_filters)
             .order_by(VocabularyItem.mastery_score.asc(), VocabularyItem.priority.desc())
             .limit(cap)
         )
@@ -258,11 +290,7 @@ def vocabulary_queue(current_user: CurrentUser, db: DBSession, limit: int = 50) 
     mastery_rows = list(
         db.scalars(
             select(UserMastery)
-            .where(
-                UserMastery.user_id == current_user.id,
-                UserMastery.item_type == "vocabulary",
-                UserMastery.status.not_in(["mastered", "ignored"]),
-            )
+            .where(*mastery_filters)
             .order_by(UserMastery.mastery_score.asc())
             .limit(cap)
         )
@@ -271,9 +299,14 @@ def vocabulary_queue(current_user: CurrentUser, db: DBSession, limit: int = 50) 
 
 
 @router.get("/practice/batch", response_model=VocabBatchStartResponse)
-def start_vocab_batch(current_user: CurrentUser, db: DBSession, size: int = 10) -> VocabBatchStartResponse:
-    batch = select_vocab_batch(db, current_user.id, size=size)
-    remaining = _count_remaining(current_user.id, db)
+def start_vocab_batch(
+    current_user: CurrentUser,
+    db: DBSession,
+    size: int = 10,
+    language: str | None = None,
+) -> VocabBatchStartResponse:
+    batch = select_vocab_batch(db, current_user.id, size=size, language=language)
+    remaining = _count_remaining(current_user.id, db, language)
     prepared = prepare_vocab_batch_exercises(db, current_user.id, batch)
     exercises = [
         VocabBatchExerciseReady(

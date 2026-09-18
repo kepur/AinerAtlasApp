@@ -9,6 +9,9 @@ services:
       DATABASE_URL: postgresql+psycopg2://ainerwise:ainerwise@postgres:5432/ainerwise
       REDIS_URL: redis://redis:6379/0
       CORS_ALLOW_LAN: "true"
+      # 容器内使用持久化 storage；裸机开发默认写入 apps/web/public/audio/tts
+      TTS_CACHE_DIR: /app/storage/tts_cache
+      TTS_CACHE_URL_PREFIX: /audio/tts
     ports:
       - "0.0.0.0:7070:8000"
     depends_on:

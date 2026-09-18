@@ -19,6 +19,7 @@ from app.models import AIProvider, AppSettings, AuthSettings, GameTemplate, Memb
 from app.services.demo_user import sync_demo_user_from_settings
 from app.services.seed_aliyun import seed_aliyun_providers
 from app.services.startup_bootstrap import schedule_api_startup_bootstrap
+from app.services.tts_cache import CACHE_DIR as TTS_CACHE_DIR
 from app.tasks.scheduler import start_scheduler, stop_scheduler
 
 
@@ -64,6 +65,12 @@ def create_app() -> FastAPI:
     uploads_dir.mkdir(parents=True, exist_ok=True)
     (uploads_dir / "avatars").mkdir(parents=True, exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+    TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/audio/tts",
+        StaticFiles(directory=str(TTS_CACHE_DIR)),
+        name="tts-audio-cache",
+    )
 
     @app.get("/health")
     def health() -> dict[str, str]:

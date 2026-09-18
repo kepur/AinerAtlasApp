@@ -2,6 +2,8 @@ import { ArrowLeft, Loader, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiRequest, addCrushCandidate, orderedVariantKeys, variantLabel, type Asset } from "../api";
+import { useAudioCacheStore } from "../stores/audioCacheStore";
+import { useRealtimeDialogueAvailability } from "../hooks/useFeatureAvailability";
 
 const VERSION_CARDS = [
   { key: "vlog", icon: "movie", label: "Vlog 版", sub: "富有生活气息", color: "text-primary", bg: "bg-primary/10" },
@@ -9,15 +11,13 @@ const VERSION_CARDS = [
   { key: "diary", icon: "history_edu", label: "日记版", sub: "内心真实独白", color: "text-tertiary-container", bg: "bg-tertiary-container/10" }
 ];
 
-function speak(text: string) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = /[一-鿿]/.test(text) ? "zh-CN" : "en-US";
-  window.speechSynthesis.speak(u);
+async function speak(text: string, language = "en") {
+  const url = await useAudioCacheStore.getState().getOrFetch(text, language, "auto");
+  await new Audio(url).play();
 }
 
 export default function AssetDetail() {
+  const { realtimeDialogueEnabled } = useRealtimeDialogueAvailability();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [asset, setAsset] = useState<Asset | null>(null);
@@ -175,13 +175,13 @@ export default function AssetDetail() {
                 <span className="material-symbols-outlined text-[20px]">{busy === "public" ? "hourglass_top" : "public"}</span>
                 <span className="text-[10px] font-bold">转公开</span>
               </button>
-              <button
+              {realtimeDialogueEnabled && <button
                 onClick={() => navigate("/voice")}
                 className="h-14 glass-card rounded-2xl flex flex-col items-center justify-center gap-0.5 text-on-surface-variant active:scale-95 transition-transform"
               >
                 <span className="material-symbols-outlined text-[20px]">mic</span>
                 <span className="text-[10px] font-bold">语音练习</span>
-              </button>
+              </button>}
             </div>
           </div>
         </section>
@@ -219,7 +219,7 @@ export default function AssetDetail() {
               )}
             </div>
             <button
-              onClick={() => speak(activeText)}
+                onClick={() => void speak(activeText, asset.target_language || "en")}
               className="w-12 h-12 flex-shrink-0 bg-primary-fixed rounded-full flex items-center justify-center text-primary active:scale-90 transition-transform shadow-md"
             >
               <Volume2 size={22} />
@@ -245,7 +245,7 @@ export default function AssetDetail() {
               生成相似句
             </button>
             <button
-              onClick={() => speak(activeText)}
+              onClick={() => void speak(activeText, asset.target_language || "en")}
               className="px-4 h-9 rounded-full bg-primary/10 text-primary text-[12px] flex items-center gap-1.5 font-bold active:scale-95 transition-transform"
             >
               <span className="material-symbols-outlined text-[18px]">play_circle</span>

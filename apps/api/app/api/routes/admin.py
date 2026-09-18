@@ -968,8 +968,8 @@ def _app_settings_read(settings: AppSettings) -> AppSettingsRead:
         default_voice_provider=settings.default_voice_provider or "",
         realtime_asr_provider=settings.realtime_asr_provider or "auto",
         default_embedding_provider=settings.default_embedding_provider or "",
-        tts_provider=getattr(settings, "tts_provider", "browser") or "browser",
-        tts_voice=getattr(settings, "tts_voice", "longanhuan") or "longanhuan",
+        tts_provider=getattr(settings, "tts_provider", "edge") or "edge",
+        tts_voice=getattr(settings, "tts_voice", "zh-CN-XiaoxiaoNeural") or "zh-CN-XiaoxiaoNeural",
         tts_speed=float(getattr(settings, "tts_speed", 0.9) or 0.9),
         tts_pitch=float(getattr(settings, "tts_pitch", 1.1) or 1.1),
         global_api_keys=getattr(settings, "global_api_keys", []) or [],
@@ -1025,8 +1025,13 @@ def update_app_settings(
     settings.default_voice_provider = payload.default_voice_provider.strip()
     settings.realtime_asr_provider = payload.realtime_asr_provider.strip().lower() or "auto"
     settings.default_embedding_provider = payload.default_embedding_provider.strip()
-    settings.tts_provider = getattr(payload, "tts_provider", "browser") or "browser"
-    settings.tts_voice = getattr(payload, "tts_voice", "longanhuan") or "longanhuan"
+    settings.tts_provider = getattr(payload, "tts_provider", "edge") or "edge"
+    if settings.tts_provider == "browser":
+        settings.tts_provider = "edge"
+    settings.tts_voice = (
+        getattr(payload, "tts_voice", "zh-CN-XiaoxiaoNeural")
+        or "zh-CN-XiaoxiaoNeural"
+    )
     settings.tts_speed = getattr(payload, "tts_speed", 0.9) or 0.9
     settings.tts_pitch = getattr(payload, "tts_pitch", 1.1) or 1.1
     settings.global_api_keys = getattr(payload, "global_api_keys", []) or []

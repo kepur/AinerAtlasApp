@@ -7,6 +7,7 @@ import { useChatStore } from "../stores/chatStore";
 import { apiRequest, removeConnectFriend } from "../api";
 import PresenceAvatar from "../components/PresenceAvatar";
 import { motion } from "framer-motion";
+import { useRealtimeDialogueAvailability } from "../hooks/useFeatureAvailability";
 
 const MODE_ICONS: Record<string, string> = {
   socratic: "psychology",
@@ -77,6 +78,7 @@ const FILTER_TABS: { key: FilterType; label: string }[] = [
 ];
 
 export default function Chat() {
+  const { realtimeDialogueEnabled } = useRealtimeDialogueAvailability();
   const { conversations, loading, loadConversations, createConversation, deleteConversation, archiveConversation } = useChatStore();
   const user = useAuthStore((s) => s.user);
   const { t, locale } = useI18n();
@@ -193,11 +195,11 @@ export default function Chat() {
           >
             {username.charAt(0).toUpperCase()}
           </button>
-          <h1 className="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerWise</h1>
+          <h1 className="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerSpeak</h1>
         </div>
-        <button onClick={() => navigate("/voice")} className="text-primary hover:opacity-80 transition-opacity active:scale-95">
+        {realtimeDialogueEnabled && <button onClick={() => navigate("/voice")} className="text-primary hover:opacity-80 transition-opacity active:scale-95">
           <span className="material-symbols-outlined">auto_awesome</span>
-        </button>
+        </button>}
       </header>
 
       <main className="px-margin-mobile pb-8">

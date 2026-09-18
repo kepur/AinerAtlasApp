@@ -11,11 +11,23 @@ import hashlib
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-CACHE_DIR = Path(os.environ.get("TTS_CACHE_DIR", "/app/storage/tts_cache"))
+_SOURCE_FILE = Path(__file__).resolve()
+_REPOSITORY_ROOT = _SOURCE_FILE.parents[4] if len(_SOURCE_FILE.parents) > 4 else None
+_LOCAL_FRONTEND_CACHE = (
+    _REPOSITORY_ROOT / "apps" / "web" / "public" / "audio" / "tts"
+    if _REPOSITORY_ROOT and (_REPOSITORY_ROOT / "apps" / "web").exists()
+    else Path("/app/storage/tts_cache")
+)
+CACHE_DIR = Path(
+    os.environ.get(
+        "TTS_CACHE_DIR",
+        str(_LOCAL_FRONTEND_CACHE),
+    )
+)
+PUBLIC_URL_PREFIX = os.environ.get("TTS_CACHE_URL_PREFIX", "/audio/tts").rstrip("/")
 
 _mem_cache: dict[str, bytes] = {}
 
@@ -33,7 +45,7 @@ def _cache_key(text: str, voice: str, speed: str) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def get_cached_audio(text: str, voice: str = "default", speed: str = "1.0") -> Optional[bytes]:
+def get_cached_audio(text: str, voice: str = "default", speed: str = "1.0") -> bytes | None:
     key = _cache_key(text, voice, speed)
     path = CACHE_DIR / f"{key}.mp3"
     try:
@@ -46,7 +58,12 @@ def get_cached_audio(text: str, voice: str = "default", speed: str = "1.0") -> O
     return _mem_cache.get(key)
 
 
-def set_cached_audio(text: str, audio_bytes: bytes, voice: str = "default", speed: str = "1.0") -> None:
+def set_cached_audio(
+    text: str,
+    audio_bytes: bytes,
+    voice: str = "default",
+    speed: str = "1.0",
+) -> None:
     if not audio_bytes:
         return
     key = _cache_key(text, voice, speed)
@@ -58,13 +75,29 @@ def set_cached_audio(text: str, audio_bytes: bytes, voice: str = "default", spee
             logger.warning("Failed to persist TTS cache file: %s", exc)
 
 
-def cache_hit_as_response(text: str, voice: str = "default", speed: str = "1.0") -> Optional[dict]:
+def cache_hit_as_response(
+    text: str,
+    voice: str = "default",
+    speed: str = "1.0",
+) -> dict | None:
+    key = _cache_key(text, voice, speed)
+    path = CACHE_DIR / f"{key}.mp3"
     audio = get_cached_audio(text, voice, speed)
     if not audio:
         return None
+    # Files generated once are served by the web app's public directory.  The
+    # frontend still keeps its IndexedDB layer, so both server restarts and
+    # repeat browser sessions avoid another provider request.
+    if path.exists():
+        return {
+            "audio_base64": "",
+            "audio_url": f"{PUBLIC_URL_PREFIX}/{key}.mp3",
+            "audio_mime": "audio/mpeg",
+            "provider": "static-cache",
+        }
     return {
         "audio_base64": base64.b64encode(audio).decode("ascii"),
         "audio_url": "",
         "audio_mime": "audio/mpeg",
-        "provider": "cache",
+        "provider": "memory-cache",
     }

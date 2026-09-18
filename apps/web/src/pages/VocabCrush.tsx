@@ -16,6 +16,7 @@ import {
   type VocabWordInsight,
 } from "../api";
 import { useAuthStore } from "../stores/authStore";
+import VocabularyLadder from "../components/VocabularyLadder";
 
 const STATUS_LABELS: Record<string, string> = {
   unseen: "未见过",
@@ -243,7 +244,9 @@ function VocabBatchModal({
 
 export default function VocabCrush() {
   const navigate = useNavigate();
+  const { search } = useLocation();
   const profile = useAuthStore((s) => s.profile);
+  const language = new URLSearchParams(search).get("language") || profile?.primary_target_language || "en";
   const [items, setItems] = useState<VocabItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -264,25 +267,25 @@ export default function VocabCrush() {
 
   const prefetchBatch = useCallback(async () => {
     try {
-      const data = await startVocabBatch(BATCH_SIZE);
+      const data = await startVocabBatch(BATCH_SIZE, language);
       if (data.items.length > 0 && (data.exercises?.length ?? 0) > 0) {
         setPreloadedBatch(data);
       }
     } catch {
       /* background prefetch — ignore */
     }
-  }, []);
+  }, [language]);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchVocabulary();
+      const data = await fetchVocabulary(language);
       setItems(data.filter((i) => i.mastery_status !== "mastered" && i.mastery_status !== "ignored"));
     } catch {
       setItems([]);
     }
     setLoading(false);
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     void loadItems();
@@ -318,7 +321,7 @@ export default function VocabCrush() {
     setBatchError("");
     setBatchBusy(true);
     try {
-      const data = preloadedBatch?.items.length ? preloadedBatch : await startVocabBatch(BATCH_SIZE);
+      const data = preloadedBatch?.items.length ? preloadedBatch : await startVocabBatch(BATCH_SIZE, language);
       setPreloadedBatch(null);
       if (!data.items.length || !(data.exercises?.length ?? 0)) {
         setBatchError("暂无待练词汇，多聊几句让 AI 提取高价值词吧");
@@ -460,6 +463,8 @@ export default function VocabCrush() {
         <p className="font-body-md text-on-surface-variant">句中挖空，从四个近义表达里选出最贴切的一项</p>
 
         <CrushTabsPremium />
+
+        <VocabularyLadder language={language} />
 
         {batchError && (
           <p className="text-[13px] text-error bg-error/10 rounded-xl px-3 py-2">{batchError}</p>

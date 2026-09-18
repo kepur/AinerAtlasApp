@@ -30,8 +30,6 @@ const DEFAULT_VOICES: VoiceOption[] = [
 ];
 
 async function playTTSApi(text: string, voice: string, speed = 1.0): Promise<void> {
-  const got = speakWithBrowser(text, speed);
-  if (got) return;
   const response = await fetch(`${API_BASE_URL}/api/voice/tts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -47,8 +45,6 @@ async function playTTSApi(text: string, voice: string, speed = 1.0): Promise<voi
 }
 
 async function playWordTTSApi(word: string, voice: string): Promise<void> {
-  const got = speakWithBrowser(word, 0.85);
-  if (got) return;
   const response = await fetch(`${API_BASE_URL}/api/voice/word-tts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -61,36 +57,6 @@ async function playWordTTSApi(word: string, voice: string): Promise<void> {
   const audio = new Audio();
   audio.src = src;
   await audio.play();
-}
-
-function speakWithBrowser(text: string, speed = 0.9, pitch = 1.1, preferredVoice?: string): boolean {
-  if (!window.speechSynthesis) return false;
-  window.speechSynthesis.cancel();
-  let voices = window.speechSynthesis.getVoices();
-  if (!voices.length) {
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
-    voices = window.speechSynthesis.getVoices();
-  }
-  const isChinese = /[\u4e00-\u9fff]/.test(text);
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = speed;
-  u.pitch = pitch;
-
-  if (preferredVoice) {
-    const found = voices.find(v => v.name.toLowerCase().includes(preferredVoice.toLowerCase()));
-    if (found) { u.voice = found; u.lang = found.lang; }
-    else { u.lang = isChinese ? "zh-CN" : "en-US"; }
-  } else if (isChinese) {
-    const ms = voices.find(v => v.name.includes("Xiaoxiao") || v.name.includes("Yunjian"));
-    if (ms) u.voice = ms;
-    u.lang = "zh-CN";
-  } else {
-    const ms = voices.find(v => v.name.includes("Aria") || v.name.includes("Jenny") || v.name.includes("Guy"));
-    if (ms) u.voice = ms;
-    u.lang = "en-US";
-  }
-  window.speechSynthesis.speak(u);
-  return true;
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -115,18 +81,14 @@ export default function SentencePlayer({ text, voice = "nova", onVoiceChange, sh
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [voices, setVoices] = useState<VoiceOption[]>(DEFAULT_VOICES);
   const [selectedVoice, setSelectedVoice] = useState(voice);
-  const [ttsProvider, setTtsProvider] = useState("browser");
   const [ttsSpeed, setTtsSpeed] = useState(0.9);
-  const [ttsPitch, setTtsPitch] = useState(1.1);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/config/tts`)
       .then(r => r.json())
       .then((cfg: { tts_provider?: string; tts_voice?: string; tts_speed?: number; tts_pitch?: number }) => {
-        if (cfg.tts_provider) setTtsProvider(cfg.tts_provider);
         if (cfg.tts_voice) setSelectedVoice(cfg.tts_voice);
         if (cfg.tts_speed) setTtsSpeed(cfg.tts_speed);
-        if (cfg.tts_pitch) setTtsPitch(cfg.tts_pitch);
       })
       .catch(() => {});
   }, []);
@@ -156,10 +118,7 @@ export default function SentencePlayer({ text, voice = "nova", onVoiceChange, sh
     setLoading(true);
     try {
       const spd = speedOverride ?? ttsSpeed;
-      const got = speakWithBrowser(text, spd, ttsPitch, selectedVoice);
-      if (!got || ttsProvider === "cosyvoice" || ttsProvider === "qwentts") {
-        await playTTSApi(text, selectedVoice, spd);
-      }
+      await playTTSApi(text, selectedVoice, spd);
     } finally {
       setLoading(false);
     }
@@ -169,10 +128,7 @@ export default function SentencePlayer({ text, voice = "nova", onVoiceChange, sh
     if (wordLoading) return;
     setWordLoading(word);
     try {
-      const got = speakWithBrowser(word, 0.85, ttsPitch, selectedVoice);
-      if (!got || ttsProvider === "cosyvoice" || ttsProvider === "qwentts") {
-        await playWordTTSApi(word, selectedVoice);
-      }
+      await playWordTTSApi(word, selectedVoice);
     } catch { /* ignore */ }
     finally { setWordLoading(null); }
   }

@@ -53,7 +53,7 @@ import Thoughts from "./pages/Thoughts";
 import ThoughtDetail from "./pages/ThoughtDetail";
 import CreateTopic from "./pages/CreateTopic";
 import VocabCrush from "./pages/VocabCrush";
-import VoiceChat from "./pages/VoiceChat";
+import VoiceCoachGate from "./components/VoiceCoachGate";
 import StudioDashboard from "./pages/studio/Dashboard";
 import ExportCenter from "./pages/studio/ExportCenter";
 import MindGraph from "./pages/studio/MindGraph";
@@ -70,6 +70,7 @@ import Report from "./pages/Report";
 import SoulmateQuestionnaire from "./pages/SoulmateQuestionnaire";
 import FollowRead from "./pages/FollowRead";
 import Help from "./pages/Help";
+import SurvivalSprint from "./pages/SurvivalSprint";
 
 function AppLayout() {
   const location = useLocation();
@@ -136,8 +137,9 @@ function AppLayout() {
           <Route path="/circles/:roomId/summary" element={<CircleSummary />} />
           <Route path="/match" element={<MatchRadar />} />
           <Route path="/match/:id" element={<MatchDetail />} />
-          <Route path="/voice" element={<VoiceChat />} />
+          <Route path="/voice" element={<VoiceCoachGate />} />
           <Route path="/follow-read" element={<FollowRead />} />
+          <Route path="/survival-sprint" element={<SurvivalSprint />} />
           <Route path="/soulmate-questionnaire" element={<SoulmateQuestionnaire />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />

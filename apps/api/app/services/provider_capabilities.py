@@ -118,6 +118,16 @@ def _embedding_capability(db: Session) -> ProviderCapability:
 
 
 def _realtime_voice_capability(db: Session) -> ProviderCapability:
+    cfg = get_voice_platform_config(db)
+    if not bool(cfg.get("realtime_dialogue_enabled", True)):
+        return ProviderCapability(
+            key="realtime_voice",
+            label="实时语音",
+            features=("语音对话", "实时 ASR", "语音 WebSocket"),
+            status="disabled",
+            active_provider="disabled",
+            message="后台总开关已关闭实时语音教练。",
+        )
     runtime = get_runtime_config(db)
     asr_mode = resolve_realtime_asr_provider(db)
     voice_name = runtime.default_voice_provider
@@ -132,10 +142,7 @@ def _realtime_voice_capability(db: Session) -> ProviderCapability:
             active_provider=voice_name or "mock-voice",
             message="ASR 为 Mock 模式，语音识别为占位文本。",
         )
-    from app.services.voice_platform_config import resolve_realtime_engine
-
     if resolve_realtime_engine(db) == "qwen-omni" and dashscope_enabled(db):
-        cfg = get_voice_platform_config(db)
         models = cfg.get("omni_models") or []
         model_hint = models[0] if isinstance(models, list) and models else "qwen-omni-realtime"
         return ProviderCapability(
@@ -176,17 +183,17 @@ def _realtime_voice_capability(db: Session) -> ProviderCapability:
 
 def _tts_capability(db: Session) -> ProviderCapability:
     app = db.get(AppSettings, "default")
-    tts_provider = getattr(app, "tts_provider", "browser") or "browser" if app else "browser"
-    tts_voice = getattr(app, "tts_voice", "Xiaoxiao") or "Xiaoxiao" if app else "Xiaoxiao"
+    tts_provider = getattr(app, "tts_provider", "edge") or "edge" if app else "edge"
+    tts_voice = getattr(app, "tts_voice", "zh-CN-XiaoxiaoNeural") or "zh-CN-XiaoxiaoNeural" if app else "zh-CN-XiaoxiaoNeural"
 
-    if tts_provider == "browser":
+    if tts_provider in {"edge", "browser"}:
         return ProviderCapability(
             key="tts",
             label="语音合成 (TTS)",
             features=("句子朗读", "逐词发音", "跟读评测"),
             status="ready",
-            active_provider="browser",
-            message=f"使用浏览器原生语音（Edge 微软神经语音 {tts_voice}），无需额外配置。",
+            active_provider=f"edge-tts / {tts_voice}",
+            message=f"使用服务端 Microsoft Edge TTS（{tts_voice}），不调用浏览器或系统语音。",
         )
     if tts_provider == "cosyvoice":
         global_keys = getattr(app, "global_api_keys", {}) or {} if app else {}
@@ -300,10 +307,22 @@ def _speech_assessment_capability(db: Session) -> ProviderCapability:
 
 
 def get_provider_capabilities(db: Session) -> list[ProviderCapability]:
+    from app.services.realtime_availability import realtime_dialogue_status
+
+    dialogue = realtime_dialogue_status(db)
+    dialogue_capability = ProviderCapability(
+        key="realtime_dialogue",
+        label="实时对话总状态",
+        features=("Voice Coach 前端入口", "实时对话 HTTP", "实时对话 WebSocket"),
+        status="ready" if dialogue["enabled"] else "disabled",
+        active_provider=str(dialogue.get("provider") or ""),
+        message=str(dialogue["message"]),
+    )
     return [
         _llm_capability(db),
         _embedding_capability(db),
         _tts_capability(db),
         _realtime_voice_capability(db),
+        dialogue_capability,
         _speech_assessment_capability(db),
     ]

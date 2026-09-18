@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { fetchUserStats, resolveMediaUrl, type UserStats } from "../api";
 import { useAuthStore } from "../stores/authStore";
 import { useI18n } from "../i18n";
+import { useRealtimeDialogueAvailability } from "../hooks/useFeatureAvailability";
 
 type MenuRow = {
   icon: string;
@@ -19,6 +20,7 @@ export default function Profile() {
   const { user, profile, logout } = useAuthStore();
   const navigate = useNavigate();
   const [stats, setStats] = useState<UserStats | null>(null);
+  const { realtimeDialogueEnabled } = useRealtimeDialogueAvailability();
 
   useEffect(() => {
     fetchUserStats()
@@ -108,11 +110,11 @@ export default function Profile() {
     <div className="premium min-h-full bg-surface text-on-surface pb-32">
       {/* Top AppBar */}
       <nav className="sticky top-0 z-40 flex items-center justify-between px-margin-mobile h-touch-target-min bg-surface/80 backdrop-blur-xl">
-        <h1 className="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerWise</h1>
+        <h1 className="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerSpeak</h1>
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate("/voice")} className="p-2 hover:opacity-80 transition-opacity active:scale-95">
+          {realtimeDialogueEnabled && <button onClick={() => navigate("/voice")} className="p-2 hover:opacity-80 transition-opacity active:scale-95">
             <span className="material-symbols-outlined text-primary">auto_awesome</span>
-          </button>
+          </button>}
           <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary-fixed bg-primary-fixed flex items-center justify-center font-bold text-primary text-sm">
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -244,7 +246,7 @@ export default function Profile() {
 
         {/* Footer Meta */}
         <footer className="mt-12 mb-4 text-center space-y-2 opacity-60">
-          <p className="font-label-sm text-on-surface-variant">AinerWise v2.4.0-pro</p>
+          <p className="font-label-sm text-on-surface-variant">AinerSpeak v2.4.0-pro</p>
           <div className="flex items-center justify-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-tertiary-container animate-pulse" />
             <p className="font-label-sm text-tertiary">{t("profile.semanticEngine")}</p>

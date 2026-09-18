@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../../api";
 
 type TtsCfg = { voice: string; speed: number; pitch: number; provider: string };
 
-const DEFAULT_CFG: TtsCfg = { voice: "Cherry", speed: 0.9, pitch: 1.1, provider: "browser" };
+const DEFAULT_CFG: TtsCfg = { voice: "zh-CN-XiaoxiaoNeural", speed: 0.9, pitch: 1.1, provider: "edge" };
 
 /** Debounced TTS with session cache — shared by Chat and Game. */
 export function useTts() {
@@ -49,15 +49,13 @@ export function useTts() {
       audioRef.current.pause();
       audioRef.current = null;
     }
-    window.speechSynthesis?.cancel();
-
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
       pendingKeyRef.current = null;
     }
 
-    // Make sure we know the configured provider before deciding browser vs server.
+    // Make sure the configured backend voice is known before synthesizing.
     if (readyRef.current) {
       try {
         await readyRef.current;
@@ -69,7 +67,7 @@ export function useTts() {
 
     let src = cacheRef.current.get(key);
 
-    if (!src && cfg.provider && cfg.provider !== "browser") {
+    if (!src) {
       const ctrl = new AbortController();
       abortRef.current = ctrl;
       pendingKeyRef.current = key;
@@ -104,8 +102,7 @@ export function useTts() {
           if (audioRef.current === audio) audioRef.current = null;
           resolve(false);
         };
-        // play() rejects when the blob is invalid or autoplay is blocked — fall
-        // back to the browser voice instead of failing silently.
+        // play() rejects when the blob is invalid or autoplay is blocked.
         audio.play().catch(() => {
           if (audioRef.current === audio) audioRef.current = null;
           resolve(false);
@@ -114,16 +111,9 @@ export function useTts() {
       if (played) return;
     }
 
-    if (!window.speechSynthesis) return;
-    await new Promise<void>((resolve) => {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang || (/[一-鿿]/.test(text) ? "zh-CN" : "en-US");
-      u.rate = cfg.speed;
-      u.pitch = cfg.pitch;
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
-      window.speechSynthesis.speak(u);
-    });
+    // Do not fall back to OS/browser speech synthesis. A failed server TTS
+    // request stays silent so every successful playback uses the configured
+    // backend provider consistently.
   }, []);
 
   return { speak };

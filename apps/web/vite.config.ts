@@ -24,6 +24,11 @@ export default defineConfig({
         timeout: 120000,
         proxyTimeout: 120000
       },
+      "/audio": {
+        target: apiProxy,
+        timeout: 120000,
+        proxyTimeout: 120000
+      },
       "/health": apiProxy
     }
   }

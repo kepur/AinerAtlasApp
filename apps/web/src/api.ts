@@ -741,9 +741,10 @@ function masteryToVocab(item: MasteryItem): VocabItem {
   };
 }
 
-export async function fetchVocabulary(): Promise<VocabItem[]> {
+export async function fetchVocabulary(language?: string): Promise<VocabItem[]> {
+  const query = language ? `?language=${encodeURIComponent(language)}` : "";
   try {
-    return await apiRequest<VocabItem[]>("/api/vocabulary/queue");
+    return await apiRequest<VocabItem[]>(`/api/vocabulary/queue${query}`);
   } catch {
     try {
       const queue = await apiRequest<MasteryItem[]>("/api/grammar/queue");
@@ -754,8 +755,9 @@ export async function fetchVocabulary(): Promise<VocabItem[]> {
   }
 }
 
-export async function startVocabBatch(size = 10): Promise<VocabBatchStart> {
-  return apiRequest<VocabBatchStart>(`/api/vocabulary/practice/batch?size=${size}`);
+export async function startVocabBatch(size = 10, language?: string): Promise<VocabBatchStart> {
+  const languageQuery = language ? `&language=${encodeURIComponent(language)}` : "";
+  return apiRequest<VocabBatchStart>(`/api/vocabulary/practice/batch?size=${size}${languageQuery}`);
 }
 
 export async function startGrammarBatch(size = 10): Promise<GrammarBatchStart> {

@@ -17,31 +17,6 @@ type TTSButtonProps = {
   className?: string;
 };
 
-/** Browser speechSynthesis fallback so 朗读 always produces audio, even when
- *  no server-side TTS provider/key is configured. */
-function browserSpeak(text: string, lang: string, voice: string, onEnd: () => void): boolean {
-  if (typeof window === "undefined" || !window.speechSynthesis) return false;
-  try {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang?.startsWith("zh") ? "zh-CN" : "en-US";
-    // Pick a female/male browser voice to roughly match the bound voice.
-    const voices = window.speechSynthesis.getVoices();
-    const wantFemale = /female|warm|lively|nova|shimmer|cherry/i.test(voice);
-    const match = voices.find((v) =>
-      v.lang.startsWith(u.lang.slice(0, 2)) &&
-      (wantFemale ? /female|woman|samantha|tingting|mei|nova/i.test(v.name) : true)
-    ) || voices.find((v) => v.lang.startsWith(u.lang.slice(0, 2)));
-    if (match) u.voice = match;
-    u.onend = onEnd;
-    u.onerror = onEnd;
-    window.speechSynthesis.speak(u);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -97,9 +72,7 @@ export default function TTSButton({
       await audio.play();
       setState("playing");
     } catch {
-      // Server TTS unavailable → fall back to the browser's speech synthesis.
-      const ok = browserSpeak(text, lang || "en", voice, () => setState("idle"));
-      setState(ok ? "playing" : "failed");
+      setState("failed");
     }
   }, [state, text, lang, voice]);
 

@@ -521,7 +521,7 @@ export default function CircleRoom() {
                     <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
                       <span className="material-symbols-outlined text-white text-[14px]">smart_toy</span>
                     </div>
-                    <span className="text-[11px] font-bold text-primary">AinerWise AI</span>
+                    <span className="text-[11px] font-bold text-primary">AinerSpeak AI</span>
                   </div>
                 )}
                 {!isAI && !isOwn && msg.user_id && (

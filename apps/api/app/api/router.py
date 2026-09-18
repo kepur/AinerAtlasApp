@@ -18,6 +18,7 @@ from app.api.routes import (
     profile,
     reports,
     social_logic,
+    survival_sprint,
     thoughts,
     topics,
     vocabulary,
@@ -46,5 +47,6 @@ api_router.include_router(reports.router)
 api_router.include_router(gamification.router)
 api_router.include_router(games.router)
 api_router.include_router(social_logic.router)
+api_router.include_router(survival_sprint.router)
 api_router.include_router(party_room.router)
 api_router.include_router(werewolf_room.router)

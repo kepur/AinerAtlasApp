@@ -155,6 +155,7 @@ VOICE_PRESETS = [
         "id": "female_warm", "name": "温柔女声", "gender": "female",
         # Per-provider voice names: use whichever matches the active TTS provider.
         "provider_voice": {
+            "edge": "en-US-JennyNeural",
             "openai": "nova",
             "cosyvoice": "longanhuan",
             "qwentts": "Cherry",
@@ -163,6 +164,7 @@ VOICE_PRESETS = [
     {
         "id": "female_lively", "name": "活泼女声", "gender": "female",
         "provider_voice": {
+            "edge": "en-US-AnaNeural",
             "openai": "shimmer",
             "cosyvoice": "longaxiang",
             "qwentts": "Stella",
@@ -171,6 +173,7 @@ VOICE_PRESETS = [
     {
         "id": "male_calm", "name": "沉稳男声", "gender": "male",
         "provider_voice": {
+            "edge": "en-US-GuyNeural",
             "openai": "onyx",
             "cosyvoice": "longaxing",
             "qwentts": "Ethan",
@@ -179,6 +182,7 @@ VOICE_PRESETS = [
     {
         "id": "male_warm", "name": "温暖男声", "gender": "male",
         "provider_voice": {
+            "edge": "en-US-ChristopherNeural",
             "openai": "echo",
             "cosyvoice": "longafang",
             "qwentts": "Ethan",
@@ -187,6 +191,7 @@ VOICE_PRESETS = [
     {
         "id": "neutral_narrator", "name": "中性旁白", "gender": "neutral",
         "provider_voice": {
+            "edge": "en-US-AriaNeural",
             "openai": "alloy",
             "cosyvoice": "longanhuan",
             "qwentts": "Cherry",
@@ -212,7 +217,7 @@ def pick_voice(gender: str | None) -> str:
 def provider_voice_for(voice_id: str | None, provider_name: str = "openai") -> str:
     """Resolve a game voice-preset id to a concrete provider-specific voice name.
 
-    ``provider_name`` should be one of ``openai``, ``cosyvoice``, ``qwentts``.
+    ``provider_name`` should be one of ``edge``, ``openai``, ``cosyvoice``, ``qwentts``.
     Falls back to ``alloy`` (openai) when the preset or provider mapping is missing.
     """
     preset = _VOICE_BY_ID.get(voice_id or "")

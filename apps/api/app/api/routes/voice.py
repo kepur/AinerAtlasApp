@@ -11,7 +11,6 @@ from sqlalchemy import select
 from app.api.deps import CurrentUser, DBSession, QuotaManagerDep
 from app.services.runtime_config import resolve_default_voice_provider, resolve_realtime_asr_provider
 from app.core.security import decode_access_token
-from app.db.session import SessionLocal
 from app.services.dashscope_client import resolve_dashscope_api_key
 from app.db.session import SessionLocal
 from datetime import UTC, datetime
@@ -224,13 +223,19 @@ async def synthesize(payload: TTSRequest, db: DBSession) -> dict:
     # game content isn't re-synthesised on every replay. Keyed by the configured
     # provider so an admin provider switch naturally invalidates stale entries.
     _app = db.get(AppSettings, "default")
-    _provider = getattr(_app, "tts_provider", "browser") or "browser" if _app else "browser"
+    _provider = getattr(_app, "tts_provider", "edge") or "edge" if _app else "edge"
+    if _provider == "browser":
+        _provider = "edge"
     _key = _tts_cache_key(_provider, payload.voice or "", payload.language or "", payload.speed, payload.text)
     _hit = _tts_cache_get(_key)
     if _hit is not None:
-        return {**_hit, "cached": True}
+        return {**_hit, "text": payload.text, "speed": payload.speed, "cached": True}
 
     result = await _synthesize_impl(payload, db)
+    # Keep the established HTTP response contract while returning real audio.
+    # Existing clients/tests use these echo fields for captions and diagnostics.
+    result.setdefault("text", payload.text)
+    result.setdefault("speed", payload.speed)
     _tts_cache_put(_key, result)
     return result
 
@@ -247,7 +252,9 @@ async def _synthesize_impl(payload: TTSRequest, db: DBSession) -> dict:
         if payload.voice in _VOICE_BY_ID:
             preset = _VOICE_BY_ID[payload.voice]
             app = db.get(AppSettings, "default")
-            tts = getattr(app, "tts_provider", "browser") or "browser" if app else "browser"
+            tts = getattr(app, "tts_provider", "edge") or "edge" if app else "edge"
+            if tts == "browser":
+                tts = "edge"
             voice_name = provider_voice_for(preset["id"], tts)
             return await _synthesize_with_provider(
                 db, tts, payload.text, voice_name, payload.speed, app,
@@ -257,9 +264,9 @@ async def _synthesize_impl(payload: TTSRequest, db: DBSession) -> dict:
 
     # ── General path (language-aware routing) ──────────────────────────────
     app = db.get(AppSettings, "default")
-    tts = getattr(app, "tts_provider", "browser") or "browser" if app else "browser"
-    global_keys = getattr(app, "global_api_keys", []) or [] if app else []
-
+    tts = getattr(app, "tts_provider", "edge") or "edge" if app else "edge"
+    if tts == "browser":
+        tts = "edge"
     # TTS language router: pick the best provider for the text's language.
     from app.services.tts_router import synthesize_routed
     routed = await synthesize_routed(
@@ -286,6 +293,7 @@ async def _synthesize_with_provider(
     from app.services.dashscope_client import resolve_dashscope_api_key
     from app.services.voice_cosyvoice import CosyVoiceProvider
     from app.services.voice_qwentts import QwenTTSProvider
+    from app.services.voice_edge_tts import EdgeTTSProvider, edge_voice_for
 
     app = app or db.get(AppSettings, "default")
     global_keys = getattr(app, "global_api_keys", []) or [] if app else []
@@ -307,6 +315,15 @@ async def _synthesize_with_provider(
                 if k: return k
             except: pass
         return ""
+
+    if provider_name in {"edge", "browser"}:
+        language = "zh" if any("\u4e00" <= ch <= "\u9fff" for ch in text) else "en"
+        selected = edge_voice_for(language, voice or getattr(app, "tts_voice", ""))
+        provider = EdgeTTSProvider(
+            voice=selected,
+            pitch=float(getattr(app, "tts_pitch", 1.0) or 1.0),
+        )
+        return await provider.synthesize(text, selected, speed)
 
     if provider_name == "cosyvoice":
         default_voice = getattr(app, "tts_voice", "longanhuan") or "longanhuan" if app else "longanhuan"
@@ -339,7 +356,9 @@ async def synthesize_mixed(payload: TTSRequest, db: DBSession) -> dict:
     English-strong voice and Chinese runs use a Chinese-strong voice.
     """
     app = db.get(AppSettings, "default")
-    tts = getattr(app, 'tts_provider', 'browser') or 'browser' if app else 'browser'
+    tts = getattr(app, 'tts_provider', 'edge') or 'edge' if app else 'edge'
+    if tts == "browser":
+        tts = "edge"
     from app.services.tts_router import synthesize_mixed_single
     # Returns one concatenated MP3 (audio_base64) when possible, plus the segments
     # so the frontend can fall back to sequential playback.
@@ -370,7 +389,14 @@ def list_voices() -> list[dict]:
         {"id": vid, "label": QWEN_TTS_VOICES.get(vid, vid), "provider": "qwentts", "model": "qwen3-tts-flash", "legend": "Qwen-TTS"}
         for vid in QWEN_TTS_VOICES
     ]
-    return VOICE_OPTIONS + cosy + qwen
+    edge = [
+        {"id": "zh-CN-XiaoxiaoNeural", "label": "晓晓（中文女声）", "provider": "edge", "model": "edge-tts", "legend": "Microsoft Edge TTS"},
+        {"id": "en-US-AriaNeural", "label": "Aria（英文女声）", "provider": "edge", "model": "edge-tts", "legend": "Microsoft Edge TTS"},
+        {"id": "en-US-GuyNeural", "label": "Guy（英文男声）", "provider": "edge", "model": "edge-tts", "legend": "Microsoft Edge TTS"},
+        {"id": "sr-RS-SophieNeural", "label": "Sophie（塞语女声）", "provider": "edge", "model": "edge-tts", "legend": "Microsoft Edge TTS"},
+        {"id": "sr-RS-NicholasNeural", "label": "Nicholas（塞语男声）", "provider": "edge", "model": "edge-tts", "legend": "Microsoft Edge TTS"},
+    ]
+    return edge + VOICE_OPTIONS + cosy + qwen
 
 
 class WordTTSRequest(BaseModel):
@@ -381,9 +407,32 @@ class WordTTSRequest(BaseModel):
 
 @router.post("/word-tts")
 async def word_tts(payload: WordTTSRequest, db: DBSession) -> dict:
-    provider = get_voice_provider(resolve_default_voice_provider(db), db)
-    text = f"The word is: {payload.word}. {payload.word}."
-    return await provider.synthesize(text, payload.voice, 0.85)
+    app = db.get(AppSettings, "default")
+    provider_name = getattr(app, "tts_provider", "edge") or "edge" if app else "edge"
+    if provider_name == "browser":
+        provider_name = "edge"
+    if provider_name == "edge":
+        from app.services.voice_edge_tts import EdgeTTSProvider, edge_voice_for
+
+        language = payload.language
+        if payload.voice.endswith("Neural") and "-" in payload.voice:
+            language = payload.voice.split("-", 1)[0]
+        selected = edge_voice_for(
+            language,
+            payload.voice or getattr(app, "tts_voice", ""),
+        )
+        return await EdgeTTSProvider(
+            voice=selected,
+            pitch=float(getattr(app, "tts_pitch", 1.0) or 1.0),
+        ).synthesize(payload.word, selected, 0.85)
+    return await _synthesize_with_provider(
+        db,
+        provider_name,
+        payload.word,
+        payload.voice,
+        0.85,
+        app,
+    )
 
 
 @router.post("/transcribe", response_model=TranscribeResponse)
@@ -604,6 +653,11 @@ def get_voice_report(
 
 @router.post("/realtime/session")
 async def realtime_session(payload: VoiceSessionCreate, db: DBSession) -> dict:
+    from app.services.realtime_availability import realtime_dialogue_status
+
+    status = realtime_dialogue_status(db)
+    if not status["enabled"]:
+        raise HTTPException(status_code=503, detail=status["message"])
     adapter = get_realtime_adapter(resolve_realtime_asr_provider(db), db=db)
     return await adapter.create_session(payload.model_dump())
 
@@ -641,9 +695,28 @@ async def realtime_tts_ws(websocket: WebSocket) -> None:
     try:
         from app.services.voice_realtime_tts import synthesize_qwen_realtime, synthesize_cosyvoice_realtime, get_global_api_key
         with SessionLocal() as db:
+            from app.services.realtime_availability import realtime_dialogue_status
+
+            availability = realtime_dialogue_status(db)
+            if not availability["enabled"]:
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "code": "realtime_disabled",
+                        "message": availability["message"],
+                    }
+                )
+                await websocket.close(code=1013)
+                return
             app = db.get(AppSettings, "default")
-            tts_provider = getattr(app, "tts_provider", "browser") or "browser" if app else "browser"
-            voice = getattr(app, "tts_voice", "Cherry") or "Cherry" if app else "Cherry"
+            tts_provider = getattr(app, "tts_provider", "edge") or "edge" if app else "edge"
+            if tts_provider == "browser":
+                tts_provider = "edge"
+            voice = (
+                getattr(app, "tts_voice", "zh-CN-XiaoxiaoNeural")
+                if app
+                else "zh-CN-XiaoxiaoNeural"
+            ) or "zh-CN-XiaoxiaoNeural"
             api_key = get_global_api_key(db, "dashscope") or resolve_dashscope_api_key(db) or ""
 
             async for message in websocket.iter_text():
@@ -652,7 +725,18 @@ async def realtime_tts_ws(websocket: WebSocket) -> None:
                 action = data.get("action", "tts")
                 if action == "tts" and text:
                     try:
-                        if tts_provider == "cosyvoice":
+                        if tts_provider == "edge":
+                            from app.services.voice_edge_tts import EdgeTTSProvider, edge_voice_for
+
+                            language = str(data.get("language") or "en")
+                            selected = edge_voice_for(language, voice)
+                            result = await EdgeTTSProvider(selected).synthesize(
+                                text,
+                                selected,
+                                float(data.get("speed") or 1.0),
+                            )
+                            audio = base64.b64decode(result.get("audio_base64") or "")
+                        elif tts_provider == "cosyvoice":
                             audio = await synthesize_cosyvoice_realtime(api_key, text, voice)
                         else:
                             audio = await synthesize_qwen_realtime(api_key, text, voice)
@@ -723,6 +807,19 @@ async def realtime_voice_ws(websocket: WebSocket) -> None:
         session_topic = _MODE_TOPICS.get(mode, _MODE_TOPICS["free"])
 
     with SessionLocal() as db:
+        from app.services.realtime_availability import realtime_dialogue_status
+
+        availability = realtime_dialogue_status(db)
+        if not availability["enabled"]:
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "code": "realtime_disabled",
+                    "message": availability["message"],
+                }
+            )
+            await websocket.close(code=1013)
+            return
         if user_id:
             user = db.get(User, user_id)
             if not user or not has_voice_coach_access(user):

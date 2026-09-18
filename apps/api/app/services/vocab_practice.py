@@ -64,14 +64,22 @@ def _example_sentence(item: VocabularyItem) -> str:
 def _cloze_sentence(sentence: str, word: str) -> str:
     if not word.strip():
         return sentence
-    pattern = re.compile(r"\b" + re.escape(word.strip()) + r"\b", re.IGNORECASE)
+    # Exact matching also works for fixed phrases and scripts without Latin
+    # word boundaries (Japanese, Korean, etc.).
+    pattern = re.compile(re.escape(word.strip()), re.IGNORECASE)
     cloze, n = pattern.subn(_CLOZE, sentence, count=1)
     if n == 0:
         return f"{sentence.rstrip('.')} — {_CLOZE}."
     return cloze
 
 
-def _other_vocab_words(db: Session | None, user_id: str, exclude_word: str, limit: int = 12) -> list[str]:
+def _other_vocab_words(
+    db: Session | None,
+    user_id: str,
+    exclude_word: str,
+    language: str,
+    limit: int = 12,
+) -> list[str]:
     if not db or not user_id:
         return []
     rows = list(
@@ -79,6 +87,7 @@ def _other_vocab_words(db: Session | None, user_id: str, exclude_word: str, limi
             select(VocabularyItem.word)
             .where(
                 VocabularyItem.user_id == user_id,
+                VocabularyItem.language_code == language,
                 VocabularyItem.mastery_status.not_in(["ignored"]),
             )
             .limit(limit + 5)
@@ -130,11 +139,19 @@ def generate_vocab_exercise(
     word = item.word.strip()
     sentence = _example_sentence(item)
 
-    if _norm_word(word) not in {_norm_word(t) for t in _WORD_RE.findall(sentence)}:
+    word_in_sentence = word.casefold() in sentence.casefold()
+    if not word_in_sentence and _norm_word(word) not in {
+        _norm_word(token) for token in _WORD_RE.findall(sentence)
+    }:
         sentence = f"People often say that {word} plays a key role in this kind of discussion."
 
     cloze = _cloze_sentence(sentence, word)
-    other_words = _other_vocab_words(db, user_id or item.user_id, word)
+    other_words = _other_vocab_words(
+        db,
+        user_id or item.user_id,
+        word,
+        item.language_code,
+    )
     distractors = _near_synonym_distractors(word, other_words=other_words, count=3)
 
     options = [word, *distractors[:3]]
@@ -176,15 +193,30 @@ def apply_vocab_practice_result(item: VocabularyItem, *, correct: bool) -> str:
     return "再比较一下各选项与句意的贴合度"
 
 
-def select_vocab_batch(db: Session, user_id: str, *, size: int = 10) -> list[VocabularyItem]:
+def select_vocab_batch(
+    db: Session,
+    user_id: str,
+    *,
+    size: int = 10,
+    language: str | None = None,
+) -> list[VocabularyItem]:
     limit = max(1, min(size, 10))
+    vocab_filters = [
+        VocabularyItem.user_id == user_id,
+        VocabularyItem.mastery_status.not_in(["mastered", "ignored"]),
+    ]
+    mastery_filters = [
+        UserMastery.user_id == user_id,
+        UserMastery.item_type == "vocabulary",
+        UserMastery.status.not_in(["mastered", "ignored"]),
+    ]
+    if language:
+        vocab_filters.append(VocabularyItem.language_code == language)
+        mastery_filters.append(UserMastery.language_code == language)
     rows = list(
         db.scalars(
             select(VocabularyItem)
-            .where(
-                VocabularyItem.user_id == user_id,
-                VocabularyItem.mastery_status.not_in(["mastered", "ignored"]),
-            )
+            .where(*vocab_filters)
             .order_by(VocabularyItem.mastery_score.asc(), VocabularyItem.priority.desc())
             .limit(limit)
         )
@@ -195,11 +227,7 @@ def select_vocab_batch(db: Session, user_id: str, *, size: int = 10) -> list[Voc
     mastery_vocab = list(
         db.scalars(
             select(UserMastery)
-            .where(
-                UserMastery.user_id == user_id,
-                UserMastery.item_type == "vocabulary",
-                UserMastery.status.not_in(["mastered", "ignored"]),
-            )
+            .where(*mastery_filters)
             .order_by(UserMastery.mastery_score.asc())
             .limit(limit)
         )
@@ -261,7 +289,8 @@ async def generate_batch_analysis(db: Session | None, results: list[dict[str, An
 
     payload = json.dumps(results, ensure_ascii=False)
     system = (
-        "You are an English vocabulary coach for Chinese learners. "
+        "You are a multilingual vocabulary coach for Chinese learners. "
+        "Infer each item's target language from its word and sentence. "
         "Given batch near-synonym quiz results JSON, return ONLY valid JSON with keys: "
         "summary (string, Chinese), word_insights (array of {word, correct, explanation, tip}), "
         "encouragement (string, Chinese). "

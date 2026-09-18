@@ -100,7 +100,7 @@ export default function Onboarding() {
         <header className="flex flex-col items-start gap-2 mb-8">
           <div className="flex items-center gap-2 mb-1">
             <span className="material-symbols-outlined text-primary text-[32px]">bubble_chart</span>
-            <span className="font-headline-lg text-[26px] font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">AinerWise</span>
+            <span className="font-headline-lg text-[26px] font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">AinerSpeak</span>
           </div>
           <h1 className="font-headline-lg text-[26px] text-on-surface">让 AI 更了解你</h1>
           <p className="font-body-md text-on-surface-variant opacity-80 leading-relaxed">这些信息会帮助 AI 给你更适合的表达建议和学习路径。</p>

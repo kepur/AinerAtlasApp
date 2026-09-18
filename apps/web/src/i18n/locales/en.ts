@@ -70,7 +70,7 @@ export default {
     coachStart: "Start voice session",
     vipVoiceTitle: "Upgrade to VIP for Voice Coach",
     vipVoiceSubtitle: "Full-duplex · talk like a phone call",
-    vipVoiceBody: "Voice dialogue is a VIP feature. Upgrade to use AinerWise Coach for real-time spoken practice and instant feedback.",
+    vipVoiceBody: "Voice dialogue is a VIP feature. Upgrade to use AinerSpeak Coach for real-time spoken practice and instant feedback.",
     vipVoiceCta: "Upgrade to VIP",
     vipVoiceLater: "Maybe later",
     dailyResonance: "Daily Resonance"
@@ -222,7 +222,7 @@ export default {
     intro: "Questions, bugs, or product ideas — reach us through any channel below.",
     contactTitle: "Contact",
     wechat: "WeChat",
-    wechatHint: "When adding on WeChat, note「AinerWise」",
+    wechatHint: "When adding on WeChat, note「AinerSpeak」",
     telegram: "Telegram",
     telegramHint: "Open Telegram chat or copy the username",
     email: "Email",
@@ -287,7 +287,7 @@ export default {
   },
   membership: {
     wechatModalTitle: "Scan WeChat to upgrade",
-    wechatModalHint: "Add our WeChat and note「AinerWise」for manual VIP / Pro activation",
+    wechatModalHint: "Add our WeChat and note「AinerSpeak」for manual VIP / Pro activation",
     wechatQrAlt: "WeChat support QR code",
     wechatIdLabel: "WeChat ID",
     wechatModalDone: "Got it",

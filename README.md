@@ -4,7 +4,14 @@ AinerSpeak is an AI Expression OS: a personal thinking, multilingual expression,
 
 This repository is intentionally API-first. The same backend contracts can support the H5/PWA app, PC studio, admin console, and future native apps.
 
-**完整部署与环境复刻**（含数据库、Admin 配置、文件快照、**Agent 部署提示词**）见根目录 **[DEPLOY.md](./DEPLOY.md)**、**[AGENT_DEPLOY_PROMPT.md](./AGENT_DEPLOY_PROMPT.md)** 与 **`deploy-snapshot/`** 数据包。
+部署文档按使用场景拆分：
+
+- **已上线环境原地滚动升级**：[UPGRADE.md](./UPGRADE.md)
+- **本地默认部署与开发启动**：[LOCAL_DEPLOYMENT.md](./LOCAL_DEPLOYMENT.md)
+- **全新环境复刻与快照恢复**：[DEPLOY.md](./DEPLOY.md)
+- **Agent 部署提示词**：[AGENT_DEPLOY_PROMPT.md](./AGENT_DEPLOY_PROMPT.md)
+
+`deploy-snapshot/` 只用于全新环境复刻，**不要导入到已有线上数据库**。
 
 ## Apps
 

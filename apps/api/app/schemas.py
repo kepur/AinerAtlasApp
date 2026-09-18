@@ -1229,8 +1229,8 @@ class AppSettingsRead(BaseModel):
     default_voice_provider: str = ""
     realtime_asr_provider: str = "auto"
     default_embedding_provider: str = ""
-    tts_provider: str = "browser"
-    tts_voice: str = "longanhuan"
+    tts_provider: str = "edge"
+    tts_voice: str = "zh-CN-XiaoxiaoNeural"
     tts_speed: float = 0.9
     tts_pitch: float = 1.1
     global_api_keys: list[dict] = Field(default_factory=list)
@@ -1255,8 +1255,8 @@ class AppSettingsUpdate(BaseModel):
     default_voice_provider: str = ""
     realtime_asr_provider: str = "auto"
     default_embedding_provider: str = ""
-    tts_provider: str = "browser"
-    tts_voice: str = "longanhuan"
+    tts_provider: str = "edge"
+    tts_voice: str = "zh-CN-XiaoxiaoNeural"
     tts_speed: float = 0.9
     tts_pitch: float = 1.1
     global_api_keys: list[dict] = Field(default_factory=list)

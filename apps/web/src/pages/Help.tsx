@@ -109,7 +109,7 @@ export default function Help() {
               onCopy={() => handleCopy("email", CONTACTS.email)}
               actionLabel={t("help.sendEmail")}
               onAction={() => {
-                window.location.href = `mailto:${CONTACTS.email}?subject=${encodeURIComponent("AinerWise Feedback")}`;
+                window.location.href = `mailto:${CONTACTS.email}?subject=${encodeURIComponent("AinerSpeak Feedback")}`;
               }}
             />
           </div>

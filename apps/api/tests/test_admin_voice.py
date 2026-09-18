@@ -3,7 +3,9 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_quota_manager
+from app.db.session import SessionLocal
 from app.main import app
+from app.models import AuthSettings
 
 
 class FakeRedis:
@@ -136,6 +138,14 @@ def test_voice_tts_transcribe_evaluate_and_report() -> None:
     shared_quota_manager.reset()
     app.dependency_overrides[get_quota_manager] = override_quota_manager
     try:
+        # This case verifies the free-user quota before an admin upgrade, so it
+        # must opt out of the global registration trial seeded by the app.
+        with SessionLocal() as db:
+            auth_settings = db.get(AuthSettings, "default")
+            assert auth_settings is not None
+            auth_settings.registration_trial_enabled = False
+            db.commit()
+
         with TestClient(app) as client:
             email = f"voice-{uuid4().hex[:8]}@example.com"
             auth = client.post(
@@ -168,6 +178,7 @@ def test_voice_tts_transcribe_evaluate_and_report() -> None:
                     "audio_base64": "dGVzdA==",
                     "reference_text": "I think Europe has more freedom",
                 },
+                headers=headers,
             )
             assert evaluate.status_code == 200
             eval_body = evaluate.json()

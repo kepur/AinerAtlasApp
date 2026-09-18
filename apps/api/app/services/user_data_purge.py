@@ -13,6 +13,8 @@ from app.models import (
     ExpressionAssetVersion,
     GameSession,
     GameTurn,
+    LanguageCourseProgress,
+    LanguagePracticeAttempt,
     MatchAnalysisReport,
     MatchRecommendation,
     MatchRequest,
@@ -138,6 +140,8 @@ def purge_user_owned_content(db: Session, user_id: str) -> dict[str, int]:
 
     db.execute(delete(UserMatchProfile).where(UserMatchProfile.user_id == user_id))
     db.execute(delete(UserValueProfile).where(UserValueProfile.user_id == user_id))
+    db.execute(delete(LanguagePracticeAttempt).where(LanguagePracticeAttempt.user_id == user_id))
+    db.execute(delete(LanguageCourseProgress).where(LanguageCourseProgress.user_id == user_id))
     db.execute(delete(UserMastery).where(UserMastery.user_id == user_id))
     db.execute(delete(VocabularyItem).where(VocabularyItem.user_id == user_id))
     db.execute(delete(UserAIMemory).where(UserAIMemory.user_id == user_id))

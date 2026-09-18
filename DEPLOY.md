@@ -1,5 +1,8 @@
 # AinerSpeak 部署与环境复刻指南
 
+> 已有线上环境升级请不要重新导入快照，改用 [UPGRADE.md](./UPGRADE.md)。
+> 本地默认启动与开发流程见 [LOCAL_DEPLOYMENT.md](./LOCAL_DEPLOYMENT.md)。
+
 > **给 Agent / 运维**：阅读本文 + 仓库代码 + `deploy-snapshot/` 数据包，即可在空机器上复刻当前环境的全部功能（含 Admin 后台配置、会员方案、AI Provider、语音平台 VAD、游戏模板、用户与对话数据）。
 
 ---

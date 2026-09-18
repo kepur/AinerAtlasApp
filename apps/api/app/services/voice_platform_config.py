@@ -26,13 +26,16 @@ RECOMMENDED_VAD_PATCH: dict[str, Any] = {
 }
 
 DEFAULT_VOICE_PLATFORM_CONFIG: dict[str, Any] = {
+    # Master switch. Effective availability also requires usable realtime
+    # speech and LLM/Omni capabilities; see realtime_availability.py.
+    "realtime_dialogue_enabled": True,
     # fun-asr | qwen-omni
     "realtime_engine": "fun-asr",
     "omni_models": list(DEFAULT_OMNI_MODELS),
     "omni_model_index": 0,
     "omni_voice": "Tina",
     "omni_instructions": (
-        "You are AinerWise, a warm English expression coach. "
+        "You are AinerSpeak, a warm English expression coach. "
         "Keep spoken replies short (1-3 sentences). "
         "Wait until the user has clearly finished speaking before you respond. "
         "Leave a brief natural pause (about one second) after they stop talking. "

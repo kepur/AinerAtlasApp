@@ -15,6 +15,7 @@ apps/api/*.db
 # ── Runtime bind-mount data (lives OUTSIDE Docker images; restore via deploy-snapshot/) ──
 /storage/
 /apps/api/uploads/
+/apps/web/public/audio/tts/*.mp3
 
 # ── Docker named volumes (never in repo; only Postgres/Redis live data) ──
 postgres_data/
