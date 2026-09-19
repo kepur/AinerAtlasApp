@@ -93,6 +93,15 @@ export default function Profile() {
       iconBg: "bg-surface-container",
       iconColor: "text-on-surface-variant",
       to: "/help"
+    },
+    {
+      icon: "install_mobile",
+      label: "下载 Android 客户端",
+      sublabel: "原生高清语音与沉浸对话",
+      sublabelTone: "text-primary",
+      iconBg: "bg-emerald-500/10",
+      iconColor: "text-emerald-600",
+      to: "/download"
     }
   ];
 

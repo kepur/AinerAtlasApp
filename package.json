@@ -16,7 +16,10 @@
     "snapshot:export": "bash scripts/export-deploy-snapshot.sh",
     "snapshot:import": "bash scripts/import-deploy-snapshot.sh",
     "build": "npm --workspaces --if-present run build",
-    "lint": "npm --workspaces --if-present run lint"
+    "lint": "npm --workspaces --if-present run lint",
+    "android:build": "npm --workspace apps/web run build:android && (cd apps/web/android && ./gradlew assembleDebug)",
+    "android:sync": "npm --workspace apps/web run cap:sync",
+    "android:open": "npm --workspace apps/web run cap:open"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

@@ -5,12 +5,13 @@ import logging
 import re
 import time
 import asyncio
+from collections.abc import AsyncGenerator
 
 from openai import AsyncOpenAI, APIError, APITimeoutError, RateLimitError
 
 from app.schemas import ConversationAIResult, GrammarTip, ProfileRead
 from app.services.freeze_helpers import extract_expression_versions
-from app.services.llm import LLMProvider, language_name
+from app.services.llm import LLMProvider, LLMUnavailableError, language_name
 
 logger = logging.getLogger(__name__)
 
@@ -293,6 +294,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
         provider_id: str | None = None,
         provider_name: str | None = None,
         timeout: float = 60,
+        max_retries: int = 2,
     ) -> None:
         self.model_name = model_name
         self.provider_id = provider_id
@@ -301,6 +303,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
             api_key=api_key,
             base_url=base_url.rstrip("/"),
             timeout=timeout,
+            max_retries=max_retries,
         )
         self._stream_json_result: dict | None = None
 
@@ -452,9 +455,17 @@ class OpenAICompatibleLLMProvider(LLMProvider):
             )
 
             main_reply_text = ""
-            async for chunk in stream_gen:
-                main_reply_text += chunk
-                yield chunk
+            try:
+                async for chunk in stream_gen:
+                    main_reply_text += chunk
+                    yield chunk
+                if not main_reply_text.strip():
+                    raise LLMUnavailableError("模型没有返回对话 token")
+            except BaseException:
+                for task in (grammar_task, expression_task, coach_task):
+                    task.cancel()
+                await asyncio.gather(grammar_task, expression_task, coach_task, return_exceptions=True)
+                raise
 
             res_tuple = await asyncio.gather(
                 grammar_task, expression_task, coach_task, return_exceptions=True
@@ -610,7 +621,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 tokens_output=usage.completion_tokens if usage else 0,
                 latency_ms=latency_ms,
             )
-            raw = response.choices[0].message.content or "{}"
+            raw = _response_text(response)
             return _parse_json(raw)
         except APIError as exc:
             if getattr(exc, "status_code", 0) == 400 and "json" in str(exc).lower():
@@ -628,7 +639,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                     tokens_output=usage.completion_tokens if usage else 0,
                     latency_ms=latency_ms,
                 )
-                raw = response.choices[0].message.content or "{}"
+                raw = _response_text(response)
                 return _parse_json(raw)
             self._record_usage(latency_ms=int((time.perf_counter() - started) * 1000), status="api_error")
             raise
@@ -674,7 +685,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 tokens_output=usage.completion_tokens if usage else 0,
                 latency_ms=int((time.perf_counter() - started) * 1000),
             )
-            data = _parse_json(response.choices[0].message.content or "{}")
+            data = _parse_json(_response_text(response))
             data.setdefault("token", token)
             return data
         except Exception:
@@ -710,7 +721,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 tokens_output=usage.completion_tokens if usage else 0,
                 latency_ms=int((time.perf_counter() - started) * 1000),
             )
-            return _parse_json(response.choices[0].message.content or "{}")
+            return _parse_json(_response_text(response))
         except Exception:
             self._record_usage(latency_ms=int((time.perf_counter() - started) * 1000), status="error")
             raise
@@ -986,7 +997,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 latency_ms=latency_ms,
             )
 
-            raw = response.choices[0].message.content or "{}"
+            raw = _response_text(response)
             data = _parse_json(raw)
             return _build_result(data)
 
@@ -1034,7 +1045,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 tokens_output=usage.completion_tokens if usage else 0,
                 latency_ms=latency_ms,
             )
-            raw = response.choices[0].message.content or "{}"
+            raw = _response_text(response)
             data = _parse_json(raw)
             return _build_result(data)
         except Exception as exc:
@@ -1075,7 +1086,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 tokens_output=usage.completion_tokens if usage else 0,
                 latency_ms=latency_ms,
             )
-            raw = response.choices[0].message.content or "{}"
+            raw = _response_text(response)
             data = _parse_json(raw)
             return {
                 "summary": data.get("summary", ""),
@@ -1117,7 +1128,7 @@ class OpenAICompatibleLLMProvider(LLMProvider):
                 tokens_output=usage.completion_tokens if usage else 0,
                 latency_ms=latency_ms,
             )
-            raw = response.choices[0].message.content or "{}"
+            raw = _response_text(response)
             return _parse_json(raw)
         except Exception as e:
             logger.error("Error in analyze_voice_coach: %s", e)
@@ -1127,6 +1138,14 @@ class OpenAICompatibleLLMProvider(LLMProvider):
 # ------------------------------------------------------------------
 # JSON parsing helpers
 # ------------------------------------------------------------------
+def _response_text(response) -> str:
+    choices = getattr(response, "choices", None) or []
+    content = getattr(getattr(choices[0], "message", None), "content", None) if choices else None
+    if not isinstance(content, str) or not content.strip():
+        raise LLMUnavailableError("模型连接成功但没有返回有效 token")
+    return content
+
+
 def _parse_json(raw: str) -> dict:
     """Best-effort parse JSON from LLM output, stripping markdown fences and <think> blocks if present."""
     text = raw.strip()

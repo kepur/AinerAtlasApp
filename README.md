@@ -13,6 +13,14 @@ This repository is intentionally API-first. The same backend contracts can suppo
 
 `deploy-snapshot/` 只用于全新环境复刻，**不要导入到已有线上数据库**。
 
+## 同一云平台的 LLM 模型队列
+
+在 Admin → 模型供应商中创建或编辑 LLM Provider，填写一次 API Base URL 和 Key，
+再通过“+ 添加模型”依序加入多个模型 ID；上移/下移调整首选顺序。每次请求默认从第一个模型开始，
+遇到连接失败、限流、超时或空内容，就尝试同一 Provider 的下一个模型；该队列都失败后，
+继续使用已有的跨 Provider 兜底。流式回复一旦向用户输出内容，就不会切换模型拼接回答。
+“测试当前配置”可查看逐个尝试的结果。模型队列保存在 Provider 现有的 JSON 配置中，不需要新增 SQL 迁移。
+
 ## Apps
 
 - `apps/api`: FastAPI backend for auth, onboarding, conversations, assets, grammar queues, voice hooks, provider routing, and admin operations.

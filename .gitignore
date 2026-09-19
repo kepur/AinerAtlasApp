@@ -36,6 +36,7 @@ dist/
 build/
 .vite/
 coverage/
+*.tsbuildinfo
 
 # ── OS / IDE ──
 .DS_Store

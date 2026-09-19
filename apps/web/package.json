@@ -6,10 +6,15 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 7075",
     "build": "tsc -b && vite build",
+    "build:android": "tsc -b && vite build --mode android && cap sync android",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "@vitejs/plugin-react": "latest",
     "framer-motion": "^12.40.0",
     "lucide-react": "latest",
@@ -21,6 +26,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/forms": "^0.5.11",
     "@types/react": "^19.2.17",

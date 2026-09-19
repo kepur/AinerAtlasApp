@@ -31,12 +31,6 @@ export async function apiRequest<T>(
     headers
   });
 
-  if (response.status === 401) {
-    clearToken();
-    window.location.href = "/login";
-    throw new Error("Unauthorized");
-  }
-
   if (!response.ok) {
     const text = await response.text();
     let message = text || `Request failed: ${response.status}`;
@@ -44,7 +38,11 @@ export async function apiRequest<T>(
       const parsed = JSON.parse(text) as { detail?: unknown };
       const detail = parsed.detail;
       if (typeof detail === "string") {
-        message = detail;
+        if (detail === "Invalid credentials") {
+          message = "账号或密码错误 (Invalid credentials)";
+        } else {
+          message = detail;
+        }
       } else if (Array.isArray(detail)) {
         message = detail
           .map((item) => (typeof item === "object" && item && "msg" in item ? String(item.msg) : String(item)))
@@ -53,6 +51,17 @@ export async function apiRequest<T>(
     } catch {
       /* keep raw text */
     }
+
+    if (response.status === 401) {
+      clearToken();
+      const isAuthEndpoint = path.includes("/auth/login") || path.includes("/auth/register");
+      const isAuthPage = typeof window !== "undefined" && (window.location.pathname === "/login" || window.location.pathname === "/register");
+      if (!isAuthEndpoint && !isAuthPage && typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+      throw new Error(message || "Unauthorized");
+    }
+
     throw new Error(message);
   }
 

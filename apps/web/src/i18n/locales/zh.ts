@@ -15,6 +15,7 @@ export default {
     email: "邮箱",
     password: "密码",
     passwordPlaceholder: "请输入密码",
+    forgotPassword: "忘记密码？",
     submit: "登录",
     demoSubmit: "演示登录",
     noAccount: "还没有账号？",

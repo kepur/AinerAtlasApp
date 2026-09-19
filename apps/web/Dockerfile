@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json tsconfig.json vite.config.ts index.html /app/
 COPY postcss.config.js tailwind.config.cjs tailwind.config.js /app/
 COPY src /app/src
+COPY public /app/public
 RUN npm ci && npm run build
 
 FROM nginx:1.27-alpine

@@ -7,7 +7,7 @@ from typing import AsyncGenerator
 import httpx
 
 from app.schemas import ConversationAIResult, ProfileRead
-from app.services.llm import LLMProvider, language_name
+from app.services.llm import LLMProvider, LLMUnavailableError, language_name
 from app.services.llm_openai import (
     CORRECTION_BLOCK,
     CORRECTION_JSON_EXTRA,
@@ -188,6 +188,8 @@ class AnthropicLLMProvider(LLMProvider):
             )
 
             raw = _extract_text_content(payload.get("content", []))
+            if not raw.strip():
+                raise LLMUnavailableError("模型连接成功但没有返回有效 token")
             return _build_result(_parse_json(raw))
         except httpx.TimeoutException as exc:
             latency_ms = int((time.perf_counter() - started) * 1000)

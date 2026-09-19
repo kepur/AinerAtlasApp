@@ -24,13 +24,30 @@ type AppConfigState = {
   loadConfig: () => Promise<AppConfig>;
 };
 
+export const DEFAULT_FALLBACK_CONFIG: AppConfig = {
+  default_theme: "light",
+  default_locale: "zh",
+  enabled_locales: ["en", "zh", "hi", "es", "fr", "ar", "bn", "pt", "ru", "ja", "sr"],
+  locales: [
+    { code: "zh", name: "Chinese (Simplified)", native_name: "简体中文" },
+    { code: "en", name: "English", native_name: "English" },
+  ],
+  allow_user_theme_override: true,
+  allow_user_locale_override: true,
+};
+
 export const useAppConfigStore = create<AppConfigState>((set) => ({
   config: null,
   loaded: false,
   loadConfig: async () => {
-    const config = await apiRequest<AppConfig>("/api/config/app");
-    set({ config, loaded: true });
-    return config;
+    try {
+      const config = await apiRequest<AppConfig>("/api/config/app");
+      set({ config, loaded: true });
+      return config;
+    } catch {
+      set({ config: DEFAULT_FALLBACK_CONFIG, loaded: true });
+      return DEFAULT_FALLBACK_CONFIG;
+    }
   }
 }));
 

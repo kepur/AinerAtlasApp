@@ -1079,6 +1079,7 @@ def security_status(_: AdminUser, db: DBSession) -> dict:
 
 @router.post("/providers", response_model=ProviderRead)
 def create_provider(payload: ProviderCreate, admin: AdminUser, db: DBSession) -> AIProvider:
+    provider_config = {key: value for key, value in payload.config.items() if key != "last_test"}
     provider = AIProvider(
         provider_name=payload.provider_name,
         provider_type=payload.provider_type,
@@ -1089,7 +1090,7 @@ def create_provider(payload: ProviderCreate, admin: AdminUser, db: DBSession) ->
         priority=payload.priority,
         cost_weight=payload.cost_weight,
         fallback_provider=payload.fallback_provider,
-        config=payload.config,
+        config=provider_config,
     )
     db.add(provider)
     db.flush()
@@ -1123,6 +1124,15 @@ def update_provider(
         "enabled": provider.enabled,
         "priority": provider.priority,
     }
+    configuration_changed = (
+        provider.provider_name != payload.provider_name
+        or provider.provider_type != payload.provider_type
+        or provider.api_base_url != payload.api_base_url
+        or provider.model_name != payload.model_name
+        or bool(payload.api_key)
+        or {k: v for k, v in (provider.config or {}).items() if k != "last_test"}
+        != {k: v for k, v in payload.config.items() if k != "last_test"}
+    )
     provider.provider_name = payload.provider_name
     provider.provider_type = payload.provider_type
     provider.api_base_url = payload.api_base_url
@@ -1134,7 +1144,10 @@ def update_provider(
     provider.priority = payload.priority
     provider.cost_weight = payload.cost_weight
     provider.fallback_provider = payload.fallback_provider
-    provider.config = payload.config
+    provider.config = {
+        key: value for key, value in payload.config.items()
+        if key != "last_test" or not configuration_changed
+    }
     write_audit_log(
         db,
         admin,

@@ -629,6 +629,14 @@ class ProviderCreate(BaseModel):
     fallback_provider: str = ""
     config: dict[str, Any] = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def validate_llm_models(self) -> "ProviderCreate":
+        if self.provider_type == "llm":
+            from app.services.provider_model_queue import validate_model_queue
+
+            validate_model_queue(self.model_name, self.config)
+        return self
+
 
 class ProviderTestRequest(ProviderCreate):
     timeout_seconds: float = 10
@@ -645,6 +653,7 @@ class ProviderTestResult(BaseModel):
     request_url: str = ""
     response_preview: str = ""
     error: str = ""
+    model_attempts: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ProviderRead(BaseModel):

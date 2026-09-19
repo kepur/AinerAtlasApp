@@ -147,6 +147,16 @@ export default function Login() {
           {t("login.noAccount")}
           <Link to="/register" className="text-primary font-bold ml-1">{t("login.register")}</Link>
         </p>
+
+        <div className="mt-8 pt-5 border-t border-outline-variant/15 text-center">
+          <Link
+            to="/download"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-low border border-outline-variant/30 text-xs font-semibold text-primary hover:bg-surface-container transition-colors active:scale-95"
+          >
+            <span className="material-symbols-outlined text-[16px]">install_mobile</span>
+            <span>下载 Android 原生客户端</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

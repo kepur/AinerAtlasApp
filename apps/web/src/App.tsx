@@ -71,6 +71,7 @@ import SoulmateQuestionnaire from "./pages/SoulmateQuestionnaire";
 import FollowRead from "./pages/FollowRead";
 import Help from "./pages/Help";
 import SurvivalSprint from "./pages/SurvivalSprint";
+import DownloadApp from "./pages/DownloadApp";
 
 function AppLayout() {
   const location = useLocation();
@@ -144,6 +145,7 @@ function AppLayout() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/download" element={<DownloadApp />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
         </AnimatePresence>
@@ -186,6 +188,7 @@ export default function App() {
         <Routes>
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/download" element={<DownloadApp />} />
           <Route path="/login" element={isLoggedIn ? <Navigate to="/home" replace /> : <Login />} />
           <Route path="/register" element={isLoggedIn ? <Navigate to="/home" replace /> : <Register />} />
           <Route element={<PrivateRoute />}>

@@ -52,6 +52,34 @@ DEFAULT_MODELS = {
 
 
 async def test_provider_connection(payload: ProviderTestRequest) -> ProviderTestResult:
+    from app.services.provider_model_queue import model_queue
+
+    if payload.provider_type == "llm" and payload.provider_name.lower() != "mock":
+        attempts: list[dict[str, str | bool]] = []
+        result: ProviderTestResult | None = None
+        for name in model_queue(payload.model_name, payload.config):
+            request = payload.model_copy(update={
+                "model_name": name,
+                "config": {
+                    key: value for key, value in payload.config.items()
+                    if key != "model_queue"
+                },
+            })
+            result = await _test_provider_single(request)
+            attempts.append({"model": name, "ok": result.ok, "message": result.message})
+            if result.ok:
+                result.model_attempts = attempts
+                if len(attempts) > 1:
+                    result.message = f"模型 {name} 成功；前 {len(attempts) - 1} 个模型失败后已切换。"
+                return result
+        if result is not None:
+            result.model_attempts = attempts
+            result.message = "模型队列全部连接失败。"
+            return result
+    return await _test_provider_single(payload)
+
+
+async def _test_provider_single(payload: ProviderTestRequest) -> ProviderTestResult:
     started = perf_counter()
     provider_key = normalize_provider_key(payload.provider_name)
     model = payload.model_name or DEFAULT_MODELS.get(provider_key, payload.model_name)
@@ -272,12 +300,41 @@ def response_result(
 ) -> ProviderTestResult:
     preview = response.text[:500]
     ok = 200 <= response.status_code < 300
+    if ok and payload.provider_type == "llm":
+        try:
+            data = response.json()
+            if normalize_provider_key(payload.provider_name) == "anthropic":
+                content = "".join(
+                    part.get("text", "")
+                    for part in data.get("content", []) if isinstance(part, dict)
+                )
+            elif normalize_provider_key(payload.provider_name) == "gemini":
+                content = "".join(
+                    part.get("text", "")
+                    for candidate in data.get("candidates", [])
+                    for part in candidate.get("content", {}).get("parts", [])
+                    if isinstance(part, dict)
+                )
+            elif normalize_provider_key(payload.provider_name) == "ollama":
+                content = data.get("response") or ""
+            else:
+                content = "".join(
+                    (choice.get("message") or {}).get("content") or ""
+                    for choice in data.get("choices", [])
+                    if isinstance(choice, dict)
+                )
+            ok = bool(content.strip())
+        except (ValueError, TypeError, AttributeError):
+            ok = False
     return build_result(
         payload=payload,
         started=started,
         ok=ok,
         model=model,
-        message="Provider connection succeeded." if ok else f"Provider returned HTTP {response.status_code}.",
+        message=(
+            "Provider returned a valid token." if ok
+            else f"Provider returned HTTP {response.status_code} or no text token."
+        ),
         request_url=url,
         response_preview=preview,
         error="" if ok else preview,

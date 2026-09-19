@@ -585,37 +585,8 @@ class FallbackLLMProvider(LLMProvider):
         return await self._try_all("complete_json", *args, **kwargs)
 
     async def complete_json_stream(self, *args, **kwargs):
-        last_exc: Exception | None = None
-        for provider in self._providers:
-            start_time = time.perf_counter()
-            chunks = []
-            try:
-                self._active = provider
-                gen = provider.complete_json_stream(*args, **kwargs)
-                async for chunk in gen:
-                    chunks.append(chunk)
-                    yield chunk
-                # Ensure _stream_json_result is propagated
-                if hasattr(provider, "_stream_json_result"):
-                    self._stream_json_result = provider._stream_json_result
-                
-                latency_ms = int((time.perf_counter() - start_time) * 1000)
-                res_str = "".join(chunks)
-                self._record_llm_call(provider, "complete_json_stream", args, kwargs, res_str, None, latency_ms)
-                return
-            except Exception as exc:  # noqa: BLE001
-                latency_ms = int((time.perf_counter() - start_time) * 1000)
-                pname = type(provider).__name__
-                logger.warning("Provider %s failed for complete_json_stream: %s", pname, exc)
-                
-                res_str = "".join(chunks) if chunks else None
-                self._record_llm_call(provider, "complete_json_stream", args, kwargs, res_str, exc, latency_ms)
-                
-                last_exc = exc
-                continue
-        if last_exc:
-            raise last_exc
-        raise RuntimeError("No LLM providers available")
+        async for chunk in self._stream_with_fallback("complete_json_stream", *args, **kwargs):
+            yield chunk
 
     async def analyze_user_profile(self, *args, **kwargs) -> dict:
         return await self._try_all("analyze_user_profile", *args, **kwargs)
@@ -624,59 +595,64 @@ class FallbackLLMProvider(LLMProvider):
         return await self._try_all("analyze_voice_coach", *args, **kwargs)
 
     async def thought_dialogue_stream(self, *args, **kwargs) -> AsyncGenerator[str, None]:
-        last_exc: Exception | None = None
-        for provider in self._providers:
-            start_time = time.perf_counter()
-            chunks = []
-            try:
-                self._active = provider
-                gen = provider.thought_dialogue_stream(*args, **kwargs)
-                async for chunk in gen:
-                    chunks.append(chunk)
-                    yield chunk
-                
-                latency_ms = int((time.perf_counter() - start_time) * 1000)
-                res_str = "".join(chunks)
-                self._record_llm_call(provider, "thought_dialogue_stream", args, kwargs, res_str, None, latency_ms)
-                return
-            except Exception as exc:  # noqa: BLE001
-                latency_ms = int((time.perf_counter() - start_time) * 1000)
-                pname = type(provider).__name__
-                logger.warning("Provider %s failed for thought_dialogue_stream: %s", pname, exc)
-                
-                res_str = "".join(chunks) if chunks else None
-                self._record_llm_call(provider, "thought_dialogue_stream", args, kwargs, res_str, exc, latency_ms)
-                
-                last_exc = exc
-                continue
-        if last_exc:
-            raise last_exc
-        raise RuntimeError("No LLM providers available")
+        async for chunk in self._stream_with_fallback("thought_dialogue_stream", *args, **kwargs):
+            yield chunk
 
     async def chat_reply_stream(self, *args, **kwargs) -> AsyncGenerator[str, None]:
+        async for chunk in self._stream_with_fallback("chat_reply_stream", *args, **kwargs):
+            yield chunk
+
+    async def _stream_with_fallback(
+        self, method_name: str, *args, **kwargs
+    ) -> AsyncGenerator[str, None]:
+        """Switch only before any chunk is visible; never splice two models' output."""
         last_exc: Exception | None = None
         for provider in self._providers:
             start_time = time.perf_counter()
-            chunks = []
+            chunks: list[str] = []
+            emitted = False
+            pending_whitespace: list[str] = []
             try:
                 self._active = provider
-                gen = provider.chat_reply_stream(*args, **kwargs)
+                gen = getattr(provider, method_name)(*args, **kwargs)
                 async for chunk in gen:
-                    chunks.append(chunk)
+                    if not chunk:
+                        continue
+                    if not emitted and chunk != "___STREAM_JSON_DONE___" and not chunk.strip():
+                        pending_whitespace.append(chunk)
+                        continue
+                    # JSON's completion marker is not a content token.
+                    if chunk != "___STREAM_JSON_DONE___":
+                        chunks.append(chunk)
+                    if chunk == "___STREAM_JSON_DONE___" and not "".join(chunks).strip():
+                        raise LLMUnavailableError("模型没有返回有效 token")
+                    if pending_whitespace:
+                        for whitespace in pending_whitespace:
+                            yield whitespace
+                        pending_whitespace.clear()
+                    emitted = True
                     yield chunk
-                
+                if not "".join(chunks).strip():
+                    raise LLMUnavailableError("模型没有返回有效 token")
+                if method_name == "complete_json_stream":
+                    self._stream_json_result = getattr(provider, "_stream_json_result", None)
                 latency_ms = int((time.perf_counter() - start_time) * 1000)
                 res_str = "".join(chunks)
-                self._record_llm_call(provider, "chat_reply_stream", args, kwargs, res_str, None, latency_ms)
+                self._record_llm_call(
+                    provider, method_name, args, kwargs, res_str, None, latency_ms
+                )
                 return
             except Exception as exc:  # noqa: BLE001
                 latency_ms = int((time.perf_counter() - start_time) * 1000)
-                pname = type(provider).__name__
-                logger.warning("Provider %s failed for chat_reply_stream: %s", pname, exc)
-                
                 res_str = "".join(chunks) if chunks else None
-                self._record_llm_call(provider, "chat_reply_stream", args, kwargs, res_str, exc, latency_ms)
-                
+                self._record_llm_call(provider, method_name, args, kwargs, res_str, exc, latency_ms)
+                logger.warning(
+                    "Provider %s (%s) failed for %s: %s",
+                    getattr(provider, "provider_name", "unknown"),
+                    getattr(provider, "model_name", "unknown"), method_name, exc,
+                )
+                if emitted:
+                    raise
                 last_exc = exc
                 continue
         if last_exc:
@@ -690,6 +666,8 @@ class FallbackLLMProvider(LLMProvider):
             try:
                 self._active = provider
                 result = await getattr(provider, method_name)(*args, **kwargs)
+                if result is None or (isinstance(result, dict) and not result):
+                    raise LLMUnavailableError("模型没有返回有效内容")
                 
                 latency_ms = int((time.perf_counter() - start_time) * 1000)
                 
@@ -703,7 +681,9 @@ class FallbackLLMProvider(LLMProvider):
                     else:
                         res_str = str(result)
                 
-                self._record_llm_call(provider, method_name, args, kwargs, res_str, None, latency_ms)
+                self._record_llm_call(
+                    provider, method_name, args, kwargs, res_str, None, latency_ms
+                )
                 return result
             except Exception as exc:  # noqa: BLE001
                 latency_ms = int((time.perf_counter() - start_time) * 1000)
@@ -794,7 +774,9 @@ def _normalize_openai_base_url(base_url: str, provider_key: str) -> str:
     return cleaned
 
 
-def _build_llm_provider_from_row(row, model_override: str | None = None) -> LLMProvider | None:
+def _build_llm_provider_from_row(
+    row, model_override: str | None = None, *, queue_mode: bool = False
+) -> LLMProvider | None:
     key = _normalize_provider_key(row.provider_name)
     if key in ("mock", "mock-voice"):
         return None
@@ -850,6 +832,7 @@ def _build_llm_provider_from_row(row, model_override: str | None = None) -> LLMP
             model_name=model,
             provider_id=row.id,
             provider_name=row.provider_name,
+            max_retries=0 if queue_mode else 2,
         )
 
     return None
@@ -977,9 +960,15 @@ def get_llm_provider(
 
     built: list[tuple[str, LLMProvider]] = []
     for row in rows:
-        provider = _build_llm_provider_from_row(row)
-        if provider:
-            built.append((_normalize_provider_key(row.provider_name), provider))
+        from app.services.provider_model_queue import model_queue
+
+        queue = model_queue(row.model_name, row.config)
+        for model in queue or [None]:
+            provider = _build_llm_provider_from_row(
+                row, model_override=model, queue_mode=len(queue) > 1
+            )
+            if provider:
+                built.append((_normalize_provider_key(row.provider_name), provider))
 
     if hint_key not in {"", "mock", "auto"}:
         prioritized = [provider for name, provider in built if name == hint_key]

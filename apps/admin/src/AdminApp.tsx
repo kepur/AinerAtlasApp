@@ -153,6 +153,7 @@ type TestResult = {
   request_url: string;
   response_preview: string;
   error: string;
+  model_attempts?: Array<{ model: string; ok: boolean; message: string }>;
 };
 
 type Overview = {
@@ -919,6 +920,8 @@ function AdminApp() {
       setStatus("请先点击右上角登录测试账号。");
       return;
     }
+    const modelError = validateModelQueueForm(form);
+    if (modelError) { setStatus(modelError); return; }
     try {
       const isUpdate = providerPanelMode === "edit" && Boolean(activeProviderId);
       setStatus(isUpdate ? "正在更新 Provider..." : "正在保存 Provider...");
@@ -944,6 +947,8 @@ function AdminApp() {
       setStatus("请先点击右上角登录测试账号。");
       return;
     }
+    const modelError = validateModelQueueForm(form);
+    if (modelError) { setStatus(modelError); return; }
     try {
       setStatus("正在测试当前表单配置...");
       const result = await apiPost<TestResult>("/api/admin/providers/test", token, {
@@ -986,6 +991,15 @@ function AdminApp() {
     });
     setTestResult(null);
     setStatus(`已切换到 ${key} 预设（新建模式）。`);
+  }
+
+  function updateModelQueue(names: string[]) {
+    setForm((current) => ({
+      ...current,
+      model_name: names[0] ?? "",
+      config: { ...(current.config ?? {}), model_queue: names }
+    }));
+    setTestResult(null);
   }
 
   async function handleNav(label: string) {
@@ -1222,7 +1236,9 @@ function AdminApp() {
       <tr className={selected ? "selected-row" : undefined} key={provider.id}>
         <td><strong>{provider.provider_name}</strong></td>
         <td>{provider.provider_type}</td>
-        <td>{provider.model_name || "-"}</td>
+        <td>{provider.provider_type === "llm"
+          ? `${provider.model_name || "-"}${modelQueueForForm(provider).length > 1 ? ` · +${modelQueueForForm(provider).length - 1} 备用` : ""}`
+          : provider.model_name || "-"}</td>
         <td>#{provider.priority}</td>
         <td>{providerKeyBadge(provider)}</td>
         <td>{providerStatusBadge(provider)}</td>
@@ -1268,7 +1284,7 @@ function AdminApp() {
           </div>
           <div className="detail-grid read-only">
             <div><span className="detail-label">类型</span><strong>{activeProvider.provider_type}</strong></div>
-            <div><span className="detail-label">模型</span><strong>{activeProvider.model_name || "-"}</strong></div>
+            <div><span className="detail-label">模型队列</span><strong>{activeProvider.provider_type === "llm" ? modelQueueForForm(activeProvider).join(" → ") || "-" : activeProvider.model_name || "-"}</strong></div>
             <div><span className="detail-label">Base URL</span><code>{activeProvider.api_base_url || "-"}</code></div>
             <div><span className="detail-label">优先级</span><strong>#{activeProvider.priority}</strong></div>
             <div><span className="detail-label">状态</span>{providerStatusBadge(activeProvider)}</div>
@@ -1343,10 +1359,10 @@ function AdminApp() {
             API Base URL
             <input value={form.api_base_url} placeholder="https://api.openai.com/v1" onChange={(e) => setForm({ ...form, api_base_url: e.target.value })} />
           </label>
-          <label>
+          {form.provider_type !== "llm" && <label>
             Model
             <input value={form.model_name} placeholder="gpt-4o-mini" onChange={(e) => setForm({ ...form, model_name: e.target.value })} />
-          </label>
+          </label>}
           <label>
             API Key
             <input
@@ -1386,6 +1402,36 @@ function AdminApp() {
           )}
         </div>
 
+        {form.provider_type === "llm" && (
+          <div className="provider-model-queue">
+            <h4>模型列表 · 按顺序尝试</h4>
+            <p>同一 API URL 和 Key；每次请求从第 1 个模型开始。只有尚未返回有效内容时，才依次尝试后面的模型，最后再走其他 Provider 的兜底。</p>
+            {modelQueueForForm(form).map((name, index, names) => (
+              <div className="mini-actions" key={index}>
+                <span>#{index + 1}</span>
+                <input
+                  aria-label={`模型 ${index + 1}`}
+                  value={name}
+                  placeholder={index === 0 ? "首选模型 ID" : "备用模型 ID"}
+                  onChange={(event) => updateModelQueue(names.map((item, i) => i === index ? event.target.value : item))}
+                />
+                <button type="button" disabled={index === 0} onClick={() => {
+                  const next = [...names];
+                  [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                  updateModelQueue(next);
+                }}>上移</button>
+                <button type="button" disabled={index === names.length - 1} onClick={() => {
+                  const next = [...names];
+                  [next[index + 1], next[index]] = [next[index], next[index + 1]];
+                  updateModelQueue(next);
+                }}>下移</button>
+                {index > 0 && <button type="button" onClick={() => updateModelQueue(names.filter((_, i) => i !== index))}>移除</button>}
+              </div>
+            ))}
+            <button type="button" disabled={modelQueueForForm(form).length >= 20} onClick={() => updateModelQueue([...modelQueueForForm(form), ""])}>+ 添加模型</button>
+          </div>
+        )}
+
         <div className="button-row">
           <button type="button" onClick={() => void testDraftProvider()}>测试当前配置</button>
           <button type="button" onClick={() => void saveProvider()}>
@@ -1403,6 +1449,9 @@ function AdminApp() {
             <strong>{testResult.ok ? "连接成功" : "连接失败"}</strong>
             <span>{testResult.provider_name} · {testResult.model_name} · {testResult.latency_ms}ms</span>
             <p>{testResult.message}</p>
+            {testResult.model_attempts?.map((attempt, index) => (
+              <p key={`${attempt.model}-${index}`}>#{index + 1} {attempt.model} · {attempt.ok ? "成功" : "失败"} · {attempt.message}</p>
+            ))}
             {testResult.request_url && <code>{testResult.request_url}</code>}
             <pre>{testResult.response_preview || testResult.error}</pre>
           </div>
@@ -4027,13 +4076,32 @@ function normalizeForm(form: ProviderForm): Required<ProviderForm> {
     provider_type: form.provider_type,
     api_base_url: form.api_base_url,
     api_key: form.api_key ?? "",
-    model_name: form.model_name,
+    model_name: form.provider_type === "llm" ? modelQueueForForm(form)[0]?.trim() ?? "" : form.model_name,
     enabled: form.enabled ?? true,
     priority: form.priority ?? 100,
     cost_weight: form.cost_weight ?? 1,
     fallback_provider: form.fallback_provider ?? "",
-    config: form.config ?? {}
+    config: form.provider_type === "llm" ? {
+      ...(form.config ?? {}),
+      model_queue: modelQueueForForm(form).map((name) => name.trim()).filter(Boolean)
+    } : form.config ?? {}
   };
+}
+
+function modelQueueForForm(form: ProviderForm): string[] {
+  const saved = form.config?.model_queue;
+  return Array.isArray(saved) && saved.length
+    ? saved.map((name) => String(name))
+    : [form.model_name];
+}
+
+function validateModelQueueForm(form: ProviderForm): string | null {
+  if (form.provider_type !== "llm" || form.provider_name.trim().toLowerCase() === "mock") return null;
+  const names = modelQueueForForm(form).map((name) => name.trim());
+  if (!names[0]) return "请先填写首选模型 ID。";
+  if (names.some((name) => !name)) return "请填写或移除空白的备用模型。";
+  if (new Set(names).size !== names.length) return "模型列表不能重复。";
+  return null;
 }
 
 function lastTestLabel(provider: ProviderRead): string {

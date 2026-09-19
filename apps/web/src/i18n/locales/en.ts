@@ -15,6 +15,7 @@ export default {
     email: "Email",
     password: "Password",
     passwordPlaceholder: "Enter password",
+    forgotPassword: "Forgot password?",
     submit: "Sign in",
     demoSubmit: "Demo sign in",
     noAccount: "No account yet?",
