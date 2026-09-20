@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 
 export default function DownloadApp() {
   const navigate = useNavigate();
@@ -90,37 +91,55 @@ export default function DownloadApp() {
         </section>
 
         {/* Primary Download CTA */}
-        <section className="space-y-3 pt-2">
-          <a
-            href={downloadUrl}
-            download="ainerspeak.apk"
-            onClick={handleDownload}
-            className="w-full h-14 bg-gradient-to-r from-primary to-[#7822e6] text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-primary/30 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-transform cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[24px]">android</span>
-            <span>立即下载 Android 安装包</span>
-          </a>
-
-          <div className="flex gap-2.5">
+        {Capacitor.isNativePlatform() ? (
+          <section className="space-y-3 pt-2">
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+              <span className="material-symbols-outlined text-emerald-600 text-[32px] block mb-1">verified_user</span>
+              <p className="font-bold text-sm text-emerald-700">您当前已在 Android 原生客户端中运行</p>
+              <p className="text-xs text-on-surface-variant mt-1">版本 v1.0.0 · 已是最新版本</p>
+            </div>
             <button
               type="button"
-              onClick={handleCopyLink}
-              className="flex-1 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+              onClick={() => navigate("/home")}
+              className="w-full h-12 bg-primary text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
-              <span className="material-symbols-outlined text-[16px]">
-                {copied ? "check" : "content_copy"}
-              </span>
-              <span>{copied ? "下载链接已复制" : "复制下载链接"}</span>
+              <span className="material-symbols-outlined text-[18px]">home</span>
+              <span>返回主页</span>
             </button>
-            <Link
-              to="/home"
-              className="flex-1 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+          </section>
+        ) : (
+          <section className="space-y-3 pt-2">
+            <a
+              href={downloadUrl}
+              download="ainerspeak.apk"
+              onClick={handleDownload}
+              className="w-full h-14 bg-gradient-to-r from-primary to-[#7822e6] text-white rounded-2xl font-bold text-[16px] shadow-lg shadow-primary/30 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-transform cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[16px]">language</span>
-              <span>进入网页版体验</span>
-            </Link>
-          </div>
-        </section>
+              <span className="material-symbols-outlined text-[24px]">android</span>
+              <span>立即下载 Android 安装包</span>
+            </a>
+
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="flex-1 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {copied ? "check" : "content_copy"}
+                </span>
+                <span>{copied ? "下载链接已复制" : "复制下载链接"}</span>
+              </button>
+              <Link
+                to="/home"
+                className="flex-1 py-2.5 rounded-xl border border-outline-variant/30 bg-surface-container-low text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+              >
+                <span className="material-symbols-outlined text-[16px]">language</span>
+                <span>进入网页版体验</span>
+              </Link>
+            </div>
+          </section>
+        )}
 
         {/* Features Showcase */}
         <section className="space-y-3 pt-2">

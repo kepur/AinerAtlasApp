@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { fetchUserStats, resolveMediaUrl, type UserStats } from "../api";
 import { useAuthStore } from "../stores/authStore";
 import { useI18n } from "../i18n";
@@ -94,15 +95,29 @@ export default function Profile() {
       iconColor: "text-on-surface-variant",
       to: "/help"
     },
-    {
-      icon: "install_mobile",
-      label: "下载 Android 客户端",
-      sublabel: "原生高清语音与沉浸对话",
-      sublabelTone: "text-primary",
-      iconBg: "bg-emerald-500/10",
-      iconColor: "text-emerald-600",
-      to: "/download"
-    }
+    ...(Capacitor.isNativePlatform()
+      ? [
+          {
+            icon: "verified_user",
+            label: "客户端版本",
+            sublabel: "Android v1.0.0 (已是最新版)",
+            sublabelTone: "text-emerald-600",
+            iconBg: "bg-emerald-500/10",
+            iconColor: "text-emerald-600",
+            to: "/profile"
+          }
+        ]
+      : [
+          {
+            icon: "install_mobile",
+            label: "下载 Android 客户端",
+            sublabel: "原生高清语音与沉浸对话",
+            sublabelTone: "text-primary",
+            iconBg: "bg-emerald-500/10",
+            iconColor: "text-emerald-600",
+            to: "/download"
+          }
+        ])
   ];
 
   const adminMenu: MenuRow[] = [
