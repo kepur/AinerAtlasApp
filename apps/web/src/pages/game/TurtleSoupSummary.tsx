@@ -167,7 +167,7 @@ export default function TurtleSoupSummary() {
               <button
                 onClick={async () => {
                   if (crushed) return;
-                  const n = await addPatternsToCrush(patterns);
+                  const n = await addPatternsToCrush(patterns, data?.target_language);
                   setCrushed(n);
                 }}
                 className="text-[9px] text-[#8b5cf6] font-bold flex items-center"
@@ -215,7 +215,7 @@ export default function TurtleSoupSummary() {
               if (saved || saving) return;
               setSaving(true);
               const lines = [truth, ...(keyQuestions.map((q) => q.text)), ...patterns];
-              const ok = await saveGameToAssets(title, lines);
+              const ok = await saveGameToAssets(title, lines, data?.target_language);
               setSaved(ok);
               setSaving(false);
             }}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import RecallAnswer from "../components/RecallAnswer";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   apiRequest,
@@ -13,6 +14,7 @@ import {
   type PracticeExercise,
 } from "../api";
 import { useAuthStore } from "../stores/authStore";
+import { useLearningLanguageStore } from "../stores/learningLanguageStore";
 
 const BATCH_SIZE = 10;
 
@@ -114,15 +116,12 @@ function GrammarBatchModal({
             </div>
 
             <div className="bg-surface-container-low rounded-2xl p-4 mb-4">
-              <p className="text-[13px] text-outline mb-1">{item.title}</p>
               <p className="text-[15px] text-on-surface leading-relaxed">{exercise.prompt}</p>
-              {item.examples?.[0] && (
-                <p className="text-[13px] text-primary italic mt-2">"{item.examples[0]}"</p>
-              )}
             </div>
 
             {!answered ? (
               <div className="space-y-2 mb-4">
+                {!exercise.options?.length && <RecallAnswer key={item.id} busy={busy} onSubmit={onPick} />}
                 {(exercise.options ?? []).map((opt) => (
                   <button
                     key={opt}
@@ -212,7 +211,7 @@ function GrammarBatchModal({
 
 export default function PatternCrush() {
   const navigate = useNavigate();
-  const profile = useAuthStore((s) => s.profile);
+  const language = useLearningLanguageStore((s) => s.language);
   const [queue, setQueue] = useState<MasteryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -233,19 +232,19 @@ export default function PatternCrush() {
 
   const prefetchBatch = useCallback(async () => {
     try {
-      const data = await startGrammarBatch(BATCH_SIZE);
+      const data = await startGrammarBatch(BATCH_SIZE, language);
       if (data.items.length > 0 && (data.exercises?.length ?? 0) > 0) {
         setPreloadedBatch(data);
       }
     } catch {
       /* background prefetch */
     }
-  }, []);
+  }, [language]);
 
   async function loadQueue() {
     setLoading(true);
     try {
-      const data = await apiRequest<MasteryItem[]>("/api/grammar/queue");
+      const data = await apiRequest<MasteryItem[]>(`/api/grammar/queue?language_code=${language}`);
       setQueue(data.filter((q) => q.item_type !== "vocabulary"));
     } catch {
       setQueue([]);
@@ -286,7 +285,7 @@ export default function PatternCrush() {
     setBatchError("");
     setBatchBusy(true);
     try {
-      const data = preloadedBatch?.items.length ? preloadedBatch : await startGrammarBatch(BATCH_SIZE);
+      const data = preloadedBatch?.items.length ? preloadedBatch : await startGrammarBatch(BATCH_SIZE, language);
       setPreloadedBatch(null);
       if (!data.items.length || !(data.exercises?.length ?? 0)) {
         setBatchError("暂无待练句型，多聊几句让 AI 发现你的短板吧");
@@ -395,9 +394,7 @@ export default function PatternCrush() {
   const crushed = queue.filter((q) => q.mastery_score >= 80);
   const focus = [...queue].sort((a, b) => a.mastery_score - b.mastery_score).slice(0, 3);
 
-  const grammar = Math.round(profile?.grammar_level_score ?? 0);
-  const expression = Math.round(profile?.vocabulary_level_score ?? 0);
-  const fluency = Math.round(profile?.fluency_score ?? 0);
+  const grammar = queue.length ? Math.round(queue.reduce((sum, item) => sum + item.mastery_score, 0) / queue.length) : 0;
   const review = queue.length ? Math.round((crushed.length / queue.length) * 100) : 0;
 
   return (
@@ -413,7 +410,7 @@ export default function PatternCrush() {
       </header>
 
       <main className="px-margin-mobile pb-28 space-y-8 pt-4">
-        <p className="font-body-md text-on-surface-variant">四选一辨析句型，即时判对错，10 题完成后 AI 解析</p>
+        <p className="font-body-md text-on-surface-variant">当前语言的课程辨析与原句回忆，即时判分；AI 可辅助解释。</p>
 
         <CrushTabsPremium />
 
@@ -432,7 +429,7 @@ export default function PatternCrush() {
           {loading ? (
             <p className="text-body-md text-on-surface-variant">加载中…</p>
           ) : focus.length === 0 ? (
-            <p className="text-[13px] text-on-surface-variant">多进行对话，AI 会自动发现你的语法短板。</p>
+            <button onClick={() => navigate("/learn/foundations")} className="text-[13px] text-primary text-left">还没有本语言的练习？先学问答与句子骨架，所学会自动加入这里 →</button>
           ) : (
             <div className="space-y-4 pt-2">
               {focus.map((item, i) => {
@@ -465,10 +462,8 @@ export default function PatternCrush() {
         <section className="space-y-4">
           <h2 className="font-headline-md text-headline-md text-on-surface">学习雷达</h2>
           <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
-            <RadarRing label="Grammar" value={grammar} color="#630ed4" />
-            <RadarRing label="Expression" value={expression} color="#00885d" />
-            <RadarRing label="Fluency" value={fluency} color="#2170e4" />
-            <RadarRing label="Review" value={review} color="#ba1a1a" />
+            <RadarRing label="本语言队列熟练度" value={grammar} color="#630ed4" />
+            <RadarRing label="高熟练项目占比" value={review} color="#00885d" />
           </div>
         </section>
 

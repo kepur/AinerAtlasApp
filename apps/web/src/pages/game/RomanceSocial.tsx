@@ -347,7 +347,7 @@ export default function RomanceSocial() {
     if (prevTurnLoadingRef.current && !turnLoading && shouldAutoRead) {
       const lastChar = [...feedItems].reverse().find((f) => f.type === "char_msg");
       const text = lastChar?.text ? String(lastChar.text).trim() : "";
-      if (text) speak(text, "en-US");
+      if (text) speak(text);
     }
     prevTurnLoadingRef.current = turnLoading;
   }, [turnLoading, feedItems, shouldAutoRead, speak]);
@@ -571,7 +571,7 @@ export default function RomanceSocial() {
                         {delta !== 0 && (
                           <span className={`text-[9px] font-bold ${delta > 0 ? "text-rose-500" : "text-slate-400"}`}>{delta > 0 ? `+${delta} ${dimension}` : `${delta} ${dimension}`}</span>
                         )}
-                        <TTSButton text={String(msg.text || "")} lang="en" voice={characterVoice} size={10} className={`w-5 h-5 rounded-full ${th.ttsBg} flex items-center justify-center ${th.bubbleText}`} />
+                        <TTSButton text={String(msg.text || "")} lang={currentSession?.target_language} voice={characterVoice} size={10} className={`w-5 h-5 rounded-full ${th.ttsBg} flex items-center justify-center ${th.bubbleText}`} />
                       </div>
                       <div className={`bg-white rounded-[18px] rounded-tl-[4px] px-4 py-2.5 shadow-sm border ${th.accentBorderLight}`}>
                         <p className="text-[13px] text-[#1f2937] leading-snug">{msg.text}</p>

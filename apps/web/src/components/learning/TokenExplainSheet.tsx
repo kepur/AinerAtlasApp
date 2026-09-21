@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useContentLanguage } from "../../hooks/useContentLanguage";
 import { Flame, Loader, Volume2, X } from "lucide-react";
 import type { TokenExplain } from "../../api";
 import { addCrushCandidate, explainToken } from "../../api";
@@ -11,17 +12,18 @@ type Props = {
 };
 
 export function TokenExplainSheet({ token, context, onClose, speak }: Props) {
+  const language = useContentLanguage();
   const [data, setData] = useState<TokenExplain | null>(null);
   const [loading, setLoading] = useState(true);
   const [crushDone, setCrushDone] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    explainToken(token, context)
+    explainToken(token, context, "zh", language)
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [token, context]);
+  }, [token, context, language]);
 
   return (
     <div className="knowledge-modal-overlay" onClick={onClose}>
@@ -41,7 +43,7 @@ export function TokenExplainSheet({ token, context, onClose, speak }: Props) {
         ) : data ? (
           <div className="token-body">
             <div className="token-toprow">
-              <button className="token-speak" onClick={() => speak(token, "en-US")}>
+              <button className="token-speak" onClick={() => speak(token)}>
                 <Volume2 size={14} /> 朗读
               </button>
               {data.part_of_speech && <span className="token-pos">{data.part_of_speech}</span>}
@@ -57,7 +59,7 @@ export function TokenExplainSheet({ token, context, onClose, speak }: Props) {
             {data.example && (
               <div className="token-example">
                 <span style={{ fontSize: 13 }}>📝 {data.example}</span>
-                <button className="tts-btn" onClick={() => speak(data.example, "en-US")}>
+                <button className="tts-btn" onClick={() => speak(data.example)}>
                   <Volume2 size={12} />
                 </button>
               </div>
@@ -67,7 +69,7 @@ export function TokenExplainSheet({ token, context, onClose, speak }: Props) {
               onClick={async () => {
                 if (crushDone || !data) return;
                 try {
-                  await addCrushCandidate(token, data.example, "en", "vocabulary");
+                  await addCrushCandidate(token, data.example, language, "vocabulary");
                   setCrushDone(true);
                 } catch {
                   /* ignore */

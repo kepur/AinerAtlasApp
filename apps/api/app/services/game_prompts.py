@@ -27,10 +27,22 @@ GAME_PROMPT_KEYS = {
     "roleplay.narrative": "角色扮演·叙事/角色对白/选择",
     "social_logic.answer": "狼人杀·被质疑玩家回应",
     "social_logic.hud": "狼人杀·学习HUD",
+    "roleplay.hud": "角色扮演·学习HUD",
 }
 
 
-def get_game_prompt(db: Session, key: str, default: str, **fmt) -> str:
+def language_prompt(prompt: str, target_language: str, native_language: str = "zh") -> str:
+    """Bind a prompt to the session's language contract.
+
+    Thin wrapper over :mod:`app.services.language_contract` so existing engine
+    call sites keep working; the contract owns the actual wording.
+    """
+    from app.services.language_contract import contract
+
+    return contract(target_language, native_language).localize(prompt)
+
+
+def get_game_prompt(db: Session, key: str, default: str, *, target_language: str = "en", native_language: str = "zh", **fmt) -> str:
     """Return the admin override for ``key`` formatted with ``fmt``, else default.
 
     Safe: any lookup/format error falls back to the supplied default prompt.
@@ -43,10 +55,10 @@ def get_game_prompt(db: Session, key: str, default: str, **fmt) -> str:
             )
         ).scalars().first()
         if row and row.content and row.content.strip():
-            return row.content.format(**fmt) if fmt else row.content
+            default = row.content.format(**fmt) if fmt else row.content
     except Exception as exc:  # noqa: BLE001 — never let prompt editing break a game
         logger.warning("game prompt override failed for %s: %s", key, exc)
-    return default
+    return language_prompt(default, target_language, native_language)
 
 
 def seed_game_prompts(db: Session) -> int:

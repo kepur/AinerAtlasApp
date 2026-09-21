@@ -60,6 +60,7 @@ import MindGraph from "./pages/studio/MindGraph";
 import ThoughtWorkspace from "./pages/studio/ThoughtWorkspace";
 import VersionDiff from "./pages/studio/VersionDiff";
 import { useAuthStore } from "./stores/authStore";
+import { useLearningLanguageStore } from "./stores/learningLanguageStore";
 import { startPresenceHeartbeat, stopPresenceHeartbeat } from "./lib/presenceHeartbeat";
 
 import MatchDetail from "./pages/MatchDetail";
@@ -71,15 +72,36 @@ import SoulmateQuestionnaire from "./pages/SoulmateQuestionnaire";
 import FollowRead from "./pages/FollowRead";
 import Help from "./pages/Help";
 import SurvivalSprint from "./pages/SurvivalSprint";
+import LearningModule from "./pages/LearningModule";
+import LearningPath from "./components/LearningPath";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import { useChatStore } from "./stores/chatStore";
+import { useGameStore } from "./stores/gameStore";
 import DownloadApp from "./pages/DownloadApp";
 
 function AppLayout() {
   const location = useLocation();
+  const language = useLearningLanguageStore((s) => s.language);
+  const profile = useAuthStore((s) => s.profile);
+  const initFromProfile = useLearningLanguageStore((s) => s.initFromProfile);
+  useEffect(() => { if (profile) initFromProfile(profile); }, [profile, initFromProfile]);
+  useEffect(() => {
+    useChatStore.getState().clearCurrent();
+    useChatStore.setState({ conversations: [] });
+    useGameStore.getState().clearCurrent();
+    useGameStore.setState({ sessions: [] });
+  }, [language, profile?.user_id]);
+  if (!profile) return <div className="p-8 text-center">正在同步学习设置…<button className="block mx-auto mt-4 text-primary" onClick={() => void useAuthStore.getState().loadProfile()}>重新加载</button></div>;
   return (
     <div className="app-layout">
       <div className="app-content relative">
+        {!["/home", "/survival-sprint"].includes(location.pathname) && !location.pathname.startsWith("/learn/") && (
+          <div className="flex items-center justify-between px-4 py-2 bg-surface-container-lowest border-b border-outline-variant/20">
+            <span className="text-[11px] text-on-surface-variant">全局学习语言 · 各语言独立记录</span><LanguageSwitcher />
+          </div>
+        )}
         <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
+          <Routes location={location} key={`${profile.user_id}:${language}:${location.pathname}`}>
           <Route path="/home" element={<Home />} />
           <Route path="/game" element={<GameHome />} />
           <Route path="/game/template/:id" element={<GameTemplateDetail />} />
@@ -140,7 +162,9 @@ function AppLayout() {
           <Route path="/match/:id" element={<MatchDetail />} />
           <Route path="/voice" element={<VoiceCoachGate />} />
           <Route path="/follow-read" element={<FollowRead />} />
-          <Route path="/survival-sprint" element={<SurvivalSprint />} />
+          <Route path="/survival-sprint" element={<div className="p-4 space-y-5"><div className="flex justify-between items-center"><h1 className="font-bold text-xl">我的学习路线</h1><LanguageSwitcher /></div><LearningPath /><a className="block text-xs text-primary" href="/survival-sprint/reference">查看旧版课程参考与历史进度</a></div>} />
+          <Route path="/survival-sprint/reference" element={<SurvivalSprint />} />
+          <Route path="/learn/:moduleId" element={<LearningModule />} />
           <Route path="/soulmate-questionnaire" element={<SoulmateQuestionnaire />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} />
@@ -170,17 +194,21 @@ function StudioLayout() {
 
 export default function App() {
   const { isLoggedIn, loadUser, loadProfile } = useAuthStore();
+  const initFromProfile = useLearningLanguageStore((s) => s.initFromProfile);
 
   useEffect(() => {
     if (isLoggedIn) {
       loadUser();
-      loadProfile();
+      loadProfile().then(() => {
+        const profile = useAuthStore.getState().profile;
+        if (profile) initFromProfile(profile);
+      });
       startPresenceHeartbeat(true);
     } else {
       stopPresenceHeartbeat();
     }
     return () => stopPresenceHeartbeat();
-  }, [isLoggedIn, loadUser, loadProfile]);
+  }, [isLoggedIn, loadUser, loadProfile, initFromProfile]);
 
   return (
     <main className="app-shell">

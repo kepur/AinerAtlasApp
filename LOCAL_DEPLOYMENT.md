@@ -200,6 +200,16 @@ VITE_API_PROXY=http://127.0.0.1:7070 npm run dev
 
 访问 `https://localhost:7075`。
 
+如需与当前开发预览一致，使用 HTTP（仅本机开发）：
+
+```bash
+VITE_DEV_HTTPS=false VITE_API_PROXY=http://127.0.0.1:7070 npm run dev -- --host 127.0.0.1 --port 7075 --strictPort
+```
+
+此时访问 `http://localhost:7075/home`。不要同时启动两个占用 7075 的 Web 进程。
+已有 SQLite 和 `.env` 保持原样；本机能够打开固定课程，不代表 Redis、云端 LLM
+及所有语音能力都已可用，需要分别检查依赖和免费模型额度。
+
 ### Admin Vite
 
 另开终端：

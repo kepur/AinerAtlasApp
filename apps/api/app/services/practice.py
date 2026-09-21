@@ -41,42 +41,24 @@ def take_exercise(user_id: str, item_id: str, token: str) -> PracticeExercise | 
 
 
 def generate_exercise(item: UserMastery, *, exercise_type: str | None = None) -> PracticeExercise:
-    """Generate a Pattern Crush exercise for a mastery item."""
-    exercise_types = ["translate", "fix_error", "choose_natural"]
-    picked_type = exercise_type if exercise_type in exercise_types else random.choice(exercise_types)
+    """Use a pack's authored question; never fabricate English grammar for other languages."""
+    from app.services.learning_curriculum import authored_exercise
+    lesson = authored_exercise(item)
+    if lesson:
+        return PracticeExercise(exercise_type="choose_natural", prompt=lesson["prompt"],
+            hint=lesson["rule"], options=lesson["options"], correct_answer=lesson["answer"])
+    # Ad-hoc mined expressions lack reviewed distractors/meanings. A transparent
+    # recall drill is safer than pretending a fake sentence is a grammar rule.
     title = item.title
-
-    if picked_type == "translate":
-        return PracticeExercise(
-            exercise_type=picked_type,
-            prompt=f"请将以下中文意思翻译为 {item.language_code}: 「与「{title}」相关的表达」",
-            hint=item.examples[0] if item.examples else f"Use the pattern: {title}",
-            correct_answer=title,
-        )
-
-    if picked_type == "fix_error":
-        wrong = title.replace(" is ", " are ") if " is " in title else f"{title} have"
-        return PracticeExercise(
-            exercise_type=picked_type,
-            prompt=f"请改正这个句子: {wrong}",
-            hint="Check grammar and naturalness.",
-            correct_answer=title,
-        )
-
-    options = [title]
-    distractors = [
-        f"Maybe {title.lower()}",
-        f"I think about {title.lower()} sometimes",
-        f"{title} is very important for me",
-    ]
-    for candidate in distractors:
-        if candidate not in options and len(options) < 4:
-            options.append(candidate)
-    random.shuffle(options)
+    if len(title) < 2:
+        masked = "____"
+    else:
+        start = len(title) // 3
+        masked = title[:start] + "____" + title[min(len(title), start + max(1, len(title) // 3)):]
     return PracticeExercise(
-        exercise_type=picked_type,
-        prompt="请选择更自然的表达:",
-        options=options,
+        exercise_type="translate",
+        prompt=f"回忆你收集的表达，输入完整原句：{masked}",
+        hint="这是原句回忆练习；课程模块内提供按语言编写的辨析题。",
         correct_answer=title,
     )
 

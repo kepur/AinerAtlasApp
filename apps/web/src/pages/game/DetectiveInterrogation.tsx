@@ -195,7 +195,7 @@ export default function DetectiveInterrogation() {
           <div className="detective-hint-body">
             <div className="flex items-center gap-2">
               <span className="detective-hint-en">{hintEn}</span>
-              <TTSButton text={hintEn} lang="en" voice="neutral_narrator" size={12} className="detective-glass-icon-btn" />
+              <TTSButton text={hintEn} lang={currentSession?.target_language} voice="neutral_narrator" size={12} className="detective-glass-icon-btn" />
             </div>
             <span className="detective-hint-zh">{hintZh}</span>
             <div className="detective-chip-row">
@@ -242,7 +242,7 @@ export default function DetectiveInterrogation() {
                 <span className="text-[11px] font-bold text-[#7c3aed] ml-1 mb-0.5 inline-flex items-center gap-1.5">
                   {(msg.suspect_name as string) || suspect.name}
                   {!msg._thinking && msg.text ? (
-                    <TTSButton text={String(msg.text || "")} lang="en" voice={suspect.voice || "neutral_narrator"} size={10} className="w-5 h-5 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 hover:bg-purple-100 transition-colors" />
+                    <TTSButton text={String(msg.text || "")} lang={currentSession?.target_language} voice={suspect.voice || "neutral_narrator"} size={10} className="w-5 h-5 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 hover:bg-purple-100 transition-colors" />
                   ) : null}
                   {msg.emotion && !msg._thinking ? (
                     <span className="text-[#9ca3af] font-normal ml-1 bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded-full text-[9px]">

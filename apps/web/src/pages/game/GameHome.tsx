@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Play, Brain, Search, Heart, Dices, RotateCcw, Users, Bell, Search as SearchIcon, Loader2, Library } from "lucide-react";
 import { useGameStore, GameTemplate } from "../../stores/gameStore";
 import "./GameHome.css";
+import { useLearningLanguageStore } from "../../stores/learningLanguageStore";
 
 const GAME_TYPE_PATHS: Record<string, (slug: string) => string> = {
   turtle_soup: (slug) => `/game/turtle-soup/detail/${slug}`,
@@ -53,6 +54,7 @@ function sessionPath(gameType: string, id: string): string {
 
 export default function GameHome() {
   const navigate = useNavigate();
+  const language = useLearningLanguageStore((s) => s.language);
   const werewolfNavRef = useRef(false);
   const { templates, templatesLoading, sessions, loadTemplates, loadSessions } = useGameStore();
 
@@ -200,7 +202,7 @@ export default function GameHome() {
                         {t.game_type === "turtle_soup" ? <Brain size={10} /> : t.game_type === "roleplay" ? <Users size={10} /> : <Search size={10} />}
                         {GAME_TYPE_LABEL[t.game_type] || t.game_type}
                       </span>
-                      <span>{t.target_language === "en" ? "English" : t.target_language}</span>
+                      <span>{language.toUpperCase()} · 当前学习语言</span>
                       <span>{t.difficulty}</span>
                       <span>{t.estimated_minutes} 分钟</span>
                     </div>

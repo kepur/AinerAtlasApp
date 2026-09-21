@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../api";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import TTSButton from "../components/TTSButton";
 import VocabularyLadder from "../components/VocabularyLadder";
 import { useAuthStore } from "../stores/authStore";
+import { useLearningLanguageStore } from "../stores/learningLanguageStore";
 
 type Example = { target: string; native: string };
 type DnaCard = {
@@ -73,29 +75,14 @@ type CourseCatalog = {
 };
 
 const STEPS = ["语言 DNA", "功能按钮", "造句流水线", "场景实战", "完成"];
-const COURSE_LANGUAGE_KEY = "ainerspeak:survival-language";
-const LANGUAGE_GLYPHS: Record<string, string> = {
-  sr: "SR", en: "EN", es: "ES", fr: "FR", de: "DE", ja: "あ", ko: "한",
-};
-const LANGUAGE_AURAS: Record<string, string> = {
-  sr: "from-sky-400 to-indigo-500",
-  en: "from-violet-400 to-fuchsia-500",
-  es: "from-amber-400 to-rose-500",
-  fr: "from-blue-400 to-violet-500",
-  de: "from-slate-500 to-amber-500",
-  ja: "from-rose-400 to-pink-500",
-  ko: "from-cyan-400 to-blue-600",
-};
 
 export default function SurvivalSprint() {
   const navigate = useNavigate();
   const loadProfile = useAuthStore((state) => state.loadProfile);
+  const { language, switching } = useLearningLanguageStore();
   const [catalog, setCatalog] = useState<CourseCatalog | null>(null);
-  const [language, setLanguage] = useState("");
   const [data, setData] = useState<SprintData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [switching, setSwitching] = useState(false);
-  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [expandedDna, setExpandedDna] = useState("");
   const [reviewing, setReviewing] = useState<Set<string>>(new Set());
@@ -109,12 +96,7 @@ export default function SurvivalSprint() {
 
   useEffect(() => {
     apiRequest<CourseCatalog>("/api/survival-sprint/catalog")
-      .then((result) => {
-        setCatalog(result);
-        const remembered = localStorage.getItem(COURSE_LANGUAGE_KEY);
-        const supported = new Set(result.languages.map((item) => item.code));
-        setLanguage(remembered && supported.has(remembered) ? remembered : result.selected_language);
-      })
+      .then((result) => setCatalog(result))
       .catch(() => setLoading(false));
   }, []);
 
@@ -137,7 +119,6 @@ export default function SurvivalSprint() {
       })
       .finally(() => {
         setLoading(false);
-        setSwitching(false);
       });
   }, [language]);
 
@@ -158,24 +139,6 @@ export default function SurvivalSprint() {
       ...current,
       learner: { ...current.learner, progress },
     } : current);
-  }
-
-  async function switchLanguage(nextLanguage: string) {
-    setLanguageMenuOpen(false);
-    if (nextLanguage === language) return;
-    setSwitching(true);
-    localStorage.setItem(COURSE_LANGUAGE_KEY, nextLanguage);
-    try {
-      await apiRequest("/api/survival-sprint/select-language", {
-        method: "POST",
-        body: JSON.stringify({ language: nextLanguage }),
-      });
-      await loadProfile();
-      setLanguage(nextLanguage);
-    } catch {
-      setSwitching(false);
-      setReviewMessage("语言切换失败，请稍后重试。");
-    }
   }
 
   async function persistPosition(nextStep: number, nextScenario = scenarioIndex, nextTurn = turnIndex) {
@@ -267,7 +230,6 @@ export default function SurvivalSprint() {
   const safeTurnIndex = Math.min(turnIndex, Math.max(0, (scenario?.turns.length ?? 1) - 1));
   const turn = scenario?.turns[safeTurnIndex];
   const dailyPercent = Math.min(100, Math.round((progress.today_count / progress.daily_goal) * 100));
-  const currentLanguage = catalog.languages.find((item) => item.code === language) ?? catalog.languages[0];
 
   return (
     <div className="premium min-h-full bg-surface text-on-surface pb-24">
@@ -278,109 +240,7 @@ export default function SurvivalSprint() {
             <h1 className="font-bold text-[16px] truncate">{data.course.name}</h1>
             <p className="text-[11px] text-on-surface-variant">{data.course.stage} · {STEPS[step]} · 自动保存</p>
           </div>
-          <div className="relative shrink-0">
-            <motion.button
-              type="button"
-              aria-label="切换学习语言"
-              aria-expanded={languageMenuOpen}
-              disabled={switching}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => setLanguageMenuOpen((open) => !open)}
-              className="group flex h-10 items-center gap-2 rounded-full border border-primary/15 bg-surface-container-lowest/90 py-1 pl-1 pr-2.5 shadow-[0_8px_24px_rgba(82,43,180,0.10)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_12px_28px_rgba(82,43,180,0.16)] disabled:opacity-60"
-            >
-              <span className={`relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${LANGUAGE_AURAS[language]} text-[10px] font-black tracking-tight text-white shadow-sm`}>
-                <span className="absolute inset-0 rounded-full bg-white/15 animate-pulse-soft" />
-                <span className="relative">{LANGUAGE_GLYPHS[language] ?? language.toUpperCase()}</span>
-              </span>
-              <span className="max-w-[72px] truncate text-[11px] font-bold text-on-surface">
-                {switching ? "切换中" : currentLanguage?.native_name}
-              </span>
-              <motion.span
-                animate={{ rotate: languageMenuOpen ? 180 : 0 }}
-                className="material-symbols-outlined text-[18px] text-primary"
-              >
-                expand_more
-              </motion.span>
-            </motion.button>
-
-            <AnimatePresence>
-              {languageMenuOpen && (
-                <>
-                  <motion.button
-                    type="button"
-                    aria-label="关闭语言选择"
-                    className="fixed inset-0 z-40 cursor-default bg-transparent"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setLanguageMenuOpen(false)}
-                  />
-                  <motion.div
-                    role="dialog"
-                    aria-label="选择练习语言"
-                    initial={{ opacity: 0, y: -10, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                    className="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(320px,calc(100vw-24px))] overflow-hidden rounded-[24px] border border-white/70 bg-surface-container-lowest/95 p-3 shadow-[0_24px_70px_rgba(42,23,88,0.24)] backdrop-blur-2xl"
-                  >
-                    <div className="flex items-start justify-between px-2 pb-3 pt-1">
-                      <div>
-                        <p className="text-[14px] font-black text-on-surface">今天想练哪一种？</p>
-                        <p className="mt-0.5 text-[10px] text-on-surface-variant">每种语言都有独立进度</p>
-                      </div>
-                      <span className="rounded-full bg-primary/8 px-2 py-1 text-[9px] font-bold text-primary">7 种语言</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {catalog.languages.map((item, index) => {
-                        const active = item.code === language;
-                        const itemProgress = active ? progress : item.progress;
-                        const stage = itemProgress ? STEPS[itemProgress.current_step] : "从 L0 开始";
-                        const completion = itemProgress ? ((itemProgress.current_step + 1) / STEPS.length) * 100 : 0;
-                        return (
-                          <motion.button
-                            type="button"
-                            key={item.code}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.025 }}
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => void switchLanguage(item.code)}
-                            className={`relative min-h-[82px] overflow-hidden rounded-2xl border p-2.5 text-left transition ${active ? "border-primary/35 bg-primary/[0.09] shadow-[inset_0_0_0_1px_rgba(101,54,217,0.08)]" : "border-outline-variant/20 bg-surface/65 hover:border-primary/20 hover:bg-primary/[0.04]"}`}
-                          >
-                            {active && <motion.span layoutId="language-active-glow" className="absolute -right-5 -top-5 h-16 w-16 rounded-full bg-primary/15 blur-xl" />}
-                            <div className="relative flex items-center gap-2">
-                              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] bg-gradient-to-br ${LANGUAGE_AURAS[item.code]} text-[10px] font-black text-white shadow-sm`}>
-                                {LANGUAGE_GLYPHS[item.code] ?? item.code.toUpperCase()}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1">
-                                  <p className="truncate text-[12px] font-black">{item.native_name}</p>
-                                  {active && <span className="material-symbols-outlined text-[15px] text-primary">check_circle</span>}
-                                </div>
-                                <p className="truncate text-[9px] text-on-surface-variant">{item.name}</p>
-                              </div>
-                            </div>
-                            <div className="relative mt-2.5 flex items-center gap-2">
-                              <div className="h-1 flex-1 overflow-hidden rounded-full bg-primary/10">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${completion}%` }}
-                                  className={`h-full rounded-full bg-gradient-to-r ${LANGUAGE_AURAS[item.code]}`}
-                                />
-                              </div>
-                              <span className="max-w-[62px] truncate text-[8px] font-bold text-on-surface-variant">{stage}</span>
-                            </div>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+          <LanguageSwitcher />
         </div>
         <div className="mt-3 h-1.5 rounded-full bg-surface-container overflow-hidden">
           <div className="h-full bg-primary transition-all" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />

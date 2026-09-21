@@ -58,18 +58,18 @@ def test_vocab_pick_word_practice_and_batch_summary() -> None:
         assert len(body["items"]) >= 1
         assert len(body["exercises"]) >= 1
         assert body["exercises"][0]["exercise_token"]
-        assert body["exercises"][0]["exercise"]["exercise_type"] == "pick_near_synonym"
+        assert body["exercises"][0]["exercise"]["exercise_type"] == "pick_target_word"
 
         practice = client.get(f"/api/vocabulary/{item_id}/practice", headers=headers)
         assert practice.status_code == 200
         pdata = practice.json()
-        assert pdata["exercise"]["exercise_type"] == "pick_near_synonym"
+        assert pdata["exercise"]["exercise_type"] == "pick_target_word"
         assert "______" in pdata["exercise"]["sentence"]
-        assert "稳定性" not in pdata["exercise"]["prompt"]
+        assert "稳定性" in pdata["exercise"]["prompt"]
         assert pdata["exercise_token"]
         assert len(pdata["exercise"]["options"]) == 4
         assert "stability" in [o.lower() for o in pdata["exercise"]["options"]]
-        assert "balance" in [o.lower() for o in pdata["exercise"]["options"]]
+        assert "water" in [o.lower() for o in pdata["exercise"]["options"]]
 
         wrong = client.post(
             f"/api/vocabulary/{item_id}/practice",

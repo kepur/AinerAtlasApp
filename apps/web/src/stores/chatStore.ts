@@ -39,6 +39,7 @@ type ChatState = {
 
   loadConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
+  recoverMessageAnalysis: (conversationId: string, messageId: string) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
   archiveConversation: (id: string) => Promise<void>;
   createConversation: (opts?: {
@@ -217,8 +218,37 @@ export const useChatStore = create<ChatState>((set, get) => ({
         hud: latest?.hud ?? null,
         loading: false,
       });
+
+      // The reply is committed before its analysis runs. If the stream dropped
+      // mid-analysis last time, finish it now so the HUD is not lost.
+      const stranded = (conversation.messages || []).find(
+        (m: any) =>
+          m.role === "assistant" && m.analysis?.stream_status === "pending_analysis"
+      );
+      if (stranded) void get().recoverMessageAnalysis(id, stranded.id);
     } catch (e) {
       set({ loading: false, error: e instanceof Error ? e.message : "加载失败" });
+    }
+  },
+
+  /**
+   * Finish an analysis that was interrupted mid-stream. The endpoint runs it on
+   * demand and backfills the message, so one call is enough.
+   */
+  recoverMessageAnalysis: async (conversationId, messageId) => {
+    set({ streamPhase: "analyzing" });
+    try {
+      const res = await apiRequest<{ status: string; analysis: Record<string, unknown> }>(
+        `/api/conversations/${conversationId}/messages/${messageId}/analysis`
+      );
+      if (res.status === "complete" && res.analysis) {
+        set({ hud: res.analysis as HudData, streamPhase: null });
+      } else {
+        set({ streamPhase: null });
+      }
+    } catch (e) {
+      console.warn("could not recover message analysis", e);
+      set({ streamPhase: null });
     }
   },
 
@@ -252,8 +282,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           title: opts?.title ?? "新的思想对话",
           topic: opts?.topic ?? "free-talk",
           mode: opts?.mode ?? "socratic",
-          native_language: "zh",
-          target_language: "en"
+          native_language: "zh"
         })
       });
       set((s) => ({

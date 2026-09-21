@@ -128,6 +128,7 @@ def record_course_attempt(
     expected_answer: str,
     native_meaning: str,
     details: dict | None = None,
+    add_vocabulary: bool = True,
 ) -> dict:
     _touch_practice_day(progress)
     if correct:
@@ -171,7 +172,9 @@ def record_course_attempt(
             VocabularyItem.topic == topic,
         )
     )
-    if not vocabulary:
+    if not add_vocabulary:
+        pass  # The modular curriculum bridges word vs. pattern into the correct queue.
+    elif not vocabulary:
         vocabulary = VocabularyItem(
             user_id=progress.user_id,
             word=expected_answer[:120],

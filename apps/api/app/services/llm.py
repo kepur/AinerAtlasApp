@@ -705,17 +705,17 @@ def compact(text: str, limit: int = 120) -> str:
 
 
 def language_name(code: str) -> str:
-    names = {
-        "en": "English",
-        "zh": "Chinese",
-        "de": "German",
-        "es": "Spanish",
-        "fr": "French",
-        "sr": "Serbian",
-        "ja": "Japanese",
-        "ko": "Korean",
-    }
-    return names.get(code, code)
+    """English name of a locale, from the shared catalog (never English-only)."""
+    from app.services.languages import LOCALE_CATALOG, normalize_locale
+
+    normalized = normalize_locale(code or "")
+    info = LOCALE_CATALOG.get(normalized)
+    if info:
+        return info["name"]
+    # Locales served by the curriculum but not offered as UI languages.
+    return {"de": "German", "it": "Italian", "tr": "Turkish", "vi": "Vietnamese"}.get(
+        normalized, code
+    )
 
 
 # ------------------------------------------------------------------

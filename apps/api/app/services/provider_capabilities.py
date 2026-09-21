@@ -184,16 +184,25 @@ def _realtime_voice_capability(db: Session) -> ProviderCapability:
 def _tts_capability(db: Session) -> ProviderCapability:
     app = db.get(AppSettings, "default")
     tts_provider = getattr(app, "tts_provider", "edge") or "edge" if app else "edge"
-    tts_voice = getattr(app, "tts_voice", "zh-CN-XiaoxiaoNeural") or "zh-CN-XiaoxiaoNeural" if app else "zh-CN-XiaoxiaoNeural"
+    tts_voice = (getattr(app, "tts_voice", "") or "") if app else ""
 
     if tts_provider in {"edge", "browser"}:
+        from app.services.tts_profile import supported_languages
+
+        # An empty voice is the normal, preferred state: each language uses its
+        # own neural voice and pace from tts_profile. A configured voice only
+        # applies to the language it belongs to.
+        if tts_voice:
+            detail = f"固定音色 {tts_voice}（仅对同语言生效，其他语言按语言自动选择）"
+        else:
+            detail = f"按内容语言自动选择音色与语速，已覆盖 {len(supported_languages())} 种语言"
         return ProviderCapability(
             key="tts",
             label="语音合成 (TTS)",
             features=("句子朗读", "逐词发音", "跟读评测"),
             status="ready",
-            active_provider=f"edge-tts / {tts_voice}",
-            message=f"使用服务端 Microsoft Edge TTS（{tts_voice}），不调用浏览器或系统语音。",
+            active_provider=f"edge-tts / {tts_voice or 'auto'}",
+            message=f"使用服务端 Microsoft Edge TTS：{detail}。不调用浏览器或系统语音。",
         )
     if tts_provider == "cosyvoice":
         global_keys = getattr(app, "global_api_keys", {}) or {} if app else {}

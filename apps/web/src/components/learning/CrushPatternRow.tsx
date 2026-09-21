@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useContentLanguage } from "../../hooks/useContentLanguage";
 import { Flame, Volume2 } from "lucide-react";
 import type { ChatV2PatternItem } from "../../api";
 import { addCrushCandidate } from "../../api";
@@ -9,11 +10,12 @@ type Props = {
 };
 
 export function CrushPatternRow({ pattern, speak }: Props) {
+  const language = useContentLanguage();
   const [added, setAdded] = useState(false);
   const handleAdd = async () => {
     if (added) return;
     try {
-      await addCrushCandidate(pattern.pattern, pattern.example);
+      await addCrushCandidate(pattern.pattern, pattern.example, language);
       setAdded(true);
     } catch {
       /* ignore */
@@ -25,7 +27,7 @@ export function CrushPatternRow({ pattern, speak }: Props) {
         <p className="crush-pattern-label">{pattern.pattern}</p>
         {pattern.example && <p className="crush-pattern-example">{pattern.example}</p>}
       </div>
-      <button className="tts-btn" onClick={() => speak(pattern.example || pattern.pattern, "en-US")}>
+      <button className="tts-btn" onClick={() => speak(pattern.example || pattern.pattern)}>
         <Volume2 size={13} />
       </button>
       <button className={`hud-crush-btn ${added ? "added" : ""}`} onClick={handleAdd}>

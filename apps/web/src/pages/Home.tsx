@@ -2,12 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../api";
 import ConversationModePicker from "../components/ConversationModePicker";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import LearningPath from "../components/LearningPath";
 import TodayTopicsSection, { type TodayTopic } from "../components/TodayTopicsSection";
 import VipVoicePrompt from "../components/VipVoicePrompt";
 import { buildDailyResonance } from "../lib/dailyResonance";
 import { hasVoiceCoachAccess, isMembershipReady, isVoiceCoachBlocked } from "../lib/membership";
+import { LOCALE_NATIVE_NAMES } from "../i18n";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../stores/authStore";
+import { useLearningLanguageStore } from "../stores/learningLanguageStore";
 import { useChatStore } from "../stores/chatStore";
 import { useRealtimeDialogueAvailability } from "../hooks/useFeatureAvailability";
 
@@ -21,6 +25,8 @@ export default function Home() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { realtimeDialogueEnabled } = useRealtimeDialogueAvailability();
+  const language = useLearningLanguageStore((s) => s.language);
+  const langName = (LOCALE_NATIVE_NAMES as Record<string, string>)[language] ?? language.toUpperCase();
 
   const [topics, setTopics] = useState<TodayTopic[]>([]);
   const [topicsLoading, setTopicsLoading] = useState(true);
@@ -86,37 +92,22 @@ export default function Home() {
           </button>
           <span className="font-headline-md text-headline-md font-bold text-primary tracking-tight">AinerSpeak</span>
         </div>
-        {realtimeDialogueEnabled && (
-          <button
-            onClick={openVoiceCoach}
-            className="material-symbols-outlined text-primary hover:opacity-80 transition-opacity"
-            aria-label="Voice Coach"
-          >
-            settings_voice
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {realtimeDialogueEnabled && (
+            <button
+              onClick={openVoiceCoach}
+              className="material-symbols-outlined text-primary hover:opacity-80 transition-opacity"
+              aria-label="Voice Coach"
+            >
+              settings_voice
+            </button>
+          )}
+          <LanguageSwitcher />
+        </div>
       </nav>
 
       <main className="pt-2 pb-8 px-margin-mobile space-y-5">
-        <section>
-          <button
-            type="button"
-            onClick={() => navigate("/survival-sprint")}
-            className="w-full text-left rounded-[20px] p-4 bg-gradient-to-br from-[#0058be] to-[#6d5bd0] text-white shadow-lg active:scale-[0.99] transition-transform"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
-                <span className="material-symbols-outlined text-[24px]">rocket_launch</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">Survival Sprint · 塞尔维亚语 MVP</span>
-                <h2 className="text-[16px] font-bold mt-1">快速学一门语言</h2>
-                <p className="text-[12px] text-white/80 mt-1 leading-relaxed">先抓语言 DNA 和功能按钮，第一天就练购物、问路与求助。</p>
-              </div>
-              <span className="material-symbols-outlined mt-2">arrow_forward</span>
-            </div>
-          </button>
-        </section>
+        <LearningPath />
 
         {/* 1. Express Your Thought — 主卡片 */}
         <section>

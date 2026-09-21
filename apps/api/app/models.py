@@ -144,6 +144,11 @@ class Thought(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     conversation_id: Mapped[str | None] = mapped_column(ForeignKey("conversations.id"))
+    # A thought comes from either a chat conversation or a game session; exactly
+    # one of these is set, so re-freezing the same source updates it in place.
+    game_session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("game_sessions.id"), index=True
+    )
     title: Mapped[str] = mapped_column(String(255))
     topic: Mapped[str] = mapped_column(String(120), default="")
     summary: Mapped[str] = mapped_column(Text, default="")
@@ -970,6 +975,10 @@ class AppSettings(Base):
     default_embedding_provider: Mapped[str] = mapped_column(String(64), default="")
     tts_provider: Mapped[str] = mapped_column(String(32), default="edge")
     tts_voice: Mapped[str] = mapped_column(String(80), default="zh-CN-XiaoxiaoNeural")
+    # Per-language voice overrides, grouped by provider because each provider
+    # names its voices differently: {"edge": {"ja": "ja-JP-KeitaNeural"}, ...}.
+    # Empty means "use the built-in profile for that language".
+    tts_voice_overrides: Mapped[dict] = mapped_column(JSON, default=dict)
     tts_speed: Mapped[float] = mapped_column(Float, default=0.9)
     tts_pitch: Mapped[float] = mapped_column(Float, default=1.1)
     global_api_keys: Mapped[dict] = mapped_column(JSON, default=dict)

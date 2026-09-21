@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ArrowLeft, Volume2, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -6,9 +7,11 @@ interface Props {
   title?: string;
   phase?: string;
   turnCount?: number;
+  /** Right-hand action, e.g. the Freeze button. */
+  actionSlot?: ReactNode;
 }
 
-export default function UnifiedHeader({ mode, title, turnCount }: Props) {
+export default function UnifiedHeader({ mode, title, turnCount, actionSlot }: Props) {
   const navigate = useNavigate();
   const isTurtleSoup = mode === "turtle_soup";
   const isDetective = mode === "detective";
@@ -41,6 +44,7 @@ export default function UnifiedHeader({ mode, title, turnCount }: Props) {
       </div>
 
       <div className="flex items-center gap-2">
+        {actionSlot}
         <button className="w-8 h-8 rounded-full bg-[#f5f3ff] text-[#8b5cf6] flex items-center justify-center hover:bg-[#ede9fe] transition-colors">
           <Volume2 size={16} />
         </button>

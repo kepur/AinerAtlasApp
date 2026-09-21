@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "../../api";
+import { useContentLanguage } from "../../hooks/useContentLanguage";
 
 type TtsCfg = { voice: string; speed: number; pitch: number; provider: string };
 
-const DEFAULT_CFG: TtsCfg = { voice: "zh-CN-XiaoxiaoNeural", speed: 0.9, pitch: 1.1, provider: "edge" };
+// An empty voice lets the server pick the neural voice for the content's
+// language (see app/services/tts_profile.py). Hardcoding a Chinese voice here
+// made every language request one.
+const DEFAULT_CFG: TtsCfg = { voice: "", speed: 0.9, pitch: 1.1, provider: "edge" };
 
 /** Debounced TTS with session cache — shared by Chat and Game. */
-export function useTts() {
+export function useTts(explicitLanguage?: string) {
+  const contentLanguage = useContentLanguage();
+  const defaultLanguage = explicitLanguage || contentLanguage;
   const [cfg, setCfg] = useState<TtsCfg>(DEFAULT_CFG);
   const cfgRef = useRef<TtsCfg>(DEFAULT_CFG);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -40,6 +46,7 @@ export function useTts() {
   }, []);
 
   const speak = useCallback(async (text: string, lang?: string) => {
+    lang = lang || defaultLanguage;
     if (!text) return;
     const key = `${text}|${lang || ""}`;
 
@@ -114,7 +121,13 @@ export function useTts() {
     // Do not fall back to OS/browser speech synthesis. A failed server TTS
     // request stays silent so every successful playback uses the configured
     // backend provider consistently.
-  }, []);
+  }, [defaultLanguage]);
+
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    audioRef.current?.pause();
+    audioRef.current = null;
+  }, [defaultLanguage]);
 
   return { speak };
 }

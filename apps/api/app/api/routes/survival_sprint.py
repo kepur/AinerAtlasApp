@@ -74,9 +74,12 @@ def read_course_catalog(current_user: CurrentUser, db: DBSession) -> dict:
     languages = []
     for item in supported_course_catalog():
         progress = progress_by_language.get(item["code"])
+        from app.services.learning_curriculum import language_pack, path_payload
+        curriculum = path_payload(progress, language_pack(item["code"])) if progress else None
         languages.append({
             **item,
             "progress": progress_payload(db, progress) if progress else None,
+            "curriculum": curriculum,
         })
     selected = normalise_course_language(
         profile.primary_target_language if profile else "sr"

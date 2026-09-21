@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Volume2, Loader, Pause, AlertCircle } from "lucide-react";
 import { useAudioCacheStore } from "../stores/audioCacheStore";
 
@@ -30,6 +30,8 @@ export default function TTSButton({
 }: TTSButtonProps) {
   const [state, setState] = useState<TTSState>("idle");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => () => { audioRef.current?.pause(); audioRef.current = null; }, []);
 
   const handleClick = useCallback(async () => {
     // loading → no-op

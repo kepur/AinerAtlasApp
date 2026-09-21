@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
 from app.api.deps import CurrentUser, DBSession
 from app.services import social_logic_engine as engine
+from app.services.learning_language import learning_language
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/games/social-logic", tags=["social-logic"])
@@ -38,7 +39,8 @@ async def create_game(payload: CreateGameRequest, current_user: CurrentUser, db:
     try:
         return await engine.create_game(
             db, current_user.id, payload.difficulty,
-            payload.target_language, payload.native_language,
+            learning_language(db, current_user.id,
+                payload.target_language if "target_language" in payload.model_fields_set else None), payload.native_language,
         )
     except Exception as exc:
         logger.exception("create social-logic game failed")
@@ -76,11 +78,27 @@ def get_game(game_id: str, current_user: CurrentUser, db: DBSession) -> dict:
 
 
 @router.post("/{game_id}/question")
-async def question(game_id: str, payload: QuestionRequest, current_user: CurrentUser, db: DBSession) -> dict:
+async def question(
+    game_id: str, payload: QuestionRequest, current_user: CurrentUser, db: DBSession,
+    background_tasks: BackgroundTasks,
+) -> dict:
     try:
-        return await engine.question_player(
+        result = await engine.question_player(
             db, game_id, current_user.id, payload.target_player_id, payload.content,
         )
+        # The accused has already answered; analyse the challenge afterwards.
+        turn_index = result.pop("hud_turn_index", None)
+        if turn_index is not None:
+            target_name = next(
+                (p.get("name", "") for p in (result.get("state") or {}).get("players", [])
+                 if p.get("id") == payload.target_player_id),
+                "",
+            )
+            background_tasks.add_task(
+                engine.run_question_hud,
+                game_id, current_user.id, turn_index, payload.content, target_name,
+            )
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -101,6 +119,21 @@ async def help_express(
     except Exception as exc:
         logger.exception("social-logic help-express failed")
         raise HTTPException(status_code=503, detail=f"表达生成失败：{exc}") from exc
+
+
+@router.get("/{game_id}/learning-turns/{turn_index}")
+async def get_learning_turn(
+    game_id: str, turn_index: int, current_user: CurrentUser, db: DBSession,
+) -> dict:
+    """Catch-up for the async challenge HUD (see games.py `get_turn_hud`)."""
+    try:
+        game = engine._get_game(db, game_id, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    turns = game.get("learning_turns") or []
+    if not 0 <= turn_index < len(turns):
+        raise HTTPException(status_code=404, detail="Learning turn not found")
+    return {"turn_index": turn_index, "hud": turns[turn_index]}
 
 
 @router.post("/{game_id}/vote")

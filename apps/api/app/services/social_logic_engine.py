@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.models import GameSession, new_id
+from app.services.language_contract import contract
+from app.services.learning_hud import HudRequest, generate_hud, pending_hud
 from app.services.llm import get_llm_provider_for_task
 from app.services.runtime_config import resolve_default_llm_provider
 
@@ -253,11 +255,11 @@ async def _generate_day_speeches(db: Session, game: dict) -> None:
     system = (
         "你是狼人杀游戏的 AI 主持人。为每个存活的 AI 玩家生成一段白天发言。\n\n"
         "规则：\n"
-        "- 每个玩家说 1-2 句英文，符合其性格\n"
+        "- 每个玩家说 1-2 句目标语，符合其性格\n"
         "- 村民：基于公开信息做出合理推理，语气真诚\n"
         "- 狼人：巧妙伪装，可以适度甩锅给其他村民，但不能暴露自己是狼人\n"
         "- 每个发言附一句简短中文翻译\n\n"
-        '输出严格 JSON：\n{"speeches":[{"name":"玩家名","text":"英文发言","text_native":"中文翻译"}]}'
+        '输出严格 JSON：\n{"speeches":[{"name":"玩家名","text":"目标语发言","text_native":"解释语言翻译"}]}'
     )
     user = (
         f"第 {game['round']} 轮白天。\n\n"
@@ -270,7 +272,8 @@ async def _generate_day_speeches(db: Session, game: dict) -> None:
         # freeze, so cutting its latency directly shortens the night wait.
         from app.services.llm import get_fast_llm_provider
         provider = get_fast_llm_provider(db, resolve_default_llm_provider(db))
-        data = await provider.complete_json(system, user, temperature=0.85, max_tokens=900)
+        from app.services.game_prompts import language_prompt
+        data = await provider.complete_json(language_prompt(system, game["target_language"], game["native_language"]), user, temperature=0.85, max_tokens=900)
         speeches = data.get("speeches", []) if isinstance(data, dict) else []
     except Exception as exc:
         logger.warning("day speech generation failed: %s", exc)
@@ -290,7 +293,7 @@ async def _generate_day_speeches(db: Session, game: dict) -> None:
                 })
     else:
         for p in alive_ai:
-            fallback = "I didn't notice anything unusual last night."
+            fallback = ""  # Do not invent a speech when the provider is unavailable.
             p["public_claim"] = fallback
             game["feed"].append({
                 "type": "speech", "speaker": p["name"], "player_id": p["id"],
@@ -324,63 +327,53 @@ async def question_player(
     target_lang = game["target_language"]
     is_wolf = target["role"] == "werewolf"
 
-    combined_system = (
-        f"你是狼人杀游戏引擎兼英语表达教练。用户质疑玩家 {target['name']}，"
-        f"你必须在一次 JSON 响应中同时产出两部分：\n\n"
-        f"【answer】{target['name']} 以游戏角色身份用英文回应（1-2句，体现性格，不暴露隐藏身份）\n"
+    lc = contract(target_lang, native)
+
+    # Only the in-character answer is on the critical path. The learning HUD is
+    # generated afterwards by run_question_hud so the accused replies at once.
+    answer_system = (
+        f"你是狼人杀游戏引擎。用户质疑玩家 {target['name']}，"
+        f"请以 {target['name']} 的游戏角色身份用 {lc.target_name} 回应（1-2句，"
+        "体现性格，不暴露隐藏身份）。\n"
         f"  - 性格：{target['personality']}\n"
         f"  - 身份：{'狼人，必须隐藏并巧妙辩解' if is_wolf else '村民，诚实回应'}\n\n"
-        f"【hud】帮助用户学习如何用{target_lang}更好地质疑、推理与表态\n"
-        f"  - why_this_expression / agents 的解释一律用{native}\n\n"
-        "返回 JSON（严格嵌套，不要省略字段）：\n"
-        "{\n"
-        '  "answer": {"text":"英文回应","text_native":"中文翻译","emotion":"calm|nervous|defensive|confident"},\n'
-        '  "hud": {\n'
-        '    "main_expression":"用户质疑的标准英文表达，1句不超18词",\n'
-        f'    "meaning_native":"{native}翻译",\n'
-        '    "variants":{"natural":"自然口语","assertive":"强硬质疑","polite":"委婉质疑","deductive":"推理式"},\n'
-        f'    "why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],\n'
-        '    "patterns_v2":[{"pattern":"句型","example":"例句","add_to_crush":true}],\n'
-        '    "vocabulary":["词1","词2","词3"],\n'
-        f'    "agents":[{{"agent":"Logic Agent","result":"{native}分析质疑逻辑"}},'
-        f'{{"agent":"Language Coach","result":"{native}点评表达"}},'
-        f'{{"agent":"Game Coach","result":"{native}给策略建议"}}]\n'
-        "  }\n"
-        "}"
+        "返回 JSON：\n"
+        '{"text":"目标语回应","text_native":"解释语言翻译",'
+        '"emotion":"calm|nervous|defensive|confident"}'
     )
-    combined_user = (
-        f"用户质疑（可能是{native}）：{content}\n"
+
+    answer_user = (
+        f"用户质疑（可能用 {lc.native_name} 或 {lc.target_name}）：{content}\n"
         f"目标玩家 {target['name']} 之前说过：{target.get('public_claim', '无')}"
     )
 
     answer: dict = {}
-    hud: dict = {}
     try:
         from app.services.game_prompts import get_game_prompt
         provider = _provider_for("game_question", db)
-        combined_system = get_game_prompt(db, "social_logic.question", combined_system)
+        answer_system = get_game_prompt(
+            db, "social_logic.answer", answer_system,
+            target_language=target_lang, native_language=native,
+        )
         raw = await provider.complete_json(
-            combined_system, combined_user, temperature=0.75, max_tokens=1200,
+            answer_system, answer_user, temperature=0.75, max_tokens=500,
         )
         if isinstance(raw, dict):
-            answer = raw.get("answer") if isinstance(raw.get("answer"), dict) else {}
-            hud = raw.get("hud") if isinstance(raw.get("hud"), dict) else {}
-            # Legacy flat shape: hud keys at top level alongside answer
-            if not hud and raw.get("main_expression"):
-                hud = {k: v for k, v in raw.items() if k != "answer"}
+            # Tolerate the legacy nested {"answer": {...}} shape.
+            answer = raw.get("answer") if isinstance(raw.get("answer"), dict) else raw
     except Exception as exc:
         logger.warning("social-logic question LLM failed: %s", exc)
 
     if not (answer.get("text") or "").strip():
         answer = {
-            "text": "I have nothing to hide.",
+            "text": _deflection_line(target_lang, native),
             "text_native": "我没什么好隐瞒的。",
             "emotion": "calm",
         }
 
     game["feed"].append({
         "type": "user_question", "speaker": "You", "round": game["round"],
-        "text": hud.get("main_expression", content), "text_native": content,
+        "text": content, "text_native": content,
         "target": target["name"],
     })
     ans_text = (answer.get("text") or "").strip()
@@ -394,11 +387,89 @@ async def question_player(
     target["suspicion"] = min(95, target["suspicion"] + random.randint(6, 14))
 
     game["questions_this_round"] = game.get("questions_this_round", 0) + 1
-    hud = _finalize_hud(hud, content, native, db=db)
+    # Reserve the slot now; run_question_hud fills it in from the background.
+    hud = {**pending_hud(), "user_input": content}
     game["learning_turns"].append(hud)
+    turn_index = len(game["learning_turns"]) - 1
     _save_game(db, game)
 
-    return {"hud": hud, "answer": answer, "state": _public_view(game)}
+    return {
+        "hud": hud,
+        "answer": answer,
+        "state": _public_view(game),
+        "hud_turn_index": turn_index,
+    }
+
+
+# When the provider is unavailable the accused still has to say something.
+# One neutral deflection per supported language; an unlisted language falls back
+# to the learner's native tongue rather than to English.
+_DEFLECTION_LINES = {
+    "ar": "لَيْسَ لَدَيَّ مَا أُخْفِيه.",
+    "bn": "আমার লুকানোর কিছু নেই।",
+    "en": "I have nothing to hide.",
+    "es": "No tengo nada que ocultar.",
+    "fr": "Je n'ai rien à cacher.",
+    "de": "Ich habe nichts zu verbergen.",
+    "hi": "मेरे पास छिपाने को कुछ नहीं है।",
+    "ja": "隠すことは何もありません。",
+    "ko": "숨길 게 없습니다.",
+    "pt": "Não tenho nada a esconder.",
+    "ru": "Мне нечего скрывать.",
+    "sr": "Nemam šta da krijem.",
+    "zh": "我没什么好隐瞒的。",
+}
+
+
+def _deflection_line(target_language: str, native_language: str) -> str:
+    """A neutral in-character line for when the LLM could not be reached."""
+    return (
+        _DEFLECTION_LINES.get(target_language)
+        or _DEFLECTION_LINES.get(native_language)
+        or _DEFLECTION_LINES["zh"]
+    )
+
+
+async def run_question_hud(
+    game_id: str, user_id: str, turn_index: int, content: str, target_name: str,
+) -> dict:
+    """Background: analyse the user's challenge and write it back to the game."""
+    from app.db.session import SessionLocal
+
+    with SessionLocal() as db:
+        try:
+            game = _get_game(db, game_id, user_id)
+        except Exception:  # noqa: BLE001 — the game may have ended or expired
+            return {}
+
+        native = game["native_language"]
+        target_lang = game["target_language"]
+        hud = await generate_hud(
+            db,
+            target_language=target_lang,
+            native_language=native,
+            request=HudRequest(
+                user_input=content,
+                context=f"用户在狼人杀白天讨论中质疑玩家 {target_name}",
+                coach_role="狼人杀质疑与推理表达教练",
+                agents=(
+                    ("Logic Agent", "分析这次质疑的推理是否站得住脚"),
+                    ("Language Coach", "点评这句质疑的地道程度"),
+                    ("Game Coach", "给出下一步的发言策略建议"),
+                ),
+                prompt_key="social_logic.hud",
+            ),
+        )
+        hud = _finalize_hud(hud, content, native, db=db, target_language=target_lang)
+
+        turns = game.get("learning_turns") or []
+        if 0 <= turn_index < len(turns):
+            turns[turn_index] = hud
+        else:
+            turns.append(hud)
+        game["learning_turns"] = turns
+        _save_game(db, game)
+        return hud
 
 
 async def help_express(
@@ -423,11 +494,12 @@ async def help_express(
             target_name = target["name"]
             target_claim = target.get("public_claim", "")
 
+    lc = contract(target_lang, native)
     hud_system = (
-        f"你是英语表达教练。用户在狼人杀游戏中想用{native}或英文质疑玩家 {target_name}。"
-        f"仅生成学习 HUD，帮助用户选择如何用{target_lang}更好地质疑。\n\n"
+        f"你是 {lc.target_name} 表达教练。用户在狼人杀游戏中想质疑玩家 {target_name}。"
+        f"仅生成学习 HUD，帮助用户选择如何用 {lc.target_name} 更好地质疑。\n\n"
         "返回JSON：\n"
-        '{"main_expression":"自然口语版英文质疑句，1句不超18词",'
+        '{"main_expression":"自然口语版的目标语质疑句，1句不超18词",'
         f'"meaning_native":"{native}翻译",'
         '"variants":{"natural":"自然口语","assertive":"强硬质疑","polite":"委婉质疑","deductive":"推理式"},'
         f'"why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],'
@@ -444,18 +516,18 @@ async def help_express(
     try:
         from app.services.game_prompts import get_game_prompt
         provider = _provider_for("game_challenge_hud", db)
-        hud_system = get_game_prompt(db, "social_logic.hud", hud_system)
+        hud_system = get_game_prompt(db, "social_logic.hud", hud_system, target_language=target_lang, native_language=native)
         raw = await provider.complete_json(hud_system, hud_user, temperature=0.65, max_tokens=700)
         if isinstance(raw, dict):
             hud = raw
     except Exception as exc:
         logger.warning("social-logic help-express failed: %s", exc)
 
-    hud = _finalize_hud(hud, content, native, db=db)
+    hud = _finalize_hud(hud, content, native, db=db, target_language=target_lang)
     return {"hud": hud}
 
 
-def _finalize_hud(hud: dict, content: str, native: str, *, db: Session | None = None) -> dict:
+def _finalize_hud(hud: dict, content: str, native: str, *, db: Session | None = None, target_language: str = "en") -> dict:
     for a in (hud.get("agents") or []):
         if "name" in a and "agent" not in a:
             a["agent"] = a.pop("name")
@@ -469,23 +541,19 @@ def _finalize_hud(hud: dict, content: str, native: str, *, db: Session | None = 
             ]
 
     if not hud.get("main_expression"):
-        hud["main_expression"] = hud.get("expression") or content
+        hud["main_expression"] = hud.get("expression") or ""
     hud.setdefault("meaning_native", "")
     if not hud.get("variants"):
-        main = hud["main_expression"]
-        hud["variants"] = {
-            "natural": main,
-            "assertive": f"I suspect you. {main}",
-            "polite": f"Could you explain — {main}",
-            "deductive": f"That doesn't add up. {main}",
-        }
+        hud["variants"] = {}
     if not hud.get("agents"):
         hud["agents"] = [
             {"agent": "Logic Agent", "result": "质疑要有逻辑：先指出矛盾，再要求对方解释。"},
-            {"agent": "Language Coach", "result": "可用 \"Why were you...\" / \"That doesn't add up.\" 等句型。"},
+            {"agent": "Language Coach", "result": "目标语表达暂未生成，可先复习课程里的问答与句子骨架。"},
         ]
     if not hud.get("patterns_v2"):
-        if db is not None:
+        if target_language != "en":
+            hud["patterns_v2"] = []  # Existing admin packs have no language metadata; do not mislabel them.
+        elif db is not None:
             from app.services.game_learning_pack_service import patterns_for_game
             hud["patterns_v2"] = patterns_for_game(db, "social_logic")
         else:
@@ -495,6 +563,10 @@ def _finalize_hud(hud: dict, content: str, native: str, *, db: Session | None = 
             ]
     hud["v2"] = True
     hud["detected_intent"] = "expression_learning"
+    # Tell the client whether this is a real analysis or an empty shell left
+    # behind by an unavailable provider, so it can hide the cards instead of
+    # rendering blanks.
+    hud["analysis_status"] = "ready" if hud.get("main_expression") else "failed"
     return hud
 
 

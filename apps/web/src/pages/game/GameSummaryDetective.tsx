@@ -164,8 +164,8 @@ export default function GameSummaryDetective() {
             onClick={async () => {
               if (saved || saving) return;
               setSaving(true);
-              await addPatternsToCrush(patterns);
-              const ok = await saveGameToAssets(caseTitle, [truth, ...topLines.map((l) => l.en), ...patterns]);
+              await addPatternsToCrush(patterns, data?.target_language);
+              const ok = await saveGameToAssets(caseTitle, [truth, ...topLines.map((l) => l.en), ...patterns], data?.target_language);
               setSaved(ok);
               setSaving(false);
             }}

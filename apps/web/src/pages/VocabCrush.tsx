@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import RecallAnswer from "../components/RecallAnswer";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   fetchVocabulary,
@@ -16,6 +17,7 @@ import {
   type VocabWordInsight,
 } from "../api";
 import { useAuthStore } from "../stores/authStore";
+import { useLearningLanguageStore } from "../stores/learningLanguageStore";
 import VocabularyLadder from "../components/VocabularyLadder";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -123,7 +125,7 @@ function VocabBatchModal({
           <>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-[11px] font-bold text-primary uppercase tracking-wider">近义选词 · 第 {batchIndex + 1} / {batchItems.length} 题</p>
+                <p className="text-[11px] font-bold text-primary uppercase tracking-wider">词义与语境 · 第 {batchIndex + 1} / {batchItems.length} 题</p>
                 <p className="text-[12px] text-outline mt-0.5">本组还剩 {Math.max(0, batchItems.length - batchIndex - (answered ? 1 : 0))} 题 · 队列共 {totalRemaining} 词</p>
               </div>
               <button type="button" onClick={onClose} className="material-symbols-outlined text-on-surface-variant">
@@ -136,11 +138,12 @@ function VocabBatchModal({
               <p className="text-[17px] text-on-surface leading-relaxed font-medium border-l-4 border-primary/40 pl-3">
                 {sentence}
               </p>
-              <p className="text-[12px] text-outline">从下方四个近义表达中选一项填入空白</p>
+              <p className="text-[12px] text-outline">按本题提示选择，或输入原文</p>
             </div>
 
             {!answered ? (
               <div className="grid grid-cols-2 gap-2 mb-4">
+                {!exercise.options?.length && <div className="col-span-2"><RecallAnswer key={currentItem.id} busy={busy} onSubmit={onPickWord} /></div>}
                 {(exercise.options ?? []).map((word) => (
                   <button
                     key={word}
@@ -246,7 +249,9 @@ export default function VocabCrush() {
   const navigate = useNavigate();
   const { search } = useLocation();
   const profile = useAuthStore((s) => s.profile);
-  const language = new URLSearchParams(search).get("language") || profile?.primary_target_language || "en";
+  const globalLang = useLearningLanguageStore((s) => s.language);
+  const language = globalLang;
+  const autoStarted = useRef(false);
   const [items, setItems] = useState<VocabItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -290,6 +295,14 @@ export default function VocabCrush() {
   useEffect(() => {
     void loadItems();
   }, [loadItems]);
+
+  useEffect(() => {
+    if (!loading && !autoStarted.current && new URLSearchParams(search).get("practice") === "1") {
+      autoStarted.current = true;
+      if (items.length) void startBatch();
+      else setBatchError("当前语言暂无待练词汇，请先进入第 3 模块学习词汇填句。");
+    }
+  }, [loading, search, items.length]);
 
   useEffect(() => {
     if (!loading && items.length > 0) {
@@ -440,9 +453,7 @@ export default function VocabCrush() {
   const mastered = items.filter((i) => i.mastery_score >= 90 || i.mastery_status === "mastered");
   const focus = [...items].sort((a, b) => a.mastery_score - b.mastery_score).slice(0, 3);
 
-  const grammar = Math.round(profile?.grammar_level_score ?? 0);
-  const expression = Math.round(profile?.vocabulary_level_score ?? 0);
-  const fluency = Math.round(profile?.fluency_score ?? 0);
+  const expression = items.length ? Math.round(items.reduce((n, item) => n + item.mastery_score, 0) / items.length) : 0;
   const review = items.length ? Math.round((mastered.length / (items.length + mastered.length)) * 100) : 0;
 
   return (
@@ -460,7 +471,7 @@ export default function VocabCrush() {
       </header>
 
       <main className="px-margin-mobile pb-28 space-y-8 pt-4">
-        <p className="font-body-md text-on-surface-variant">句中挖空，从四个近义表达里选出最贴切的一项</p>
+        <p className="font-body-md text-on-surface-variant">按当前语言的词义与真实例句练习，不混入其他语言。</p>
 
         <CrushTabsPremium />
 
@@ -474,14 +485,14 @@ export default function VocabCrush() {
           <div className="flex justify-between items-end">
             <div>
               <h2 className="font-headline-md text-headline-md text-on-surface">今日待掌握</h2>
-              <p className="text-[13px] text-on-surface-variant">每 10 词一组：近义辨析 → 即时判对错 → 完成后 AI 解析</p>
+              <p className="text-[13px] text-on-surface-variant">每组最多 10 词：词义与填句 → 即时判分 → 复习巩固</p>
             </div>
             <span className="material-symbols-outlined text-primary-container">insights</span>
           </div>
           {loading ? (
             <p className="text-body-md text-on-surface-variant">加载中…</p>
           ) : focus.length === 0 ? (
-            <p className="text-[13px] text-on-surface-variant">多进行对话，AI 会自动提取高价值词汇。</p>
+            <button onClick={() => navigate("/learn/vocabulary")} className="text-[13px] text-primary">先到词汇填句模块学习，本语言的词汇会加入这里 →</button>
           ) : (
             <div className="space-y-4 pt-2">
               {focus.map((item, i) => {
@@ -514,10 +525,8 @@ export default function VocabCrush() {
         <section className="space-y-4">
           <h2 className="font-headline-md text-headline-md text-on-surface">学习雷达</h2>
           <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
-            <RadarRing label="Grammar" value={grammar} color="#630ed4" />
-            <RadarRing label="Vocabulary" value={expression} color="#00885d" />
-            <RadarRing label="Fluency" value={fluency} color="#2170e4" />
-            <RadarRing label="Review" value={review} color="#ba1a1a" />
+            <RadarRing label="本语言词汇熟练度" value={expression} color="#00885d" />
+            <RadarRing label="高熟练项目占比" value={review} color="#ba1a1a" />
           </div>
         </section>
 

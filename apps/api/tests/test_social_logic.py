@@ -35,32 +35,37 @@ def _start_discussion(client: TestClient, headers: dict) -> tuple[str, dict]:
     return gid, start.json()
 
 
-def test_question_uses_single_llm_call() -> None:
-    """question_player must call complete_json exactly once (HUD + answer merged)."""
-    mock_provider = AsyncMock()
-    mock_provider.complete_json = AsyncMock(return_value={
-        "answer": {
-            "text": "I was near the gate, checking the perimeter.",
-            "text_native": "我在大门附近巡逻。",
-            "emotion": "calm",
-        },
-        "hud": {
-            "main_expression": "Where were you last night?",
-            "meaning_native": "你昨晚在哪里？",
-            "variants": {
-                "natural": "Where were you last night?",
-                "assertive": "Tell me exactly where you were.",
-                "polite": "Could you share where you were?",
-                "deductive": "If you were innocent, where were you?",
-            },
-            "why_this_expression": [{"point": "定位", "explanation": "先锁定时间地点"}],
-            "patterns_v2": [{"pattern": "Where were you...", "example": "Where were you?", "add_to_crush": True}],
-            "vocabulary": ["last night"],
-            "agents": [{"agent": "Logic Agent", "result": "先问位置再比对发言"}],
-        },
-    })
+def test_question_answers_first_then_analyses() -> None:
+    """The accused answers immediately; the learning HUD lands in the background.
 
-    with patch("app.services.social_logic_engine._provider_for", return_value=mock_provider):
+    Two focused calls now: the in-character answer on the request path, and the
+    challenge analysis afterwards (see social_logic_engine.run_question_hud).
+    """
+    answer_payload = {
+        "text": "I was near the gate, checking the perimeter.",
+        "text_native": "我在大门附近巡逻。",
+        "emotion": "calm",
+    }
+    hud_payload = {
+        "main_expression": "Where were you last night?",
+        "meaning_native": "你昨晚在哪里？",
+        "variants": {
+            "natural": "Where were you last night?",
+            "assertive": "Tell me exactly where you were.",
+            "polite": "Could you share where you were?",
+            "deductive": "If you were innocent, where were you?",
+        },
+        "why_this_expression": [{"point": "定位", "explanation": "先锁定时间地点"}],
+        "patterns_v2": [{"pattern": "Where were you...", "example": "Where were you?", "add_to_crush": True}],
+        "vocabulary": ["last night"],
+        "agents": [{"agent": "Logic Agent", "result": "先问位置再比对发言"}],
+    }
+
+    mock_provider = AsyncMock()
+    mock_provider.complete_json = AsyncMock(side_effect=[answer_payload, hud_payload])
+
+    with patch("app.services.social_logic_engine._provider_for", return_value=mock_provider), \
+         patch("app.services.llm.require_llm_provider", return_value=mock_provider):
         with TestClient(app) as client:
             headers = {"Authorization": f"Bearer {_token(client)}"}
             gid, state = _start_discussion(client, headers)
@@ -74,10 +79,21 @@ def test_question_uses_single_llm_call() -> None:
             )
             assert q.status_code == 200, q.text
             body = q.json()
-            assert mock_provider.complete_json.await_count == 1
+
+            # The dialogue is on the response; the analysis is not blocking it.
             assert body["answer"]["text"] == "I was near the gate, checking the perimeter."
-            assert body["hud"]["main_expression"] == "Where were you last night?"
-            assert body["hud"]["detected_intent"] == "expression_learning"
+            assert body["hud"]["analysis_status"] == "pending"
+
+            # TestClient runs BackgroundTasks before returning, so by now the
+            # worker has written the finished HUD back onto the game.
+            caught = client.get(
+                f"/api/games/social-logic/{gid}/learning-turns/0", headers=headers
+            )
+            assert caught.status_code == 200, caught.text
+            hud = caught.json()["hud"]
+            assert hud["main_expression"] == "Where were you last night?"
+            assert hud["detected_intent"] == "expression_learning"
+            assert hud["analysis_status"] == "ready"
 
 
 def test_social_logic_persists_across_get() -> None:
@@ -136,14 +152,23 @@ def test_social_logic_full_flow_structure() -> None:
         )
         assert q.status_code == 200, q.text
         body = q.json()
+        # Conversation first: the answer ships now, the HUD is still analysing.
         hud = body.get("hud") or {}
-        assert hud.get("main_expression"), "HUD main_expression should not be empty"
+        assert hud.get("analysis_status") == "pending"
+        answer = body.get("answer") or {}
+        assert answer.get("text"), "target answer text should not be empty"
+
+        # The background analysis has run by the time the request returns.
+        caught = client.get(
+            f"/api/games/social-logic/{gid}/learning-turns/0", headers=headers
+        )
+        assert caught.status_code == 200, caught.text
+        hud = caught.json()["hud"]
+        assert hud.get("analysis_status") != "pending"
         assert hud.get("detected_intent") == "expression_learning"
         agents = hud.get("agents") or []
         if agents:
             assert "agent" in agents[0]
-        answer = body.get("answer") or {}
-        assert answer.get("text"), "target answer text should not be empty"
 
         help_resp = client.post(
             f"/api/games/social-logic/{gid}/help-express",
@@ -152,8 +177,13 @@ def test_social_logic_full_flow_structure() -> None:
         )
         assert help_resp.status_code == 200, help_resp.text
         help_hud = help_resp.json().get("hud") or {}
-        assert help_hud.get("main_expression")
-        assert help_hud.get("variants")
+        # With a provider available this is a full analysis; without one it must
+        # say so rather than returning blank cards.
+        if help_hud.get("analysis_status") == "ready":
+            assert help_hud.get("main_expression")
+            assert help_hud.get("variants") is not None
+        else:
+            assert help_hud.get("analysis_status") == "failed"
 
         vote_target = next(
             p for p in body["state"]["players"] if not p["is_user"] and p["alive"]

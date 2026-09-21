@@ -14,6 +14,9 @@ from app.models import GameSession
 from app.services.game_engine import GameTypeEngine, register_engine
 from app.services.llm import get_llm_provider_for_task
 from app.services.runtime_config import resolve_default_llm_provider
+from app.services.game_prompts import language_prompt
+from app.services.language_contract import contract_for_session, pick_native, pick_target
+from app.services.learning_hud import HudRequest, pending_hud
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +81,11 @@ class TurtleSoupEngine(GameTypeEngine):
         return {
             "case": {
                 "surface": case["surface"],
-                "surface_en": case.get("surface_en", ""),
+                # ``*_en`` are legacy wire names meaning "target-language copy".
+                # For non-English learners they are filled in by the localizer.
+                "surface_en": case.get("surface_en", "") if session.target_language == "en" else "",
                 "truth": case["truth"],
-                "truth_en": case.get("truth_en", ""),
+                "truth_en": case.get("truth_en", "") if session.target_language == "en" else "",
                 "clues": case.get("clues", []),
                 "max_questions": case.get("max_questions", 15),
             },
@@ -114,7 +119,9 @@ class TurtleSoupEngine(GameTypeEngine):
             {
                 "type": "narrator",
                 "text": "欢迎来到海龟汤！仔细阅读汤面故事，然后开始提问。",
-                "text_en": "Welcome to Turtle Soup! Read the surface story carefully, then start asking questions.",
+                # Target-language copy comes from the localized case, so it
+                # follows the learner's language instead of always being English.
+                "text_en": (state.get("case") or {}).get("intro_target", ""),
             },
             {
                 "type": "story",
@@ -148,23 +155,25 @@ class TurtleSoupEngine(GameTypeEngine):
             "返回 JSON：\n"
             '{"answer":"YES/NO/IRRELEVANT",'
             '"clue_found":true/false,'
-            '"clue_hint":"如果发现线索，给一个模糊的中文提示",'
-            '"clue_hint_en":"English hint",'
-            '"comment":"简短评价这个问题的质量（中文）",'
-            '"comment_en":"Brief comment on question quality in English"}'
+            '"clue_hint":"如果发现线索，给一个模糊提示（解释语言）",'
+            '"clue_hint_en":"同一条提示的目标语版本",'
+            '"comment":"简短评价这个问题的质量（解释语言）",'
+            '"comment_en":"同一条评价的目标语版本"}'
         )
         system = get_game_prompt(
             db, "turtle_soup.judge", default_system,
             surface=case["surface"], truth=case["truth"],
+            target_language=session.target_language, native_language=session.native_language,
         )
+        lc = contract_for_session(session)
         user_msg = (
-            f"玩家的问题（可能是中文或英文）：{user_input}\n\n"
+            f"玩家的问题（可能用 {lc.native_name} 或 {lc.target_name} 提出）：{user_input}\n\n"
             f"已发现的线索数：{len(state.get('found_clues', []))}/{len(case.get('clues', []))}"
         )
 
         try:
             provider = _provider_for("game_ai_answer", db)
-            data = await provider.complete_json(system, user_msg, temperature=0.5, max_tokens=500)
+            data = await provider.complete_json(language_prompt(system, session.target_language, session.native_language), user_msg, temperature=0.5, max_tokens=500)
         except Exception as exc:
             logger.warning("turtle soup judge failed: %s", exc)
             data = {"answer": "IRRELEVANT", "comment": "系统暂时无法判断", "comment_en": "System cannot judge right now"}
@@ -207,13 +216,18 @@ class TurtleSoupEngine(GameTypeEngine):
                 "total_clues": len(case.get("clues", [])),
             })
 
-        hud = await self._generate_hud(db, session, user_input, answer, data)
-
         return {
             "state": state,
             "feed_items": feed,
-            "ai_response": {"answer": answer, "clue_found": data.get("clue_found", False)},
-            "hud": hud,
+            "ai_response": {
+                "answer": answer,
+                "clue_found": data.get("clue_found", False),
+                # Carried so the background HUD worker can quote the verdict.
+                "comment": data.get("comment", ""),
+            },
+            # The judge's verdict is what the player waits for; the learning
+            # analysis is filled in afterwards by game_hud_worker.
+            "hud": pending_hud(),
         }
 
     async def _handle_solve(
@@ -228,13 +242,13 @@ class TurtleSoupEngine(GameTypeEngine):
             "- 如果玩家的推理包含了核心真相的关键要素（70%以上），判为 CORRECT\n"
             "- 如果部分正确但缺少关键信息，判为 PARTIAL\n"
             "- 如果完全错误，判为 WRONG\n\n"
-            '返回 JSON：{"verdict":"CORRECT/PARTIAL/WRONG","explanation":"中文解释","explanation_en":"English explanation","score":0-100}'
+            '返回 JSON：{"verdict":"CORRECT/PARTIAL/WRONG","explanation":"解释语言的说明","explanation_en":"同一说明的目标语版本","score":0-100}'
         )
         user_msg = f"玩家的猜测：{user_input}"
 
         try:
             provider = _provider_for("game_reasoning", db)
-            data = await provider.complete_json(system, user_msg, temperature=0.3, max_tokens=600)
+            data = await provider.complete_json(language_prompt(system, session.target_language, session.native_language), user_msg, temperature=0.3, max_tokens=600)
         except Exception as exc:
             logger.warning("turtle soup solve judge failed: %s", exc)
             data = {"verdict": "WRONG", "explanation": "系统判断失败", "score": 0}
@@ -275,49 +289,25 @@ class TurtleSoupEngine(GameTypeEngine):
             "score": session.score,
         }
 
-    async def _generate_hud(
-        self, db: Session, session: GameSession,
-        user_input: str, answer: str, judge_data: dict,
-    ) -> dict:
-        native = session.native_language
-        target = session.target_language
-
-        system = (
-            f"你是英语表达教练。用户在海龟汤游戏中用中文或英文提了一个问题。"
-            f"生成学习HUD帮助用户学习如何用{target}更好地提问。\n\n"
-            "返回JSON：\n"
-            '{"main_expression":"用户问题的标准英文表达，1句不超18词",'
-            f'"meaning_native":"{native}翻译",'
-            '"variants":{{"natural":"自然口语","formal":"正式提问","detective":"侦探式提问","advanced":"高级表达"}},'
-            f'"why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],'
-            '"patterns_v2":[{"pattern":"句型","example":"例句","add_to_crush":true}],'
-            '"vocabulary":["关键词1","关键词2","关键词3"],'
-            f'"agents":[{{"agent":"Question Coach","result":"{native}评价提问技巧"}},{{"agent":"Language Coach","result":"{native}点评表达"}},{{"agent":"Game Coach","result":"{native}给策略建议"}}]'
-            "}"
+    def build_hud_request(
+        self, session: GameSession, action_type: str, user_input: str, ai_response: dict,
+    ) -> HudRequest | None:
+        """Only real questions carry something to learn from."""
+        if action_type not in ("question", "message") or not (user_input or "").strip():
+            return None
+        verdict = ai_response.get("answer", "")
+        comment = ai_response.get("comment", "")
+        return HudRequest(
+            user_input=user_input,
+            context=f"裁判判定：{verdict}。裁判评价：{comment}",
+            coach_role="海龟汤提问教练",
+            agents=(
+                ("Question Coach", "评价提问技巧是否有效缩小范围"),
+                ("Language Coach", "点评这句提问的地道程度"),
+                ("Game Coach", "给出下一步的提问策略建议"),
+            ),
+            prompt_key="turtle_soup.hud",
         )
-        user_msg = f"用户的提问：{user_input}\n裁判回答：{answer}\n裁判评价：{judge_data.get('comment', '')}"
-
-        try:
-            provider = _provider_for("game_challenge_hud", db)
-            from app.services.game_prompts import get_game_prompt
-            system = get_game_prompt(db, "turtle_soup.hud", system)
-            hud = await provider.complete_json(system, user_msg, temperature=0.7, max_tokens=900)
-        except Exception as exc:
-            logger.warning("turtle soup HUD failed: %s", exc)
-            hud = {}
-
-        for a in (hud.get("agents") or []):
-            if "name" in a and "agent" not in a:
-                a["agent"] = a.pop("name")
-
-        if "main_expression" not in hud:
-            hud["main_expression"] = hud.pop("main_reply_target", hud.pop("expression", ""))
-        if "meaning_native" not in hud:
-            hud["meaning_native"] = hud.pop("main_reply_native", hud.pop("meaning", ""))
-
-        hud["v2"] = True
-        hud["detected_intent"] = "expression_learning"
-        return hud
 
     async def get_summary(self, db: Session, session: GameSession) -> dict:
         state = session.state or {}
@@ -385,16 +375,17 @@ class TurtleSoupEngine(GameTypeEngine):
         questions = [q.get("question", "") for q in (state.get("question_log") or [])]
         fallback = [
             {"agent": "Grammar Agent", "emoji": "🤖",
-             "result": "你在提问中正确使用了一般疑问句和过去时结构，语法准确。"},
+             "result": "你的提问结构完整，是非问句的形式使用正确。"},
             {"agent": "Native Expression Agent", "emoji": "😊",
-             "result": "部分问法可以更地道，例如用 \"Did he...\" 开头更自然。"},
+             "result": "部分问法可以更地道，试着用母语者常用的提问开头。"},
             {"agent": "Thinking Coach", "emoji": "🧠",
              "result": "你善于从人物关系和因果角度提问，推理逻辑清晰。"},
         ]
         if not questions:
             return fallback
+        lc = contract_for_session(session)
         system = (
-            f"你是英语学习游戏的结算分析官。用{native}给出三个智能体的简短点评，"
+            f"你是 {lc.target_name} 学习游戏的结算分析官。用{native}给出三个智能体的简短点评，"
             "每条不超过35字，分别从语法、地道表达、推理思维角度评价玩家本局的提问表现。\n"
             '返回JSON：{"agents":[{"agent":"Grammar Agent","result":"..."},'
             '{"agent":"Native Expression Agent","result":"..."},'
@@ -403,7 +394,7 @@ class TurtleSoupEngine(GameTypeEngine):
         user_msg = "玩家本局的提问记录：\n" + "\n".join(f"- {q}" for q in questions[:12])
         try:
             provider = _provider_for("game_challenge_hud", db)
-            data = await provider.complete_json(system, user_msg, temperature=0.6, max_tokens=400)
+            data = await provider.complete_json(language_prompt(system, session.target_language, session.native_language), user_msg, temperature=0.6, max_tokens=400)
             agents = data.get("agents") or []
             emojis = {"Grammar Agent": "🤖", "Native Expression Agent": "😊", "Thinking Coach": "🧠"}
             out = []

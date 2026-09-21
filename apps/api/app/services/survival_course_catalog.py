@@ -135,8 +135,8 @@ _DNA: dict[str, list[tuple[str, str, str, str]]] = {
 
 _LOCATION = {
     "en": ("I'm in {place_locative}.", "I'm going to {place_accusative}.", "I'm coming from {place_genitive}.", {"city": ("the city center", "the city center", "the city center"), "hotel": ("the hotel", "the hotel", "the hotel")}),
-    "es": ("Estoy en {place_locative}.", "Voy a {place_accusative}.", "Vengo de {place_genitive}.", {"city": ("el centro", "el centro", "el centro"), "hotel": ("el hotel", "el hotel", "el hotel")}),
-    "fr": ("Je suis à {place_locative}.", "Je vais à {place_accusative}.", "Je viens de {place_genitive}.", {"city": ("la gare", "la gare", "la gare"), "hotel": ("l'hôtel", "l'hôtel", "l'hôtel")}),
+    "es": ("Estoy en {place_locative}.", "Voy {place_accusative}.", "Vengo {place_genitive}.", {"city": ("el centro", "al centro", "del centro"), "hotel": ("el hotel", "al hotel", "del hotel")}),
+    "fr": ("Je suis à {place_locative}.", "Je vais à {place_accusative}.", "Je viens {place_genitive}.", {"city": ("la gare", "la gare", "de la gare"), "hotel": ("l'hôtel", "l'hôtel", "de l'hôtel")}),
     "de": ("Ich bin {place_locative}.", "Ich gehe {place_accusative}.", "Ich komme {place_genitive}.", {"city": ("im Zentrum", "ins Zentrum", "aus dem Zentrum"), "hotel": ("im Hotel", "ins Hotel", "aus dem Hotel")}),
     "ja": ("{place_locative}にいます。", "{place_accusative}へ行きます。", "{place_genitive}から来ました。", {"city": ("駅", "駅", "駅"), "hotel": ("ホテル", "ホテル", "ホテル")}),
     "ko": ("{place_locative}에 있어요.", "{place_accusative}에 가요.", "{place_genitive}에서 왔어요.", {"city": ("역", "역", "역"), "hotel": ("호텔", "호텔", "호텔")}),

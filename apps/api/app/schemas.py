@@ -1239,7 +1239,9 @@ class AppSettingsRead(BaseModel):
     realtime_asr_provider: str = "auto"
     default_embedding_provider: str = ""
     tts_provider: str = "edge"
-    tts_voice: str = "zh-CN-XiaoxiaoNeural"
+    tts_voice: str = ""
+    # {"edge": {"ja": "ja-JP-KeitaNeural", ...}, "qwentts": {...}}
+    tts_voice_overrides: dict = Field(default_factory=dict)
     tts_speed: float = 0.9
     tts_pitch: float = 1.1
     global_api_keys: list[dict] = Field(default_factory=list)
@@ -1265,12 +1267,30 @@ class AppSettingsUpdate(BaseModel):
     realtime_asr_provider: str = "auto"
     default_embedding_provider: str = ""
     tts_provider: str = "edge"
-    tts_voice: str = "zh-CN-XiaoxiaoNeural"
+    tts_voice: str = ""
+    tts_voice_overrides: dict = Field(default_factory=dict)
     tts_speed: float = 0.9
     tts_pitch: float = 1.1
     global_api_keys: list[dict] = Field(default_factory=list)
     llm_routing: dict = Field(default_factory=dict)
     voice_platform_config: dict = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check_voice_overrides(self):
+        """Keep the stored shape to {provider: {language: voice}}."""
+        cleaned: dict[str, dict[str, str]] = {}
+        for provider, group in (self.tts_voice_overrides or {}).items():
+            if not isinstance(group, dict):
+                raise ValueError("tts_voice_overrides must map provider -> {language: voice}")
+            picked = {
+                str(lang).strip().lower(): str(voice).strip()
+                for lang, voice in group.items()
+                if isinstance(voice, str) and voice.strip()
+            }
+            if picked:
+                cleaned[str(provider).strip().lower()] = picked
+        self.tts_voice_overrides = cleaned
+        return self
 
 
 class TopicForkCreate(BaseModel):

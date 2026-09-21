@@ -1,10 +1,12 @@
 import { apiRequest } from "../api";
+import { useLearningLanguageStore } from "../stores/learningLanguageStore";
+import { useGameStore } from "../stores/gameStore";
 
 /** Save a game's learned content as a reusable expression asset. */
 export async function saveGameToAssets(
   title: string,
   lines: string[],
-  targetLanguage = "en",
+  targetLanguage = useGameStore.getState().currentSession?.target_language || useLearningLanguageStore.getState().language,
 ): Promise<boolean> {
   const sourceText = lines.filter(Boolean).join("\n");
   if (!sourceText.trim()) return false;
@@ -27,7 +29,7 @@ export async function saveGameToAssets(
 /** Add learned patterns to the user's Pattern Crush (消消乐) review queue. */
 export async function addPatternsToCrush(
   patterns: string[],
-  languageCode = "en",
+  languageCode = useGameStore.getState().currentSession?.target_language || useLearningLanguageStore.getState().language,
 ): Promise<number> {
   let ok = 0;
   for (const pattern of patterns.filter(Boolean).slice(0, 12)) {

@@ -1,6 +1,23 @@
 import { create } from "zustand";
 import { apiRequest, findResumableGameSession } from "../api";
 
+/**
+ * A turn's HUD is "pending" while the learning analysis runs in the background.
+ * The engine ships the dialogue first and fills this in afterwards, either on
+ * the same SSE stream or via GET /sessions/{id}/turns/{turnId}/hud.
+ */
+function isPendingHud(hud: Record<string, unknown> | null | undefined): boolean {
+  return !!hud && hud.analysis_status === "pending";
+}
+
+/** Return a HUD worth rendering, or null to keep whatever is already shown. */
+function pickHud(hud: Record<string, unknown> | null | undefined): Record<string, unknown> | null {
+  if (!hud || Object.keys(hud).length === 0) return null;
+  if (isPendingHud(hud)) return null;
+  return hud;
+}
+
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -105,6 +122,9 @@ interface GameStore {
   currentSession: GameSession | null;
   feedItems: FeedItem[];
   currentHud: Record<string, unknown> | null;
+  // "analyzing" while the learning HUD is still being generated for the turn
+  // that was just answered. The dialogue is already on screen by then.
+  hudPhase: "analyzing" | null;
   turnLoading: boolean;
   inFlightTurns: number;
   summary: GameSummary | null;
@@ -120,6 +140,7 @@ interface GameStore {
   loadSession: (sessionId: string) => Promise<void>;
   sendTurn: (sessionId: string, actionType: string, userInput?: string, extra?: Record<string, unknown>) => Promise<TurnResult>;
   sendTurnStream: (sessionId: string, actionType: string, userInput?: string, extra?: Record<string, unknown>) => Promise<TurnResult>;
+  fetchTurnHud: (sessionId: string, turnId: string) => Promise<void>;
   sendDetectiveInterrogate: (
     sessionId: string,
     question: string,
@@ -144,6 +165,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentSession: null,
   feedItems: [],
   currentHud: null,
+  hudPhase: null,
   turnLoading: false,
   inFlightTurns: 0,
   summary: null,
@@ -263,14 +285,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
       });
 
       const newFeedItems = result.turn.feed_items || [];
-      const hud = result.turn.hud && Object.keys(result.turn.hud).length > 0 ? result.turn.hud : null;
+      const hud = pickHud(result.turn.hud);
+      const analysing = isPendingHud(result.turn.hud);
 
       // Backend feed items already echo the user input — replace the optimistic one to avoid duplication.
       set((s) => ({
         feedItems: [...s.feedItems.slice(0, baseLength), ...newFeedItems],
-        currentHud: hud || s.currentHud,
+        currentHud: hud ?? s.currentHud,
         currentSession: result.session,
+        hudPhase: analysing ? "analyzing" : null,
       }));
+
+      // The reply is on screen; collect the learning analysis once the
+      // background task has written it back.
+      if (analysing && result.turn.id) {
+        void get().fetchTurnHud(sessionId, result.turn.id);
+      }
 
       return result;
     } catch (err) {
@@ -293,8 +323,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  /**
+   * Catch-up for the async learning HUD when there is no open stream.
+   * The endpoint runs the analysis itself if the background task never did, so
+   * a single call is enough — no polling loop.
+   */
+  fetchTurnHud: async (sessionId: string, turnId: string) => {
+    try {
+      const res = await apiRequest<{ hud: Record<string, unknown> }>(
+        `/api/games/sessions/${sessionId}/turns/${turnId}/hud`
+      );
+      const hud = pickHud(res.hud);
+      set((s) => ({ currentHud: hud ?? s.currentHud, hudPhase: null }));
+    } catch (e) {
+      console.warn("learning HUD unavailable for turn", turnId, e);
+      set({ hudPhase: null });
+    }
+  },
+
   sendTurnStream: async (sessionId: string, actionType: string, userInput = "", extra?: Record<string, unknown>) => {
-    set({ turnLoading: true });
+    set({ turnLoading: true, hudPhase: null });
+    // Held across the loop: `complete` arrives before the HUD, and we return
+    // only once the stream ends so phase two is not cut off.
+    let completed: TurnResult | null = null;
     const token = localStorage.getItem("ainerspeak_token") || "";
     const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
     // Remember the feed length before this turn so the final `complete` event can
@@ -383,18 +434,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
               });
             }
           } else if (eventType === "complete") {
-            // Final result — drop all streamed partials and use the clean feed.
+            // Dialogue is final — drop all streamed partials and use the clean
+            // feed. The learning HUD may still be analysing (phase two below),
+            // so keep reading the stream instead of returning here.
             const result = JSON.parse(dataStr) as TurnResult;
             const newFeedItems = result.turn.feed_items || [];
-            const hud = result.turn.hud && Object.keys(result.turn.hud).length > 0 ? result.turn.hud : null;
+            const hud = pickHud(result.turn.hud);
 
+            completed = result;
             set((s) => ({
               feedItems: [...s.feedItems.slice(0, baseLen), ...newFeedItems],
-              currentHud: hud || s.currentHud,
+              currentHud: hud ?? s.currentHud,
               currentSession: result.session,
+              hudPhase: isPendingHud(result.turn.hud) ? "analyzing" : null,
             }));
-
-            return result;
+          } else if (eventType === "analyzing") {
+            set({ hudPhase: "analyzing" });
+          } else if (eventType === "hud") {
+            // Phase two: the learning analysis for the turn just completed.
+            const parsed = JSON.parse(dataStr) as { hud?: Record<string, unknown> };
+            const hud = pickHud(parsed.hud);
+            set((s) => ({ currentHud: hud ?? s.currentHud, hudPhase: null }));
+            if (completed) completed.turn.hud = parsed.hud || {};
           } else if (eventType === "error") {
             const err = JSON.parse(dataStr);
             throw new Error(err.detail || "Stream error");
@@ -402,18 +463,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
       }
 
+      if (completed) return completed;
       throw new Error("Stream ended without complete event");
     } catch (e) {
       console.error("sendTurnStream error:", e);
       throw e;
     } finally {
-      set({ turnLoading: false });
+      set({ turnLoading: false, hudPhase: null });
     }
   },
 
   sendDetectiveInterrogate: async (sessionId, question, extra) => {
     const turnId = crypto.randomUUID();
     const suspectId = String(extra?.suspect_id ?? "");
+    // Held across the loop so phase two (the HUD) is not cut off.
+    let completed: TurnResult | null = null;
     const token = localStorage.getItem("ainerspeak_token") || "";
     const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -507,21 +571,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const parsed = JSON.parse(dataStr);
             mergeSuspectDelta(parsed.feed_items || []);
           } else if (eventType === "complete") {
+            // The suspect has answered. The learning analysis arrives on the
+            // same stream a moment later, so keep reading.
             const result = JSON.parse(dataStr) as TurnResult;
-            const hud =
-              result.turn.hud && Object.keys(result.turn.hud).length > 0
-                ? result.turn.hud
-                : null;
+            const hud = pickHud(result.turn.hud);
 
+            completed = result;
             set((s) => ({
               feedItems: [
                 ...s.feedItems.filter((row) => row.turn_id !== turnId),
                 ...(result.turn.feed_items || []),
               ],
-              currentHud: hud || s.currentHud,
+              currentHud: hud ?? s.currentHud,
               currentSession: result.session,
+              hudPhase: isPendingHud(result.turn.hud) ? "analyzing" : null,
             }));
-            return result;
+          } else if (eventType === "analyzing") {
+            set({ hudPhase: "analyzing" });
+          } else if (eventType === "hud") {
+            const parsed = JSON.parse(dataStr) as { hud?: Record<string, unknown> };
+            const nextHud = pickHud(parsed.hud);
+            set((s) => ({ currentHud: nextHud ?? s.currentHud, hudPhase: null }));
+            if (completed) completed.turn.hud = parsed.hud || {};
           } else if (eventType === "error") {
             const err = JSON.parse(dataStr);
             throw new Error(err.detail || "Stream error");
@@ -529,6 +600,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
       }
 
+      if (completed) return completed;
       throw new Error("Stream ended without complete event");
     } catch (e) {
       set((s) => ({
@@ -537,7 +609,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.error("sendDetectiveInterrogate error:", e);
       throw e;
     } finally {
-      set((s) => ({ inFlightTurns: Math.max(0, (s.inFlightTurns ?? 0) - 1) }));
+      set((s) => ({
+        inFlightTurns: Math.max(0, (s.inFlightTurns ?? 0) - 1),
+        hudPhase: null,
+      }));
     }
   },
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import random
 import re
+import unicodedata
 from typing import Any
 
 from loguru import logger
@@ -46,7 +47,7 @@ _GENERIC_NEIGHBORS = [
 
 
 def _norm_word(text: str) -> str:
-    return re.sub(r"[^a-z0-9]", "", text.strip().lower())
+    return " ".join(unicodedata.normalize("NFC", text).strip().casefold().split())
 
 
 def _example_sentence(item: VocabularyItem) -> str:
@@ -58,7 +59,7 @@ def _example_sentence(item: VocabularyItem) -> str:
                 val = ex.get(key)
                 if val and str(val).strip():
                     return str(val).strip()
-    return "This word often appears when people discuss similar topics in English."
+    return ""
 
 
 def _cloze_sentence(sentence: str, word: str) -> str:
@@ -135,31 +136,31 @@ def generate_vocab_exercise(
     db: Session | None = None,
     user_id: str | None = None,
 ) -> PracticeExercise:
-    """Cloze + near-synonym options. Never leak Chinese meaning or target word in the prompt."""
+    """Meaning-constrained cloze; all options come from this language's real words."""
     word = item.word.strip()
     sentence = _example_sentence(item)
 
-    word_in_sentence = word.casefold() in sentence.casefold()
-    if not word_in_sentence and _norm_word(word) not in {
-        _norm_word(token) for token in _WORD_RE.findall(sentence)
-    }:
-        sentence = f"People often say that {word} plays a key role in this kind of discussion."
-
-    cloze = _cloze_sentence(sentence, word)
+    cloze = _cloze_sentence(sentence, word) if word.casefold() in sentence.casefold() else ""
     other_words = _other_vocab_words(
         db,
         user_id or item.user_id,
         word,
         item.language_code,
     )
-    distractors = _near_synonym_distractors(word, other_words=other_words, count=3)
+    from app.services.curriculum_packs import CORE_WORDS
+    pool = [*other_words, *(row[0] for row in CORE_WORDS.get(item.language_code, []))]
+    distractors = list(dict.fromkeys(w for w in pool if _norm_word(w) != _norm_word(word)))[:3]
+
+    if not item.meaning:
+        return PracticeExercise(exercise_type="translate", prompt="回忆这个已收集表达并输入完整原文：" + word[:1] + "____",
+            hint="该表达暂无释义，暂以原文回忆复习；可从资产补充释义。", correct_answer=word)
 
     options = [word, *distractors[:3]]
     random.shuffle(options)
 
     return PracticeExercise(
-        exercise_type="pick_near_synonym",
-        prompt="读句子，从下列近义表达中选出最贴切填入空白的一项",
+        exercise_type="pick_target_word",
+        prompt=f"选择表示「{item.meaning}」的词或表达" + ("，填回句中" if cloze else ""),
         hint=cloze,
         correct_answer=word,
         options=options,
@@ -168,7 +169,7 @@ def generate_vocab_exercise(
 
 def grade_vocab_answer(exercise: PracticeExercise, answer: str) -> bool:
     if exercise.exercise_type in ("pick_target_word", "pick_near_synonym"):
-        return _norm_word(answer) == _norm_word(exercise.correct_answer)
+        return bool(_norm_word(answer)) and _norm_word(answer) == _norm_word(exercise.correct_answer)
     return grade_answer(exercise, answer)
 
 
@@ -189,7 +190,7 @@ def apply_vocab_practice_result(item: VocabularyItem, *, correct: bool) -> str:
     if item.mastery_score >= 90:
         return "词汇已掌握，将从待练队列移除"
     if correct:
-        return "回答正确！注意近义词在语境里的细微差别"
+        return "回答正确！把词和这句话一起记住"
     return "再比较一下各选项与句意的贴合度"
 
 
@@ -290,11 +291,11 @@ async def generate_batch_analysis(db: Session | None, results: list[dict[str, An
     payload = json.dumps(results, ensure_ascii=False)
     system = (
         "You are a multilingual vocabulary coach for Chinese learners. "
-        "Infer each item's target language from its word and sentence. "
-        "Given batch near-synonym quiz results JSON, return ONLY valid JSON with keys: "
+        "Use each item's explicit language_code and explain the rules of that language. "
+        "Given meaning-recognition and cloze quiz results JSON, return ONLY valid JSON with keys: "
         "summary (string, Chinese), word_insights (array of {word, correct, explanation, tip}), "
         "encouragement (string, Chinese). "
-        "Explain why the chosen near-synonym fits or does not fit the sentence context; "
+        "Explain the target word's meaning, form and use in the sentence; "
         "contrast with wrong picks."
     )
     user = f"Batch results:\n{payload}"

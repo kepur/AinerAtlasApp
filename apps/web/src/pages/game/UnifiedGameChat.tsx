@@ -1,7 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Snowflake } from "lucide-react";
 import { useGameStore } from "../../stores/gameStore";
+import { freezeGameSession, type Asset } from "../../api";
+import FreezeResult from "../../components/FreezeResult";
+import { TokenExplainSheet, useTts } from "../../components/learning";
 import { saveGameToAssets, addPatternsToCrush } from "../../lib/gameLearning";
 import UnifiedHeader from "../../components/game/unified/UnifiedHeader";
 import UnifiedTurnSelector from "../../components/game/unified/UnifiedTurnSelector";
@@ -24,6 +27,12 @@ export default function UnifiedGameChat() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [savedAssets, setSavedAssets] = useState(false);
   const [savingAssets, setSavingAssets] = useState(false);
+  const [freezing, setFreezing] = useState(false);
+  const [showFreeze, setShowFreeze] = useState(false);
+  const [freezeAsset, setFreezeAsset] = useState<Asset | null>(null);
+  const [freezeError, setFreezeError] = useState<string | null>(null);
+  const [tokenSheet, setTokenSheet] = useState<{ token: string; context: string } | null>(null);
+  const { speak } = useTts(currentSession?.target_language);
 
   useEffect(() => {
     if (!id || !mode) return;
@@ -37,6 +46,23 @@ export default function UnifiedGameChat() {
 
     return () => clearCurrent();
   }, [id, mode]);
+
+  /** Freeze this session's transcript into a thought asset (same as Chat). */
+  const handleFreeze = async () => {
+    if (!currentSession || freezing) return;
+    setFreezing(true);
+    setShowFreeze(true);
+    setFreezeAsset(null);
+    setFreezeError(null);
+    try {
+      const asset = await freezeGameSession(currentSession.id, currentSession.title);
+      setFreezeAsset(asset);
+    } catch (e) {
+      setFreezeError(e instanceof Error ? e.message : "Freeze 失败");
+    } finally {
+      setFreezing(false);
+    }
+  };
 
   const initGame = async (gameType: string, slug: string) => {
     if (creating) return;
@@ -162,6 +188,19 @@ export default function UnifiedGameChat() {
           title={currentSession?.title}
           phase={phase}
           turnCount={currentSession?.turn_count || 0}
+          actionSlot={
+            currentSession && (currentSession.turn_count || 0) > 0 ? (
+              <button
+                onClick={() => void handleFreeze()}
+                disabled={freezing}
+                title="把本局学到的表达冻结成思想资产"
+                className="h-8 rounded-full flex items-center gap-1 px-3 bg-[#f5f3ff] text-[#8b5cf6] text-[11px] font-bold hover:bg-[#ede9fe] transition-colors disabled:opacity-60"
+              >
+                <Snowflake size={14} />
+                {freezing ? "冻结中" : "Freeze"}
+              </button>
+            ) : undefined
+          }
         />
 
         <UnifiedTurnSelector
@@ -182,6 +221,8 @@ export default function UnifiedGameChat() {
           <UnifiedLearningHUD
             mode={mode}
             hud={currentHud}
+            hintText="本轮学习要点（实时）· 完整思想资产请点右上角 Freeze"
+            onTokenClick={(token, ctx) => setTokenSheet({ token, context: ctx })}
             sessionTitle={currentSession?.title}
             questionsAsked={questionsAsked}
             cluesFound={cluesFound}
@@ -265,7 +306,7 @@ export default function UnifiedGameChat() {
                 const ok = await saveGameToAssets(
                   currentSession?.title || "游戏学习收获",
                   [...(summary.expressions || []), ...(summary.patterns || [])],
-                  currentSession?.target_language || "en",
+                  currentSession?.target_language,
                 );
                 setSavedAssets(ok);
                 setSavingAssets(false);
@@ -284,6 +325,25 @@ export default function UnifiedGameChat() {
             </button>
           </div>
         </div>
+      )}
+
+      {showFreeze && (
+        <FreezeResult
+          asset={freezeAsset}
+          loading={freezing}
+          error={freezeError}
+          loadingHint="AI 正在整理你本局学到的表达..."
+          onClose={() => setShowFreeze(false)}
+        />
+      )}
+
+      {tokenSheet && (
+        <TokenExplainSheet
+          token={tokenSheet.token}
+          context={tokenSheet.context}
+          speak={speak}
+          onClose={() => setTokenSheet(null)}
+        />
       )}
     </div>
   );

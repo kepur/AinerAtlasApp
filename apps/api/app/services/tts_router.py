@@ -21,6 +21,8 @@ from sqlalchemy.orm import Session
 from app.core.security import decrypt_api_key
 from app.models import AIProvider, AppSettings
 
+from app.services.tts_profile import voice_table as edge_voice_table
+
 logger = logging.getLogger(__name__)
 
 # Per-provider language proficiency (0-100) + cost tier. Mirrors the spec's
@@ -35,18 +37,10 @@ PROVIDER_VOICE_CAPABILITIES: dict[str, dict] = {
 
 # Default voice per provider, keyed by language ("*" = fallback).
 DEFAULT_VOICE: dict[str, dict[str, str]] = {
-    "edge": {
-        "zh": "zh-CN-XiaoxiaoNeural",
-        "en": "en-US-AriaNeural",
-        "sr": "sr-RS-SophieNeural",
-        "es": "es-ES-ElviraNeural",
-        "fr": "fr-FR-DeniseNeural",
-        "de": "de-DE-KatjaNeural",
-        "ru": "ru-RU-SvetlanaNeural",
-        "ja": "ja-JP-NanamiNeural",
-        "ko": "ko-KR-SunHiNeural",
-        "*": "en-US-AriaNeural",
-    },
+    # Edge's table comes from the shared profiles; it previously listed fewer
+    # languages than the provider did, so an explicit "hi"/"ar" hint was
+    # discarded and fell back to script detection.
+    "edge": {**edge_voice_table(), "*": "en-US-AriaNeural"},
     "cosyvoice": {"*": "longanhuan"},
     "qwentts":   {"zh": "Cherry", "*": "Cherry"},
     "openai":    {"en": "alloy", "zh": "alloy", "*": "alloy"},
@@ -218,7 +212,12 @@ async def synthesize_routed(
     if lang not in supported:
         lang = detect_text_language(text)
 
-    cache_voice_key = f"{lang}_{configured_default}"
+    # The key carries the language and the admin's voice pins, so a phrase
+    # cached for one language is never served for another, and re-pinning a
+    # voice does not keep serving the old recording.
+    from app.services.tts_profile import overrides_fingerprint
+
+    cache_voice_key = f"{lang}_{configured_default}_{overrides_fingerprint(db, configured_default)}"
     cached = cache_hit_as_response(text, voice=cache_voice_key, speed=str(speed))
     if cached:
         cached["routed_language"] = lang
@@ -228,15 +227,32 @@ async def synthesize_routed(
     base_default = configured_default if configured_default in PROVIDER_VOICE_CAPABILITIES else "openai"
     provider_name, voice = choose_provider(db, lang, base_default)
 
+    # Let an admin's per-language pin override the routed default.
+    if provider_name in {"edge", "browser"}:
+        from app.services.tts_profile import resolve_voice
+
+        voice = resolve_voice(db, lang)
+
     api_key = _resolve_provider_key(db, provider_name)
     if not api_key and provider_name not in {"openai", "edge"}:
         return None
 
     try:
-        provider = _build_provider(provider_name, api_key, voice)
+        from app.models import AppSettings
+        from app.services.tts_profile import effective_pitch, effective_speed
+
+        app = db.get(AppSettings, "default")
+        configured_pitch = float(getattr(app, "tts_pitch", 1.0) or 1.0) if app else 1.0
+
+        # Each language gets its own pace; the admin's speed still scales them all.
+        lang_speed = effective_speed(lang, speed)
+        provider = _build_provider(
+            provider_name, api_key, voice, effective_pitch(lang, configured_pitch)
+        )
         if provider is None:
             return None
-        result = await provider.synthesize(text, voice, speed)
+        result = await provider.synthesize(text, voice, lang_speed)
+        result.setdefault("speed", lang_speed)
         result.setdefault("routed_language", lang)
         result.setdefault("routed_provider", provider_name)
 
@@ -250,14 +266,14 @@ async def synthesize_routed(
         return None
 
 
-def _build_provider(provider_name: str, api_key: str, voice: str):
+def _build_provider(provider_name: str, api_key: str, voice: str, pitch: float = 1.0):
     from app.services.voice_edge_tts import EdgeTTSProvider
     from app.services.voice_cosyvoice import CosyVoiceProvider
     from app.services.voice_qwentts import QwenTTSProvider
     from app.services.voice_openai import OpenAIVoiceProvider
 
     if provider_name == "edge":
-        return EdgeTTSProvider(voice=voice)
+        return EdgeTTSProvider(voice=voice, pitch=pitch)
     if provider_name == "cosyvoice":
         return CosyVoiceProvider(api_key=api_key, voice=voice)
     if provider_name == "qwentts":

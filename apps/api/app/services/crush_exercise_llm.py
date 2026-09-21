@@ -93,11 +93,11 @@ def _rule_grammar_batch_insights(results: list[dict[str, Any]]) -> dict[str, Any
         example = str(row.get("example", ""))
         correct = bool(row.get("correct"))
         if correct:
-            explanation = f"「{title}」是更自然的表达。"
+            explanation = f"本题目标表达是「{title}」。"
             tip = "记住这个句型在真实对话里的搭配方式。"
         else:
             picked = str(row.get("user_answer", ""))
-            explanation = f"你选了「{picked or '?'}」，此处更自然的是「{title}」。"
+            explanation = f"你选了「{picked or '?'}」，本题要求回忆/选择的是「{title}」。"
             if example:
                 explanation += f" 参考：{example}"
             tip = "比较各选项的语气与搭配，而不只看字面意思。"
@@ -123,7 +123,9 @@ async def generate_grammar_batch_analysis(db: Session | None, results: list[dict
 
     payload = json.dumps(results, ensure_ascii=False)
     system = (
-        "You are an English expression coach for Chinese learners. "
+        "You are a multilingual expression coach for Chinese learners. "
+        "Use each item's explicit language_code; never assume English. Respect its morphology and word order. "
+        "These are meaning-recognition or exact-recall drills; other options may be grammatical but mean something different. "
         "Given batch pattern-crush quiz results JSON, return ONLY valid JSON with keys: "
         "summary (string, Chinese), insights (array of {title, correct, explanation, tip}), "
         "encouragement (string, Chinese)."

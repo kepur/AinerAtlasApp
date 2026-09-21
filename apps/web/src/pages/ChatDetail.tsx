@@ -65,7 +65,7 @@ function ConversationFeed({ messages, turns, activeTurnId, sending, streamPhase,
                   {assistant.content ? (
                     <>
                       <span>{assistant.content}</span>
-                      <button className="conv-speak" onClick={e => { e.stopPropagation(); speak(assistant.content, "en-US"); }}><Volume2 size={14} /></button>
+                      <button className="conv-speak" onClick={e => { e.stopPropagation(); speak(assistant.content); }}><Volume2 size={14} /></button>
                     </>
                   ) : (turn.status === "replying" || turn.status === "pending") ? (
                     <div className="thinking-dots"><i /><i /><i /></div>
@@ -103,7 +103,7 @@ function ConversationFeed({ messages, turns, activeTurnId, sending, streamPhase,
             <div className="conv-avatar"><MessageSquare size={12} /></div>
             <div className="conv-bubble assistant">
               <span>{msg.content}</span>
-              {msg.content && <button className="conv-speak" onClick={() => speak(msg.content, "en-US")}><Volume2 size={14} /></button>}
+              {msg.content && <button className="conv-speak" onClick={() => speak(msg.content)}><Volume2 size={14} /></button>}
             </div>
           </div>,
         );
@@ -144,7 +144,7 @@ function CorrectionBanner({ hud, speak }: { hud: HudData; speak: (text: string, 
           <span className="correction-dot" />
           <span>{mistakes.length > 0 ? `${mistakes.length} 处修正` : "语法修正"}</span>
         </div>
-        <div className="correction-sentence" onClick={() => speak(hud.corrected_sentence!, "en-US")}>
+        <div className="correction-sentence" onClick={() => speak(hud.corrected_sentence!)}>
           <span className="correction-text">{hud.corrected_sentence}</span>
           <Volume2 size={14} className="correction-play" />
         </div>
@@ -212,7 +212,7 @@ export default function ChatDetail() {
     if (prevSendingRef.current && !sending && autoTts) {
       const latest = turns[turns.length - 1];
       if (latest?.status === "ready" && latest.ai_reply) {
-        speak(latest.ai_reply, "en-US");
+        speak(latest.ai_reply);
       }
     }
     prevSendingRef.current = sending;

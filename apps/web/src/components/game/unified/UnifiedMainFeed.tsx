@@ -1,6 +1,6 @@
 import { useEffect, useRef, ReactNode } from "react";
 import { Sparkles, CheckCheck, List, Puzzle, Loader2 } from "lucide-react";
-import { FeedItem } from "../../../stores/gameStore";
+import { FeedItem, useGameStore } from "../../../stores/gameStore";
 import TTSButton from "../../TTSButton";
 
 interface Props {
@@ -45,6 +45,7 @@ export default function UnifiedMainFeed({ mode, feedItems = [], turnLoading, clu
 /* ------------------------------------------------------------------ */
 
 function FeedCard({ item, mode, cluesFound = 0, totalClues = 6, characters = [] }: { item: FeedItem; mode?: string; cluesFound?: number; totalClues?: number; characters?: any[] }) {
+  const language = useGameStore(s => s.currentSession?.target_language);
   switch (item.type) {
     /* ============  Turtle‑soup: story card  ============ */
     case "story":
@@ -127,7 +128,7 @@ function FeedCard({ item, mode, cluesFound = 0, totalClues = 6, characters = [] 
             <div className="bg-white rounded-[20px] rounded-tl-[4px] p-3 shadow-sm border border-gray-100">
               <div className="flex items-center gap-2">
                 <span className={`text-sm font-extrabold ${color}`}>{answer}</span>
-                <TTSButton text={String(item.comment_en || answer || "")} lang="en" voice="neutral_narrator" size={10} className="w-5 h-5 rounded-full bg-[#f5f3ff] flex items-center justify-center text-[#8b5cf6]" />
+                <TTSButton text={String(item.comment_en || answer || "")} lang={language} voice="neutral_narrator" size={10} className="w-5 h-5 rounded-full bg-[#f5f3ff] flex items-center justify-center text-[#8b5cf6]" />
               </div>
               {item.comment ? <p className="text-xs text-[#6b7280] mt-1">{String(item.comment)}</p> : null}
               {item.comment_en ? <p className="text-[10px] text-[#9ca3af] mt-0.5">{String(item.comment_en)}</p> : null}
@@ -173,7 +174,7 @@ function FeedCard({ item, mode, cluesFound = 0, totalClues = 6, characters = [] 
           <div className="flex flex-col max-w-[75%]">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11px] font-bold text-[#8b5cf6] ml-1">{charName}</span>
-              <TTSButton text={String(item.text_en || item.text || "")} lang="en" voice={charVoice} size={10} className="w-5 h-5 rounded-full bg-[#f5f3ff] flex items-center justify-center text-[#8b5cf6]" />
+              <TTSButton text={String(item.text_en || item.text || "")} lang={language} voice={charVoice} size={10} className="w-5 h-5 rounded-full bg-[#f5f3ff] flex items-center justify-center text-[#8b5cf6]" />
               {item.emotion ? <span className="text-[9px] text-[#9ca3af]">({String(item.emotion)})</span> : null}
             </div>
             <div className="bg-white/90 backdrop-blur-sm rounded-[20px] rounded-tl-[4px] p-3.5 shadow-sm border border-gray-100/50">
@@ -243,7 +244,7 @@ function FeedCard({ item, mode, cluesFound = 0, totalClues = 6, characters = [] 
           <div className="flex-1 max-w-[75%]">
             <span className="text-[#854d0e] text-[11px] font-bold inline-flex items-center gap-1">
               {item.suspect_name as string}
-              <TTSButton text={String(item.text || "")} lang="en" voice="neutral_narrator" size={10} className="w-5 h-5 rounded-full bg-[#fef9c3] flex items-center justify-center text-[#854d0e]" />
+              <TTSButton text={String(item.text || "")} lang={language} voice="neutral_narrator" size={10} className="w-5 h-5 rounded-full bg-[#fef9c3] flex items-center justify-center text-[#854d0e]" />
             </span>
             <div className="bg-white rounded-[20px] rounded-tl-[4px] px-3 py-2.5 mt-1 shadow-sm border border-gray-100">
               <p className="text-sm text-[#111827]">{item.text}</p>

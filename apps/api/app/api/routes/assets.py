@@ -7,6 +7,7 @@ from app.services.runtime_config import resolve_default_llm_provider
 from app.models import ExpressionAsset, ExpressionAssetVersion
 from app.schemas import AssetCreate, AssetRead, AssetVersionRead
 from app.services.llm import get_llm_provider, require_llm_provider, LLMUnavailableError
+from app.services.learning_language import learning_language
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 
@@ -34,11 +35,12 @@ class GenerateOppositeRequest(BaseModel):
 
 
 @router.get("", response_model=list[AssetRead])
-def list_assets(current_user: CurrentUser, db: DBSession) -> list[ExpressionAsset]:
+def list_assets(current_user: CurrentUser, db: DBSession, language: str | None = None) -> list[ExpressionAsset]:
     return list(
         db.scalars(
             select(ExpressionAsset)
             .where(ExpressionAsset.user_id == current_user.id)
+            .where(ExpressionAsset.target_language == learning_language(db, current_user.id, language))
             .order_by(ExpressionAsset.created_at.desc())
         )
     )
@@ -50,6 +52,8 @@ async def create_asset(
     current_user: CurrentUser,
     db: DBSession,
 ) -> ExpressionAsset:
+    payload.target_language = learning_language(db, current_user.id,
+        payload.target_language if "target_language" in payload.model_fields_set else None)
     provider = get_llm_provider(resolve_default_llm_provider(db), db=db)
     result = await provider.generate_expression_asset(
         source_text=payload.source_text,

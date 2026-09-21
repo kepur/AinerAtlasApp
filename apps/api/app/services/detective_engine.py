@@ -15,6 +15,9 @@ from app.models import GameSession, new_id
 from app.services.game_engine import GameTypeEngine, register_engine
 from app.services.llm import get_llm_provider_for_task
 from app.services.runtime_config import resolve_default_llm_provider
+from app.services.game_prompts import language_prompt
+from app.services.language_contract import contract_for_session
+from app.services.learning_hud import HudRequest, pending_hud
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +171,7 @@ class DetectiveEngine(GameTypeEngine):
             {
                 "type": "narrator",
                 "text": "你是一名侦探，被派来调查这起案件。",
-                "text_en": "You are a detective assigned to investigate this case.",
+                "text_en": (state.get("case") or {}).get("intro_target", ""),
             },
             {
                 "type": "case_briefing",
@@ -249,14 +252,14 @@ class DetectiveEngine(GameTypeEngine):
             "规则：\n"
             "- 如果你是凶手：巧妙回避关键问题，偶尔说谎但要自圆其说\n"
             "- 如果你不是凶手：诚实回答，但可能对自己的秘密有所隐瞒\n"
-            "- 回答用1-3句英文，体现你的性格\n"
-            "- 附中文翻译\n\n"
+            "- 回答用1-3句目标语，体现你的性格\n"
+            "- 附解释语言的翻译\n\n"
             "返回JSON：\n"
-            '{"answer":"英文回答","answer_native":"中文翻译",'
+            '{"answer":"目标语回答","answer_native":"解释语言翻译",'
             '"emotion":"suspicious/nervous/calm/angry/defensive",'
             '"lie_detected":true/false,"trust_change":-5到5}'
         )
-        system = get_game_prompt(db, "detective.interrogate", default_system)
+        system = get_game_prompt(db, "detective.interrogate", default_system, target_language=session.target_language, native_language=session.native_language)
         user_msg = (
             f"侦探的问题：{question}\n"
             f"已知线索：\n{clue_text if clue_text else '暂无'}\n"
@@ -266,8 +269,8 @@ class DetectiveEngine(GameTypeEngine):
 
     def _fallback_interrogate_data(self) -> dict:
         return {
-            "answer": "I... I don't know what you're talking about.",
-            "answer_native": "我……我不知道你在说什么。",
+            "answer": "",
+            "answer_native": "对话服务暂不可用，请稍后重试。",
             "emotion": "nervous",
         }
 
@@ -326,7 +329,7 @@ class DetectiveEngine(GameTypeEngine):
             feed.append({
                 "type": "narrator",
                 "text": "审问机会用完了。是时候提交你的推理了。",
-                "text_en": "No more interrogation chances. Time to submit your deduction.",
+                "text_en": "",
             })
         else:
             session.phase = "investigating"
@@ -349,21 +352,20 @@ class DetectiveEngine(GameTypeEngine):
 
         try:
             provider = _provider_for("game_ai_answer", db)
-            data = await provider.complete_json(system, user_msg, temperature=0.8, max_tokens=600)
+            data = await provider.complete_json(language_prompt(system, session.target_language, session.native_language), user_msg, temperature=0.8, max_tokens=600)
         except Exception as exc:
             logger.warning("interrogation failed: %s", exc)
             data = self._fallback_interrogate_data()
 
         data = self._normalize_interrogate_data(data)
         feed, data = self._finalize_interrogate(session, state, suspect, question, data)
-        answer_text = (data.get("answer") or "").strip()
-        hud = await self._generate_hud(db, session, question, answer_text)
-
         return {
             "state": state,
             "feed_items": feed,
             "ai_response": data,
-            "hud": hud,
+            # The suspect's answer ships now; the learning analysis follows
+            # from game_hud_worker.
+            "hud": pending_hud(),
         }
 
     async def handle_turn_stream(
@@ -476,16 +478,13 @@ class DetectiveEngine(GameTypeEngine):
         feed, data = self._finalize_interrogate(
             session, state, suspect, question, data, turn_id=turn_id
         )
-        answer_text = (data.get("answer") or "").strip()
-        hud = await self._generate_hud(db, session, question, answer_text)
-
         yield {
             "type": "complete",
             "data": {
                 "state": state,
                 "feed_items": feed,
                 "ai_response": data,
-                "hud": hud,
+                "hud": pending_hud(),
             },
         }
 
@@ -509,13 +508,13 @@ class DetectiveEngine(GameTypeEngine):
             "- 推理逻辑是否合理\n"
             "- 是否引用了关键证据\n\n"
             '返回JSON：{"correct":true/false,"reasoning_score":0-100,'
-            '"feedback":"中文评价","feedback_en":"English feedback"}'
+            '"feedback":"解释语言的评价","feedback_en":"同一评价的目标语版本"}'
         )
         user_msg = f"玩家的推理：{user_input}"
 
         try:
             provider = _provider_for("game_reasoning", db)
-            data = await provider.complete_json(system, user_msg, temperature=0.3, max_tokens=500)
+            data = await provider.complete_json(language_prompt(system, session.target_language, session.native_language), user_msg, temperature=0.3, max_tokens=500)
         except Exception as exc:
             logger.warning("deduction judge failed: %s", exc)
             data = {"correct": correct_culprit, "reasoning_score": 50 if correct_culprit else 20}
@@ -553,49 +552,27 @@ class DetectiveEngine(GameTypeEngine):
             "score": score,
         }
 
-    async def _generate_hud(
-        self, db: Session, session: GameSession,
-        question: str, answer: str,
-    ) -> dict:
-        native = session.native_language
-        target = session.target_language
-
-        system = (
-            f"你是英语表达教练。用户在侦探游戏中审问嫌疑人。"
-            f"生成学习HUD帮助用户学习审问相关的{target}表达。\n\n"
-            "返回JSON：\n"
-            '{"main_expression":"用户问题的标准英文表达，1句不超18词",'
-            f'"meaning_native":"{native}翻译",'
-            '"variants":{{"direct":"直接质问","subtle":"委婉探问","professional":"专业审问","confrontational":"对峙式"}},'
-            f'"why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],'
-            '"patterns_v2":[{"pattern":"句型","example":"例句","add_to_crush":true}],'
-            '"vocabulary":["词1","词2","词3"],'
-            f'"agents":[{{"agent":"Detective Coach","result":"{native}审问技巧点评"}},{{"agent":"Language Coach","result":"{native}表达点评"}},{{"agent":"Logic Coach","result":"{native}推理逻辑建议"}}]'
-            "}"
+    def build_hud_request(
+        self, session: GameSession, action_type: str, user_input: str, ai_response: dict,
+    ) -> HudRequest | None:
+        """Interrogation questions are the teachable moment here."""
+        if action_type not in ("interrogate", "question", "message"):
+            return None
+        if not (user_input or "").strip():
+            return None
+        answer = (ai_response.get("answer") or "").strip()
+        emotion = ai_response.get("emotion", "")
+        return HudRequest(
+            user_input=user_input,
+            context=f"嫌疑人回答：{answer}。情绪：{emotion}",
+            coach_role="侦探审讯表达教练",
+            agents=(
+                ("Detective Coach", "点评审问技巧是否问出了关键信息"),
+                ("Language Coach", "点评这句提问的地道程度"),
+                ("Logic Coach", "给出推理与追问方向的建议"),
+            ),
+            prompt_key="detective.hud",
         )
-        user_msg = f"审问问题：{question}\n嫌疑人回答：{answer}"
-
-        try:
-            provider = _provider_for("game_challenge_hud", db)
-            from app.services.game_prompts import get_game_prompt
-            system = get_game_prompt(db, "detective.hud", system)
-            hud = await provider.complete_json(system, user_msg, temperature=0.7, max_tokens=900)
-        except Exception as exc:
-            logger.warning("detective HUD failed: %s", exc)
-            hud = {}
-
-        for a in (hud.get("agents") or []):
-            if "name" in a and "agent" not in a:
-                a["agent"] = a.pop("name")
-
-        if "main_expression" not in hud:
-            hud["main_expression"] = hud.pop("main_reply_target", hud.pop("expression", ""))
-        if "meaning_native" not in hud:
-            hud["meaning_native"] = hud.pop("main_reply_native", hud.pop("meaning", ""))
-
-        hud["v2"] = True
-        hud["detected_intent"] = "expression_learning"
-        return hud
 
     async def get_summary(self, db: Session, session: GameSession) -> dict:
         state = session.state or {}

@@ -214,15 +214,32 @@ def pick_voice(gender: str | None) -> str:
     return "neutral_narrator"
 
 
-def provider_voice_for(voice_id: str | None, provider_name: str = "openai") -> str:
+def provider_voice_for(
+    voice_id: str | None, provider_name: str = "openai", language: str = "",
+    db=None,
+) -> str:
     """Resolve a game voice-preset id to a concrete provider-specific voice name.
 
     ``provider_name`` should be one of ``edge``, ``openai``, ``cosyvoice``, ``qwentts``.
     Falls back to ``alloy`` (openai) when the preset or provider mapping is missing.
+
+    For Edge the preset only fixes the *gender*: the voice itself follows
+    ``language``, because the per-provider table below is English-only and a
+    Japanese character reading lines in an American voice defeats the point of
+    a language-learning game.
     """
     preset = _VOICE_BY_ID.get(voice_id or "")
     if not preset:
         return "alloy"
+
+    if provider_name in {"edge", "browser"} and language:
+        from app.services.tts_profile import profile_for, resolve_voice
+
+        gender = preset.get("gender", "")
+        if db is not None:
+            return resolve_voice(db, language, provider="edge", gender=gender)
+        return profile_for(language).voice_for(gender)
+
     voices = preset.get("provider_voice", {})
     if isinstance(voices, dict):
         return voices.get(provider_name, voices.get("openai", "alloy"))

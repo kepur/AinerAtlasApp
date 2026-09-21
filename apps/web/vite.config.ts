@@ -15,21 +15,31 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: apiProxy,
+        changeOrigin: true,
+        secure: false,
         ws: true,
         timeout: 120000,
         proxyTimeout: 120000
       },
       "/uploads": {
         target: apiProxy,
+        changeOrigin: true,
+        secure: false,
         timeout: 120000,
         proxyTimeout: 120000
       },
       "/audio": {
         target: apiProxy,
+        changeOrigin: true,
+        secure: false,
         timeout: 120000,
         proxyTimeout: 120000
       },
-      "/health": apiProxy
+      "/health": {
+        target: apiProxy,
+        changeOrigin: true,
+        secure: false
+      }
     }
   }
 });

@@ -59,16 +59,16 @@ def test_grammar_batch_preloads_exercises_and_summary() -> None:
         assert body["batch_size"] >= 1
         assert len(body["exercises"]) >= 1
         ex = body["exercises"][0]
-        assert ex["exercise"]["exercise_type"] == "choose_natural"
-        assert len(ex["exercise"]["options"]) == 4
+        assert ex["exercise"]["exercise_type"] == "translate"
+        assert not ex["exercise"]["options"]  # Uncurated phrases use honest recall, not fake distractors.
 
         submit = client.post(
             f"/api/grammar/{item_id}/practice",
             headers=headers,
-            json={"answer": ex["exercise"]["options"][0], "exercise_token": ex["exercise_token"]},
+            json={"answer": "Rather than doing...", "exercise_token": ex["exercise_token"]},
         )
         assert submit.status_code == 200
-        assert submit.json()["correct"] in {True, False}
+        assert submit.json()["correct"] is True
 
         summary = client.post(
             "/api/grammar/practice/batch-summary",

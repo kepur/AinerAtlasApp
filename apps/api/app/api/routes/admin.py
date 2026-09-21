@@ -566,6 +566,38 @@ def list_providers(_: AdminUser, db: DBSession) -> list[ProviderRead]:
     return [to_provider_read(row, db) for row in rows]
 
 
+@router.get("/tts/voice-options")
+async def tts_voice_options(_: AdminUser, provider: str = "edge") -> dict:
+    """Voices selectable per language, plus the built-in defaults.
+
+    Only Edge is enumerated live; the paid providers use small fixed voice
+    sets that are not language-specific, so the console shows those as-is.
+    """
+    from app.services.tts_profile import edge_voice_catalog, profile_summary
+
+    if provider in {"edge", "browser"}:
+        return {
+            "provider": "edge",
+            "per_language": True,
+            "languages": profile_summary(),
+            "voices": await edge_voice_catalog(),
+        }
+
+    from app.services.game_assets import VOICE_PRESETS
+
+    fixed = sorted({
+        p["provider_voice"].get(provider, "")
+        for p in VOICE_PRESETS
+        if isinstance(p.get("provider_voice"), dict)
+    } - {""})
+    return {
+        "provider": provider,
+        "per_language": False,
+        "languages": profile_summary(),
+        "voices": {"*": [{"value": v, "label": v, "gender": ""} for v in fixed]},
+    }
+
+
 @router.get("/providers/capabilities", response_model=list[ProviderCapabilityRead])
 def provider_capabilities(_: AdminUser, db: DBSession) -> list[ProviderCapabilityRead]:
     return [
@@ -969,7 +1001,8 @@ def _app_settings_read(settings: AppSettings) -> AppSettingsRead:
         realtime_asr_provider=settings.realtime_asr_provider or "auto",
         default_embedding_provider=settings.default_embedding_provider or "",
         tts_provider=getattr(settings, "tts_provider", "edge") or "edge",
-        tts_voice=getattr(settings, "tts_voice", "zh-CN-XiaoxiaoNeural") or "zh-CN-XiaoxiaoNeural",
+        tts_voice=getattr(settings, "tts_voice", "") or "",
+        tts_voice_overrides=getattr(settings, "tts_voice_overrides", {}) or {},
         tts_speed=float(getattr(settings, "tts_speed", 0.9) or 0.9),
         tts_pitch=float(getattr(settings, "tts_pitch", 1.1) or 1.1),
         global_api_keys=getattr(settings, "global_api_keys", []) or [],
@@ -1028,10 +1061,10 @@ def update_app_settings(
     settings.tts_provider = getattr(payload, "tts_provider", "edge") or "edge"
     if settings.tts_provider == "browser":
         settings.tts_provider = "edge"
-    settings.tts_voice = (
-        getattr(payload, "tts_voice", "zh-CN-XiaoxiaoNeural")
-        or "zh-CN-XiaoxiaoNeural"
-    )
+    # Empty means "choose per content language" (app/services/tts_profile.py),
+    # so it is stored as-is rather than defaulted to a Chinese voice.
+    settings.tts_voice = getattr(payload, "tts_voice", "") or ""
+    settings.tts_voice_overrides = getattr(payload, "tts_voice_overrides", {}) or {}
     settings.tts_speed = getattr(payload, "tts_speed", 0.9) or 0.9
     settings.tts_pitch = getattr(payload, "tts_pitch", 1.1) or 1.1
     settings.global_api_keys = getattr(payload, "global_api_keys", []) or []

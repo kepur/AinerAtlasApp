@@ -91,7 +91,7 @@ export default function VocabularyLadder({ language }: { language: string }) {
         <p className="text-[10px] text-on-surface-variant leading-relaxed">
           {data.graduated ? "已毕业，接下来按生活、工作和兴趣补词。" : `距离下一站还差 ${data.remaining_to_next} 个掌握词。`}
         </p>
-        <button type="button" onClick={() => navigate("/vocabulary")} className="shrink-0 h-9 px-3 rounded-xl bg-primary text-white text-[11px] font-bold">去练 10 词</button>
+        <button type="button" onClick={() => navigate("/vocabulary?practice=1")} className="shrink-0 h-9 px-3 rounded-xl bg-primary text-white text-[11px] font-bold">去练 10 词</button>
       </div>
       <p className="text-[9px] text-on-surface-variant mt-2">{data.counting_rule}</p>
     </section>

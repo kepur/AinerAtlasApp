@@ -13,6 +13,8 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models import GameSession
+from app.services.language_contract import contract_for_session
+from app.services.learning_hud import HudRequest, pending_hud
 from app.services.game_assets import pick_voice
 from app.services.game_engine import GameTypeEngine, register_engine
 from app.services.llm import get_llm_provider_for_task
@@ -190,7 +192,7 @@ class RomanceEngine(GameTypeEngine):
         state["total_turns"] = state.get("total_turns", 0) + 1
 
         from app.services.game_prompts import get_game_prompt
-        prompt = get_game_prompt(db, "romance.turn", self._build_prompt(state, user_input, extra))
+        prompt = get_game_prompt(db, "romance.turn", self._build_prompt(state, user_input, extra), target_language=session.target_language, native_language=session.native_language)
         provider = _provider_for("dialogue_stream", db) or _provider_for("chat", db)
 
         try:
@@ -201,11 +203,11 @@ class RomanceEngine(GameTypeEngine):
         except Exception as e:
             logger.error(f"Failed to get or parse LLM JSON response: {e}")
             parsed = {
-                "character_reply": "Haha, that's interesting...",
-                "character_reply_zh": "哈哈，真有趣...",
+                "character_reply": "",
+                "character_reply_zh": "对话服务暂不可用，请稍后重试。",
                 "emotion": "开心",
                 "emotion_emoji": "😊",
-                "relationship_change": 2,
+                "relationship_change": 0,
             }
 
         return await self._finalize(session, state, target, parsed, user_input, db)
@@ -232,11 +234,6 @@ class RomanceEngine(GameTypeEngine):
         elif new_score >= 20:
             session.phase = "flirting"
 
-        # Learning HUD via chat_v2 (native language explains English) — same as Chat.
-        learning_hud = await analyze_romance_user_message(
-            db, session, user_input, target=target,
-        )
-
         new_feed = []
         if user_input:
             new_feed.append({
@@ -261,8 +258,10 @@ class RomanceEngine(GameTypeEngine):
         state["feed"] = state.get("feed", []) + new_feed
         session.state = state
 
+        # Relationship state is instant; the learning analysis is filled in by
+        # game_hud_worker so the character replies without waiting for grammar.
         hud = {
-            **learning_hud,
+            **pending_hud(),
             "relationship_score": new_score,
             "max_score": state["max_score"],
         }
@@ -298,7 +297,7 @@ class RomanceEngine(GameTypeEngine):
             }]}}
 
         from app.services.game_prompts import get_game_prompt
-        prompt = get_game_prompt(db, "romance.turn", self._build_prompt(state, user_input, extra or {}))
+        prompt = get_game_prompt(db, "romance.turn", self._build_prompt(state, user_input, extra or {}), target_language=session.target_language, native_language=session.native_language)
         provider = _provider_for("dialogue_stream", db) or _provider_for("chat", db)
 
         parsed: dict | None = None
@@ -312,7 +311,7 @@ class RomanceEngine(GameTypeEngine):
             buffer = ""
             last_text = ""
             # Pull the growing character_reply value out of partial JSON so the
-            # English reply streams character-by-character into one live bubble.
+            # reply streams character-by-character into one live bubble.
             reply_re = re.compile(r'"character_reply"\s*:\s*"((?:[^"\\]|\\.)*)', re.S)
 
             def _extract(buf: str) -> str:
@@ -354,7 +353,9 @@ class RomanceEngine(GameTypeEngine):
 
         if not parsed or "character_reply" not in parsed:
             parsed = {
-                "character_reply": "Haha, that's interesting...",
+                # Provider-unavailable fallback: an ellipsis reads as a pause in
+                # any language, unlike a hardcoded English line.
+                "character_reply": "...",
                 "character_reply_zh": "哈哈，真有趣...",
                 "emotion": "开心",
                 "emotion_emoji": "😊",
@@ -363,6 +364,23 @@ class RomanceEngine(GameTypeEngine):
 
         result = await self._finalize(session, state, target, parsed, user_input, db)
         yield {"type": "complete", "data": result}
+
+    async def analyze_turn_hud(self, db: Session, session: GameSession, turn) -> dict | None:
+        """Romance keeps its chat_v2 analysis — richer than the generic coach.
+
+        Called from game_hud_worker after the character's reply has shipped.
+        """
+        if not (turn.user_input or "").strip():
+            return None
+        state = session.state or {}
+        target = state.get("target") or {}
+        hud = await analyze_romance_user_message(
+            db, session, turn.user_input, target=target,
+        )
+        if not hud:
+            return {"analysis_status": "failed"}
+        hud.setdefault("analysis_status", "ready")
+        return hud
 
     async def get_summary(self, db: Session, session: GameSession) -> dict:
         return {
@@ -405,8 +423,8 @@ Prompt constraints from admin: {target.get('prompt_override', '')}
 
 Respond IN JSON ONLY, using this exact schema:
 {{
-  "character_reply": "Your response in English",
-  "character_reply_zh": "Your response translated to Chinese",
+  "character_reply": "Your response, written in the session's TARGET language",
+  "character_reply_zh": "The same response translated into the learner's NATIVE language",
   "emotion": "中文情绪词（开心/害羞/疑惑/生气/感动/冷淡/心动 等）",
   "emotion_emoji": "一个最贴切的 emoji（如 😊 😳 🤔 💢 🥰 😐 💕）",
   "relationship_change": integer (-5 to +5 based on how well the user advanced the {cat_cfg['dimension']} goal)

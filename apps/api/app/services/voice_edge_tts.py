@@ -10,32 +10,25 @@ from __future__ import annotations
 import base64
 
 from app.services.voice import VoiceProvider
+from app.services.tts_profile import normalize, profile_for, voice_table
 
 
-EDGE_VOICES_BY_LANGUAGE: dict[str, str] = {
-    "zh": "zh-CN-XiaoxiaoNeural",
-    "en": "en-US-AriaNeural",
-    "sr": "sr-RS-SophieNeural",
-    "es": "es-ES-ElviraNeural",
-    "fr": "fr-FR-DeniseNeural",
-    "de": "de-DE-KatjaNeural",
-    "it": "it-IT-ElsaNeural",
-    "pt": "pt-BR-FranciscaNeural",
-    "ru": "ru-RU-SvetlanaNeural",
-    "ja": "ja-JP-NanamiNeural",
-    "ko": "ko-KR-SunHiNeural",
-    "hi": "hi-IN-SwaraNeural",
-    "ar": "ar-SA-ZariyahNeural",
-}
+# Built from the shared per-language profiles so the router, the provider and
+# the admin voice list can never drift apart.
+EDGE_VOICES_BY_LANGUAGE: dict[str, str] = voice_table()
 
 
-def edge_voice_for(language: str, configured_voice: str = "") -> str:
-    """Resolve a full Edge voice name while respecting a matching admin voice."""
-    lang = (language or "").lower().split("-", 1)[0]
+def edge_voice_for(language: str, configured_voice: str = "", gender: str = "") -> str:
+    """Resolve a full Edge voice name while respecting a matching admin voice.
+
+    An admin-configured voice only wins when it belongs to the requested
+    language; otherwise a Chinese default would end up reading Japanese.
+    """
+    lang = normalize(language)
     configured = (configured_voice or "").strip()
     if configured and configured.lower().startswith(f"{lang}-") and configured.endswith("Neural"):
         return configured
-    return EDGE_VOICES_BY_LANGUAGE.get(lang, configured or EDGE_VOICES_BY_LANGUAGE["en"])
+    return profile_for(lang).voice_for(gender)
 
 
 def _rate_percent(speed: float) -> str:

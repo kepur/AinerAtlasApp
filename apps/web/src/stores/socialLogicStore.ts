@@ -12,7 +12,10 @@ type SocialLogicStore = {
   turns: GameLearningTurn[];
   activeTurnId: string | null;
   pinnedTurnId: string | null;
-  pushTurn: (label: string, hud: HudData) => void;
+  /** Returns the new turn's id so a pending HUD can be filled in later. */
+  pushTurn: (label: string, hud: HudData) => string;
+  /** Replace a turn's HUD once the background analysis lands. */
+  updateTurnHud: (turnId: string, hud: HudData) => void;
   setActiveTurn: (id: string) => void;
   pinTurn: (id: string) => void;
   unpinTurn: () => void;
@@ -31,7 +34,13 @@ export const useSocialLogicStore = create<SocialLogicStore>((set, get) => ({
       turns: [...s.turns, { turn_id, label, hud }],
       activeTurnId: s.pinnedTurnId ?? turn_id,
     }));
+    return turn_id;
   },
+
+  updateTurnHud: (turnId, hud) =>
+    set((s) => ({
+      turns: s.turns.map((t) => (t.turn_id === turnId ? { ...t, hud } : t)),
+    })),
 
   setActiveTurn: (id) => set({ activeTurnId: id }),
 
@@ -58,20 +67,5 @@ export const useSocialLogicStore = create<SocialLogicStore>((set, get) => ({
   },
 }));
 
-/** Map game HUD variant keys to Chat LearningHUD tabs. */
-export function normalizeGameHud(hud: Record<string, unknown> | null | undefined): HudData {
-  if (!hud) return null;
-  const variants = (hud.variants as Record<string, string> | undefined) || {};
-  return {
-    ...(hud as HudData),
-    main_expression: String(hud.main_expression || ""),
-    meaning_native: String(hud.meaning_native || ""),
-    variants: {
-      natural_spoken: variants.natural || variants.natural_spoken || String(hud.main_expression || ""),
-      basic: variants.polite || variants.basic || "",
-      written: variants.deductive || variants.written || "",
-      advanced: variants.assertive || variants.advanced || "",
-    },
-    detected_intent: (hud.detected_intent as string) || "expression_learning",
-  };
-}
+// Moved to components/learning/gameHud so Chat and games share one mapping.
+export { normalizeGameHud } from "../components/learning/gameHud";

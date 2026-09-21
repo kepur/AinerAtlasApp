@@ -61,6 +61,7 @@ from app.services.conversation_moderation import (
     soft_delete_conversation,
 )
 from app.services.moderation import moderate_text
+from app.services.learning_language import learning_language
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/conversations", tags=["conversations"])
@@ -72,7 +73,10 @@ def create_conversation(
     current_user: CurrentUser,
     db: DBSession,
 ) -> Conversation:
-    conversation = Conversation(user_id=current_user.id, **payload.model_dump())
+    data = payload.model_dump()
+    data["target_language"] = learning_language(db, current_user.id,
+        payload.target_language if "target_language" in payload.model_fields_set else None)
+    conversation = Conversation(user_id=current_user.id, **data)
     db.add(conversation)
     db.flush()
 
@@ -105,11 +109,12 @@ def create_conversation(
 
 
 @router.get("", response_model=list[ConversationRead])
-def list_conversations(current_user: CurrentUser, db: DBSession) -> list[Conversation]:
+def list_conversations(current_user: CurrentUser, db: DBSession, language: str | None = None) -> list[Conversation]:
     return list(
         db.scalars(
             select(Conversation)
             .where(Conversation.user_id == current_user.id, Conversation.deleted_at.is_(None))
+            .where(Conversation.target_language == learning_language(db, current_user.id, language))
             .options(selectinload(Conversation.messages))
             .order_by(Conversation.updated_at.desc())
         )
@@ -599,6 +604,102 @@ async def stream_message(
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
 
 
+@router.get("/{conversation_id}/messages/{message_id}/analysis")
+async def get_message_analysis(
+    conversation_id: str,
+    message_id: str,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> dict:
+    """Catch-up for a reply whose learning analysis never finished.
+
+    Phase 1 of the stream commits the reply with ``stream_status`` set to
+    ``pending_analysis``; if the client disconnects before phase 2 lands, the
+    HUD would be lost forever. This runs the analysis on demand and backfills
+    the message, so reopening the chat still shows the learning points.
+    """
+    conversation = _require_user_conversation(db, conversation_id, current_user.id)
+    message = db.get(ConversationMessage, message_id)
+    if not message or message.conversation_id != conversation.id:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    analysis = message.analysis or {}
+    status = analysis.get("stream_status")
+    if status not in ("pending_analysis", "partial"):
+        # Already complete (or never needed analysis) — hand back what we have.
+        return {"message_id": message_id, "status": status or "complete", "analysis": analysis}
+
+    # The user turn this reply answers is the last user message before it.
+    user_message = db.scalars(
+        select(ConversationMessage)
+        .where(
+            ConversationMessage.conversation_id == conversation.id,
+            ConversationMessage.role == "user",
+            ConversationMessage.created_at <= message.created_at,
+        )
+        .order_by(ConversationMessage.created_at.desc())
+        .limit(1)
+    ).first()
+    if not user_message:
+        return {"message_id": message_id, "status": "failed", "analysis": analysis}
+
+    profile = db.scalar(select(UserProfile).where(UserProfile.user_id == current_user.id))
+    profile_read = ProfileRead.model_validate(profile) if profile else None
+    explanation_language = _explanation_language(profile_read, conversation.native_language)
+    detect_correction = _should_correct(
+        user_message.content_language, conversation.target_language
+    )
+    system_prompt = _load_mode_system_prompt(
+        db,
+        conversation=conversation,
+        profile_read=profile_read,
+        explanation_language=explanation_language,
+        detect_correction=detect_correction,
+        mode_task_type=resolve_mode_task_type(conversation.mode),
+    )
+
+    from app.services.runtime_config import resolve_llm_provider_for_task
+
+    try:
+        provider = require_llm_provider(resolve_llm_provider_for_task("grammar_analysis", db), db=db)
+        data = await provider.chat_v2(
+            user_input=user_message.content,
+            profile=profile_read,
+            native_language=conversation.native_language,
+            target_language=conversation.target_language,
+            mode=conversation.mode,
+            topic=conversation.topic,
+            detect_target_language_input=detect_correction,
+            system_prompt_override=system_prompt,
+            memory_summary=load_user_memory_summary(db, current_user.id),
+            conversation_history=_conversation_history(conversation),
+        )
+    except Exception as exc:  # noqa: BLE001 — the reply itself is already safe
+        logger.warning("catch-up analysis failed for message %s: %s", message_id, exc)
+        return {"message_id": message_id, "status": "failed", "analysis": analysis}
+
+    v2 = _build_chat_v2_response(data)
+    analysis_data = v2.to_legacy_analysis()
+    analysis_data["conversational_reply"] = message.content
+    analysis_data["stream_status"] = "complete"
+
+    message.analysis = analysis_data
+    message.translated_content = v2.main_expression
+    message.expression_versions = v2.variants
+    user_message.translated_content = str(data.get("user_input_translated", "") or "")
+    user_message.analysis = {
+        **(user_message.analysis or {}),
+        "user_input_translated": data.get("user_input_translated", ""),
+        "corrected_sentence": v2.corrected_sentence,
+        "mistakes": [m.model_dump() for m in v2.mistakes] if v2.mistakes else [],
+        "stream_status": "complete",
+    }
+    user_message.expression_versions = data.get("user_input_versions") or {}
+    db.commit()
+
+    return {"message_id": message_id, "status": "complete", "analysis": analysis_data}
+
+
 @router.patch("/{conversation_id}/target-language", response_model=ConversationRead)
 def switch_target_language(
     conversation_id: str,
@@ -1038,4 +1139,3 @@ def _write_usage_log(
 def _estimate_cost(tokens_in: int, tokens_out: int) -> float:
     """Rough cost estimate in USD (gpt-4o-mini pricing as baseline)."""
     return (tokens_in * 0.15 + tokens_out * 0.60) / 1_000_000
-

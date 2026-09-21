@@ -118,7 +118,9 @@ async def create_session(
     db: Session, user_id: str, game_type: str,
     template_id: str | None = None, config: dict | None = None,
 ) -> dict:
-    cfg = config or {}
+    from app.services.learning_language import learning_language
+    cfg = dict(config or {})
+    target_language = learning_language(db, user_id, cfg.get("target_language"))
 
     template = None
     if template_id:
@@ -130,6 +132,8 @@ async def create_session(
             cfg = {**template.config, **cfg}
 
     engine = get_engine(game_type)
+    # Template language is content metadata, never the user's learning preference.
+    cfg["target_language"] = target_language
 
     sess = GameSession(
         id=new_id(),
@@ -145,6 +149,16 @@ async def create_session(
     )
 
     init_state = await engine.init_session(sess, cfg)
+    if target_language != "en":
+        # Legacy template translations are English-only. Preserve native descriptions;
+        # actual dialogue/HUD is generated using the session's language contract.
+        def native_template(value):
+            if isinstance(value, dict):
+                return {k: native_template(v) for k, v in value.items() if not k.endswith("_en") and k != "opening"}
+            if isinstance(value, list):
+                return [native_template(v) for v in value]
+            return value
+        init_state = native_template(init_state)
     sess.state = init_state
     sess.started_at = datetime.now(UTC)
 
@@ -160,7 +174,9 @@ async def create_session(
 
 
 def list_sessions(db: Session, user_id: str, status: str | None = None) -> list[dict]:
-    q = select(GameSession).where(GameSession.user_id == user_id)
+    from app.services.learning_language import learning_language
+    q = select(GameSession).where(GameSession.user_id == user_id,
+        GameSession.target_language == learning_language(db, user_id))
     if status:
         q = q.where(GameSession.status == status)
     q = q.order_by(GameSession.updated_at.desc()).limit(20)
@@ -176,10 +192,12 @@ def find_resumable_session(
     target_id: str | None = None,
     template_id: str | None = None,
 ) -> dict | None:
+    from app.services.learning_language import learning_language
     q = (
         select(GameSession)
         .where(
             GameSession.user_id == user_id,
+            GameSession.target_language == learning_language(db, user_id),
             GameSession.game_type == game_type,
             GameSession.status == "active",
         )
@@ -249,7 +267,8 @@ async def handle_turn(
 async def get_summary(db: Session, session_id: str, user_id: str) -> dict:
     sess = _load_session(db, session_id, user_id)
     engine = get_engine(sess.game_type)
-    return await engine.get_summary(db, sess)
+    summary = await engine.get_summary(db, sess)
+    return {**summary, "target_language": sess.target_language}
 
 
 # ---------------------------------------------------------------------------

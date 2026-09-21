@@ -11,9 +11,12 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.models import GameSession
+from app.services.language_contract import contract_for_session
+from app.services.learning_hud import HudRequest, pending_hud
 from app.services.game_engine import GameTypeEngine, register_engine
 from app.services.llm import get_llm_provider_for_task
 from app.services.runtime_config import resolve_default_llm_provider
+from app.services.game_prompts import language_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +228,7 @@ class RoleplayEngine(GameTypeEngine):
                         feed.append({
                             "type": "chapter_end",
                             "text": "本章结束。准备好进入下一章了吗？",
-                            "text_en": "Chapter complete. Ready for the next chapter?",
+                            "text_en": "",
                         })
                     else:
                         session.phase = "summary"
@@ -233,7 +236,7 @@ class RoleplayEngine(GameTypeEngine):
                         feed.append({
                             "type": "story_end",
                             "text": "故事结束了。来看看你的学习收获吧！",
-                            "text_en": "The story has ended. Let's see what you've learned!",
+                            "text_en": "",
                         })
                         yield {"type": "complete", "data": {
                             "state": state,
@@ -266,7 +269,7 @@ class RoleplayEngine(GameTypeEngine):
             {
                 "type": "narrator",
                 "text": f"故事开始了。{story['setting']}",
-                "text_en": f"The story begins. {story['setting']}",
+                "text_en": "",
             },
             {
                 "type": "chapter_start",
@@ -279,7 +282,7 @@ class RoleplayEngine(GameTypeEngine):
         # Prefer a pre-authored opening (instant entry, no LLM round-trip). Only
         # call the model when a story has no cached opening (e.g. older templates).
         opening = story.get("opening")
-        if opening and opening.get("feed_items"):
+        if session.target_language == "en" and opening and opening.get("feed_items"):
             feed.extend(opening["feed_items"])
             for item in opening["feed_items"]:
                 if item.get("type") in ("narrator", "character"):
@@ -329,7 +332,7 @@ class RoleplayEngine(GameTypeEngine):
                 feed.append({
                     "type": "chapter_end",
                     "text": "本章结束。准备好进入下一章了吗？",
-                    "text_en": "Chapter complete. Ready for the next chapter?",
+                    "text_en": "",
                 })
             else:
                 session.phase = "summary"
@@ -337,7 +340,7 @@ class RoleplayEngine(GameTypeEngine):
                 feed.append({
                     "type": "story_end",
                     "text": "故事结束了。来看看你的学习收获吧！",
-                    "text_en": "The story has ended. Let's see what you've learned!",
+                    "text_en": "",
                 })
                 return {
                     "state": state,
@@ -418,7 +421,7 @@ class RoleplayEngine(GameTypeEngine):
 
         from app.services.game_prompts import get_game_prompt
         system = get_game_prompt(db, "roleplay.narrative",
-            self._build_narrative_system_prompt(story, ch, char_lines, branches_block, endings_block))
+            self._build_narrative_system_prompt(story, ch, char_lines, branches_block, endings_block), target_language=session.target_language, native_language=session.native_language)
 
         if trigger == "story_opening":
             user_msg = "请生成故事开场白和第一段叙述。角色自然地出场。"
@@ -434,7 +437,7 @@ class RoleplayEngine(GameTypeEngine):
             logger.warning("roleplay narrative failed: %s", exc)
             data = {
                 "narrator_text": "故事继续...",
-                "narrator_text_en": "The story continues...",
+                "narrator_text_en": "",
                 "character_lines": [],
                 "choices": [],
             }
@@ -476,7 +479,7 @@ class RoleplayEngine(GameTypeEngine):
 
         from app.services.game_prompts import get_game_prompt
         system = get_game_prompt(db, "roleplay.narrative",
-            self._build_narrative_system_prompt(story, ch, char_lines, branches_block, endings_block))
+            self._build_narrative_system_prompt(story, ch, char_lines, branches_block, endings_block), target_language=session.target_language, native_language=session.native_language)
 
         if trigger == "story_opening":
             user_msg = "请生成故事开场白和第一段叙述。角色自然地出场。"
@@ -529,7 +532,7 @@ class RoleplayEngine(GameTypeEngine):
             if not data or "narrator_text" not in data:
                 data = {
                     "narrator_text": "故事继续...",
-                    "narrator_text_en": "The story continues...",
+                    "narrator_text_en": "",
                     "character_lines": [],
                     "choices": [],
                 }
@@ -538,7 +541,7 @@ class RoleplayEngine(GameTypeEngine):
             logger.warning("roleplay narrative stream failed: %s", exc)
             data = {
                 "narrator_text": "故事继续...",
-                "narrator_text_en": "The story continues...",
+                "narrator_text_en": "",
                 "character_lines": [],
                 "choices": [],
             }
@@ -558,15 +561,15 @@ class RoleplayEngine(GameTypeEngine):
             f"{branches_block}{endings_block}\n\n"
             "规则：\n"
             "- 根据玩家的选择/回答，朝对应的分支与结局推进，让不同选择导向不同结果\n"
-            "- narrator_text: 1-2句叙述推进剧情（中文）\n"
-            "- narrator_text_en: 英文翻译\n"
+            "- narrator_text: 1-2句叙述推进剧情（解释语言）\n"
+            "- narrator_text_en: 同一段叙述的目标语版本\n"
             "- character_lines: 角色的对话（如果需要的话），每个角色最多1-2句\n"
-            "- choices: 给玩家3-4个选择（中文+英文），如果适合自由输入则可以留空\n"
+            "- choices: 给玩家3-4个选择（解释语言 + 括号内目标语），如果适合自由输入则可以留空\n"
             "- relationship_changes: 如果用户行为影响了关系，给出变化\n\n"
             "返回JSON：\n"
-            '{"narrator_text":"中文叙述","narrator_text_en":"English narration",'
-            '"character_lines":[{"name":"角色名","text":"中文对话","text_en":"English dialogue","emotion":"情绪"}],'
-            '"choices":[{"label":"中文选项 (English option)","action":"A/B/C/D"}],'
+            '{"narrator_text":"解释语言的叙述","narrator_text_en":"同一段叙述的目标语版本",'
+            '"character_lines":[{"name":"角色名","text":"解释语言的对白","text_en":"同一句对白的目标语版本","emotion":"情绪"}],'
+            '"choices":[{"label":"解释语言选项 (目标语选项)","action":"A/B/C/D"}],'
             '"relationship_changes":[{"character":"角色名","delta":-5,"reason":"原因"}],'
             '"input_mode":"choice/free/mixed"}'
         )
@@ -611,12 +614,9 @@ class RoleplayEngine(GameTypeEngine):
                 "input_mode": input_mode,
             })
 
-        hud = {}
-        if user_input and trigger == "user_action":
-            try:
-                hud = await self._generate_hud(db, session, user_input)
-            except Exception as exc:
-                logger.warning("roleplay HUD failed: %s", exc)
+        # The story beat ships immediately; game_hud_worker fills in the
+        # learning analysis for free-text turns afterwards.
+        hud = pending_hud() if (user_input and trigger == "user_action") else {}
 
         return {
             "feed_items": feed,
@@ -628,45 +628,27 @@ class RoleplayEngine(GameTypeEngine):
             "relationship_changes": data.get("relationship_changes") or [],
         }
 
-    async def _generate_hud(self, db: Session, session: GameSession, user_input: str) -> dict:
-        native = session.native_language
-        target = session.target_language
-
-        system = (
-            f"你是英语表达教练。用户在角色扮演游戏中说了一句话。"
-            f"生成学习HUD帮助用户学习如何用{target}表达。\n\n"
-            "返回JSON：\n"
-            '{"main_expression":"用户意思的标准英文表达，1句不超18词",'
-            f'"meaning_native":"{native}含义",'
-            '"variants":{{"natural":"自然口语","dramatic":"戏剧化","formal":"正式","emotional":"带感情"}},'
-            f'"why_this_expression":[{{"point":"要点","explanation":"{native}解释"}}],'
-            '"patterns_v2":[{"pattern":"句型","example":"例句","add_to_crush":true}],'
-            '"vocabulary":["词1","词2","词3"],'
-            f'"agents":[{{"agent":"Story Coach","result":"{native}评价角色扮演表现"}},{{"agent":"Language Coach","result":"{native}点评表达"}},{{"agent":"Expression Guide","result":"{native}更多表达方式"}}]'
-            "}"
+    def build_hud_request(
+        self, session: GameSession, action_type: str, user_input: str, ai_response: dict,
+    ) -> HudRequest | None:
+        """Free-text roleplay lines are analysed; menu choices are not."""
+        text = (user_input or "").strip()
+        if not text or action_type not in ("message", "action", "user_action", "free"):
+            return None
+        # A bare choice label ("A" / "B") carries nothing to teach.
+        if len(text) <= 2:
+            return None
+        return HudRequest(
+            user_input=text,
+            context="玩家在角色扮演剧情中的一句台词",
+            coach_role="角色扮演表达教练",
+            agents=(
+                ("Story Coach", "评价这句台词是否推动了剧情、符合角色"),
+                ("Language Coach", "点评表达的地道程度"),
+                ("Expression Guide", "给出同一意思的其他说法"),
+            ),
+            prompt_key="roleplay.hud",
         )
-        user_msg = f"用户说：{user_input}"
-
-        try:
-            provider = _provider_for("game_challenge_hud", db)
-            hud = await provider.complete_json(system, user_msg, temperature=0.7, max_tokens=900)
-        except Exception as exc:
-            logger.warning("roleplay HUD failed: %s", exc)
-            hud = {}
-
-        for a in (hud.get("agents") or []):
-            if "name" in a and "agent" not in a:
-                a["agent"] = a.pop("name")
-
-        if "main_expression" not in hud:
-            hud["main_expression"] = hud.pop("main_reply_target", hud.pop("expression", ""))
-        if "meaning_native" not in hud:
-            hud["meaning_native"] = hud.pop("main_reply_native", hud.pop("meaning", ""))
-
-        hud["v2"] = True
-        hud["detected_intent"] = "expression_learning"
-        return hud
-
     async def get_summary(self, db: Session, session: GameSession) -> dict:
         state = session.state or {}
         patterns, vocab, expressions = [], [], []

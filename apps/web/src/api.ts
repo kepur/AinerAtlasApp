@@ -197,7 +197,7 @@ export type TtsSegment = {
 export async function addCrushCandidate(
   pattern: string,
   example = "",
-  language_code = "en",
+  language_code?: string,
   item_type: "pattern" | "vocabulary" | "grammar" = "pattern"
 ): Promise<void> {
   await apiRequest("/api/grammar/candidate", {
@@ -308,7 +308,7 @@ export async function explainToken(
   token: string,
   context = "",
   native_language = "zh",
-  target_language = "en"
+  target_language?: string
 ): Promise<TokenExplain> {
   return apiRequest<TokenExplain>("/api/vocabulary/explain", {
     method: "POST",
@@ -639,6 +639,38 @@ export async function freezeConversation(
   throw new Error("Freeze 超时，请稍后在思想库查看");
 }
 
+/**
+ * Freeze a played game session into a thought asset.
+ *
+ * Same job protocol as {@link freezeConversation} — start, then poll — because
+ * both run the identical pipeline server-side, only over a different transcript.
+ */
+export async function freezeGameSession(
+  sessionId: string,
+  title?: string,
+  onProgress?: (status: FreezeJobStatus) => void
+): Promise<Asset> {
+  let job = await apiRequest<FreezeJobStatus>(`/api/games/sessions/${sessionId}/freeze`, {
+    method: "POST",
+    body: JSON.stringify({ title: title ?? null }),
+  });
+  onProgress?.(job);
+  if (job.status === "done" && job.asset) return job.asset;
+  if (job.status === "failed") throw new Error(job.error || "Freeze failed");
+
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await sleep(1000);
+    job = await apiRequest<FreezeJobStatus>(
+      `/api/games/sessions/${sessionId}/freeze/status`
+    );
+    onProgress?.(job);
+    if (job.status === "done" && job.asset) return job.asset;
+    if (job.status === "failed") throw new Error(job.error || "Freeze failed");
+  }
+
+  throw new Error("Freeze 超时，请稍后在思想库查看");
+}
+
 export type TopicDraft = {
   title: string;
   background: string;
@@ -769,8 +801,9 @@ export async function startVocabBatch(size = 10, language?: string): Promise<Voc
   return apiRequest<VocabBatchStart>(`/api/vocabulary/practice/batch?size=${size}${languageQuery}`);
 }
 
-export async function startGrammarBatch(size = 10): Promise<GrammarBatchStart> {
-  return apiRequest<GrammarBatchStart>(`/api/grammar/practice/batch?size=${size}`);
+export async function startGrammarBatch(size = 10, language?: string): Promise<GrammarBatchStart> {
+  const languageQuery = language ? `&language_code=${encodeURIComponent(language)}` : "";
+  return apiRequest<GrammarBatchStart>(`/api/grammar/practice/batch?size=${size}${languageQuery}`);
 }
 
 export async function submitGrammarBatchSummary(

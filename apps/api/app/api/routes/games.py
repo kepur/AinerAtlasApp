@@ -6,12 +6,14 @@ import logging
 from datetime import UTC, datetime
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.api.deps import AdminUser, CurrentUser, DBSession
 from app.services import game_engine as engine
+from app.services.game_hud_worker import analyze_turn, run_turn_hud
+from app.services.learning_hud import STATUS_FAILED, is_pending
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/games", tags=["games"])
@@ -20,6 +22,10 @@ router = APIRouter(prefix="/games", tags=["games"])
 # ---------------------------------------------------------------------------
 # Request schemas
 # ---------------------------------------------------------------------------
+
+class FreezeRequest(BaseModel):
+    title: str | None = None
+
 
 class CreateSessionRequest(BaseModel):
     game_type: str
@@ -628,12 +634,19 @@ def get_session(session_id: str, current_user: CurrentUser, db: DBSession) -> di
 async def send_turn(
     session_id: str, payload: TurnRequest,
     current_user: CurrentUser, db: DBSession,
+    background_tasks: BackgroundTasks,
 ) -> dict:
     try:
-        return await engine.handle_turn(
+        result = await engine.handle_turn(
             db, session_id, current_user.id,
             payload.action_type, payload.user_input, payload.extra,
         )
+        # The dialogue is already in `result`; the learning HUD is analysed
+        # afterwards and picked up from the turn's /hud endpoint.
+        turn = result.get("turn") or {}
+        if is_pending(turn.get("hud")) and turn.get("id"):
+            background_tasks.add_task(run_turn_hud, turn["id"])
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -669,8 +682,13 @@ async def send_turn_stream(
                 db, session_id, current_user.id,
                 payload.action_type, payload.user_input, payload.extra,
             )
+
             async def single_event() -> AsyncGenerator[str, None]:
                 yield f"event: complete\ndata: {json.dumps(result, ensure_ascii=False, default=str)}\n\n"
+                # Reply first, analysis second — same stream, no extra request.
+                async for chunk in _stream_turn_hud(db, sess, (result.get("turn") or {}).get("id")):
+                    yield chunk
+
             return StreamingResponse(single_event(), media_type="text/event-stream")
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -747,11 +765,125 @@ async def send_turn_stream(
                         },
                     }
                     yield f"event: complete\ndata: {json.dumps(final, ensure_ascii=False, default=str)}\n\n"
+
+                    # Phase two on the same stream: the learning analysis.
+                    async for chunk in _stream_turn_hud(db, sess, turn.id):
+                        yield chunk
         except Exception as exc:
             logger.exception("streaming turn failed")
             yield f"event: error\ndata: {json.dumps({'detail': str(exc)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
+
+
+async def _stream_turn_hud(db, sess, turn_id: str | None) -> AsyncGenerator[str, None]:
+    """Emit `analyzing` then `hud` for a turn whose HUD is still pending.
+
+    Yields nothing when the turn has no learning analysis (a "start" action or
+    a menu choice), so those turns simply end after `complete`.
+    """
+    from app.models import GameTurn
+
+    if not turn_id:
+        return
+    turn = db.get(GameTurn, turn_id)
+    if not turn or not is_pending(turn.hud):
+        return
+
+    yield f"event: analyzing\ndata: {json.dumps({'turn_id': turn_id}, ensure_ascii=False)}\n\n"
+    try:
+        hud = await analyze_turn(db, sess, turn)
+    except Exception:  # noqa: BLE001 — a failed HUD must not fail the turn
+        logger.exception("turn HUD analysis failed for %s", turn_id)
+        hud = {"analysis_status": STATUS_FAILED}
+    payload = {"turn_id": turn_id, "hud": hud}
+    yield f"event: hud\ndata: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n"
+
+
+@router.get("/sessions/{session_id}/turns/{turn_id}/hud")
+async def get_turn_hud(
+    session_id: str, turn_id: str, current_user: CurrentUser, db: DBSession,
+) -> dict:
+    """Catch-up for the async HUD when the stream was dropped or never opened.
+
+    Returns the stored HUD; if the analysis never ran (client reconnected after
+    a restart), it is run now so the player still gets their learning points.
+    """
+    from app.models import GameSession, GameTurn
+
+    sess = db.get(GameSession, session_id)
+    if not sess or sess.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+    turn = db.get(GameTurn, turn_id)
+    if not turn or turn.session_id != session_id:
+        raise HTTPException(status_code=404, detail="Turn not found")
+
+    if is_pending(turn.hud):
+        try:
+            await analyze_turn(db, sess, turn)
+        except Exception:  # noqa: BLE001
+            logger.exception("catch-up HUD analysis failed for %s", turn_id)
+            return {"turn_id": turn_id, "hud": {"analysis_status": STATUS_FAILED}}
+
+    return {"turn_id": turn_id, "hud": turn.hud or {}}
+
+
+@router.post("/sessions/{session_id}/freeze")
+async def freeze_game_session(
+    session_id: str,
+    payload: FreezeRequest,
+    current_user: CurrentUser,
+    db: DBSession,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Start async Thought Freeze for a played session.
+
+    Mirrors the conversation freeze: the transcript (what the player said, the
+    game's replies, and the expressions the HUD taught) becomes a versioned
+    Thought + ExpressionAsset. Poll GET /freeze/status for the result.
+    """
+    from app.models import GameSession
+    from app.services.conversation_freeze_service import (
+        game_source,
+        get_game_freeze_status,
+        run_game_freeze_job,
+    )
+    from app.services.freeze_job_store import freeze_job_store
+
+    sess = db.get(GameSession, session_id)
+    if not sess or sess.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Fail fast on an empty session rather than burning an LLM call.
+    try:
+        game_source(db, session_id, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    job = get_game_freeze_status(session_id, current_user.id)
+    if job.get("status") == "processing":
+        return {"status": "processing"}
+    if job.get("status") == "done" and job.get("asset"):
+        return {"status": "done", "asset": job["asset"]}
+
+    freeze_job_store.set("game", session_id, current_user.id, {"status": "processing"})
+    background_tasks.add_task(
+        run_game_freeze_job, session_id, current_user.id, payload.title
+    )
+    return {"status": "processing"}
+
+
+@router.get("/sessions/{session_id}/freeze/status")
+def freeze_game_session_status(
+    session_id: str, current_user: CurrentUser, db: DBSession,
+) -> dict:
+    from app.models import GameSession
+    from app.services.conversation_freeze_service import get_game_freeze_status
+
+    sess = db.get(GameSession, session_id)
+    if not sess or sess.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return get_game_freeze_status(session_id, current_user.id)
 
 
 @router.get("/sessions/{session_id}/summary")

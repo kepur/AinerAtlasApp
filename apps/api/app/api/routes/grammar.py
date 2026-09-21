@@ -22,6 +22,7 @@ from app.services.pattern_mining import _upsert_mastery_item
 from app.services.crush_batch import prepare_grammar_batch_exercises, select_grammar_batch
 from app.services.crush_exercise_llm import generate_exercise_smart, generate_grammar_batch_analysis
 from app.services.practice import generate_exercise, grade_answer, stash_exercise, take_exercise
+from app.services.learning_language import learning_language
 
 router = APIRouter(prefix="/grammar", tags=["grammar"])
 
@@ -41,17 +42,19 @@ def add_crush_candidate(
         raise HTTPException(status_code=400, detail="pattern is required")
     item_type = payload.item_type if payload.item_type in {"pattern", "vocabulary", "grammar"} else "pattern"
     examples = [payload.example.strip()] if payload.example.strip() else []
+    language = learning_language(db, current_user.id,
+        payload.language_code if "language_code" in payload.model_fields_set else None)
     _upsert_mastery_item(
         db,
         user_id=current_user.id,
         item_type=item_type,
         title=title,
-        target_language=payload.language_code or "en",
+        target_language=language,
         examples=examples,
         priority=5,
     )
     db.commit()
-    item_id = f"{payload.language_code or 'en'}:{item_type}:{_slug_title(title)}"
+    item_id = f"{language}:{item_type}:{_slug_title(title)}"
     row = db.scalar(
         select(UserMastery).where(
             UserMastery.user_id == current_user.id,
@@ -84,17 +87,17 @@ def review_queue(
         .order_by(UserMastery.priority.desc(), UserMastery.created_at.desc())
         .limit(20)
     )
-    if language_code:
-        stmt = stmt.where(UserMastery.language_code == language_code)
+    stmt = stmt.where(UserMastery.language_code == learning_language(db, current_user.id, language_code))
     return list(db.scalars(stmt))
 
 
-def _count_grammar_remaining(user_id: str, db: DBSession) -> int:
+def _count_grammar_remaining(user_id: str, db: DBSession, language: str) -> int:
     return db.scalar(
         select(func.count())
         .select_from(UserMastery)
         .where(
             UserMastery.user_id == user_id,
+            UserMastery.language_code == language,
             UserMastery.item_type != "vocabulary",
             UserMastery.status.not_in(["mastered", "archived", "ignored"]),
         )
@@ -102,8 +105,9 @@ def _count_grammar_remaining(user_id: str, db: DBSession) -> int:
 
 
 @router.get("/practice/batch", response_model=GrammarBatchStartResponse)
-def start_grammar_batch(current_user: CurrentUser, db: DBSession, size: int = 10) -> GrammarBatchStartResponse:
-    batch = select_grammar_batch(db, current_user.id, size=size)
+def start_grammar_batch(current_user: CurrentUser, db: DBSession, size: int = 10, language_code: str | None = None) -> GrammarBatchStartResponse:
+    language = learning_language(db, current_user.id, language_code)
+    batch = select_grammar_batch(db, current_user.id, size=size, language=language)
     prepared = prepare_grammar_batch_exercises(current_user.id, batch)
     exercises = [
         GrammarBatchExerciseReady(
@@ -115,7 +119,7 @@ def start_grammar_batch(current_user: CurrentUser, db: DBSession, size: int = 10
     ]
     return GrammarBatchStartResponse(
         batch_size=len(batch),
-        total_remaining=int(_count_grammar_remaining(current_user.id, db)),
+        total_remaining=int(_count_grammar_remaining(current_user.id, db, language)),
         items=batch,
         exercises=exercises,
     )
@@ -131,6 +135,11 @@ async def grammar_batch_summary(
         raise HTTPException(status_code=400, detail="results is required")
 
     raw = [row.model_dump() for row in payload.results]
+    for row in raw:
+        item = db.scalar(select(UserMastery).where(UserMastery.id == row["item_id"], UserMastery.user_id == current_user.id))
+        if not item:
+            raise HTTPException(404, "Practice item not found")
+        row["language_code"] = item.language_code
     data = await generate_grammar_batch_analysis(db, raw)
     insights = [
         GrammarBatchInsight(
@@ -167,11 +176,12 @@ def list_patterns(db: DBSession, language_code: str | None = Query(None)) -> lis
 
 
 @router.get("/mastery", response_model=list[MasteryRead])
-def mastery_items(current_user: CurrentUser, db: DBSession) -> list[UserMastery]:
+def mastery_items(current_user: CurrentUser, db: DBSession, language_code: str | None = None) -> list[UserMastery]:
     return list(
         db.scalars(
             select(UserMastery)
-            .where(UserMastery.user_id == current_user.id)
+            .where(UserMastery.user_id == current_user.id,
+                   UserMastery.language_code == learning_language(db, current_user.id, language_code))
             .order_by(UserMastery.mastery_score.desc())
         )
     )

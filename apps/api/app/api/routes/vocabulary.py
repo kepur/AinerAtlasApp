@@ -33,6 +33,7 @@ from app.services.vocab_practice import (
     select_vocab_batch,
 )
 from app.services.vocabulary_ladder import build_vocabulary_ladder
+from app.services.learning_language import learning_language
 
 router = APIRouter(prefix="/vocabulary", tags=["vocabulary"])
 
@@ -41,9 +42,9 @@ router = APIRouter(prefix="/vocabulary", tags=["vocabulary"])
 def vocabulary_ladder(
     current_user: CurrentUser,
     db: DBSession,
-    language: str = "en",
+    language: str | None = None,
 ) -> dict:
-    return build_vocabulary_ladder(db, current_user.id, language)
+    return build_vocabulary_ladder(db, current_user.id, learning_language(db, current_user.id, language))
 
 
 @router.post("/explain", response_model=TokenExplainResponse)
@@ -53,6 +54,8 @@ async def explain_token(
     db: DBSession,
 ) -> TokenExplainResponse:
     """Explain a single word/phrase. Caches result in VocabularyItem so repeat lookups skip LLM."""
+    payload.target_language = learning_language(db, current_user.id,
+        payload.target_language if "target_language" in payload.model_fields_set else None)
     token = payload.token.strip()
     if not token:
         raise HTTPException(status_code=400, detail="token is required")
@@ -263,6 +266,7 @@ def vocabulary_queue(
     limit: int = 50,
     language: str | None = None,
 ) -> list:
+    language = learning_language(db, current_user.id, language)
     cap = max(1, min(limit, 100))
     vocab_filters = [
         VocabularyItem.user_id == current_user.id,
@@ -305,6 +309,7 @@ def start_vocab_batch(
     size: int = 10,
     language: str | None = None,
 ) -> VocabBatchStartResponse:
+    language = learning_language(db, current_user.id, language)
     batch = select_vocab_batch(db, current_user.id, size=size, language=language)
     remaining = _count_remaining(current_user.id, db, language)
     prepared = prepare_vocab_batch_exercises(db, current_user.id, batch)
@@ -334,6 +339,8 @@ async def vocab_batch_summary(
         raise HTTPException(status_code=400, detail="results is required")
 
     raw = [row.model_dump() for row in payload.results]
+    for row in raw:
+        row["language_code"] = _resolve_vocab_item(row["item_id"], current_user.id, db).language_code
     data = await generate_batch_analysis(db, raw)
     insights = [
         VocabWordInsight(
@@ -352,13 +359,14 @@ async def vocab_batch_summary(
 
 
 @router.get("/today", response_model=list[VocabularyRead])
-def today_vocabulary(current_user: CurrentUser, db: DBSession) -> list[VocabularyItem]:
+def today_vocabulary(current_user: CurrentUser, db: DBSession, language: str | None = None) -> list[VocabularyItem]:
     today = datetime.now(UTC).date()
     items = list(
         db.scalars(
             select(VocabularyItem)
             .where(
                 VocabularyItem.user_id == current_user.id,
+                VocabularyItem.language_code == learning_language(db, current_user.id, language),
                 VocabularyItem.mastery_status.not_in(["mastered", "ignored"]),
             )
             .order_by(VocabularyItem.priority.desc(), VocabularyItem.last_seen_at.desc())
@@ -373,11 +381,12 @@ def today_vocabulary(current_user: CurrentUser, db: DBSession) -> list[Vocabular
 
 
 @router.get("", response_model=list[VocabularyRead])
-def list_vocabulary(current_user: CurrentUser, db: DBSession) -> list[VocabularyItem]:
+def list_vocabulary(current_user: CurrentUser, db: DBSession, language: str | None = None) -> list[VocabularyItem]:
     return list(
         db.scalars(
             select(VocabularyItem)
             .where(VocabularyItem.user_id == current_user.id)
+            .where(VocabularyItem.language_code == learning_language(db, current_user.id, language))
             .order_by(VocabularyItem.priority.desc(), VocabularyItem.created_at.desc())
         )
     )

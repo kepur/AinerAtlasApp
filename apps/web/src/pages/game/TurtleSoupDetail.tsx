@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Flame, Globe, BarChart2, Clock, Leaf, Keyboard, Mic, HelpCircle, Brain, History, CheckCircle2, MessageSquare, Search, Lightbulb, User, Users, Play, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 import { useGameStore, GameTemplate } from "../../stores/gameStore";
+import { useLearningLanguageStore } from "../../stores/learningLanguageStore";
 
 export default function TurtleSoupDetail() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function TurtleSoupDetail() {
   const coverUrl = tpl?.cover_url || "https://images.unsplash.com/photo-1555581290-955aee470762?auto=format&fit=crop&q=80&w=800&h=400";
   const difficulty = tpl?.difficulty || "B1";
   const minutes = tpl?.estimated_minutes || 10;
-  const targetLang = (tpl?.target_language === "en" || !tpl) ? "English" : (tpl?.target_language || "English");
+  const targetLang = useLearningLanguageStore((s) => s.language).toUpperCase();
   const learningFocus = (tpl?.learning_focus && tpl.learning_focus.length > 0)
     ? tpl.learning_focus
     : ["提问句", "推理表达", "过去时", "Yes/No Questions"];

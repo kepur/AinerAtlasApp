@@ -16,7 +16,8 @@ router = APIRouter(prefix="/config", tags=["config"])
 
 class TTSConfigRead(BaseModel):
     tts_provider: str = "edge"
-    tts_voice: str = "zh-CN-XiaoxiaoNeural"
+    # Empty = pick per content language (app/services/tts_profile.py).
+    tts_voice: str = ""
     tts_speed: float = 0.9
     tts_pitch: float = 1.1
 
@@ -28,7 +29,7 @@ def read_tts_config(db: DBSession) -> TTSConfigRead:
     settings = get_app_settings(db)
     return TTSConfigRead(
         tts_provider=getattr(settings, "tts_provider", "edge") or "edge",
-        tts_voice=getattr(settings, "tts_voice", "zh-CN-XiaoxiaoNeural") or "zh-CN-XiaoxiaoNeural",
+        tts_voice=getattr(settings, "tts_voice", "") or "",
         tts_speed=float(getattr(settings, "tts_speed", 0.9) or 0.9),
         tts_pitch=float(getattr(settings, "tts_pitch", 1.1) or 1.1),
     )

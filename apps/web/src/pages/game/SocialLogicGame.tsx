@@ -99,12 +99,13 @@ export default function SocialLogicGame() {
   const nightRunRef = useRef(false);
   const [nightSec, setNightSec] = useState(0);
 
-  const { speak: ttsSpeak } = useTts();
+  const { speak: ttsSpeak } = useTts(game?.target_language);
   const {
     turns: learningTurns,
     activeTurnId,
     pinnedTurnId,
     pushTurn,
+    updateTurnHud,
     setActiveTurn,
     pinTurn,
     unpinTurn,
@@ -179,6 +180,23 @@ export default function SocialLogicGame() {
       return data;
     } finally {
       setBusy(false);
+    }
+  };
+
+  /**
+   * Catch-up for the async challenge HUD. The endpoint returns whatever the
+   * background worker wrote, so one call is enough — no polling loop.
+   */
+  const fetchLearningTurn = async (gameId: string, index: number, turnId: string) => {
+    try {
+      const res = await apiRequest<{ hud: Record<string, unknown> }>(
+        `/api/games/social-logic/${gameId}/learning-turns/${index}`
+      );
+      if (res?.hud && res.hud.analysis_status !== "pending") {
+        updateTurnHud(turnId, normalizeGameHud(res.hud));
+      }
+    } catch (e) {
+      console.warn("challenge HUD unavailable", e);
     }
   };
 
@@ -320,8 +338,13 @@ export default function SocialLogicGame() {
       const data = await call(`/${gid}/question`, { target_player_id: targetId, content: text.trim() });
       if (data.state) setGame(data.state);
       if (data.hud) {
-        const hud = normalizeGameHud(data.hud);
-        pushTurn(`问 ${target?.name || "?"}`, hud);
+        const label = `问 ${target?.name || "?"}`;
+        const turnId = pushTurn(label, normalizeGameHud(data.hud));
+        // The accused has already answered. The challenge analysis is still
+        // running server-side — collect it once and swap it in.
+        if (data.hud.analysis_status === "pending" && data.hud_turn_index != null) {
+          void fetchLearningTurn(gid, data.hud_turn_index, turnId);
+        }
       }
       setActionMode("question");
     } catch (e) {
@@ -347,7 +370,7 @@ export default function SocialLogicGame() {
     const sp = players.find((p: any) => p.name === speakerName);
     const voice = sp?.voice || "neutral_narrator";
     try {
-      const url = await useAudioCacheStore.getState().getOrFetch(text, "en", voice);
+      const url = await useAudioCacheStore.getState().getOrFetch(text, game?.target_language, voice);
       await new Audio(url).play();
     } catch {
       // Keep playback provider-consistent; never fall back to OS speech.
@@ -393,7 +416,7 @@ export default function SocialLogicGame() {
     if (!summary?.patterns?.length) return;
     setCrushBusy(true);
     try {
-      const n = await addPatternsToCrush(summary.patterns as string[]);
+      const n = await addPatternsToCrush(summary.patterns as string[], game?.target_language);
       if (n > 0) setCrushDone(true);
     } finally {
       setCrushBusy(false);
@@ -408,7 +431,7 @@ export default function SocialLogicGame() {
         ...(summary.expressions || []),
         ...(summary.patterns || []),
       ] as string[];
-      const ok = await saveGameToAssets("狼人杀 Lite 学习收获", lines);
+      const ok = await saveGameToAssets("狼人杀 Lite 学习收获", lines, game?.target_language);
       if (ok) setAssetsDone(true);
     } finally {
       setAssetsBusy(false);

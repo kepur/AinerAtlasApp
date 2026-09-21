@@ -12,6 +12,7 @@ from app.api.routes import (
     gamification,
     games,
     grammar,
+    learning,
     matching,
     party_room,
     privacy,
@@ -33,6 +34,7 @@ api_router.include_router(profile.router)
 api_router.include_router(conversations.router)
 api_router.include_router(assets.router)
 api_router.include_router(grammar.router)
+api_router.include_router(learning.router)
 api_router.include_router(vocabulary.router)
 api_router.include_router(voice.router)
 api_router.include_router(admin.router)

@@ -284,6 +284,8 @@ def seed_defaults() -> None:
         seed_aliyun_providers(db, settings)
         _repair_provider_api_keys(db, settings)
         _repair_conversation_schema(db)
+        _repair_thought_schema(db)
+        _repair_app_settings_schema(db)
         _repair_conversation_activity_schema(db)
         _repair_user_profile_schema(db)
         _repair_app_settings_schema(db)
@@ -640,6 +642,28 @@ def _repair_conversation_schema(db) -> None:
     db.execute(text("CREATE INDEX IF NOT EXISTS ix_conversations_deleted_at ON conversations (deleted_at)"))
     db.execute(
         text("CREATE INDEX IF NOT EXISTS ix_conversations_moderation_status ON conversations (moderation_status)")
+    )
+
+
+def _repair_app_settings_schema(db) -> None:
+    """Ensure per-language TTS overrides exist (PostgreSQL dev safety)."""
+    if db.bind is None or db.bind.dialect.name != "postgresql":
+        return
+    db.execute(
+        text(
+            "ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS "
+            "tts_voice_overrides JSONB NOT NULL DEFAULT '{}'::jsonb"
+        )
+    )
+
+
+def _repair_thought_schema(db) -> None:
+    """Ensure thoughts can reference a game session (PostgreSQL dev safety)."""
+    if db.bind is None or db.bind.dialect.name != "postgresql":
+        return
+    db.execute(text("ALTER TABLE thoughts ADD COLUMN IF NOT EXISTS game_session_id VARCHAR(36)"))
+    db.execute(
+        text("CREATE INDEX IF NOT EXISTS ix_thoughts_game_session_id ON thoughts (game_session_id)")
     )
 
 

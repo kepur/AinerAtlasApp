@@ -1,4 +1,6 @@
 import { useState } from "react";
+import LanguageSwitcher from "../../components/LanguageSwitcher";
+import { useLearningLanguageStore } from "../../stores/learningLanguageStore";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, HelpCircle, ChevronRight, Mic, Book, MessageSquare, Sparkles, Star } from "lucide-react";
 
@@ -7,7 +9,7 @@ export default function RoleplaySetup() {
   const [gameMode, setGameMode] = useState("system"); // system, custom, ai_story, free_chat
   const [storyGenre, setStoryGenre] = useState("xianxia");
   const [difficulty, setDifficulty] = useState("normal");
-  const [language, setLanguage] = useState("english");
+  const language = useLearningLanguageStore(s => s.language);
 
   const handleNext = () => {
     // Route to the right entry by chosen mode (instead of always custom builder).
@@ -211,31 +213,9 @@ export default function RoleplaySetup() {
           </div>
         </section>
 
-        {/* Section 4: 目标语言 */}
-        <section>
-          <h3 className="font-bold text-[#111827] text-sm mb-3">目标语言</h3>
-          <div className="flex gap-2">
-            <div 
-              onClick={() => setLanguage('english')}
-              className={`flex-1 relative py-3 rounded-xl border-2 transition-all cursor-pointer text-center ${
-                language === 'english' ? 'border-[#8b5cf6] bg-[#f5f3ff]' : 'border-transparent bg-white shadow-sm'
-              }`}
-            >
-               {language === 'english' && (
-                  <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[#8b5cf6] text-white flex items-center justify-center shadow-sm">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  </div>
-                )}
-              <div className={`font-bold text-xs ${language === 'english' ? 'text-[#8b5cf6]' : 'text-[#111827]'}`}>English</div>
-            </div>
-            
-            {['中文', '日语', '韩语'].map(lang => (
-               <div key={lang} className="flex-1 py-2 rounded-xl bg-gray-50 border border-gray-100 text-center opacity-60 pointer-events-none flex flex-col justify-center">
-                 <div className="font-bold text-xs text-[#9ca3af]">{lang}</div>
-                 <div className="text-[8px] text-[#d1d5db]">Coming soon</div>
-               </div>
-            ))}
-          </div>
+        <section className="rounded-2xl bg-white p-4 border border-gray-100">
+          <div className="flex items-center justify-between"><h3 className="font-bold text-sm">跟随全局学习语言</h3><LanguageSwitcher /></div>
+          <p className="mt-2 text-xs text-gray-500">新游戏使用当前语言生成对白、表达和练习。旧存档保留原来的语言。</p>
         </section>
 
         {/* Section 5: 其他设置 */}

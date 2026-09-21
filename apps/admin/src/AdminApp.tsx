@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { DataManagement } from "./DataManagement";
+import TtsVoiceMatrix from "./TtsVoiceMatrix";
 import { MatchRadar } from "./MatchRadar";
 import { TopicManagement } from "./TopicManagement";
 import { CircleManagement } from "./CircleManagement";
@@ -398,6 +399,8 @@ type AppSettings = {
   default_embedding_provider: string;
   tts_provider: string;
   tts_voice: string;
+  /** {provider: {language: voice}} — empty language = use the built-in default. */
+  tts_voice_overrides?: Record<string, Record<string, string>>;
   tts_speed: number;
   tts_pitch: number;
   global_api_keys: { platform: string; api_key: string; base_url: string }[];
@@ -586,7 +589,8 @@ function AdminApp() {
     realtime_asr_provider: "auto",
     default_embedding_provider: "",
     tts_provider: "edge",
-    tts_voice: "zh-CN-XiaoxiaoNeural",
+    tts_voice: "",
+    tts_voice_overrides: {},
     tts_speed: 0.9,
     tts_pitch: 1.1,
     global_api_keys: [] as { platform: string; api_key: string; base_url: string }[],
@@ -731,7 +735,8 @@ function AdminApp() {
       realtime_asr_provider: appData.realtime_asr_provider ?? "auto",
       default_embedding_provider: appData.default_embedding_provider ?? "",
       tts_provider: (appData as any).tts_provider === "browser" ? "edge" : ((appData as any).tts_provider ?? "edge"),
-      tts_voice: (appData as any).tts_voice ?? "zh-CN-XiaoxiaoNeural",
+      tts_voice: (appData as any).tts_voice ?? "",
+      tts_voice_overrides: (appData as any).tts_voice_overrides ?? {},
       tts_speed: (appData as any).tts_speed ?? 0.9,
       tts_pitch: (appData as any).tts_pitch ?? 1.1,
       global_api_keys: Array.isArray((appData as any).global_api_keys) ? (appData as any).global_api_keys : [],
@@ -3067,8 +3072,9 @@ function AdminApp() {
                   </select>
                 </label>
                 <label>
-                  默认音色
+                  默认音色（留空 = 按语言自动）
                   <select value={appForm.tts_voice} onChange={(e) => setAppForm({ ...appForm, tts_voice: e.target.value })}>
+                    <option value="">按内容语言自动选择（推荐）</option>
                     <optgroup label="Qwen-TTS 阿里云 (推荐)">
                       <option value="Cherry">Cherry (甜美女声)</option>
                       <option value="Stella">Stella (知性女声)</option>
@@ -3101,6 +3107,14 @@ function AdminApp() {
                     </optgroup>
                   </select>
                 </label>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <TtsVoiceMatrix
+                    provider={appForm.tts_provider}
+                    overrides={appForm.tts_voice_overrides ?? {}}
+                    onChange={(next) => setAppForm({ ...appForm, tts_voice_overrides: next })}
+                    token={token}
+                  />
+                </div>
                 <label>
                   语速
                   <input type="range" min="0.5" max="1.5" step="0.05" value={appForm.tts_speed}

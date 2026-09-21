@@ -226,7 +226,14 @@ async def synthesize(payload: TTSRequest, db: DBSession) -> dict:
     _provider = getattr(_app, "tts_provider", "edge") or "edge" if _app else "edge"
     if _provider == "browser":
         _provider = "edge"
-    _key = _tts_cache_key(_provider, payload.voice or "", payload.language or "", payload.speed, payload.text)
+    # Include the voice pins so re-pinning a language's voice invalidates the
+    # audio cached under the previous one.
+    from app.services.tts_profile import overrides_fingerprint
+
+    _key = _tts_cache_key(
+        f"{_provider}:{overrides_fingerprint(db, _provider)}",
+        payload.voice or "", payload.language or "", payload.speed, payload.text,
+    )
     _hit = _tts_cache_get(_key)
     if _hit is not None:
         return {**_hit, "text": payload.text, "speed": payload.speed, "cached": True}
@@ -255,9 +262,12 @@ async def _synthesize_impl(payload: TTSRequest, db: DBSession) -> dict:
             tts = getattr(app, "tts_provider", "edge") or "edge" if app else "edge"
             if tts == "browser":
                 tts = "edge"
-            voice_name = provider_voice_for(preset["id"], tts)
+            voice_name = provider_voice_for(
+                preset["id"], tts, payload.language or "", db=db
+            )
             return await _synthesize_with_provider(
                 db, tts, payload.text, voice_name, payload.speed, app,
+                language=payload.language or "",
             )
     except Exception:  # noqa: BLE001
         pass
@@ -282,11 +292,13 @@ async def _synthesize_impl(payload: TTSRequest, db: DBSession) -> dict:
     # Fallback to configured provider without language routing
     return await _synthesize_with_provider(
         db, tts, payload.text, payload.voice, payload.speed, app,
+        language=payload.language or "",
     )
 
 
 async def _synthesize_with_provider(
     db, provider_name: str, text: str, voice: str, speed: float, app,
+    language: str = "",
 ) -> dict:
     """Build the correct provider instance and call synthesize."""
     from app.core.security import decrypt_api_key
@@ -316,36 +328,88 @@ async def _synthesize_with_provider(
             except: pass
         return ""
 
-    if provider_name in {"edge", "browser"}:
-        language = "zh" if any("\u4e00" <= ch <= "\u9fff" for ch in text) else "en"
-        selected = edge_voice_for(language, voice or getattr(app, "tts_voice", ""))
+    async def synth_edge() -> dict:
+        """Microsoft Edge TTS — the always-available default.
+
+        No API key, every supported language, and its own voice and pace per
+        language (see app.services.tts_profile).
+        """
+        from app.services.tts_profile import effective_pitch, effective_speed
+        from app.services.tts_router import detect_text_language
+
+        # Trust the caller's language; only guess when it said nothing. Script
+        # detection cannot tell kana from an English sentence's absence of Han
+        # characters, which used to send every non-Chinese language to an
+        # English voice.
+        from app.services.tts_profile import resolve_voice
+
+        lang = language or detect_text_language(text)
+        configured = voice or getattr(app, "tts_voice", "")
+        # A voice the admin pinned for this exact language wins; a global one
+        # only applies when it belongs to the language (edge_voice_for checks).
+        selected = edge_voice_for(lang, configured) if configured else resolve_voice(db, lang)
         provider = EdgeTTSProvider(
             voice=selected,
-            pitch=float(getattr(app, "tts_pitch", 1.0) or 1.0),
+            pitch=effective_pitch(lang, float(getattr(app, "tts_pitch", 1.0) or 1.0)),
         )
-        return await provider.synthesize(text, selected, speed)
+        out = await provider.synthesize(text, selected, effective_speed(lang, speed))
+        out.setdefault("routed_language", lang)
+        return out
+
+    def _is_silent(result: dict) -> bool:
+        return not (result.get("audio_base64") or result.get("audio_url"))
+
+    async def with_edge_fallback(coro_factory, label: str) -> dict:
+        """Run a paid provider, but never let the learner end up in silence."""
+        try:
+            result = await coro_factory()
+            if not _is_silent(result):
+                return result
+            logger.warning("TTS provider %s returned no audio; using Edge instead", label)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("TTS provider %s failed (%s); using Edge instead", label, exc)
+        fallback = await synth_edge()
+        fallback["fallback_from"] = label
+        return fallback
+
+    if provider_name in {"edge", "browser"}:
+        return await synth_edge()
 
     if provider_name == "cosyvoice":
         default_voice = getattr(app, "tts_voice", "longanhuan") or "longanhuan" if app else "longanhuan"
         api_key = get_key(global_keys, "dashscope") or find_provider_key("cosyvoice") or find_provider_key("dashscope") or resolve_dashscope_api_key(db) or ""
         if not api_key:
-            return {"audio_url": "", "audio_base64": "", "provider": "cosyvoice", "error": "请在 Global API Keys 中添加 dashscope 平台的 API Key"}
-        provider = CosyVoiceProvider(api_key=api_key, voice=voice or default_voice)
-        return await provider.synthesize(text, voice or default_voice, speed)
+            result = await synth_edge()
+            result["fallback_from"] = "cosyvoice"
+            return result
+        chosen = voice or default_voice
+        return await with_edge_fallback(
+            lambda: CosyVoiceProvider(api_key=api_key, voice=chosen).synthesize(text, chosen, speed),
+            "cosyvoice",
+        )
 
     if provider_name == "qwentts":
         default_voice = getattr(app, "tts_voice", "Cherry") or "Cherry" if app else "Cherry"
         api_key = get_key(global_keys, "dashscope") or find_provider_key("qwentts") or find_provider_key("dashscope") or resolve_dashscope_api_key(db) or ""
         if not api_key:
-            return {"audio_url": "", "audio_base64": "", "provider": "qwentts", "error": "请在 Global API Keys 中添加 dashscope 平台的 API Key"}
-        provider = QwenTTSProvider(api_key=api_key, voice=voice or default_voice)
-        return await provider.synthesize(text, voice or default_voice, speed)
+            # Qwen-TTS is not wired up — speak with Edge rather than go silent.
+            result = await synth_edge()
+            result["fallback_from"] = "qwentts"
+            return result
+        chosen = voice or default_voice
+        return await with_edge_fallback(
+            lambda: QwenTTSProvider(api_key=api_key, voice=chosen).synthesize(text, chosen, speed),
+            "qwentts",
+        )
 
     # openai / mock / other
     from app.services.voice import get_voice_provider
     from app.services.runtime_config import resolve_default_voice_provider
-    provider = get_voice_provider(resolve_default_voice_provider(db), db)
-    return await provider.synthesize(text, voice, speed)
+
+    return await with_edge_fallback(
+        lambda: get_voice_provider(resolve_default_voice_provider(db), db).synthesize(text, voice, speed),
+        provider_name,
+    )
 
 
 @router.post("/tts-mixed")

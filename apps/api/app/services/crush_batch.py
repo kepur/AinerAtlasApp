@@ -9,15 +9,17 @@ from app.models import UserMastery, VocabularyItem
 from app.schemas import PracticeExercise
 from app.services.practice import generate_exercise, stash_exercise
 from app.services.vocab_practice import generate_vocab_exercise
+from app.services.learning_language import learning_language
 
 
-def select_grammar_batch(db: Session, user_id: str, *, size: int = 10) -> list[UserMastery]:
+def select_grammar_batch(db: Session, user_id: str, *, size: int = 10, language: str | None = None) -> list[UserMastery]:
     limit = max(1, min(size, 10))
     return list(
         db.scalars(
             select(UserMastery)
             .where(
                 UserMastery.user_id == user_id,
+                UserMastery.language_code == learning_language(db, user_id, language),
                 UserMastery.item_type != "vocabulary",
                 UserMastery.status.not_in(["mastered", "archived", "ignored"]),
             )
